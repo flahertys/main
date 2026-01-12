@@ -1,5 +1,36 @@
-# shamrockstocks.github.io
-landing page temp
+# tradehax.net
+
+Professional website and portfolio for ShamrockStocks, featuring an interactive resume viewer and project showcase.
+
+## 🚀 Quick Start
+
+This site is deployed automatically to **https://tradehax.net** via GitHub Pages when changes are pushed to the `main` branch.
+
+**For detailed deployment instructions**, see [DEPLOYMENT.md](DEPLOYMENT.md)
+
+## 📋 Site Structure
+
+- **Homepage** (`index.html`) - Interactive resume viewer with PDF download
+- **About** (`about.html`) - About page placeholder
+- **Projects** (`projects.html`) - Project showcase placeholder
+- **Blog** (`blog/index.html`) - Blog section placeholder
+
+## 🔧 Local Development
+
+To test the site locally:
+
+```bash
+# Start a local web server
+python3 -m http.server 8080
+
+# Visit http://localhost:8080 in your browser
+```
+
+## 📦 Assets
+
+- `/assets/` - CSS styles and logo
+- `/resume-images/` - Optimized responsive resume images
+- `MichaelSFlahertyResume.pdf` - Resume PDF file
 
 ## Developer setup: Git hooks
 
