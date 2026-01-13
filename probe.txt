@@ -1,2 +1,0 @@
-probe: test file for GitHub Pages serving
-timestamp: 2025-11-25T23:00:00Z
