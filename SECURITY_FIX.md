@@ -16,18 +16,23 @@ The original template used Next.js 15.2.2 which had multiple critical security v
    - Affected versions: 15.0.0 < 15.2.3
    - Could allow unauthorized access to protected resources
 
+4. **DoS with Server Components - Incomplete Fix Follow-Up**
+   - Affected versions: 15.2.7 < 15.2.8
+   - Follow-up fix for remaining DoS vulnerability
+
 ## Resolution
 
-Updated Next.js from **15.2.2** to **15.2.7** which includes patches for all identified vulnerabilities:
+Updated Next.js from **15.2.2** to **15.2.8** which includes patches for all identified vulnerabilities:
 - ✅ DoS vulnerability patched (15.2.7)
 - ✅ RCE vulnerability patched (15.2.6+)
 - ✅ Authorization bypass patched (15.2.3+)
+- ✅ DoS incomplete fix follow-up patched (15.2.8)
 
 ## Changes Made
 
 ### frontend/package.json
-- `next`: 15.2.2 → **15.2.7**
-- `eslint-config-next`: 15.2.2 → **15.2.7**
+- `next`: 15.2.2 → **15.2.8**
+- `eslint-config-next`: 15.2.2 → **15.2.8**
 
 ### .gitignore
 - Added lock files to ignore list (will be regenerated on install)
@@ -41,13 +46,15 @@ cd frontend
 rm -rf node_modules pnpm-lock.yaml
 pnpm install
 pnpm list next
-# Should show next@15.2.7
+# Should show next@15.2.8
 ```
+
+**Vulnerability scan result**: ✅ No vulnerabilities found in Next.js 15.2.8
 
 ## Impact
 
 - **Security**: All critical vulnerabilities patched
-- **Functionality**: No breaking changes (15.2.7 is a patch release)
+- **Functionality**: No breaking changes (15.2.8 is a patch release)
 - **Compatibility**: All existing code remains compatible
 
 ## References
@@ -60,4 +67,4 @@ pnpm list next
 
 ---
 
-**Status**: ✅ All security vulnerabilities addressed and patched
+**Status**: ✅ All security vulnerabilities addressed and patched (Next.js 15.2.8)
