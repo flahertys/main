@@ -1,2 +1,24 @@
 node_modules/
 support-headers/
+
+# Program (Anchor/Solana)
+program/.anchor
+program/target
+program/**/*.rs.bk
+program/test-ledger
+program/.yarn
+
+# Frontend (Next.js)
+frontend/.next/
+frontend/out/
+frontend/build
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+frontend/.vercel
+frontend/.env*
+frontend/coverage
+
+# Lock files (regenerated on install)
+**/pnpm-lock.yaml
+**/package-lock.json
+**/yarn.lock

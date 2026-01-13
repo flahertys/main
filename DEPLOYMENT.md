@@ -1,33 +1,110 @@
-# Deployment Guide for tradehax.net
+# Deployment Guide
 
-This repository is configured to deploy automatically to GitHub Pages at **tradehax.net**.
+This repository contains two separate deployments:
 
-## Current Status
+## 🌐 Solana dApp Frontend (Vercel)
 
-✅ **Repository Setup Complete**
-- All HTML pages are ready
-- Assets (CSS, logo, PDF) are in place
-- Resume images optimized and included
-- CNAME file created for custom domain
-- GitHub Pages workflow configured
+The Next.js Solana Counter dApp is deployed to Vercel.
 
-## How to Deploy
+### Current Deployment
+- **URL**: https://anchor-web3js-nextjs-a9sl.vercel.app/
 
-### 1. GitHub Pages Configuration
+### Deployment Settings
 
-The site will automatically deploy when changes are pushed to the `main` branch via GitHub Actions workflow (`.github/workflows/static.yml`).
+When deploying to Vercel:
 
-**To enable GitHub Pages:**
-1. Go to your repository: https://github.com/DarkModder33/tradehax
-2. Navigate to **Settings** → **Pages**
-3. Under "Source", select **GitHub Actions** (this should already be configured)
-4. The custom domain should be set to: `tradehax.net`
+1. **Root Directory**: Set to `frontend`
+2. **Framework Preset**: Next.js
+3. **Build Command**: `pnpm build` (default)
+4. **Output Directory**: `.next` (default)
+5. **Install Command**: `pnpm install` (default)
 
-### 2. Squarespace DNS Configuration
+### Environment Variables
 
-Since you own tradehax.net through Squarespace, you need to configure DNS records to point to GitHub Pages:
+No environment variables are required for the basic deployment. The app is configured for Solana devnet by default.
 
-**Add these DNS records in your Squarespace domain settings:**
+### Deploy Button
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FDarkModder33%2Fmain&root-directory=frontend&project-name=solana-counter-dapp&repository-name=solana-counter-dapp)
+
+### Manual Deployment
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Navigate to frontend directory
+cd frontend
+
+# Deploy
+vercel
+```
+
+### Custom Program Deployment
+
+If you deploy your own program to Solana:
+
+1. Build and deploy the program:
+   ```bash
+   cd program
+   anchor build
+   anchor keys sync
+   anchor build
+   anchor deploy
+   ```
+
+2. Update the IDL files in the frontend:
+   ```bash
+   cp ../program/target/idl/counter.json frontend/anchor-idl/idl.json
+   cp ../program/target/types/counter.ts frontend/anchor-idl/idl.ts
+   ```
+
+3. Commit and push the changes to trigger a new Vercel deployment.
+
+## 📄 Portfolio Website (GitHub Pages)
+
+The portfolio website (resume viewer) is deployed to GitHub Pages.
+
+### Current Deployment
+- **URL**: https://tradehax.net
+
+### Automatic Deployment
+
+The site deploys automatically when changes are pushed to the `main` branch via GitHub Actions.
+
+**Workflow**: `.github/workflows/static.yml`
+
+### Manual Deployment Steps
+
+1. **Ensure your changes are on the `main` branch**
+
+   ```bash
+   git checkout main
+   git merge your-feature-branch
+   ```
+
+2. **Push to GitHub**
+
+   ```bash
+   git push origin main
+   ```
+
+3. **Wait for GitHub Actions to complete**
+   - Visit your repository on GitHub
+   - Click the "Actions" tab
+   - Monitor the "Deploy static content to Pages" workflow
+
+4. **Verify deployment**
+   - Visit https://tradehax.net
+   - Changes should appear within 1-2 minutes
+
+### Custom Domain Configuration
+
+The custom domain `tradehax.net` is configured via the `CNAME` file in the repository root.
+
+**DNS Configuration (Squarespace):**
+
+Add these DNS records in your Squarespace domain settings:
 
 1. **A Records** (for apex domain):
    ```
@@ -55,78 +132,63 @@ Since you own tradehax.net through Squarespace, you need to configure DNS record
    Points to: darkmodder33.github.io
    ```
 
-**Steps to add DNS records in Squarespace:**
-1. Log into your Squarespace account
-2. Go to **Settings** → **Domains** → **tradehax.net**
-3. Click **DNS Settings**
-4. Click **Add Record** for each DNS record above
-5. Save changes
+DNS propagation can take 24-48 hours but usually completes within a few hours.
 
-**Note:** DNS propagation can take up to 24-48 hours, but usually completes within a few hours.
+## 🔧 Development Workflow
 
-### 3. Verify Deployment
+### Working on Solana dApp
 
-After DNS propagation:
-1. Visit https://tradehax.net to see your site
-2. Check that the resume displays correctly
-3. Test navigation links (About, Projects, Blog)
-4. Verify the PDF download works
+```bash
+# Start local Solana validator (optional)
+solana-test-validator
 
-### 4. Enable HTTPS
+# Build and test program
+cd program
+anchor build
+anchor test
 
-Once your custom domain is working:
-1. Go to Repository **Settings** → **Pages**
-2. Check the box for **Enforce HTTPS**
-3. GitHub will automatically provision an SSL certificate
-
-## Site Structure
-
-```
-/
-├── index.html              # Homepage with resume viewer
-├── about.html              # About page
-├── projects.html           # Projects page
-├── blog/
-│   └── index.html          # Blog placeholder
-├── assets/
-│   ├── logo.svg            # Site logo
-│   └── style.css           # Styles
-├── MichaelSFlahertyResume.pdf  # Resume PDF
-├── resume-images/          # Optimized resume images
-├── robots.txt              # Search engine directives
-├── sitemap.xml             # Sitemap for SEO
-└── 404.html                # Custom 404 page
+# Run frontend locally
+cd frontend
+pnpm install
+pnpm dev
+# Visit http://localhost:3000
 ```
 
-## Making Updates
+### Working on Portfolio
 
-1. Make changes to your HTML/CSS/content files
-2. Commit changes: `git add . && git commit -m "Your message"`
-3. Push to main branch: `git push origin main`
-4. GitHub Actions will automatically deploy (usually within 1-2 minutes)
-5. View deployment status at: https://github.com/DarkModder33/main/actions
+```bash
+# Start local server
+python3 -m http.server 8080
+# Visit http://localhost:8080
+```
 
-## Troubleshooting
+## 🚨 Troubleshooting
 
-### Site not loading after DNS setup
-- Check DNS propagation: https://dnschecker.org (enter tradehax.net)
-- Verify GitHub Pages is enabled in repository settings
-- Check that CNAME file contains only: `tradehax.net`
-- Review GitHub Actions for deployment errors
+### Vercel Deployment Issues
 
-### 404 errors
-- Ensure all asset paths use absolute paths (starting with `/`)
-- Check that files are committed to the main branch
-- Verify .nojekyll file exists (prevents Jekyll processing)
+**Build fails**: Check that pnpm lockfile is up to date
+```bash
+cd frontend
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+```
 
-### HTTPS not working
-- Wait for DNS to fully propagate before enabling HTTPS
-- GitHub Pages SSL provisioning can take a few minutes
-- Try disabling and re-enabling HTTPS in settings if needed
+**Runtime errors**: Check browser console for Solana connection issues. Ensure wallet is connected to devnet.
 
-## Support
+### GitHub Pages Issues
 
-For issues with:
-- **GitHub Pages**: Check [GitHub Pages documentation](https://docs.github.com/en/pages)
-- **Squarespace DNS**: Contact [Squarespace support](https://support.squarespace.com/)
-- **Repository code**: Open an issue in this repository
+**404 errors**: Ensure `.nojekyll` file exists in root to bypass Jekyll processing
+
+**Custom domain not working**: 
+- Verify DNS propagation: `dig tradehax.net` or use https://dnschecker.org
+- Check CNAME file contents
+- Wait 24-48 hours for DNS propagation
+
+**Workflow fails**: Check GitHub Actions logs for specific errors
+
+## 📚 Additional Resources
+
+- [Vercel Documentation](https://vercel.com/docs)
+- [GitHub Pages Documentation](https://docs.github.com/pages)
+- [Anchor Framework](https://www.anchor-lang.com/)
+- [Solana Cookbook](https://solanacookbook.com/)
