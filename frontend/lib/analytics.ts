@@ -8,8 +8,8 @@ declare global {
 }
 
 export const pageview = (url: string) => {
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('config', GA_MEASUREMENT_ID as string, {
+  if (typeof window !== 'undefined' && window.gtag && GA_MEASUREMENT_ID) {
+    window.gtag('config', GA_MEASUREMENT_ID, {
       page_path: url,
     });
   }
