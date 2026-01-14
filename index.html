@@ -1,174 +1,82 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>tradehax.net — ShamrockStocks</title>
-  </head>
-  <body>
-    <header style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <a href="/" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit;">
-          <img src="/assets/logo.svg" alt="logo" style="height:36px;width:36px;display:inline-block;" />
-          <span style="font-weight:600;margin-left:8px;">ShamrockStocks</span>
-        </a>
-      </div>
-      <nav style="display:flex;gap:12px;align-items:center;">
-        <a href="/" style="color:#0366d6;text-decoration:none;">Home</a>
-        <a href="/about.html" style="color:#0366d6;text-decoration:none;">About</a>
-        <a href="/projects.html" style="color:#0366d6;text-decoration:none;">Projects</a>
-        <a href="/blog/" style="color:#0366d6;text-decoration:none;">Blog</a>
-      </nav>
-      <div>
-        <a class="header-download" href="/MichaelSFlahertyResume.pdf" download style="background:#0366d6;color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none;font-size:90%;">Download Resume</a>
-        <!-- Small download link for mobile / compact views -->
-        <a class="download-small" href="/MichaelSFlahertyResume.pdf" download aria-label="Download resume" style="text-decoration:none;color:#0366d6;margin-left:8px;">▸ Resume</a>
-      </div>
-    </header>
-
-    <!-- Embed resume PDF as the homepage for now -->
-    <main style="margin:0;padding:0;">
-        <div style="padding:12px;background:#f7f7f7;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <strong>Michael S. Flaherty — Resume</strong>
-          </div>
-          <div>
-            <a href="/MichaelSFlahertyResume.pdf" download style="color:#0366d6;text-decoration:none;font-weight:600;">Download Resume (PDF)</a>
-          </div>
-        </div>
-        <div id="pdf-viewer" style="width:100%;height:calc(100vh - 120px);background:#fff;"></div>
-
-        <!-- Image-only fallback with blur-up placeholders + lazy loading -->
-        <style>
-          .blur-up{filter:blur(12px);transform:scale(1.02);transition:filter .4s ease,transform .4s ease}
-          .blur-up.loaded{filter:none;transform:none}
-          #pdf-viewer img{max-width:100%}
-        </style>
-        <script>
-          (function(){
-            var viewer = document.getElementById('pdf-viewer');
-            viewer.innerHTML = '';
-            var container = document.createElement('div');
-            container.style.width = '100%';
-            container.style.minHeight = '60vh';
-            container.style.background = '#fff';
-            container.style.padding = '8px 0';
-
-            var wrapper = document.createElement('div');
-            wrapper.style.textAlign = 'center';
-            var maxPages = 1;
-
-            // IntersectionObserver to lazy-load full srcset when off-screen images come into view
-            var io = new IntersectionObserver(function(entries){
-              entries.forEach(function(entry){
-                if (!entry.isIntersecting) return;
-                var img = entry.target;
-                if (img.dataset && img.dataset.srcset){
-                  img.srcset = img.dataset.srcset;
-                  img.sizes = img.dataset.sizes || '(max-width: 800px) 100vw, 800px';
-                  img.src = img.dataset.src || img.src;
-                  // ensure we remove placeholder visual after full image loads
-                  img.addEventListener('load', function onLoad(){ img.classList.add('loaded'); img.removeEventListener('load', onLoad); });
-                  delete img.dataset.srcset;
-                  io.unobserve(img);
-                }
-              });
-            }, {root:null,rootMargin:'200px'});
-
-            for (let i=1;i<=maxPages;i++){
-              const idx = String(i).padStart(2,'0');
-              const base = '/resume-images/page-' + idx;
-              const v480 = base + '-480.webp';
-              const v800 = base + '-800.webp';
-              const v1200 = base + '-1200.webp';
-              const vFallback = base + '.webp';
-              const placeholder = base + '-40.webp';
-
-              const img = document.createElement('img');
-              img.alt = 'Resume page ' + i;
-              img.style.display = 'block';
-              img.style.margin = '12px auto';
-              img.className = 'blur-up';
-
-              // First page: eager load the full srcset (but still show blur-up placeholder until loaded)
-              if (i === 1) {
-                img.loading = 'eager';
-                img.src = placeholder; // show placeholder while full image loads
-                const fullSrcset = v480 + ' 480w, ' + v800 + ' 800w, ' + v1200 + ' 1200w, ' + vFallback + ' 1600w';
-                // load small full image first for reliable load event
-                const tmp = new Image();
-                tmp.src = v480;
-                tmp.onload = function(){ img.srcset = fullSrcset; img.sizes = '(max-width: 800px) 100vw, 800px'; img.src = v480; };
-                img.addEventListener('load', function onLoad(){ img.classList.add('loaded'); img.removeEventListener('load', onLoad); });
-                wrapper.appendChild(img);
-              } else {
-                // Others: lazy load via IntersectionObserver. Use placeholder as src, store full srcset in data attribute.
-                img.loading = 'lazy';
-                img.src = placeholder;
-                img.dataset.srcset = v480 + ' 480w, ' + v800 + ' 800w, ' + v1200 + ' 1200w, ' + vFallback + ' 1600w';
-                img.dataset.sizes = '(max-width: 800px) 100vw, 800px';
-                img.dataset.src = v480;
-                wrapper.appendChild(img);
-                io.observe(img);
-              }
-            }
-
-            // Caption + download button under images
-            var caption = document.createElement('div');
-            caption.style.marginTop = '10px';
-            caption.innerHTML = '<a href="/MichaelSFlahertyResume.pdf" style="display:inline-block;padding:6px 10px;background:#0366d6;color:#fff;border-radius:6px;text-decoration:none">Download PDF</a>';
-            wrapper.appendChild(caption);
-
-            container.appendChild(wrapper);
-            viewer.appendChild(container);
-          })();
-        </script>
-        <noscript>
-          <p>The PDF viewer requires JavaScript. If the viewer does not appear, please download the PDF: <a href="/MichaelSFlahertyResume.pdf">Download resume</a>.</p>
-        </noscript>
-    </main>
-
-    <footer>
-      <p>&copy; ShamrockStocks</p>
-    </footer>
-    <link rel="stylesheet" href="/assets/style.css">
-
-    <!-- Analytics placeholder: replace MEASUREMENT_ID with your ID -->
-    <!-- Example: Google Analytics 4 snippet (replace G-XXXXXXX with your ID) -->
-    <!--
-    Replace `G-MEASUREMENT_ID` with your GA4 Measurement ID to enable analytics.
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MEASUREMENT_ID"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);} 
-      gtag('js', new Date());
-      gtag('config', 'G-MEASUREMENT_ID');
-    </script>
-    -->
-
-    <script>
-      // Track resume downloads and other interactions.
-      function trackDownload() {
-        try {
-          // If GA is configured with gtag, send an event
-          if (typeof gtag === 'function') {
-            gtag('event', 'download_resume', {
-              'event_category': 'engagement',
-              'event_label': 'MichaelSFlahertyResume.pdf'
-            });
-          }
-        } catch (e) {
-          console.log('analytics track error', e);
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0;url=https://tradehaxai.tech">
+    <link rel="canonical" href="https://tradehaxai.tech" />
+    <meta name="robots" content="noindex, follow">
+    <title>Redirecting to TradeHax AI...</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 2rem;
         }
-      }
-      // Attach click handlers for elements that may be added dynamically
-      document.addEventListener('DOMContentLoaded', function(){
-        var els = document.querySelectorAll('a[href$="MichaelSFlahertyResume.pdf"]');
-        els.forEach(function(el){
-          el.addEventListener('click', trackDownload);
-        });
-      });
+        .container {
+            max-width: 500px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            opacity: 0.95;
+        }
+        .spinner {
+            margin: 2rem auto;
+            width: 60px;
+            height: 60px;
+            border: 6px solid rgba(255,255,255,0.3);
+            border-top: 6px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        a {
+            color: #fbbf24;
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 2px solid #fbbf24;
+            transition: all 0.3s ease;
+        }
+        a:hover {
+            color: #fff;
+            border-bottom-color: #fff;
+        }
+        .small {
+            font-size: 0.9rem;
+            margin-top: 2rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 TradeHax AI</h1>
+        <p>We've upgraded our platform!</p>
+        <div class="spinner"></div>
+        <p>Redirecting you to <a href="https://tradehaxai.tech">tradehaxai.tech</a></p>
+        <p class="small">Not redirected automatically? <a href="https://tradehaxai.tech">Click here</a></p>
+    </div>
+    
+    <script>
+        // Backup redirect if meta refresh fails
+        setTimeout(function() {
+            window.location.href = 'https://tradehaxai.tech';
+        }, 100);
     </script>
-
-  </body>
+</body>
 </html>

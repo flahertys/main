@@ -66,7 +66,7 @@ If you deploy your own program to Solana:
 The portfolio website (resume viewer) is deployed to GitHub Pages.
 
 ### Current Deployment
-- **URL**: https://tradehax.net
+- **URL**: https://tradehaxai.tech
 
 ### Automatic Deployment
 
@@ -95,12 +95,12 @@ The site deploys automatically when changes are pushed to the `main` branch via 
    - Monitor the "Deploy static content to Pages" workflow
 
 4. **Verify deployment**
-   - Visit https://tradehax.net
+   - Visit https://tradehaxai.tech
    - Changes should appear within 1-2 minutes
 
 ### Custom Domain Configuration
 
-The custom domain `tradehax.net` is configured via the `CNAME` file in the repository root.
+The custom domain `tradehaxai.tech` is configured via the `CNAME` file in the repository root.
 
 **DNS Configuration (Squarespace):**
 
@@ -180,7 +180,7 @@ pnpm install
 **404 errors**: Ensure `.nojekyll` file exists in root to bypass Jekyll processing
 
 **Custom domain not working**: 
-- Verify DNS propagation: `dig tradehax.net` or use https://dnschecker.org
+- Verify DNS propagation: `dig tradehaxai.tech` or use https://dnschecker.org
 - Check CNAME file contents
 - Wait 24-48 hours for DNS propagation
 

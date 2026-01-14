@@ -23,14 +23,9 @@ frontend/coverage
 **/package-lock.json
 **/yarn.lock
 
-# Temporary and test files
-*.orig
+# Temporary files
 *.orig.*
-*_ORIGINAL.*
-*.tmp
-tmp_*
-*-test.html
-test.html
+*tmp_*
+*test*.html
 probe.txt
-*.bak
-*.backup
+*_ORIGINAL.*

@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://tradehax.net/sitemap.xml
+Sitemap: https://tradehaxai.tech/sitemap.xml
 
 # Crawl-delay can be added if you need to limit request rate (seconds)
 # Crawl-delay: 10
