@@ -5,7 +5,7 @@ This repository contains both a professional portfolio website and a Solana Coun
 ## 🌐 Live Deployments
 
 - **Solana dApp**: [https://anchor-web3js-nextjs-a9sl.vercel.app/](https://anchor-web3js-nextjs-a9sl.vercel.app/)
-- **Portfolio Site**: [https://tradehax.net](https://tradehax.net)
+- **Portfolio Site**: [https://tradehaxai.tech](https://tradehaxai.tech)
 
 ## 📁 Repository Structure
 
