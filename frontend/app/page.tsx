@@ -1,27 +1,83 @@
-import { CounterCard } from "@/components/counter/CounterCard";
+import { HeroSection } from "@/components/landing/HeroSection";
+import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
+import { StatsSection } from "@/components/landing/StatsSection";
+import Link from "next/link";
+import { Github, Twitter, Mail } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-gradient-to-b from-gray-950 via-gray-900 to-black">
-      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-10"></div>
+    <main className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
+      <HeroSection />
+      <FeaturesSection />
+      <HowItWorksSection />
+      <StatsSection />
+      
+      {/* Footer */}
+      <footer className="border-t border-gray-800 py-12 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Brand */}
+            <div>
+              <div className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text mb-4">
+                TradeHax AI
+              </div>
+              <p className="text-gray-400 text-sm">
+                Advanced automated trading platform powered by Solana blockchain and AI.
+              </p>
+            </div>
 
-      <div className="relative z-10 mb-8 text-center">
-        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-blue-500 text-transparent bg-clip-text">
-          Solana Counter App
-        </h1>
-        <p className="text-gray-400">
-          A minimal dApp built with Anchor & Next.js
-        </p>
-      </div>
+            {/* Links */}
+            <div>
+              <h3 className="text-white font-semibold mb-4">Resources</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    Documentation
+                  </Link>
+                </li>
+                <li>
+                  <a href="https://github.com/DarkModder33/main" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    GitHub
+                  </a>
+                </li>
+              </ul>
+            </div>
 
-      <div className="relative z-10">
-        <CounterCard />
-      </div>
+            {/* Contact */}
+            <div>
+              <h3 className="text-white font-semibold mb-4">Contact</h3>
+              <div className="space-y-3">
+                <a
+                  href="mailto:support@tradehaxai.tech"
+                  className="flex items-center text-gray-400 hover:text-white transition-colors text-sm"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  support@tradehaxai.tech
+                </a>
+                <div className="flex space-x-4">
+                  <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                    <Twitter className="w-5 h-5" />
+                  </a>
+                  <a href="https://github.com/DarkModder33/main" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+                    <Github className="w-5 h-5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
 
-      <footer className="mt-20 text-center text-sm text-gray-500 relative z-10">
-        <p>Powered by Anchor, Web3.js, and Shadcn UI</p>
-        <p className="mt-2">Created as a minimal Solana dApp example</p>
+          <div className="mt-12 pt-8 border-t border-gray-800 text-center text-sm text-gray-400">
+            <p>&copy; {new Date().getFullYear()} TradeHax AI. All rights reserved.</p>
+            <p className="mt-2">Built with Next.js, Solana, and ❤️</p>
+          </div>
+        </div>
       </footer>
-    </div>
+    </main>
   );
 }
