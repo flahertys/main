@@ -2,6 +2,8 @@
 
 This document summarizes the changes made to rebuild the repository to reflect the active Solana Counter dApp deployed at https://anchor-web3js-nextjs-a9sl.vercel.app/
 
+> **Template Source**: This implementation is based on the [solana-developers/anchor-web3js-nextjs](https://github.com/solana-developers/anchor-web3js-nextjs) educational template created by the Solana Foundation.
+
 ## 🎯 Objective Completed
 
 ✅ Repository now contains the complete Solana dApp codebase matching the deployed application
