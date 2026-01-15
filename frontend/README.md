@@ -83,6 +83,9 @@ This project demonstrates:
 
 Perfect for college portfolios and real-world business applications.
 
+## 🙏 Credits
+The Solana counter dApp components are based on the [solana-developers/anchor-web3js-nextjs](https://github.com/solana-developers/anchor-web3js-nextjs) educational template created by the Solana Foundation.
+
 ## 📝 License
 MIT
 

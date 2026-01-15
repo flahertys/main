@@ -148,6 +148,18 @@ git update-index --chmod=+x .githooks/pre-commit
 - `frontend/components/counter/hooks/` - Custom hooks for program interaction
 - [Solana Web3.js Documentation](https://solana-labs.github.io/solana-web3.js/)
 
+## 🙏 Credits & Attribution
+
+The Solana Counter dApp implementation is based on the [solana-developers/anchor-web3js-nextjs](https://github.com/solana-developers/anchor-web3js-nextjs) template, an educational project created by the Solana Foundation to help developers learn:
+
+- How to build Solana programs using the Anchor framework
+- Working with PDAs (Program Derived Addresses) for state management
+- Implementing Cross-Program Invocations (CPIs)
+- Creating frontends that interact with Solana programs
+- Handling wallet connections and transactions
+
+This template has been integrated into this portfolio repository to showcase blockchain development skills alongside traditional web development projects.
+
 ## 📜 License
 
 This project is for educational purposes and set up for Solana devnet use only.

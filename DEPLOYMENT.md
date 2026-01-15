@@ -2,6 +2,8 @@
 
 This repository contains two separate deployments:
 
+> **Note**: The Solana Counter dApp is based on the [solana-developers/anchor-web3js-nextjs](https://github.com/solana-developers/anchor-web3js-nextjs) template, an educational project by the Solana Foundation.
+
 ## 🌐 Solana dApp Frontend (Vercel)
 
 The Next.js Solana Counter dApp is deployed to Vercel.
