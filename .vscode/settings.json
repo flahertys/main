@@ -1,0 +1,6 @@
+{
+    "chat.agent.maxRequests": 50,
+    "chat.useAgentSkills": true,
+    "inlineChat.enableV2": true,
+    "chat.useNestedAgentsMdFiles": true
+}
