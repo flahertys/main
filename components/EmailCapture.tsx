@@ -23,7 +23,7 @@ export function EmailCapture() {
       } else {
         setStatus('error');
       }
-    } catch (error) {
+    } catch {
       setStatus('error');
     }
   };
