@@ -1,172 +1,97 @@
-# DarkModder33 Portfolio & Solana dApp
+# TradeHax AI - Web3 Trading Platform
 
-This repository contains both a professional portfolio website and a Solana Counter dApp demonstrating blockchain development with Anchor, Web3.js, and Next.js.
+Advanced automated trading platform powered by Solana blockchain and AI.
 
-## 🌐 Live Deployments
+## 🚀 Features
+- **Solana Integration**: Lightning-fast blockchain transactions
+- **Wallet Connection**: Seamless Phantom, Solflare, and more
+- **Real-time Trading**: Execute trades on Solana devnet
+- **Professional UI**: Built with Next.js 15, React 19, TailwindCSS
+- **SEO Optimized**: Full meta tags, Open Graph, Twitter Cards
+- **Analytics Ready**: Google Analytics & Vercel Analytics support
 
-- **Solana dApp**: [https://anchor-web3js-nextjs-a9sl.vercel.app/](https://anchor-web3js-nextjs-a9sl.vercel.app/)
-- **Portfolio Site**: [https://tradehaxai.tech](https://tradehaxai.tech)
-
-## 📁 Repository Structure
-
+## 📁 Project Structure
 ```
-├── frontend/           # Next.js Solana dApp Frontend
-│   ├── app/           # App router pages and layouts
-│   ├── components/    # React components for counter dApp
-│   └── anchor-idl/    # Program IDL files
-├── program/           # Solana Smart Contract (Anchor)
-│   ├── programs/      # Rust source code
-│   ├── tests/         # Program tests
-│   └── Anchor.toml    # Anchor configuration
-├── index.html         # Portfolio homepage (resume viewer)
-├── about.html         # About page
-├── projects.html      # Projects showcase
-└── blog/             # Blog section
+├── app/
+│   ├── layout.tsx          # Root layout with SEO metadata
+│   ├── page.tsx             # Landing page
+│   └── dashboard/
+│       └── page.tsx         # Trading dashboard
+├── components/
+│   ├── counter/             # Solana counter demo components
+│   ├── dashboard/           # Dashboard components
+│   ├── landing/             # Landing page components
+│   └── ui/                  # Reusable UI components
+├── lib/
+│   ├── analytics.ts         # Analytics helpers
+│   └── utils.ts             # Utility functions
+├── types/
+│   └── index.ts             # TypeScript type definitions
+├── anchor-idl/
+│   └── idl.json             # Solana program IDL
+├── program/                 # Solana Smart Contract (Anchor)
+│   ├── programs/            # Rust source code
+│   ├── tests/               # Program tests
+│   └── Anchor.toml          # Anchor configuration
+└── portfolio/               # Legacy portfolio site (HTML)
 ```
 
-## 🎯 Solana Counter dApp
+## 🛠️ Tech Stack
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: TailwindCSS 4
+- **Blockchain**: Solana Web3.js, Anchor
+- **UI Components**: Radix UI, shadcn/ui
+- **Wallet**: Solana Wallet Adapter
 
-A beginner-friendly template demonstrating essential Solana development concepts:
-
-### Features
-
-- **Counter Program**: Increment/decrement operations with SOL transfers
-- **PDAs (Program Derived Addresses)**: Global counter and user-specific vaults
-- **CPIs (Cross-Program Invocations)**: SOL transfers using system program
-- **Wallet Integration**: Phantom and Solflare wallet support
-- **Real-time Updates**: Live counter updates on blockchain state changes
-
-### Getting Started
-
-#### Prerequisites
-
-- Node.js 18+ and pnpm
-- Rust and Solana CLI tools
-- Anchor Framework
-
-#### Install & Build Program
-
+## 📦 Installation
 ```bash
-cd program
-pnpm install
-anchor build
-anchor keys sync
-anchor build
-anchor deploy
+npm install
 ```
 
-If deployment times out, use a custom RPC endpoint:
+## 🏃 Development
 ```bash
-anchor deploy --provider.cluster <your-custom-rpc>
+npm run dev
 ```
+Open [http://localhost:3000](http://localhost:3000)
 
-#### Run Frontend
+## 🌐 Deployment
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
 
+**Quick Deploy to Vercel:**
+1. Push to GitHub
+2. Import to Vercel
+3. Deploy! (Root directory is already set correctly)
+
+## 🧪 Testing
 ```bash
-cd frontend
-pnpm install
-# Copy IDL files from program
-cp ../program/target/idl/counter.json anchor-idl/idl.json
-cp ../program/target/types/counter.ts anchor-idl/idl.ts
-pnpm dev
+# Type check
+npm run type-check
+
+# Lint
+npm run lint
+
+# Build
+npm run build
 ```
 
-Visit `http://localhost:3000` to interact with the dApp.
+## 🎓 For Students
+This project demonstrates:
+- Modern Web3 development practices
+- Next.js 15 App Router
+- Solana blockchain integration
+- Production-ready architecture
+- SEO best practices
+- Professional UI/UX design
 
-#### Test Program
+Perfect for college portfolios and real-world business applications.
 
-```bash
-cd program
-anchor test
-```
+## 🙏 Credits
+The Solana counter dApp components are based on the [solana-developers/anchor-web3js-nextjs](https://github.com/solana-developers/anchor-web3js-nextjs) educational template created by the Solana Foundation.
 
-### Key Concepts
+## 📝 License
+MIT
 
-1. **PDAs**: Counter state and user vaults derived from seeds
-2. **CPIs**: SOL transfers between user and vault
-3. **Wallet Integration**: Transaction signing and account management
-4. **State Management**: Real-time blockchain data updates
-
-## 💼 Portfolio Website
-
-Professional portfolio site featuring an interactive resume viewer.
-
-### Local Development
-
-```bash
-# Start a local web server
-python3 -m http.server 8080
-
-# Visit http://localhost:8080
-```
-
-### Structure
-
-- **Homepage** (`index.html`) - Interactive resume viewer with PDF download
-- **About** (`about.html`) - About page
-- **Projects** (`projects.html`) - Project showcase
-- **Blog** (`blog/index.html`) - Blog section
-
-### Assets
-
-- `/assets/` - CSS styles and logo
-- `/resume-images/` - Optimized responsive resume images
-- `MichaelSFlahertyResume.pdf` - Resume PDF file
-
-## 🔧 Developer Setup
-
-### Git Hooks
-
-This repository includes `.githooks` for automated tasks:
-
-**Windows / PowerShell:**
-```powershell
-pwsh .\scripts\install-hooks.ps1
-```
-
-**POSIX (macOS / Linux / WSL):**
-```bash
-sh ./scripts/install-hooks.sh
-```
-
-**Manual setup:**
-```bash
-git config core.hooksPath .githooks
-git add .githooks/pre-commit
-git update-index --chmod=+x .githooks/pre-commit
-```
-
-## 📚 Learning Resources
-
-### Solana Program Development
-- `program/programs/counter/src/lib.rs` - Core program logic with PDAs and CPIs
-- [Anchor Framework Documentation](https://www.anchor-lang.com/)
-- [Solana Cookbook](https://solanacookbook.com/)
-
-### Frontend Development
-- `frontend/components/counter/` - dApp UI components
-- `frontend/components/counter/hooks/` - Custom hooks for program interaction
-- [Solana Web3.js Documentation](https://solana-labs.github.io/solana-web3.js/)
-
-## 🙏 Credits & Attribution
-
-The Solana Counter dApp implementation is based on the [solana-developers/anchor-web3js-nextjs](https://github.com/solana-developers/anchor-web3js-nextjs) template, an educational project created by the Solana Foundation to help developers learn:
-
-- How to build Solana programs using the Anchor framework
-- Working with PDAs (Program Derived Addresses) for state management
-- Implementing Cross-Program Invocations (CPIs)
-- Creating frontends that interact with Solana programs
-- Handling wallet connections and transactions
-
-This template has been integrated into this portfolio repository to showcase blockchain development skills alongside traditional web development projects.
-
-## 📜 License
-
-This project is for educational purposes and set up for Solana devnet use only.
-
-## 🚀 Deployment
-
-- **Solana dApp**: Deployed to Vercel from `/frontend` directory
-- **Portfolio**: Deployed to GitHub Pages from root directory
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+## 🤝 Support
+Email: support@tradehaxai.tech
+GitHub: [DarkModder33/main](https://github.com/DarkModder33/main)

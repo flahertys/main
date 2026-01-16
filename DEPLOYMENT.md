@@ -1,196 +1,81 @@
-# Deployment Guide
+# TradeHax AI Deployment Guide
 
-This repository contains two separate deployments:
+## Vercel Deployment (Recommended)
 
-> **Note**: The Solana Counter dApp is based on the [solana-developers/anchor-web3js-nextjs](https://github.com/solana-developers/anchor-web3js-nextjs) template, an educational project by the Solana Foundation.
-
-## 🌐 Solana dApp Frontend (Vercel)
-
-The Next.js Solana Counter dApp is deployed to Vercel.
-
-### Current Deployment
-- **URL**: https://anchor-web3js-nextjs-a9sl.vercel.app/
-
-### Deployment Settings
-
-When deploying to Vercel:
-
-1. **Root Directory**: Set to `frontend`
-2. **Framework Preset**: Next.js
-3. **Build Command**: `pnpm build` (default)
-4. **Output Directory**: `.next` (default)
-5. **Install Command**: `pnpm install` (default)
+### Initial Setup
+1. Push code to GitHub
+2. Go to [Vercel](https://vercel.com)
+3. Import `DarkModder33/main` repository
+4. Framework Preset: Next.js (Root directory is already at root)
+5. Click Deploy
 
 ### Environment Variables
+Add these in Vercel Dashboard → Settings → Environment Variables:
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID` (Google Analytics)
+- `NEXT_PUBLIC_SOLANA_NETWORK=devnet`
+- `NEXT_PUBLIC_APP_URL=https://tradehaxai.tech`
 
-No environment variables are required for the basic deployment. The app is configured for Solana devnet by default.
+### Custom Domain Setup
 
-### Deploy Button
+#### For tradehaxai.tech:
+1. In Vercel Dashboard → Settings → Domains
+2. Add domain: `tradehaxai.tech`
+3. Add domain: `www.tradehaxai.tech`
+4. In your domain registrar (e.g., Namecheap, GoDaddy):
+   - Add A record: `@` → `76.76.21.21`
+   - Add CNAME record: `www` → `cname.vercel-dns.com`
+5. Wait 24-48 hours for DNS propagation
+6. Vercel will auto-provision SSL certificate
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FDarkModder33%2Fmain&root-directory=frontend&project-name=solana-counter-dapp&repository-name=solana-counter-dapp)
+#### For tradehax.net redirect:
+Option A - GitHub Pages redirect:
+1. Deploy the portfolio directory to GitHub Pages
+2. Update `portfolio/index.html` to redirect to tradehaxai.tech
 
-### Manual Deployment
+Option B - DNS redirect in domain registrar
 
+### Monitoring
+- Enable Vercel Analytics in dashboard
+- Monitor performance at: vercel.com/analytics
+- Check error logs: vercel.com/logs
+
+## Local Development
 ```bash
-# Install Vercel CLI
-npm i -g vercel
+npm install
+npm run dev
+```
+Visit http://localhost:3000
 
-# Navigate to frontend directory
-cd frontend
+## Build & Type Check
+```bash
+# Build for production
+npm run build
 
-# Deploy
-vercel
+# Type check
+npm run type-check
+
+# Lint code
+npm run lint
 ```
 
-### Custom Program Deployment
+## Environment Setup
+1. Copy `.env.example` to `.env.local`
+2. Fill in your environment variables
+3. Never commit `.env.local` to version control
 
-If you deploy your own program to Solana:
+## Troubleshooting
 
-1. Build and deploy the program:
-   ```bash
-   cd program
-   anchor build
-   anchor keys sync
-   anchor build
-   anchor deploy
-   ```
+### Build Errors
+- Ensure all dependencies are installed: `npm install`
+- Clear Next.js cache: `rm -rf .next`
+- Check TypeScript errors: `npm run type-check`
 
-2. Update the IDL files in the frontend:
-   ```bash
-   cp ../program/target/idl/counter.json frontend/anchor-idl/idl.json
-   cp ../program/target/types/counter.ts frontend/anchor-idl/idl.ts
-   ```
+### Wallet Connection Issues
+- Ensure you're on Solana devnet
+- Check browser console for errors
+- Verify wallet adapter is properly configured
 
-3. Commit and push the changes to trigger a new Vercel deployment.
-
-## 📄 Portfolio Website (GitHub Pages)
-
-The portfolio website (resume viewer) is deployed to GitHub Pages.
-
-### Current Deployment
-- **URL**: https://tradehaxai.tech
-
-### Automatic Deployment
-
-The site deploys automatically when changes are pushed to the `main` branch via GitHub Actions.
-
-**Workflow**: `.github/workflows/static.yml`
-
-### Manual Deployment Steps
-
-1. **Ensure your changes are on the `main` branch**
-
-   ```bash
-   git checkout main
-   git merge your-feature-branch
-   ```
-
-2. **Push to GitHub**
-
-   ```bash
-   git push origin main
-   ```
-
-3. **Wait for GitHub Actions to complete**
-   - Visit your repository on GitHub
-   - Click the "Actions" tab
-   - Monitor the "Deploy static content to Pages" workflow
-
-4. **Verify deployment**
-   - Visit https://tradehaxai.tech
-   - Changes should appear within 1-2 minutes
-
-### Custom Domain Configuration
-
-The custom domain `tradehaxai.tech` is configured via the `CNAME` file in the repository root.
-
-**DNS Configuration (Squarespace):**
-
-Add these DNS records in your Squarespace domain settings:
-
-1. **A Records** (for apex domain):
-   ```
-   Type: A
-   Host: @
-   Points to: 185.199.108.153
-   
-   Type: A
-   Host: @
-   Points to: 185.199.109.153
-   
-   Type: A
-   Host: @
-   Points to: 185.199.110.153
-   
-   Type: A
-   Host: @
-   Points to: 185.199.111.153
-   ```
-
-2. **CNAME Record** (for www subdomain):
-   ```
-   Type: CNAME
-   Host: www
-   Points to: darkmodder33.github.io
-   ```
-
-DNS propagation can take 24-48 hours but usually completes within a few hours.
-
-## 🔧 Development Workflow
-
-### Working on Solana dApp
-
-```bash
-# Start local Solana validator (optional)
-solana-test-validator
-
-# Build and test program
-cd program
-anchor build
-anchor test
-
-# Run frontend locally
-cd frontend
-pnpm install
-pnpm dev
-# Visit http://localhost:3000
-```
-
-### Working on Portfolio
-
-```bash
-# Start local server
-python3 -m http.server 8080
-# Visit http://localhost:8080
-```
-
-## 🚨 Troubleshooting
-
-### Vercel Deployment Issues
-
-**Build fails**: Check that pnpm lockfile is up to date
-```bash
-cd frontend
-rm -rf node_modules pnpm-lock.yaml
-pnpm install
-```
-
-**Runtime errors**: Check browser console for Solana connection issues. Ensure wallet is connected to devnet.
-
-### GitHub Pages Issues
-
-**404 errors**: Ensure `.nojekyll` file exists in root to bypass Jekyll processing
-
-**Custom domain not working**: 
-- Verify DNS propagation: `dig tradehaxai.tech` or use https://dnschecker.org
-- Check CNAME file contents
-- Wait 24-48 hours for DNS propagation
-
-**Workflow fails**: Check GitHub Actions logs for specific errors
-
-## 📚 Additional Resources
-
-- [Vercel Documentation](https://vercel.com/docs)
-- [GitHub Pages Documentation](https://docs.github.com/pages)
-- [Anchor Framework](https://www.anchor-lang.com/)
-- [Solana Cookbook](https://solanacookbook.com/)
+### Performance Issues
+- Enable Vercel Analytics for insights
+- Check bundle size with `npm run analyze`
+- Optimize images using Next.js Image component
