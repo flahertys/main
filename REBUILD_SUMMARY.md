@@ -14,32 +14,31 @@ This document summarizes the changes made to rebuild the repository to reflect t
 
 ```
 main/
-├── frontend/                    # Next.js Solana dApp
-│   ├── app/                    # Next.js App Router
-│   │   ├── page.tsx           # Main counter page
-│   │   └── layout.tsx         # Root layout with providers
-│   ├── components/
-│   │   ├── counter/           # Counter dApp components
-│   │   │   ├── CounterCard.tsx
-│   │   │   ├── CounterDisplay.tsx
-│   │   │   ├── IncrementButton.tsx
-│   │   │   ├── DecrementButton.tsx
-│   │   │   ├── WalletButton.tsx
-│   │   │   ├── hooks/         # Custom hooks
-│   │   │   │   ├── useProgram.tsx
-│   │   │   │   └── useTransactionToast.tsx
-│   │   │   └── provider/
-│   │   │       └── Solana.tsx # Wallet provider setup
-│   │   └── ui/                # shadcn/ui components
-│   ├── anchor-idl/            # Program IDL files
-│   │   ├── idl.json
-│   │   └── idl.ts
-│   ├── package.json
-│   ├── next.config.ts
-│   ├── tsconfig.json
-│   └── vercel.json            # Vercel deployment config
+├── app/                        # Next.js App Router
+│   ├── page.tsx               # Main counter page
+│   └── layout.tsx             # Root layout with providers
+├── components/
+│   ├── counter/               # Counter dApp components
+│   │   ├── CounterCard.tsx
+│   │   ├── CounterDisplay.tsx
+│   │   ├── IncrementButton.tsx
+│   │   ├── DecrementButton.tsx
+│   │   ├── WalletButton.tsx
+│   │   ├── hooks/             # Custom hooks
+│   │   │   ├── useProgram.tsx
+│   │   │   └── useTransactionToast.tsx
+│   │   └── provider/
+│   │       └── Solana.tsx     # Wallet provider setup
+│   └── ui/                    # shadcn/ui components
+├── anchor-idl/                # Program IDL files
+│   ├── idl.json
+│   └── idl.ts
+├── package.json
+├── next.config.ts
+├── tsconfig.json
+├── vercel.json                # Vercel deployment config
 │
-├── program/                    # Solana Smart Contract (Anchor)
+├── program/                   # Solana Smart Contract (Anchor)
 │   ├── programs/
 │   │   └── counter/
 │   │       ├── src/
@@ -51,19 +50,20 @@ main/
 │   ├── Cargo.toml
 │   └── package.json
 │
-├── index.html                  # Portfolio resume viewer
-├── about.html                  # About page
-├── projects.html               # Projects page
-├── blog/                       # Blog section
-├── assets/                     # CSS and logos
-├── resume-images/              # Optimized resume images
-├── MichaelSFlahertyResume.pdf
+├── portfolio/                 # Portfolio resume site
+│   ├── index.html            # Portfolio resume viewer
+│   ├── about.html            # About page
+│   ├── projects.html         # Projects page
+│   ├── blog/                 # Blog section
+│   ├── assets/               # CSS and logos
+│   ├── resume-images/        # Optimized resume images
+│   └── MichaelSFlahertyResume.pdf
 │
-├── README.md                   # Updated with both projects
-├── DEPLOYMENT.md               # Deployment guide
-├── .gitignore                  # Updated for both projects
-└── .github/workflows/          # GitHub Actions
-    └── static.yml              # Portfolio deployment
+├── README.md                  # Updated with both projects
+├── DEPLOYMENT.md              # Deployment guide
+├── .gitignore                 # Updated for both projects
+└── .github/workflows/         # GitHub Actions
+    └── static.yml             # Portfolio deployment
 ```
 
 ## 🔑 Key Features Implemented
@@ -112,9 +112,8 @@ main/
 
 **Test the frontend locally:**
 ```bash
-cd frontend
-pnpm install
-pnpm dev
+npm install
+npm run dev
 # Visit http://localhost:3000
 ```
 
@@ -139,13 +138,11 @@ The Solana dApp is ready to deploy to Vercel:
 **Option A: Use Vercel Dashboard**
 1. Go to vercel.com
 2. Import the GitHub repository
-3. Set **Root Directory** to `frontend`
-4. Deploy
+3. Deploy (Root directory is already at root)
 
 **Option B: Use CLI**
 ```bash
 npm i -g vercel
-cd frontend
 vercel
 ```
 
@@ -161,11 +158,11 @@ anchor build
 anchor deploy
 
 # Copy IDL to frontend
-cp target/idl/counter.json ../frontend/anchor-idl/idl.json
-cp target/types/counter.ts ../frontend/anchor-idl/idl.ts
+cp target/idl/counter.json ../anchor-idl/idl.json
+cp target/types/counter.ts ../anchor-idl/idl.ts
 
 # Commit and redeploy frontend
-git add frontend/anchor-idl/
+git add anchor-idl/
 git commit -m "Update program IDL"
 git push
 ```
@@ -173,10 +170,10 @@ git push
 ## ✅ Verification Checklist
 
 - [x] Program source code present in `/program`
-- [x] Frontend source code present in `/frontend`
-- [x] IDL files in `/frontend/anchor-idl/`
-- [x] Vercel configuration in `/frontend/vercel.json`
-- [x] Resume site files preserved in root
+- [x] Frontend source code present in root directory
+- [x] IDL files in `/anchor-idl/`
+- [x] Vercel configuration in `/vercel.json`
+- [x] Resume site files moved to `/portfolio`
 - [x] README updated with both projects
 - [x] DEPLOYMENT.md covers both deployments
 - [x] .gitignore updated for build artifacts

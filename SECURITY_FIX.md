@@ -30,7 +30,7 @@ Updated Next.js from **15.2.2** to **15.2.8** which includes patches for all ide
 
 ## Changes Made
 
-### frontend/package.json
+### package.json
 - `next`: 15.2.2 → **15.2.8**
 - `eslint-config-next`: 15.2.2 → **15.2.8**
 
@@ -42,7 +42,6 @@ Updated Next.js from **15.2.2** to **15.2.8** which includes patches for all ide
 To verify the fix is applied, users should:
 
 ```bash
-cd frontend
 rm -rf node_modules pnpm-lock.yaml
 pnpm install
 pnpm list next
