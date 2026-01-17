@@ -2,6 +2,8 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { StatsSection } from "@/components/landing/StatsSection";
+import { EmailCapture } from "@/components/EmailCapture";
+import { AdSense } from "@/components/AdSense";
 import Link from "next/link";
 import { Github, Twitter, Mail } from "lucide-react";
 
@@ -12,6 +14,24 @@ export default function Home() {
       <FeaturesSection />
       <HowItWorksSection />
       <StatsSection />
+      
+      {/* Newsletter Section */}
+      <section className="py-16 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text mb-4">
+            Stay Updated
+          </h2>
+          <p className="text-gray-400 mb-8">
+            Subscribe to our newsletter for the latest updates on trading strategies, market insights, and platform features.
+          </p>
+          <EmailCapture />
+        </div>
+      </section>
+
+      {/* Ad Section (above footer) */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <AdSense adSlot="1234567890" adFormat="auto" className="min-h-[100px]" />
+      </div>
       
       {/* Footer */}
       <footer className="border-t border-gray-800 py-12 px-6">

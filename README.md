@@ -2,6 +2,11 @@
 
 Advanced automated trading platform powered by Solana blockchain and AI.
 
+## 🌐 Live Deployments
+
+- **Production**: [https://tradehaxai.tech](https://tradehaxai.tech)
+- **Vercel URL**: [https://shamrockstocks-github-io.vercel.app](https://shamrockstocks-github-io.vercel.app)
+
 ## 🚀 Features
 - **Solana Integration**: Lightning-fast blockchain transactions
 - **Wallet Connection**: Seamless Phantom, Solflare, and more
@@ -56,7 +61,9 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000)
 
 ## 🌐 Deployment
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+
+See [DOMAIN_SETUP.md](./DOMAIN_SETUP.md) for connecting to tradehaxai.tech domain.
+See [MONETIZATION_SETUP.md](./MONETIZATION_SETUP.md) for revenue generation setup.
 
 **Quick Deploy to Vercel:**
 1. Push to GitHub

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/dashboard/Navbar";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { CounterCard } from "@/components/counter/CounterCard";
+import { AdSense } from "@/components/AdSense";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Wallet, Activity, Target, Plus, BarChart3, Link as LinkIcon } from "lucide-react";
 
@@ -97,6 +98,11 @@ export default function DashboardPage() {
                 <LinkIcon className="w-5 h-5 mr-2" />
                 Connect Exchange
               </Button>
+            </div>
+
+            {/* Ad Space */}
+            <div className="mt-6">
+              <AdSense adSlot="9876543210" adFormat="auto" className="min-h-[250px]" />
             </div>
 
             {/* Info Card */}
