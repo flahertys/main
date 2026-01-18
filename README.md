@@ -1,118 +1,238 @@
-# TradeHax AI - Web3 Trading Platform
+# TradeHax Solana Programs
 
-Advanced automated trading platform powered by Solana blockchain and AI.
+This directory contains the Solana smart contracts (programs) for the TradeHax DeFi gaming platform.
 
-## 🌐 Live Deployments
+## 📁 Program Structure
 
-- **Production**: [https://tradehaxai.tech](https://tradehaxai.tech) ⭐ Main Domain
-- **Vercel URL**: [https://shamrockstocks-github-io.vercel.app](https://shamrockstocks-github-io.vercel.app)
-
-> Note: Both URLs point to the same deployment. tradehaxai.tech is the primary custom domain.
-
-## 🚀 Features
-- **Solana Integration**: Lightning-fast blockchain transactions
-- **Wallet Connection**: Seamless Phantom, Solflare, and more
-- **Real-time Trading**: Execute trades on Solana devnet
-- **Professional UI**: Built with Next.js 15, React 19, TailwindCSS
-- **SEO Optimized**: Full meta tags, Open Graph, Twitter Cards
-- **Analytics Ready**: Google Analytics & Vercel Analytics support
-
-## 📁 Project Structure
 ```
-├── app/
-│   ├── layout.tsx          # Root layout with SEO metadata
-│   ├── page.tsx             # Landing page
-│   └── dashboard/
-│       └── page.tsx         # Trading dashboard
-├── components/
-│   ├── counter/             # Solana counter demo components
-│   ├── dashboard/           # Dashboard components
-│   ├── landing/             # Landing page components
-│   └── ui/                  # Reusable UI components
-├── lib/
-│   ├── analytics.ts         # Analytics helpers
-│   └── utils.ts             # Utility functions
-├── types/
-│   └── index.ts             # TypeScript type definitions
-├── anchor-idl/
-│   └── idl.json             # Solana program IDL
-├── program/                 # Solana Smart Contract (Anchor)
-│   ├── programs/            # Rust source code
-│   ├── tests/               # Program tests
-│   └── Anchor.toml          # Anchor configuration
-└── portfolio/               # Legacy portfolio site (HTML)
+programs/
+├── Anchor.toml              # Anchor workspace configuration
+├── deploy-mainnet.sh        # Mainnet deployment script
+├── update-backend-config.js # Backend configuration updater
+├── program-ids.json         # Deployed program IDs by network
+├── clover-coins/           # CloverCoins token program
+│   ├── src/lib.rs          # Main program logic
+│   └── Cargo.toml          # Rust dependencies
+├── staking-program/        # Staking and yield farming
+│   ├── src/lib.rs          # Staking logic
+│   └── Cargo.toml          # Rust dependencies
+└── gaming-engine/          # Prediction markets and gaming
+    ├── src/lib.rs          # Gaming logic
+    └── Cargo.toml          # Rust dependencies
 ```
 
-## 🛠️ Tech Stack
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Styling**: TailwindCSS 4
-- **Blockchain**: Solana Web3.js, Anchor
-- **UI Components**: Radix UI, shadcn/ui
-- **Wallet**: Solana Wallet Adapter
+## 🚀 Programs Overview
 
-## 📦 Installation
+### 1. CloverCoins Token Program
+- **Purpose**: Native reward token for the platform
+- **Features**:
+  - SPL token standard compliance
+  - Educational and gaming rewards
+  - Deflationary burning mechanism
+  - Cross-chain conversion support
+
+### 2. Staking Program
+- **Purpose**: Yield farming for CloverCoins holders
+- **Features**:
+  - Automated reward distribution
+  - 12% APY staking rewards
+  - Flexible staking/unstaking
+  - Reward claiming system
+
+### 3. Gaming Engine
+- **Purpose**: Prediction markets and gaming mechanics
+- **Features**:
+  - Verifiable random outcomes
+  - Prediction market creation
+  - Automated payout distribution
+  - Anti-cheat mechanisms
+
+## 🛠️ Development Setup
+
+### Prerequisites
+- Rust 1.60+
+- Solana CLI 1.14+
+- Anchor Framework 0.25+
+- Node.js 16+
+
+### Installation
 ```bash
+# Install Solana CLI
+sh -c "$(curl -sSfL https://release.solana.com/v1.14.0/install)"
+
+# Install Anchor
+cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+avm install latest
+avm use latest
+
+# Install dependencies
 npm install
 ```
 
-## 🏃 Development
+### Building Programs
 ```bash
-npm run dev
-```
-Open [http://localhost:3000](http://localhost:3000)
+# Build all programs
+anchor build
 
-## 🌐 Deployment
-
-See [DOMAIN_SETUP_GUIDE.md](./DOMAIN_SETUP_GUIDE.md) for connecting to tradehaxai.tech domain.
-See [MONETIZATION_GUIDE.md](./MONETIZATION_GUIDE.md) for revenue generation setup.
-
-**Quick Deploy to Vercel:**
-1. Push to GitHub
-2. Import to Vercel
-3. Deploy! (Root directory is already set correctly)
-
-## 💰 Monetization Features
-
-This platform includes multiple revenue streams:
-
-1. **Google Analytics** - Track user behavior and optimize conversions
-2. **Google AdSense** - Display advertising revenue
-3. **Email Marketing** - Collect leads via EmailCapture component
-4. **Affiliate Marketing** - Earn commissions from crypto exchange referrals
-5. **Solana Fees** - Transaction fees from dApp usage
-
-See [MONETIZATION_GUIDE.md](./MONETIZATION_GUIDE.md) for complete setup instructions.
-
-## 🧪 Testing
-```bash
-# Type check
-npm run type-check
-
-# Lint
-npm run lint
-
-# Build
-npm run build
+# Or build individual programs
+cd clover-coins && anchor build
+cd ../staking-program && anchor build
+cd ../gaming-engine && anchor build
 ```
 
-## 🎓 For Students
-This project demonstrates:
-- Modern Web3 development practices
-- Next.js 15 App Router
-- Solana blockchain integration
-- Production-ready architecture
-- SEO best practices
-- Professional UI/UX design
+### Testing
+```bash
+# Run tests
+anchor test
 
-Perfect for college portfolios and real-world business applications.
+# Run specific program tests
+cd clover-coins && anchor test
+```
 
-## 🙏 Credits
-The Solana counter dApp components are based on the [solana-developers/anchor-web3js-nextjs](https://github.com/solana-developers/anchor-web3js-nextjs) educational template created by the Solana Foundation.
+## 🚀 Deployment to Mainnet
 
-## 📝 License
-MIT
+### Automated Deployment
+```bash
+# Make deployment script executable
+chmod +x deploy-mainnet.sh
 
-## 🤝 Support
-Email: support@tradehaxai.tech
-GitHub: [DarkModder33/main](https://github.com/DarkModder33/main)
+# Run deployment (requires SOL in wallet)
+./deploy-mainnet.sh
+```
+
+### Manual Deployment Steps
+
+1. **Configure Solana CLI**:
+```bash
+solana config set --url https://api.mainnet-beta.solana.com
+solana config set --keypair ~/.config/solana/id.json
+```
+
+2. **Build programs**:
+```bash
+anchor build
+```
+
+3. **Deploy programs**:
+```bash
+# Deploy CloverCoins
+solana program deploy target/deploy/clover_coins.so --final
+
+# Deploy Staking Program
+solana program deploy target/deploy/staking_program.so --final
+
+# Deploy Gaming Engine
+solana program deploy target/deploy/gaming_engine.so --final
+```
+
+4. **Update program IDs**:
+```bash
+# Update program-ids.json with actual deployed IDs
+node update-backend-config.js
+```
+
+## ⚙️ Configuration
+
+### Environment Variables
+Update your `backend/.env` file with deployed program IDs:
+
+```bash
+# Solana Configuration
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+SOLANA_NETWORK=mainnet-beta
+
+# Program IDs (update after deployment)
+TRADEHAX_TOKEN_MINT=YourCloverCoinsMintAddress
+CLOVER_COINS_TOKEN_MINT=YourCloverCoinsMintAddress
+STAKING_PROGRAM_ID=YourStakingProgramId
+GAMING_PROGRAM_ID=YourGamingEngineId
+
+# Feature Flags
+ENABLE_SOLANA_INTEGRATION=true
+ENABLE_STAKING=true
+ENABLE_GAMING=true
+```
+
+### Program IDs
+Program IDs are stored in `program-ids.json` and automatically updated after deployment.
+
+## 🔧 Program Management
+
+### Initializing Programs
+
+After deployment, initialize the programs:
+
+```bash
+# Initialize CloverCoins mint
+# (Call initialize_mint instruction)
+
+# Initialize staking pool
+# (Call initialize_pool instruction with reward rate)
+
+# Create initial gaming markets
+# (Call initialize_game instructions)
+```
+
+### Upgrading Programs
+```bash
+# Build new version
+anchor build
+
+# Deploy upgrade
+solana program deploy target/deploy/program.so --program-id <PROGRAM_ID>
+```
+
+## 📊 Monitoring & Analytics
+
+### Program Metrics
+- Transaction volume
+- Active users
+- TVL (Total Value Locked)
+- Reward distribution
+
+### Health Checks
+```bash
+# Check program status
+solana program show <PROGRAM_ID>
+
+# Monitor logs
+solana logs <PROGRAM_ID>
+```
+
+## 🔐 Security
+
+### Audit Status
+- ✅ Code review completed
+- ✅ Formal verification planned
+- ✅ Bug bounty program active
+
+### Security Features
+- Access control with PDAs
+- Rate limiting on instructions
+- Input validation
+- Event logging for transparency
+
+## 📞 Support
+
+### Documentation
+- [Anchor Framework Docs](https://www.anchor-lang.com/)
+- [Solana Program Library](https://spl.solana.com/)
+- [TradeHax API Docs](../backend/README.md)
+
+### Getting Help
+- Create GitHub issues for bugs
+- Join Discord for community support
+- Check deployment logs for errors
+
+---
+
+## 🎯 Success Metrics
+
+After mainnet deployment, track:
+
+- **Program Usage**: Transactions per day
+- **User Adoption**: Active wallets interacting
+- **Economic Activity**: Tokens staked, rewards claimed
+- **Gaming Volume**: Prediction markets created, bets placed
+
+**Target**: 1,000+ active users and $100K+ TVL within 3 months of launch.
