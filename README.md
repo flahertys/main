@@ -1,238 +1,129 @@
-# TradeHax Solana Programs
+# shamrockstocks.github.io
 
-This directory contains the Solana smart contracts (programs) for the TradeHax DeFi gaming platform.
+TradeHax - Professional device repair, guitar lessons, and web development services.
 
-## 📁 Program Structure
+## 🚀 Quick Start
 
-```
-programs/
-├── Anchor.toml              # Anchor workspace configuration
-├── deploy-mainnet.sh        # Mainnet deployment script
-├── update-backend-config.js # Backend configuration updater
-├── program-ids.json         # Deployed program IDs by network
-├── clover-coins/           # CloverCoins token program
-│   ├── src/lib.rs          # Main program logic
-│   └── Cargo.toml          # Rust dependencies
-├── staking-program/        # Staking and yield farming
-│   ├── src/lib.rs          # Staking logic
-│   └── Cargo.toml          # Rust dependencies
-└── gaming-engine/          # Prediction markets and gaming
-    ├── src/lib.rs          # Gaming logic
-    └── Cargo.toml          # Rust dependencies
-```
+### Vercel Deployment & API Keys
 
-## 🚀 Programs Overview
+Need to set up your Vercel app with API keys? See:
 
-### 1. CloverCoins Token Program
-- **Purpose**: Native reward token for the platform
-- **Features**:
-  - SPL token standard compliance
-  - Educational and gaming rewards
-  - Deflationary burning mechanism
-  - Cross-chain conversion support
+- **[VERCEL_API_SETUP.md](./VERCEL_API_SETUP.md)** - Complete guide with step-by-step instructions for all API keys
+- **[QUICK_API_REFERENCE.md](./QUICK_API_REFERENCE.md)** - Quick reference card for essential API keys
+- **[.env.vercel.template](./.env.vercel.template)** - Template file with all environment variables
 
-### 2. Staking Program
-- **Purpose**: Yield farming for CloverCoins holders
-- **Features**:
-  - Automated reward distribution
-  - 12% APY staking rewards
-  - Flexible staking/unstaking
-  - Reward claiming system
+#### Automated Setup (Recommended)
 
-### 3. Gaming Engine
-- **Purpose**: Prediction markets and gaming mechanics
-- **Features**:
-  - Verifiable random outcomes
-  - Prediction market creation
-  - Automated payout distribution
-  - Anti-cheat mechanisms
-
-## 🛠️ Development Setup
-
-### Prerequisites
-- Rust 1.60+
-- Solana CLI 1.14+
-- Anchor Framework 0.25+
-- Node.js 16+
-
-### Installation
-```bash
-# Install Solana CLI
-sh -c "$(curl -sSfL https://release.solana.com/v1.14.0/install)"
-
-# Install Anchor
-cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-avm install latest
-avm use latest
-
-# Install dependencies
-npm install
-```
-
-### Building Programs
-```bash
-# Build all programs
-anchor build
-
-# Or build individual programs
-cd clover-coins && anchor build
-cd ../staking-program && anchor build
-cd ../gaming-engine && anchor build
-```
-
-### Testing
-```bash
-# Run tests
-anchor test
-
-# Run specific program tests
-cd clover-coins && anchor test
-```
-
-## 🚀 Deployment to Mainnet
-
-### Automated Deployment
-```bash
-# Make deployment script executable
-chmod +x deploy-mainnet.sh
-
-# Run deployment (requires SOL in wallet)
-./deploy-mainnet.sh
-```
-
-### Manual Deployment Steps
-
-1. **Configure Solana CLI**:
-```bash
-solana config set --url https://api.mainnet-beta.solana.com
-solana config set --keypair ~/.config/solana/id.json
-```
-
-2. **Build programs**:
-```bash
-anchor build
-```
-
-3. **Deploy programs**:
-```bash
-# Deploy CloverCoins
-solana program deploy target/deploy/clover_coins.so --final
-
-# Deploy Staking Program
-solana program deploy target/deploy/staking_program.so --final
-
-# Deploy Gaming Engine
-solana program deploy target/deploy/gaming_engine.so --final
-```
-
-4. **Update program IDs**:
-```bash
-# Update program-ids.json with actual deployed IDs
-node update-backend-config.js
-```
-
-## ⚙️ Configuration
-
-### Environment Variables
-Update your `backend/.env` file with deployed program IDs:
+Use our setup scripts to configure Vercel environment variables interactively:
 
 ```bash
-# Solana Configuration
-SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-SOLANA_NETWORK=mainnet-beta
+# For macOS/Linux/WSL
+bash setup-vercel-env.sh
 
-# Program IDs (update after deployment)
-TRADEHAX_TOKEN_MINT=YourCloverCoinsMintAddress
-CLOVER_COINS_TOKEN_MINT=YourCloverCoinsMintAddress
-STAKING_PROGRAM_ID=YourStakingProgramId
-GAMING_PROGRAM_ID=YourGamingEngineId
-
-# Feature Flags
-ENABLE_SOLANA_INTEGRATION=true
-ENABLE_STAKING=true
-ENABLE_GAMING=true
+# For Windows PowerShell
+pwsh setup-vercel-env.ps1
 ```
 
-### Program IDs
-Program IDs are stored in `program-ids.json` and automatically updated after deployment.
-
-## 🔧 Program Management
-
-### Initializing Programs
-
-After deployment, initialize the programs:
+#### Manual Setup
 
 ```bash
-# Initialize CloverCoins mint
-# (Call initialize_mint instruction)
+# Install Vercel CLI
+npm i -g vercel
 
-# Initialize staking pool
-# (Call initialize_pool instruction with reward rate)
+# Login and deploy
+vercel login
+vercel --prod
 
-# Create initial gaming markets
-# (Call initialize_game instructions)
+# Add environment variables
+vercel env add SHAMROCK_MINT
+vercel env add AUTHORITY_SECRET
+vercel env add MONGODB_URI
+vercel env add JWT_SECRET
 ```
 
-### Upgrading Programs
+See [VERCEL_API_SETUP.md](./VERCEL_API_SETUP.md) for detailed instructions on obtaining each API key.
+
+## 📚 Documentation
+
+### Deployment & DevOps
+- **[DEPLOYMENT_SYNC_GUIDE.md](./DEPLOYMENT_SYNC_GUIDE.md)** - 🆕 GitHub-first deployment strategy (frontend + backend)
+- [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Complete Solana and token setup
+- [VERCEL_API_SETUP.md](./VERCEL_API_SETUP.md) - Vercel environment variables setup
+
+### Backend & APIs
+- [backend/README.md](./backend/README.md) - Backend API documentation
+- [tradehax-backend/README.md](./tradehax-backend/README.md) - TradeHax game backend
+- [SHAMROCK_SETUP.md](./SHAMROCK_SETUP.md) - SHAMROCK token configuration
+
+### Quick References
+- [QUICK_START.md](./QUICK_START.md) - Quick start guide
+- [QUICK_API_REFERENCE.md](./QUICK_API_REFERENCE.md) - API keys cheat sheet
+
+## Developer setup: Git hooks
+
+This repository includes a `.githooks` directory with a sample `pre-commit` hook used to regenerate image assets before committing.
+
+To enable hooks for your local clone, run the appropriate installer below from the repository root:
+
+- Windows / PowerShell:
+
+```powershell
+pwsh .\scripts\install-hooks.ps1
+```
+
+- POSIX (macOS / Linux / WSL):
+
 ```bash
-# Build new version
-anchor build
-
-# Deploy upgrade
-solana program deploy target/deploy/program.so --program-id <PROGRAM_ID>
+sh ./scripts/install-hooks.sh
 ```
 
-## 📊 Monitoring & Analytics
+Or set the config manually:
 
-### Program Metrics
-- Transaction volume
-- Active users
-- TVL (Total Value Locked)
-- Reward distribution
-
-### Health Checks
 ```bash
-# Check program status
-solana program show <PROGRAM_ID>
-
-# Monitor logs
-solana logs <PROGRAM_ID>
+git config core.hooksPath .githooks
+git add .githooks/pre-commit
+git update-index --chmod=+x .githooks/pre-commit
 ```
 
-## 🔐 Security
+The installer scripts are idempotent and safe to re-run.
 
-### Audit Status
-- ✅ Code review completed
-- ✅ Formal verification planned
-- ✅ Bug bounty program active
+## 🚀 Deployment Workflow
 
-### Security Features
-- Access control with PDAs
-- Rate limiting on instructions
-- Input validation
-- Event logging for transparency
+This repository uses a **GitHub-first deployment strategy** that ensures all code is committed to GitHub before deploying to production:
 
-## 📞 Support
+```
+Push to main → GitHub Actions → Frontend (GitHub Pages) + Backend (Vercel)
+                                           ↓
+                                    tradehax.net
+```
 
-### Documentation
-- [Anchor Framework Docs](https://www.anchor-lang.com/)
-- [Solana Program Library](https://spl.solana.com/)
-- [TradeHax API Docs](../backend/README.md)
+### Automatic Deployments
 
-### Getting Help
-- Create GitHub issues for bugs
-- Join Discord for community support
-- Check deployment logs for errors
+When you push to the `main` branch:
+- ✅ Frontend changes deploy to **GitHub Pages** → `tradehax.net`
+- ✅ Backend changes deploy to **Vercel** → API endpoints
+- ✅ All changes are version controlled in GitHub
+- ✅ No manual Vercel deployments needed
 
----
+### Required GitHub Secrets
 
-## 🎯 Success Metrics
+For automated Vercel deployment, add these secrets in **Settings → Secrets → Actions**:
+- `VERCEL_TOKEN` - Generate from https://vercel.com/account/tokens
 
-After mainnet deployment, track:
+See **[DEPLOYMENT_SYNC_GUIDE.md](./DEPLOYMENT_SYNC_GUIDE.md)** for complete setup instructions.
 
-- **Program Usage**: Transactions per day
-- **User Adoption**: Active wallets interacting
-- **Economic Activity**: Tokens staked, rewards claimed
-- **Gaming Volume**: Prediction markets created, bets placed
+### Development Workflow
 
-**Target**: 1,000+ active users and $100K+ TVL within 3 months of launch.
+```bash
+# Make changes
+git add .
+git commit -m "Add feature"
+
+# Push to main (triggers automatic deployment)
+git push origin main
+
+# Or use feature branches + PR for review
+git checkout -b feature/my-feature
+git push origin feature/my-feature
+# Create PR → Merge to main → Auto-deploy
+```

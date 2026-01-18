@@ -1,30 +1,25 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "framework": "nextjs",
-  "outputDirectory": ".next",
-  "github": {
-    "silent": true
-  },
-  "headers": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
+      "src": "api/index.js",
+      "use": "@vercel/node"
     }
-  ]
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api"
+    }
+  ],
+  "env": {
+    "SHAMROCK_MINT": "@shamrock_mint",
+    "AUTHORITY_SECRET": "@authority_secret",
+    "SOLANA_RPC": "https://api.devnet.solana.com",
+    "MONGODB_URI": "@mongodb_uri",
+    "TWITTER_APP_KEY": "@twitter_app_key",
+    "TWITTER_APP_SECRET": "@twitter_app_secret",
+    "TWITTER_ACCESS_TOKEN": "@twitter_access_token",
+    "TWITTER_ACCESS_SECRET": "@twitter_access_secret"
+  }
 }

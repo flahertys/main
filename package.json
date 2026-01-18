@@ -1,18 +1,27 @@
 {
-  "name": "tradehax-claim",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
+  "name": "tradehax-backend",
+  "version": "1.0.0",
+  "description": "TradeHax Solana L2 Backend - Task rewards and SHAMROCK token distribution",
+  "main": "api/index.js",
+  "type": "commonjs",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "dev": "node api/index.js",
+    "start": "node api/index.js"
   },
   "dependencies": {
-    "@solana/spl-token": "^0.4.6",
-    "@solana/web3.js": "^1.95.0",
-    "@noble/ed25519": "^2.1.0"
+    "@metaplex-foundation/js": "^0.20.1",
+    "@metaplex-foundation/mpl-token-metadata": "^3.2.0",
+    "@solana/spl-token": "^0.1.8",
+    "@solana/web3.js": "^1.87.6",
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "mongoose": "^8.2.4",
+    "multer": "2.0.2",
+    "twitter-api-v2": "^1.16.0"
   },
-  "devDependencies": {
-    "wrangler": "^3.80.0"
+  "engines": {
+    "node": "18.x"
   }
 }
