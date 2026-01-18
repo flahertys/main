@@ -4,8 +4,10 @@ Advanced automated trading platform powered by Solana blockchain and AI.
 
 ## 🌐 Live Deployments
 
-- **Production**: [https://tradehaxai.tech](https://tradehaxai.tech)
+- **Production**: [https://tradehaxai.tech](https://tradehaxai.tech) ⭐ Main Domain
 - **Vercel URL**: [https://shamrockstocks-github-io.vercel.app](https://shamrockstocks-github-io.vercel.app)
+
+> Note: Both URLs point to the same deployment. tradehaxai.tech is the primary custom domain.
 
 ## 🚀 Features
 - **Solana Integration**: Lightning-fast blockchain transactions
@@ -62,13 +64,25 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## 🌐 Deployment
 
-See [DOMAIN_SETUP.md](./DOMAIN_SETUP.md) for connecting to tradehaxai.tech domain.
-See [MONETIZATION_SETUP.md](./MONETIZATION_SETUP.md) for revenue generation setup.
+See [DOMAIN_SETUP_GUIDE.md](./DOMAIN_SETUP_GUIDE.md) for connecting to tradehaxai.tech domain.
+See [MONETIZATION_GUIDE.md](./MONETIZATION_GUIDE.md) for revenue generation setup.
 
 **Quick Deploy to Vercel:**
 1. Push to GitHub
 2. Import to Vercel
 3. Deploy! (Root directory is already set correctly)
+
+## 💰 Monetization Features
+
+This platform includes multiple revenue streams:
+
+1. **Google Analytics** - Track user behavior and optimize conversions
+2. **Google AdSense** - Display advertising revenue
+3. **Email Marketing** - Collect leads via EmailCapture component
+4. **Affiliate Marketing** - Earn commissions from crypto exchange referrals
+5. **Solana Fees** - Transaction fees from dApp usage
+
+See [MONETIZATION_GUIDE.md](./MONETIZATION_GUIDE.md) for complete setup instructions.
 
 ## 🧪 Testing
 ```bash

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 
 export function EmailCapture() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setStatus('loading');
     
@@ -19,12 +20,15 @@ export function EmailCapture() {
       
       if (res.ok) {
         setStatus('success');
+        setMessage('Thank you for subscribing!');
         setEmail('');
       } else {
         setStatus('error');
+        setMessage('Something went wrong. Please try again.');
       }
     } catch {
       setStatus('error');
+      setMessage('Network error. Please try again.');
     }
   };
 
@@ -38,6 +42,7 @@ export function EmailCapture() {
           placeholder="Enter your email"
           required
           className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          disabled={status === 'loading'}
         />
         <button
           type="submit"
@@ -47,11 +52,10 @@ export function EmailCapture() {
           {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
         </button>
       </form>
-      {status === 'success' && (
-        <p className="mt-3 text-green-400 text-sm text-center">✓ Successfully subscribed!</p>
-      )}
-      {status === 'error' && (
-        <p className="mt-3 text-red-400 text-sm text-center">✗ Error. Please try again.</p>
+      {message && (
+        <p className={`mt-3 text-sm text-center ${status === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+          {message}
+        </p>
       )}
     </div>
   );

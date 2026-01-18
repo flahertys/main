@@ -1,6 +1,7 @@
 'use client';
 
 import Script from 'next/script';
+import { useEffect } from 'react';
 
 interface AdSenseProps {
   adSlot: string;
@@ -9,27 +10,37 @@ interface AdSenseProps {
 }
 
 export function AdSense({ adSlot, adFormat = 'auto', className = '' }: AdSenseProps) {
-  if (!process.env.NEXT_PUBLIC_ADSENSE_ID) return null;
+  const adsenseId = process.env.NEXT_PUBLIC_ADSENSE_ID;
+
+  useEffect(() => {
+    if (adsenseId && typeof window !== 'undefined') {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+      } catch (err) {
+        console.error('AdSense error:', err);
+      }
+    }
+  }, [adsenseId]);
+
+  if (!adsenseId) return null;
 
   return (
-    <>
+    <div className={className}>
       <Script
         async
-        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_ID}`}
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}`}
         crossOrigin="anonymous"
         strategy="afterInteractive"
       />
       <ins
-        className={`adsbygoogle ${className}`}
+        className="adsbygoogle"
         style={{ display: 'block' }}
-        data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_ID}
+        data-ad-client={adsenseId}
         data-ad-slot={adSlot}
         data-ad-format={adFormat}
         data-full-width-responsive="true"
       />
-      <Script id={`adsense-${adSlot}`} strategy="afterInteractive">
-        {`(adsbygoogle = window.adsbygoogle || []).push({});`}
-      </Script>
-    </>
+    </div>
   );
 }
