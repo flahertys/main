@@ -5,6 +5,7 @@ import { LessonBooking } from '@/components/music/LessonBooking';
 import { ArtistCard } from '@/components/music/ArtistCard';
 import { TokenRoadmap } from '@/components/music/TokenRoadmap';
 import { AdSenseBlock } from '@/components/monetization/AdSenseBlock';
+import { bookingLinks } from '@/lib/booking';
 import { Music, Guitar, Users, Sparkles, TrendingUp, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -149,9 +150,14 @@ export default function MusicPage() {
                   <span className="text-white font-semibold">Live via Zoom</span>
                 </div>
               </div>
-              <button className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-semibold">
+              <a 
+                href={bookingLinks.guitarLessons}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-semibold text-center"
+              >
                 Join Next Workshop
-              </button>
+              </a>
             </div>
           </div>
 

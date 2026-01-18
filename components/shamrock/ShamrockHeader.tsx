@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface NavItem {
   name: string;
@@ -60,6 +60,32 @@ export function ShamrockHeader() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const clickedOutside = Object.values(dropdownRefs.current).every(
+        ref => ref && !ref.contains(target)
+      );
+      if (clickedOutside) {
+        setOpenDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleKeyDown = (event: React.KeyboardEvent, itemName: string) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setOpenDropdown(openDropdown === itemName ? null : itemName);
+    } else if (event.key === 'Escape') {
+      setOpenDropdown(null);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur-md border-b border-gray-800">
@@ -81,6 +107,7 @@ export function ShamrockHeader() {
                 return (
                   <div
                     key={item.name}
+                    ref={(el) => { dropdownRefs.current[item.name] = el; }}
                     className="relative group"
                     onMouseEnter={() => setOpenDropdown(item.name)}
                     onMouseLeave={() => setOpenDropdown(null)}
@@ -92,18 +119,26 @@ export function ShamrockHeader() {
                           ? 'text-[#0366d6]'
                           : 'text-gray-300 hover:text-white'
                       }`}
+                      onFocus={() => setOpenDropdown(item.name)}
+                      onKeyDown={(e) => handleKeyDown(e, item.name)}
+                      aria-expanded={openDropdown === item.name}
+                      aria-haspopup="true"
                     >
                       {item.name}
                       <ChevronDown className="w-4 h-4" />
                     </Link>
                     
                     {openDropdown === item.name && (
-                      <div className="absolute top-full left-0 mt-2 w-48 bg-gray-900 border border-gray-800 rounded-lg shadow-xl py-2 animate-slide-up">
+                      <div 
+                        className="absolute top-full left-0 mt-2 w-48 bg-gray-900 border border-gray-800 rounded-lg shadow-xl py-2 animate-slide-up"
+                        role="menu"
+                      >
                         {item.submenu.map((subitem) => (
                           <Link
                             key={subitem.name}
                             href={subitem.href}
                             className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                            role="menuitem"
                           >
                             {subitem.name}
                           </Link>
@@ -135,6 +170,7 @@ export function ShamrockHeader() {
             type="button"
             className="md:hidden text-gray-300 hover:text-white"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
           >
             {mobileMenuOpen ? (
               <X className="w-6 h-6" />

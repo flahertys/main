@@ -1,4 +1,7 @@
+'use client';
+
 import { CheckCircle2 } from 'lucide-react';
+import { bookingLinks } from '@/lib/booking';
 
 interface LessonCardProps {
   title: string;
@@ -17,6 +20,10 @@ export function LessonCard({
   features,
   popular = false,
 }: LessonCardProps) {
+  const handleBooking = () => {
+    window.open(bookingLinks.guitarLessons, '_blank');
+  };
+
   return (
     <div className={`relative bg-gray-900/50 border rounded-xl p-8 hover:border-[#0366d6]/50 transition-all ${
       popular ? 'border-[#FF6B35]' : 'border-gray-800'
@@ -46,7 +53,10 @@ export function LessonCard({
         ))}
       </ul>
       
-      <button className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-semibold">
+      <button 
+        onClick={handleBooking}
+        className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-semibold"
+      >
         Book Lesson
       </button>
     </div>
