@@ -6,6 +6,9 @@ interface IntroVideoProps {
   onComplete: () => void;
 }
 
+const MOBILE_BREAKPOINT = 768;
+const MOBILE_PLAY_DELAY = 100;
+
 export function IntroVideo({ onComplete }: IntroVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -13,7 +16,7 @@ export function IntroVideo({ onComplete }: IntroVideoProps) {
   useEffect(() => {
     // Detect mobile device
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
     };
     
     checkMobile();
@@ -29,7 +32,7 @@ export function IntroVideo({ onComplete }: IntroVideoProps) {
         try {
           // Add a small delay for mobile devices to ensure video is ready
           if (isMobile) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, MOBILE_PLAY_DELAY));
           }
           await videoRef.current?.play();
         } catch (error) {
@@ -61,8 +64,10 @@ export function IntroVideo({ onComplete }: IntroVideoProps) {
         muted
         autoPlay
         preload="auto"
-        webkit-playsinline="true"
-        x5-playsinline="true"
+        // @ts-ignore - vendor-specific attributes
+        webkitPlaysinline="true"
+        // @ts-ignore - vendor-specific attributes
+        x5Playsinline="true"
       >
         <source src="/videos/intro-video.mp4" type="video/mp4" />
         Your browser does not support the video tag. Please upgrade your browser to view the intro video.

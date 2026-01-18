@@ -46,9 +46,11 @@ export function IntroVideoWrapper({ children }: { children: React.ReactNode }) {
     setIntroComplete(true);
   };
 
-  // Don't render intro until client-side
+  // Don't render intro until client-side - show loading to prevent layout shift
   if (!isClient) {
-    return null;
+    return (
+      <div className="fixed inset-0 z-[9999] bg-black" aria-hidden="true" />
+    );
   }
 
   if (showIntro) {
