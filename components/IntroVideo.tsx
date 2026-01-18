@@ -64,9 +64,8 @@ export function IntroVideo({ onComplete }: IntroVideoProps) {
         muted
         autoPlay
         preload="auto"
-        // @ts-ignore - vendor-specific attributes
+        // @ts-expect-error - vendor-specific attributes
         webkitPlaysinline="true"
-        // @ts-ignore - vendor-specific attributes
         x5Playsinline="true"
       >
         <source src="/videos/intro-video.mp4" type="video/mp4" />

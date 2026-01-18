@@ -5,7 +5,6 @@ import { IntroVideo } from './IntroVideo';
 
 export function IntroVideoWrapper({ children }: { children: React.ReactNode }) {
   const [showIntro, setShowIntro] = useState(false);
-  const [introComplete, setIntroComplete] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -19,17 +18,11 @@ export function IntroVideoWrapper({ children }: { children: React.ReactNode }) {
         const introShown = sessionStorage.getItem('introVideoShown');
         if (!introShown) {
           setShowIntro(true);
-        } else {
-          setIntroComplete(true);
         }
-      } else {
-        // Skip intro if not in browser environment
-        setIntroComplete(true);
       }
-    } catch (error) {
+    } catch {
       // If sessionStorage is not available, skip intro
       console.warn('SessionStorage unavailable, skipping intro');
-      setIntroComplete(true);
     }
   }, []);
 
@@ -38,12 +31,11 @@ export function IntroVideoWrapper({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         sessionStorage.setItem('introVideoShown', 'true');
       }
-    } catch (error) {
+    } catch {
       // If sessionStorage is not available, continue anyway
       console.warn('Unable to save intro state to sessionStorage');
     }
     setShowIntro(false);
-    setIntroComplete(true);
   };
 
   // Don't render intro until client-side - show loading to prevent layout shift
