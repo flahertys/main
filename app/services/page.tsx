@@ -2,7 +2,7 @@ import { ShamrockHeader } from '@/components/shamrock/ShamrockHeader';
 import { ShamrockFooter } from '@/components/shamrock/ShamrockFooter';
 import { EmailCapture } from '@/components/EmailCapture';
 import { AdSenseBlock } from '@/components/monetization/AdSenseBlock';
-import { Code, LineChart, Users, Zap, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Code, LineChart, Users, Zap, CheckCircle2, ArrowRight, Wrench, Megaphone, Server } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
@@ -28,7 +28,7 @@ export default function ServicesPage() {
             Professional Services
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Transform your business with cutting-edge Web3 solutions, blockchain development,
+            Complete technology solutions from Web3 development to hardware repair, social media marketing,
             and automated trading systems built by experienced developers.
           </p>
         </div>
@@ -94,6 +94,51 @@ export default function ServicesPage() {
               'Performance optimization',
             ]}
             pricing="Starting at $4,000"
+          />
+
+          <ServiceCard
+            icon={<Wrench className="w-10 h-10" />}
+            title="Software & Hardware Repair"
+            description="Remote-first software troubleshooting and hardware diagnostic support for all your tech issues."
+            features={[
+              'Remote software repairs & troubleshooting',
+              'Hardware diagnostic consultations',
+              'Virus/malware removal',
+              'System optimization & cleanup',
+              'Data recovery assistance',
+              'OS installation & configuration',
+            ]}
+            pricing="$50/hour (remote) | $100/hour (on-site)"
+          />
+
+          <ServiceCard
+            icon={<Megaphone className="w-10 h-10" />}
+            title="Social Media Marketing"
+            description="Grow your brand with strategic social media campaigns, content creation, and community management."
+            features={[
+              'Social media strategy development',
+              'Content creation & scheduling',
+              'Community management',
+              'Paid advertising campaigns (Meta, X, LinkedIn)',
+              'Analytics & performance tracking',
+              'Influencer collaboration setup',
+            ]}
+            pricing="Starting at $1,000/month"
+          />
+
+          <ServiceCard
+            icon={<Server className="w-10 h-10" />}
+            title="Complete Tech Solutions"
+            description="End-to-end technology services including hosting, domain management, email setup, and ongoing support."
+            features={[
+              'Domain registration & DNS management',
+              'Email hosting & configuration',
+              'Cloud hosting setup (AWS, Azure, Vercel)',
+              'SSL certificate installation',
+              'Website maintenance & updates',
+              'Technical support retainers',
+            ]}
+            pricing="Starting at $500/month"
           />
         </div>
 

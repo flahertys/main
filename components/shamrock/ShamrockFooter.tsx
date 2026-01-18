@@ -56,6 +56,11 @@ export function ShamrockFooter() {
             <h3 className="text-white font-semibold mb-4">Products</h3>
             <ul className="space-y-2">
               <li>
+                <Link href="/music" className="shamrock-link text-sm">
+                  Music Lessons
+                </Link>
+              </li>
+              <li>
                 <Link href="/dashboard" className="shamrock-link text-sm">
                   Trading Dashboard
                 </Link>
@@ -67,7 +72,7 @@ export function ShamrockFooter() {
               </li>
               <li>
                 <Link href="/services" className="shamrock-link text-sm">
-                  Consulting Services
+                  Tech Services
                 </Link>
               </li>
             </ul>
