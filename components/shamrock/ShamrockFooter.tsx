@@ -18,7 +18,7 @@ export function ShamrockFooter() {
               TradeHax AI
             </div>
             <p className="text-gray-400 text-sm mb-4">
-              Advanced automated trading platform powered by Solana blockchain and AI technology.
+              3-portal business ecosystem: Music education, fintech trading, and complete tech services.
             </p>
             <div className="flex space-x-4">
               <a
@@ -51,9 +51,31 @@ export function ShamrockFooter() {
             </div>
           </div>
 
-          {/* Products */}
+          {/* Music Portal */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Products</h3>
+            <h3 className="text-white font-semibold mb-4">🎸 Music & Arts</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/music" className="shamrock-link text-sm">
+                  Guitar Lessons
+                </Link>
+              </li>
+              <li>
+                <Link href="/music#artists" className="shamrock-link text-sm">
+                  Artist Showcase
+                </Link>
+              </li>
+              <li>
+                <Link href="/music#token" className="shamrock-link text-sm">
+                  L2 Token Roadmap
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Trading Portal */}
+          <div>
+            <h3 className="text-white font-semibold mb-4">💰 Trading & Fintech</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/dashboard" className="shamrock-link text-sm">
@@ -61,18 +83,48 @@ export function ShamrockFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/game" className="shamrock-link text-sm">
-                  Hyperborea Game
+                <Link href="/dashboard#community" className="shamrock-link text-sm">
+                  Community
                 </Link>
               </li>
               <li>
-                <Link href="/services" className="shamrock-link text-sm">
-                  Consulting Services
+                <Link href="/dashboard#live" className="shamrock-link text-sm">
+                  Live Trading (Soon)
                 </Link>
               </li>
             </ul>
           </div>
 
+          {/* Tech Services Portal */}
+          <div>
+            <h3 className="text-white font-semibold mb-4">💻 Tech Services</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/services" className="shamrock-link text-sm">
+                  All Services
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#webdev" className="shamrock-link text-sm">
+                  Web Development
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#support" className="shamrock-link text-sm">
+                  Tech Support
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#marketing" className="shamrock-link text-sm">
+                  Digital Marketing
+                </Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Additional Links Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 pt-8 border-t border-gray-800">
           {/* Resources */}
           <div>
             <h3 className="text-white font-semibold mb-4">Resources</h3>
@@ -88,6 +140,27 @@ export function ShamrockFooter() {
                 </Link>
               </li>
               <li>
+                <Link href="/game" className="shamrock-link text-sm">
+                  Hyperborea Game
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Company */}
+          <div>
+            <h3 className="text-white font-semibold mb-4">Company</h3>
+            <ul className="space-y-2">
+              <li>
+                <a
+                  href="mailto:support@tradehaxai.tech"
+                  className="shamrock-link text-sm flex items-center gap-2"
+                >
+                  <Mail className="w-4 h-4" />
+                  Contact Us
+                </a>
+              </li>
+              <li>
                 <a
                   href="https://github.com/DarkModder33/main"
                   target="_blank"
@@ -100,18 +173,24 @@ export function ShamrockFooter() {
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Legal */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Contact</h3>
+            <h3 className="text-white font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <a
-                  href="mailto:support@tradehaxai.tech"
-                  className="shamrock-link text-sm flex items-center gap-2"
-                >
-                  <Mail className="w-4 h-4" />
-                  support@tradehaxai.tech
-                </a>
+                <Link href="/terms" className="shamrock-link text-sm">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="shamrock-link text-sm">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/disclaimer" className="shamrock-link text-sm">
+                  Disclaimer
+                </Link>
               </li>
             </ul>
           </div>
@@ -125,15 +204,9 @@ export function ShamrockFooter() {
             </p>
             
             <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-400">
-              <Link href="/terms" className="hover:text-white transition-colors">
-                Terms of Service
-              </Link>
-              <Link href="/privacy" className="hover:text-white transition-colors">
-                Privacy Policy
-              </Link>
-              <Link href="/disclaimer" className="hover:text-white transition-colors">
-                Trading Disclaimer
-              </Link>
+              <p className="text-gray-500">
+                🎯 Music • Trading • Tech Services
+              </p>
             </div>
           </div>
           
