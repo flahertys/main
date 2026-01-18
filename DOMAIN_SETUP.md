@@ -1,6 +1,10 @@
 # 🌐 tradehaxai.tech Domain Setup Guide
 
+> **⚠️ Note:** This repository uses **Vercel-only deployment**. GitHub Pages is not configured and should not be used. All domain configuration is managed through the Vercel Dashboard.
+
 ## Step 1: Vercel Dashboard Configuration
+
+> **Important:** Domain configuration for this repository is managed **exclusively through the Vercel Dashboard**, not through CNAME files or GitHub settings.
 
 1. Log into [Vercel Dashboard](https://vercel.com/dashboard)
 2. Find your project: **shamrockstocks-github-io**
@@ -37,8 +41,8 @@ TTL: Automatic
 ```
 
 ### Remove Conflicting Records:
-- ❌ Delete any existing A records for @ pointing to GitHub Pages IPs
-- ❌ Delete any CNAME records pointing to github.io
+- ❌ Delete any existing A records for @ pointing to GitHub Pages IPs (185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153)
+- ❌ Delete any CNAME records pointing to github.io (GitHub Pages is not used in this repository)
 
 ## Step 3: Verify Domain Connection
 

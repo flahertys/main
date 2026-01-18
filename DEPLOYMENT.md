@@ -28,11 +28,9 @@ Add these in Vercel Dashboard → Settings → Environment Variables:
 6. Vercel will auto-provision SSL certificate
 
 #### For tradehax.net redirect:
-Option A - GitHub Pages redirect:
-1. Deploy the portfolio directory to GitHub Pages
-2. Update `portfolio/index.html` to redirect to tradehaxai.tech
-
-Option B - DNS redirect in domain registrar
+Option - DNS redirect in domain registrar:
+1. Configure URL redirect in your domain registrar settings
+2. Point tradehax.net to tradehaxai.tech
 
 ### Monitoring
 - Enable Vercel Analytics in dashboard
