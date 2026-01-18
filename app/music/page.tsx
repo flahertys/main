@@ -232,9 +232,12 @@ export default function MusicPage() {
               Upload your music, gain followers, and earn SOL tips from your fans. 
               Our discovery algorithm helps talented artists reach new audiences.
             </p>
-            <button className="px-8 py-3 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-[#FF6B35] transition-all font-semibold">
+            <Link
+              href="/music/submit-profile"
+              className="px-8 py-3 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-[#FF6B35] transition-all font-semibold inline-flex items-center justify-center"
+            >
               Submit Your Profile
-            </button>
+            </Link>
           </div>
         </section>
 
