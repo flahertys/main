@@ -6,12 +6,14 @@ compatibility_date = "2025-01-01"
 # Public vars
 SOLANA_CLUSTER = "devnet"
 RPC_URL = "https://api.devnet.solana.com"
-MINT_ADDRESS = "" # fill after minting
+MINT_ADDRESS = "REPLACE_WITH_SOLANA_MINT_ADDRESS" # Solana mint public key (base58)
 
 # Bindings
+# NOTE: Before deploying, create a KV namespace (e.g. via `wrangler kv namespace create "RATE_LIMIT_KV"`)
+# and replace the placeholder below with the real namespace ID from the command output or dashboard.
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "" # fill after creating KV namespace
+id = "REPLACE_WITH_KV_NAMESPACE_ID" # MUST be updated to the actual KV namespace ID before deploy
 
 # Secrets to set via `wrangler secret put`
 # - MINT_SECRET (base64 or JSON array of u8 for Keypair)
