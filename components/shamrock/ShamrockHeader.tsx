@@ -31,8 +31,8 @@ const navigation: NavItem[] = [
     href: '/dashboard',
     submenu: [
       { name: 'Dashboard', href: '/dashboard' },
-      { name: 'Community', href: '/dashboard#community' },
-      { name: 'Livestreams', href: '/dashboard#live' },
+      { name: 'Community', href: '/dashboard' },
+      { name: 'Livestreams', href: '/dashboard' },
     ]
   },
   
