@@ -83,12 +83,12 @@ export function ShamrockFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard#community" className="shamrock-link text-sm">
+                <Link href="/dashboard" className="shamrock-link text-sm">
                   Community
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard#live" className="shamrock-link text-sm">
+                <Link href="/dashboard" className="shamrock-link text-sm">
                   Live Trading (Soon)
                 </Link>
               </li>
