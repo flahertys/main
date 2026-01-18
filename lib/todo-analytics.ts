@@ -53,10 +53,10 @@ export const trackEvent = {
     });
   },
 
-  premiumPurchaseComplete: () => {
+  premiumPurchaseComplete: (transactionId: string) => {
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', 'purchase', {
-        transaction_id: crypto.randomUUID(),
+        transaction_id: transactionId,
         value: 4.99,
         currency: 'USD',
         items: [{

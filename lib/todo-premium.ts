@@ -1,12 +1,20 @@
 // Premium feature gating utilities
+// SECURITY NOTE: This is a client-side check for UX purposes only.
+// In production, all premium features MUST be validated server-side.
+// Client-side checks can be bypassed, so never rely on them for security.
+
 export function checkPremiumAccess(): boolean {
   if (typeof window === 'undefined') return false;
   
-  // Check localStorage for premium status
+  // Check localStorage for premium status (client-side only for UX)
   const isPremium = localStorage.getItem('isPremium') === 'true';
   
-  // TODO: Validate with backend API
-  // const response = await fetch('/api/premium/verify')
+  // TODO: In production, validate with backend API on every request
+  // Example:
+  // const response = await fetch('/api/premium/verify', {
+  //   headers: { 'Authorization': `Bearer ${userToken}` }
+  // })
+  // return response.ok && (await response.json()).isPremium
   
   return isPremium;
 }

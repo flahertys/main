@@ -8,9 +8,10 @@ export function PremiumUpsell({ onClose }: { onClose: () => void }) {
   const handleUpgrade = async () => {
     trackEvent.premiumUpgradeClick('todo_modal')
     
-    // Redirect to Stripe checkout
-    // For now, simulate premium upgrade (in production, this would go through payment)
-    window.location.href = '/api/stripe/checkout?product=premium-todo'
+    // TODO: Implement Stripe checkout
+    // For demo purposes, show alert
+    alert('Premium upgrade feature coming soon! This will redirect to Stripe checkout.')
+    onClose()
   }
 
   return (

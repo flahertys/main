@@ -13,7 +13,6 @@ interface Todo {
   text: string
   completed: boolean
   createdAt: number
-  isPremium?: boolean // Flag for premium features
 }
 
 const FREE_TASK_LIMIT = 10
@@ -64,10 +63,17 @@ export default function TodoApp() {
   }
 
   const toggleTodo = (id: string) => {
-    setTodos(todos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ))
-    trackEvent.todoCompleted()
+    setTodos(todos.map(todo => {
+      if (todo.id === id) {
+        const newCompleted = !todo.completed
+        // Only track completion, not un-completion
+        if (newCompleted) {
+          trackEvent.todoCompleted()
+        }
+        return { ...todo, completed: newCompleted }
+      }
+      return todo
+    }))
   }
 
   const deleteTodo = (id: string) => {
