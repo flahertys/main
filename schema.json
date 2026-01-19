@@ -1,0 +1,80 @@
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "TradeHax Retro Arcade",
+  "description": "Play classic retro games online and earn cryptocurrency. 15 minutes free play daily. Features NES, SNES, Game Boy, GBA, Genesis, N64, and PSX emulators. Earn Clover Coins playing games, convert to Solana tokens.",
+  "url": "https://tradehax.net/games/",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Web Browser",
+  "offers": {
+    "@type": "AggregateOffer",
+    "lowPrice": "0",
+    "highPrice": "29.99",
+    "priceCurrency": "USD",
+    "offerCount": "3",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free Play",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "15 minutes free play daily"
+      },
+      {
+        "@type": "Offer",
+        "name": "Starter Pack",
+        "price": "4.99",
+        "priceCurrency": "USD",
+        "description": "150 Clover Coins - 30 minutes play time"
+      },
+      {
+        "@type": "Offer",
+        "name": "Value Pack",
+        "price": "14.99",
+        "priceCurrency": "USD",
+        "description": "500 Clover Coins - 100 minutes play time"
+      },
+      {
+        "@type": "Offer",
+        "name": "Premium Pack",
+        "price": "29.99",
+        "priceCurrency": "USD",
+        "description": "1200 Clover Coins - 4 hours play time"
+      }
+    ]
+  },
+  "featureList": [
+    "NES Emulator Online",
+    "SNES Emulator Online",
+    "Game Boy Emulator",
+    "GBA Emulator",
+    "Sega Genesis Emulator",
+    "N64 Emulator",
+    "PlayStation Emulator",
+    "Play to Earn Crypto",
+    "Convert Coins to Solana",
+    "Save Game States",
+    "15 Minutes Free Daily"
+  ],
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "ratingCount": "156",
+    "bestRating": "5",
+    "worstRating": "1"
+  },
+  "provider": {
+    "@type": "Organization",
+    "name": "TradeHax",
+    "url": "https://tradehax.net",
+    "logo": "https://tradehax.net/logo.png",
+    "sameAs": [
+      "https://twitter.com/tradehax",
+      "https://github.com/shamrockstocks"
+    ]
+  },
+  "screenshot": "https://tradehax.net/games/screenshot.png",
+  "softwareVersion": "2.0",
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "keywords": "retro games, play to earn, crypto gaming, NES emulator, SNES emulator, Game Boy emulator, free online games, earn cryptocurrency, Solana gaming, arcade games"
+}

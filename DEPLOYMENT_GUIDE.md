@@ -1,339 +1,502 @@
-# Complete Deployment Guide - Live Game Launch
+# TradeHax Backend - Production Deployment Guide
 
-Follow these steps to deploy TradeHax game to production.
+## 🎯 Objective
 
----
+Deploy the TradeHax API (`https://api.tradehax.net`) with:
+- ✅ Security hardening (OAuth, Web3, JWT, rate limiting)
+- ✅ CORS restricted to production domains
+- ✅ Environment variable management
+- ✅ Error handling & monitoring
+- ✅ Health checks & logging
 
-## Step 1: Install Solana CLI (Local Machine)
+## 📋 Pre-Deployment Checklist
 
-### Windows
-```powershell
-# Run PowerShell as Administrator
-irm https://release.solana.com/v1.18.22/solana-install-init.exe | iex
-```
+### 1. Secrets Generation
 
-Close and reopen PowerShell, then verify:
-```powershell
-solana --version
-```
-
-### macOS/Linux
-```bash
-sh -c "$(curl -sSfL https://release.solana.com/v1.18.22/install)"
-```
-
----
-
-## Step 2: Configure Solana for Devnet
+Generate all required secrets before deployment:
 
 ```bash
-solana config set --url https://api.devnet.solana.com
-solana config get
+# Generate JWT_SECRET (32 bytes, base64 encoded)
+openssl rand -base64 32
+# Output example: "a7xK8nM9pQ2wL5jH4vZ1rX3bG6cD8eF9sT0uY2iO="
+
+# Generate CSRF state keys
+openssl rand -hex 16
+# Output example: "discord-state-a1b2c3d4e5f6g7h8"
 ```
 
-Should show: `RPC URL: https://api.devnet.solana.com`
+### 2. OAuth Application Setup
 
----
+#### Discord
 
-## Step 3: Create Authority Wallet & Fund It
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Create new application: "TradeHax Production"
+3. Navigate to OAuth2 → General
+4. Copy **Client ID** and **Client Secret**
+5. Add redirect URI: `https://api.tradehax.net/auth/oauth/discord/callback`
+6. Grant bot permissions if using role assignment:
+   - Manage Roles
+   - Manage Channels
+
+#### Google/Gmail
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create project: "TradeHax Production"
+3. Enable Google+ API
+4. Create OAuth 2.0 Credential (Web application)
+5. Copy **Client ID** and **Client Secret**
+6. Add authorized origins: `https://tradehax.net`, `https://www.tradehax.net`
+7. Add redirect URI: `https://api.tradehax.net/auth/oauth/gmail/callback`
+
+### 3. Environment Variables
+
+Create `.env.production` file with all required values:
 
 ```bash
-# Create directory for wallets
-mkdir ~/my-wallets
+# Copy template and fill in actual values
+cp backend/.env.example backend/.env.production
 
-# Generate authority keypair
-solana-keygen new --outfile ~/my-wallets/authority-keypair.json
-
-# Airdrop SOL (testnet funds - free)
-solana airdrop 2 ~/my-wallets/authority-keypair.json --url devnet
-solana airdrop 2 ~/my-wallets/authority-keypair.json --url devnet
+# Edit with your secrets
+cat backend/.env.production
 ```
 
-**Wait 30 seconds between airdrops.** You need ~0.5 SOL for token creation.
-
-Check balance:
-```bash
-solana balance ~/my-wallets/authority-keypair.json --url devnet
+**Required variables**:
+```
+NODE_ENV=production
+PORT=3001
+BACKEND_URL=https://api.tradehax.net
+FRONTEND_URL=https://tradehax.net
+JWT_SECRET=<your-secret>
+DISCORD_CLIENT_ID=<your-id>
+DISCORD_CLIENT_SECRET=<your-secret>
+GOOGLE_CLIENT_ID=<your-id>
+GOOGLE_CLIENT_SECRET=<your-secret>
+SOLANA_NETWORK=mainnet-beta
+# Use a dedicated RPC provider (Helius/Triton/QuickNode/etc.)
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+# Optional: Discord alerts for backend errors
+# DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 ```
 
----
+### 4. Database Setup (Optional)
 
-## Step 4: Create SHAMROCK Token
-
-### 4.1 Generate Mint Keypair
-```bash
-cd ~/my-wallets
-solana-keygen new --outfile mint-keypair.json
-
-# Get the mint address
-MINT_PUBKEY=$(solana-keygen pubkey mint-keypair.json)
-echo "Your SHAMROCK_MINT: $MINT_PUBKEY"
-```
-
-**Save this - you need it for Vercel!**
-
-### 4.2 Fund the Mint Account
-```bash
-# Get rent cost
-RENT=$(solana rent 82 --url devnet | grep "Minimum balance" | awk '{print $4}')
-
-# Transfer SOL to mint
-solana transfer ~/my-wallets/authority-keypair.json $MINT_PUBKEY $RENT \
-  --allow-unfunded-recipient --signer mint-keypair.json --url devnet
-```
-
-### 4.3 Initialize Token Mint
-```bash
-spl-token initialize-mint mint-keypair.json \
-  --decimals 9 \
-  --mint-authority ~/my-wallets/authority-keypair.json \
-  --url devnet
-```
-
-### 4.4 Create Token Account
-```bash
-spl-token create-account $MINT_PUBKEY \
-  --owner ~/my-wallets/authority-keypair.json \
-  --url devnet
-```
-
-Get the token account:
-```bash
-TOKEN_ACCOUNT=$(spl-token accounts --owner ~/my-wallets/authority-keypair.json --url devnet | grep "$MINT_PUBKEY" | awk '{print $1}')
-echo "TOKEN_ACCOUNT: $TOKEN_ACCOUNT"
-```
-
-### 4.5 Mint Initial Supply (1M tokens)
-```bash
-spl-token mint $MINT_PUBKEY 1000000000000000 $TOKEN_ACCOUNT --url devnet
-```
-
----
-
-## Step 5: Save Your Credentials
-
-You need these for Vercel. Get the authority secret key:
+If using PostgreSQL instead of in-memory Map:
 
 ```bash
-cat ~/my-wallets/authority-keypair.json
+# Create database
+createdb tradehax
+
+# Create user with limited permissions
+createuser tradehax_user -P
+
+# Grant privileges
+psql -d tradehax -c "GRANT CONNECT ON DATABASE tradehax TO tradehax_user;"
+
+# Store connection string
+DATABASE_URL=postgresql://tradehax_user:password@localhost:5432/tradehax
 ```
 
-**You'll see an array like:** `[1,2,3,...,255]`
+## 🚀 Deployment Options
 
-**Save these values somewhere safe (not in Git):**
-- `SHAMROCK_MINT` - Your mint public key (from Step 4.1)
-- `AUTHORITY_SECRET` - The authority keypair array (from above)
-- `TOKEN_ACCOUNT` - Your token account (from Step 4.4)
+### Option 1: Heroku (Recommended for Simplicity)
 
----
-
-## Step 6: Deploy Backend to Vercel
-
-### 6.1 Create/Login to Vercel Account
-
-Go to https://vercel.com and create account (or login with GitHub).
-
-### 6.2 Deploy Backend
-
-**Option A: Using Vercel CLI (Recommended)**
-
+#### Step 1: Install Heroku CLI
 ```bash
-npm install -g vercel
-vercel login
-cd tradehax-backend
-vercel --prod
+npm install -g heroku
+heroku login
 ```
 
-Follow prompts, confirm project settings.
-
-**Option B: Using GitHub (Easier)**
-
-1. Make sure `tradehax-backend/` is committed to GitHub
-2. Go to https://vercel.com/new
-3. Click "Import Git Repository"
-4. Select your GitHub repo
-5. Root directory: `tradehax-backend`
-6. Click "Deploy"
-
-### 6.3 Add Environment Variables in Vercel
-
-1. Go to your Vercel project dashboard
-2. Click **Settings** → **Environment Variables**
-3. Add these variables:
-
-```
-SHAMROCK_MINT = <your-mint-from-step-4.1>
-AUTHORITY_SECRET = <your-keypair-array-from-step-5>
-SOLANA_RPC = https://api.devnet.solana.com
-MONGODB_URI = (optional - leave empty)
-TWITTER_APP_KEY = (optional - leave empty)
-TWITTER_APP_SECRET = (optional - leave empty)
-TWITTER_ACCESS_TOKEN = (optional - leave empty)
-TWITTER_ACCESS_SECRET = (optional - leave empty)
-```
-
-4. Click "Save"
-5. Redeploy (Deployments → Redeploy)
-
-### 6.4 Test Backend
-
+#### Step 2: Create Heroku App
 ```bash
-curl https://your-project.vercel.app/api/health
+heroku create tradehax-api
+heroku apps:info tradehax-api
+# Note the app URL: tradehax-api.herokuapp.com
 ```
 
-Should return:
-```json
-{"status":"ok","message":"TradeHax backend is running"}
-```
-
-**Save your backend URL:** `https://your-project.vercel.app`
-
----
-
-## Step 7: Update Frontend Environment
-
-1. Edit `tradehax-frontend/.env`:
-
-```
-VITE_BACKEND_URL=https://your-project.vercel.app
-VITE_SOLANA_NETWORK=devnet
-```
-
-Replace `your-project.vercel.app` with your actual Vercel backend URL.
-
-2. Commit and push:
-
+#### Step 3: Set Environment Variables
 ```bash
-git add tradehax-frontend/.env
-git commit -m "Configure backend URL for production"
+# Set each variable
+heroku config:set NODE_ENV=production --app tradehax-api
+heroku config:set BACKEND_URL=https://tradehax-api.herokuapp.com --app tradehax-api
+heroku config:set FRONTEND_URL=https://tradehax.net --app tradehax-api
+heroku config:set JWT_SECRET=$(openssl rand -base64 32) --app tradehax-api
+heroku config:set DISCORD_CLIENT_ID=xxx --app tradehax-api
+heroku config:set DISCORD_CLIENT_SECRET=xxx --app tradehax-api
+heroku config:set GOOGLE_CLIENT_ID=xxx --app tradehax-api
+heroku config:set GOOGLE_CLIENT_SECRET=xxx --app tradehax-api
+
+# Or batch set from file
+heroku config:set $(cat backend/.env.production) --app tradehax-api
+```
+
+#### Step 4: Deploy
+```bash
+# Deploy from GitHub
+heroku git:clone -a tradehax-api
+cd tradehax-api
+git push heroku main
+
+# Or deploy directly from folder
+git push heroku main:main
+```
+
+#### Step 5: Verify Deployment
+```bash
+# Check logs
+heroku logs --tail --app tradehax-api
+
+# Test health endpoint
+curl https://tradehax-api.herokuapp.com/health
+
+# Monitor app
+heroku ps --app tradehax-api
+heroku releases --app tradehax-api
+```
+
+### Option 2: AWS (ECS + Fargate)
+
+#### Step 1: Create Docker Image
+```bash
+# Build image
+docker build -t tradehax-api:latest .
+
+# Tag for ECR
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 123456789.dkr.ecr.us-east-1.amazonaws.com
+
+docker tag tradehax-api:latest 123456789.dkr.ecr.us-east-1.amazonaws.com/tradehax-api:latest
+docker push 123456789.dkr.ecr.us-east-1.amazonaws.com/tradehax-api:latest
+```
+
+#### Step 2: Create ECS Cluster
+```bash
+# Create cluster
+aws ecs create-cluster --cluster-name tradehax
+
+# Create task definition with environment variables
+aws ecs register-task-definition --cli-input-json file://task-definition.json
+```
+
+#### Step 3: Create Fargate Service
+```bash
+aws ecs create-service \
+  --cluster tradehax \
+  --service-name tradehax-api \
+  --task-definition tradehax-api \
+  --desired-count 2 \
+  --launch-type FARGATE \
+  --load-balancers targetGroupArn=arn:aws:...,containerName=tradehax-api,containerPort=3001
+```
+
+### Option 3: DigitalOcean App Platform
+
+#### Step 1: Push to GitHub
+```bash
+git add .
+git commit -m "Ready for deployment"
 git push origin main
 ```
 
+#### Step 2: Connect App Platform
+1. Go to [DigitalOcean App Platform](https://cloud.digitalocean.com/apps)
+2. Click "Create App"
+3. Select GitHub repository: `shamrockstocks/shamrockstocks.github.io`
+4. Configure build command: `npm install --production`
+5. Configure run command: `cd backend && node server.js`
+
+#### Step 3: Add Environment Variables
+In App Platform dashboard:
+```
+NODE_ENV=production
+JWT_SECRET=xxx
+DISCORD_CLIENT_ID=xxx
+... (all variables)
+```
+
+#### Step 4: Deploy
+Click "Deploy" and wait for deployment to complete.
+
+### Option 4: Docker Compose (Self-Hosted)
+
+#### Step 1: Create docker-compose.yml
+```yaml
+version: '3.8'
+services:
+  api:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      # ... other variables
+    restart: always
+    networks:
+      - tradehax
+  
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - /etc/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - api
+    networks:
+      - tradehax
+
+networks:
+  tradehax:
+    driver: bridge
+```
+
+#### Step 2: Deploy
+```bash
+docker-compose up -d
+
+# Check status
+docker-compose logs -f api
+```
+
+## 🔗 Domain & SSL Configuration
+
+### Step 1: Update DNS Records
+
+Point your domain to your backend:
+
+```bash
+# For Heroku
+# Add CNAME record:
+api.tradehax.net CNAME tradehax-api.herokuapp.com
+
+# For AWS/DigitalOcean/Self-Hosted
+# Add A record:
+api.tradehax.net A 1.2.3.4
+```
+
+### Step 2: SSL Certificate
+
+#### Option A: Heroku (Automatic)
+```bash
+# Heroku automatically provisions SSL
+heroku certs:auto:enable --app tradehax-api
+```
+
+#### Option B: Let's Encrypt
+```bash
+sudo certbot certonly -d api.tradehax.net
+
+# Renew automatically
+sudo certbot renew --quiet --no-self-upgrade
+```
+
+#### Option C: AWS Certificate Manager
+```bash
+aws acm request-certificate \
+  --domain-name api.tradehax.net \
+  --validation-method DNS
+```
+
+### Step 3: HTTPS Redirect
+
+In your web server (nginx):
+```nginx
+server {
+    listen 80;
+    server_name api.tradehax.net;
+    
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name api.tradehax.net;
+    
+    ssl_certificate /etc/letsencrypt/live/api.tradehax.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.tradehax.net/privkey.pem;
+    
+    location / {
+        proxy_pass http://localhost:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+## 🧪 Post-Deployment Testing
+
+### 1. Health Check
+```bash
+curl -i https://api.tradehax.net/health
+# Expected: 200 OK
+```
+
+### 2. Web3 Authentication Flow
+```bash
+# Get challenge
+curl -X POST https://api.tradehax.net/auth/web3/challenge \
+  -H "Content-Type: application/json" \
+  -d '{"wallet":"YOUR_WALLET_ADDRESS"}'
+
+# Sign challenge with wallet and verify token
+```
+
+### 3. OAuth Flow
+```bash
+# Test Discord OAuth
+curl -i "https://api.tradehax.net/auth/oauth/discord"
+
+# Follow redirect to Discord
+# After authorization, should redirect to frontend with token
+```
+
+### 4. Rate Limiting
+```bash
+# Make 11 requests quickly to auth endpoint
+for i in {1..11}; do
+  curl -X POST https://api.tradehax.net/auth/web3/challenge \
+    -H "Content-Type: application/json" \
+    -d '{"wallet":"test"}' \
+    -w "\nStatus: %{http_code}\n"
+done
+
+# Expect: First 10 succeed, 11th returns 429 (Too Many Requests)
+```
+
+### 5. CORS Validation
+```bash
+# Test CORS from allowed origin
+curl -H "Origin: https://tradehax.net" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Content-Type" \
+  -X OPTIONS https://api.tradehax.net/auth/web3/challenge \
+  -v
+
+# Test CORS from forbidden origin
+curl -H "Origin: https://evil.com" \
+  -X OPTIONS https://api.tradehax.net/auth/web3/challenge \
+  -v
+# Expected: 403 Forbidden
+```
+
+## 📊 Monitoring & Logging
+
+### 1. Set Up Error Tracking
+
+#### Sentry
+```bash
+npm install @sentry/node
+
+# In server.js
+import * as Sentry from '@sentry/node';
+Sentry.init({ dsn: process.env.SENTRY_DSN });
+```
+
+#### Heroku
+```bash
+# Built-in log drain to Papertrail
+heroku addons:create papertrail --app tradehax-api
+
+# View logs
+heroku logs --tail --app tradehax-api
+```
+
+### 2. Monitor Key Metrics
+
+Track in your monitoring dashboard:
+- Request rate (req/sec)
+- Error rate (%)
+- Response time (ms)
+- Rate limit violations
+- Failed authentications
+
+### 3. Set Up Alerts
+
+Alert when:
+- Error rate > 5%
+- Response time > 1000ms
+- Rate limit violations > 10/min
+- Server down for > 5 minutes
+
+## 🔄 Continuous Deployment
+
+### GitHub Actions
+
+Create `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    paths: ['backend/**']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Deploy to Heroku
+        uses: akhileshns/heroku-deploy@v3.12.12
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: tradehax-api
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
+          appdir: "backend"
+```
+
+## 🚨 Troubleshooting
+
+### OAuth Callback Fails
+
+**Issue**: `Invalid state parameter`
+
+**Solution**:
+1. Verify DISCORD_STATE_KEY and GOOGLE_STATE_KEY are set
+2. Check state parameter not expiring too quickly
+3. Ensure time is synchronized on server
+
+### JWT Token Rejection
+
+**Issue**: `Invalid or expired token`
+
+**Solution**:
+1. Verify JWT_SECRET matches across environment
+2. Check token expiration (7 days)
+3. Verify Bearer prefix in Authorization header
+
+### CORS Rejection
+
+**Issue**: `CORS policy: Origin not allowed`
+
+**Solution**:
+1. Verify origin in FRONTEND_URL
+2. Check allowedOrigins array includes exact domain
+3. Ensure https:// scheme is used
+
+### Database Connection Error
+
+**Issue**: Cannot connect to database
+
+**Solution**:
+1. Verify DATABASE_URL is correct
+2. Check firewall allows connection
+3. Verify database user permissions
+
+## 📞 Support
+
+For deployment issues, check:
+1. [TradeHax Documentation](https://tradehax.net/docs)
+2. [Node.js Deployment Guide](https://nodejs.org/en/docs/guides/nodejs-docker-webapp/)
+3. [OAuth 2.0 Spec](https://tools.ietf.org/html/rfc6749)
+
 ---
 
-## Step 8: Deploy Frontend to GitHub Pages
-
-GitHub Actions workflow is already configured at `.github/workflows/deploy-frontend.yml`
-
-When you push changes to `tradehax-frontend/`, it automatically:
-1. Installs dependencies
-2. Builds the project
-3. Deploys to GitHub Pages
-
-### 8.1 Check Deployment Status
-
-1. Go to your GitHub repo
-2. Click **Actions** tab
-3. Find "Deploy Frontend to GitHub Pages" workflow
-4. Wait for ✅ green checkmark
-
-### 8.2 Access Your Game
-
-After deployment completes:
-
-```
-https://yourusername.github.io/tradehax-frontend/
-```
-
-(Replace `yourusername` with your GitHub username)
-
----
-
-## Step 9: Test the Game
-
-1. Open the game URL
-2. Click "Connect Wallet"
-3. Select Phantom wallet
-4. Make sure Phantom is set to **Devnet**
-5. Approve connection
-6. Play! (WASD to move)
-
----
-
-## Step 10: Verify All Features
-
-### Wallet Connection
-- [ ] Connect button works
-- [ ] Phantom prompts for approval
-- [ ] Wallet address displayed
-
-### Game
-- [ ] Game loads (3D maze visible)
-- [ ] WASD movement works
-- [ ] Clovers spawn and collect
-- [ ] Energy bar fills up
-- [ ] Portal appears at 100 energy
-
-### Rewards
-- [ ] Tweet quest button works
-- [ ] Can submit tweet URL
-- [ ] Get 100 SHAMROCK tokens
-- [ ] See transaction on Solana Explorer
-
-### NFT Minting
-- [ ] NFT mint panel opens
-- [ ] Can see 5 skins
-- [ ] Can mint with 10 SHAMROCK
-- [ ] NFT appears in Phantom wallet
-
----
-
-## Troubleshooting
-
-### Backend won't deploy
-```
-Error: "SHAMROCK_MINT is not set"
-→ Add environment variables in Vercel dashboard
-→ Redeploy the project
-```
-
-### Frontend won't connect to backend
-```
-Error: "Failed to fetch from backend"
-→ Check .env file has correct URL
-→ Verify backend health endpoint works
-→ Check CORS in backend (should be enabled)
-```
-
-### Wallet won't connect
-```
-→ Install Phantom: https://phantom.app
-→ Set Phantom to Devnet network
-→ Try refreshing page
-→ Clear browser cache
-```
-
-### No rewards showing
-```
-→ Verify tweet contains #HyperboreaAscent
-→ Check authority wallet has SOL
-→ View backend logs in Vercel
-→ Confirm SHAMROCK_MINT is correct
-```
-
----
-
-## Links
-
-- **Frontend URL:** https://yourusername.github.io/tradehax-frontend/
-- **Backend URL:** https://your-project.vercel.app
-- **Vercel Dashboard:** https://vercel.com/dashboard
-- **GitHub Actions:** Go to Actions tab on GitHub
-- **Solana Explorer (Devnet):** https://explorer.solana.com?cluster=devnet
-
----
-
-## What's Next?
-
-After verifying everything works:
-
-1. **Get Feedback** - Let users test the game
-2. **Add Polish** - Improve UI/UX based on feedback
-3. **Monitor Logs** - Track errors in Vercel/GitHub
-4. **Plan Mainnet** - Only after thorough testing on devnet
-
----
-
-**Total Time:** ~1-2 hours (Solana CLI install + token setup + deployments)
-
-Need help with any step? Check SECURITY_AUDIT_REPORT_2025.md or INTEGRATION_GUIDE.md for more details.
+**Last Updated**: 2025
+**Deployment Target**: Production (`https://api.tradehax.net`)

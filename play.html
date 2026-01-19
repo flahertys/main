@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play Game | TradeHax</title>
+    <script src="https://cdn.jsdelivr.net/npm/emulatorjs@latest/data/loader.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0f1419;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-bottom: 2px solid #00ff88;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #00ff88;
+            font-size: 1.2em;
+            margin: 0;
+        }
+
+        .timer {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            padding: 6px 15px;
+            border-radius: 20px;
+            color: #00ff88;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .timer.warning { color: #ffc857; border-color: #ffc857; }
+        .timer.critical { color: #ff6464; border-color: #ff6464; }
+
+        .game-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: #000;
+        }
+
+        #game {
+            width: 100%;
+            height: 100%;
+            max-width: 800px;
+            max-height: 600px;
+        }
+
+        .controls {
+            background: #1a1a2e;
+            border-top: 2px solid #00ff88;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: rgba(0, 255, 136, 0.4);
+            transform: scale(1.05);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .loading {
+            text-align: center;
+            color: #00ff88;
+            font-size: 1.5em;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(0, 255, 136, 0.3);
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 255, 136, 0.9);
+            color: #0f1419;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            border: 2px solid #00ff88;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .modal h2 {
+            color: #00ff88;
+            margin-bottom: 15px;
+        }
+
+        .modal p {
+            color: #e0e0e0;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .modal .btn {
+            margin: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 10px 15px;
+            }
+
+            .header h1 {
+                font-size: 1em;
+            }
+
+            .controls {
+                padding: 10px;
+            }
+
+            .btn {
+                padding: 8px 15px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 id="gameTitle">🎮 TradeHax Emulator</h1>
+        <div class="timer" id="timer">⏱ 15:00</div>
+    </div>
+
+    <div class="game-container">
+        <div id="game"></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="window.location.href='quick-play.html'">
+            <i class="fas fa-list"></i> Game List
+        </button>
+        <button class="btn" onclick="window.location.href='hub.html'">
+            <i class="fas fa-home"></i> Hub
+        </button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Upgrade Modal -->
+    <div class="modal" id="upgradeModal">
+        <div class="modal-content">
+            <h2>⏰ Time's Up!</h2>
+            <p>Your 15-minute free trial has ended.</p>
+            <p><strong>Get more playtime:</strong></p>
+            <p>💰 5 Clover Coins = 1 Hour ($1)</p>
+            <button class="btn" onclick="window.open('https://cash.app/$IRISHLIVESMATTER', '_blank')">
+                Pay with Cash App
+            </button>
+            <button class="btn" onclick="closeModal()">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Config
+        let gameData = null;
+        let timerSeconds = 15 * 60;
+        let timerInterval = null;
+        let isPlaying = false;
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            console.log('🎮 Emulator loaded');
+            checkForQuickPlay();
+            startTimer();
+        });
+
+        // Check for game from quick-play page
+        function checkForQuickPlay() {
+            const quickPlayData = sessionStorage.getItem('quickPlay');
+            
+            if (quickPlayData) {
+                try {
+                    gameData = JSON.parse(quickPlayData);
+                    sessionStorage.removeItem('quickPlay');
+                    
+                    console.log('🚀 Loading:', gameData.name);
+                    document.getElementById('gameTitle').textContent = `🎮 ${gameData.name}`;
+                    
+                    loadEmulator();
+                } catch (error) {
+                    console.error('❌ Error:', error);
+                    showToast('Error loading game');
+                }
+            } else {
+                // No game selected, show message
+                document.getElementById('game').innerHTML = `
+                    <div class="loading">
+                        <p>No game selected</p>
+                        <p style="font-size: 0.8em; margin-top: 10px;">
+                            <a href="quick-play.html" style="color: #00ff88;">Choose a game</a>
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        // Load EmulatorJS
+        function loadEmulator() {
+            if (!gameData) {
+                showToast('No game loaded');
+                return;
+            }
+
+            try {
+                console.log('🔧 Initializing EmulatorJS with:', gameData);
+                
+                // Clear any previous game container
+                const gameContainer = document.getElementById('game');
+                gameContainer.innerHTML = '';
+                
+                // EmulatorJS configuration
+                window.EJS_player = '#game';
+                window.EJS_core = gameData.system;
+                window.EJS_gameUrl = gameData.romPath;
+                window.EJS_pathtodata = 'https://cdn.jsdelivr.net/npm/emulatorjs@latest/data/';
+                
+                // Styling
+                window.EJS_color = '#00ff88';
+                window.EJS_backgroundColor = '#0f1419';
+                
+                // Features
+                window.EJS_startOnLoaded = true;
+                window.EJS_virtualGamepad = true;
+                
+                // Callbacks
+                window.EJS_onGameStart = function() {
+                    console.log('✅ Game started');
+                    isPlaying = true;
+                    showToast('Game loaded!');
+                };
+
+                window.EJS_onSaveState = function() {
+                    console.log('💾 Saved');
+                    showToast('Progress saved!');
+                };
+
+                // Initialize emulator - THIS WAS MISSING!
+                // The loader.js script automatically initializes when these variables are set
+                // Just need to trigger it by creating a script tag or calling the initialization
+                
+                // Create a new script element to trigger EmulatorJS initialization
+                const script = document.createElement('script');
+                script.textContent = `
+                    if (typeof EJS !== 'undefined') {
+                        new EJS(EJS_player, EJS_core, EJS_gameUrl, {
+                            pathtodata: EJS_pathtodata,
+                            color: EJS_color,
+                            backgroundColor: EJS_backgroundColor,
+                            startOnLoaded: EJS_startOnLoaded,
+                            virtualGamepad: EJS_virtualGamepad
+                        });
+                        console.log('✅ EmulatorJS instance created');
+                    } else {
+                        console.warn('⚠️ EmulatorJS not loaded yet, retrying...');
+                        setTimeout(() => {
+                            if (typeof EJS !== 'undefined') {
+                                new EJS(EJS_player, EJS_core, EJS_gameUrl, {
+                                    pathtodata: EJS_pathtodata,
+                                    color: EJS_color,
+                                    backgroundColor: EJS_backgroundColor,
+                                    startOnLoaded: EJS_startOnLoaded,
+                                    virtualGamepad: EJS_virtualGamepad
+                                });
+                            }
+                        }, 1000);
+                    }
+                `;
+                document.body.appendChild(script);
+                
+                console.log('🎮 EmulatorJS initialization triggered');
+                
+            } catch (error) {
+                console.error('❌ Emulator error:', error);
+                showToast('Failed to load emulator');
+            }
+        }
+
+        // Timer
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (isPlaying && timerSeconds > 0) {
+                    timerSeconds--;
+                    updateTimerDisplay();
+                    
+                    if (timerSeconds === 0) {
+                        showUpgradeModal();
+                        clearInterval(timerInterval);
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timerSeconds / 60);
+            const seconds = timerSeconds % 60;
+            const display = `⏱ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = display;
+            
+            timerEl.className = 'timer';
+            if (timerSeconds <= 60) timerEl.classList.add('critical');
+            else if (timerSeconds <= 300) timerEl.classList.add('warning');
+        }
+
+        // Modals
+        function showUpgradeModal() {
+            document.getElementById('upgradeModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('upgradeModal').style.display = 'none';
+        }
+
+        // Toast notifications
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

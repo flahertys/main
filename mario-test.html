@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mario - TradeHax</title>
+    <script src="https://cdn.jsdelivr.net/npm/emulatorjs@latest/data/loader.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        
+        .header {
+            background: #1a1a2e;
+            color: #00ff88;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid #00ff88;
+        }
+        
+        #game {
+            flex: 1;
+            width: 100%;
+        }
+        
+        .info {
+            background: #1a1a2e;
+            color: #00ff88;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🍄 Super Mario Bros</h1>
+    </div>
+    
+    <div id="game"></div>
+    
+    <div class="info">
+        Controls: Arrow Keys + Z (A) + X (B) | <a href="quick-play.html" style="color: #00ffff;">Back</a>
+    </div>
+
+    <script>
+        // EmulatorJS configuration - SIMPLE VERSION
+        EJS_player = '#game';
+        EJS_core = 'nes';
+        EJS_gameUrl = '/portfolio/roms/Super_mario_brothers.nes';
+        EJS_pathtodata = 'https://cdn.jsdelivr.net/npm/emulatorjs@latest/data/';
+        
+        // Optional settings
+        EJS_color = '#00ff88';
+        EJS_startOnLoaded = true;
+        EJS_virtualGamepad = true;
+        
+        console.log('🎮 Mario ROM URL:', EJS_gameUrl);
+        console.log('📂 System:', EJS_core);
+        console.log('✅ EmulatorJS should auto-initialize');
+    </script>
+</body>
+</html>

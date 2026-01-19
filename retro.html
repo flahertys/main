@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains; preload" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta name="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=()">
+    <meta name="description" content="Play classic retro arcade games directly in your browser. Simple, fun, and free!">
+    <title>Retro Arcade Games - TradeHax</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" integrity="sha384-RNLlCaxt2AtynP+E1rkbwJRUxB5gH/1K1szc2S7K3vQCc8R4EY4EqhfHpbqv/gXu" crossorigin="anonymous" rel="stylesheet">
+    <style>
+        :root {
+            --arcade-green: #34d399;
+            --arcade-dark: #0f2027;
+            --arcade-gold: #f59e0b;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            font-family: 'Arial', sans-serif;
+            color: #d9ffdb;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--arcade-gold);
+            text-shadow: 0 0 10px var(--arcade-green);
+            margin-bottom: 2rem;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .game-card {
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(20, 50, 70, 0.8);
+            border: 3px solid var(--arcade-green);
+            box-shadow: 0 0 15px rgba(52, 211, 153, 0.3);
+        }
+
+        .game-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(52, 211, 153, 0.6);
+            border-color: var(--arcade-gold);
+        }
+
+        .game-thumbnail {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #1a3a52, #0f2027);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--arcade-green);
+        }
+
+        .game-info {
+            padding: 1rem;
+            background: rgba(10, 20, 30, 0.9);
+        }
+
+        .game-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--arcade-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .game-description {
+            font-size: 0.875rem;
+            color: #a0ffb3;
+            margin-bottom: 0.75rem;
+        }
+
+        .play-button {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, var(--arcade-green), var(--arcade-gold));
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            text-align: center;
+        }
+
+        .play-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px var(--arcade-gold);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: rgba(10, 20, 30, 0.95);
+            border: 3px solid var(--arcade-green);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 30px rgba(52, 211, 153, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 2px solid var(--arcade-green);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--arcade-gold);
+        }
+
+        .close-btn {
+            background: none;
+            border: 2px solid var(--arcade-green);
+            color: var(--arcade-green);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: var(--arcade-green);
+            color: #000;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>?? Retro Arcade</h1>
+    
+    <div class="games-grid">
+        <!-- Snake Game -->
+        <div class="game-card" data-game="snake" data-title="Snake">
+            <div class="game-thumbnail">??</div>
+            <div class="game-info">
+                <div class="game-title">Snake</div>
+                <div class="game-description">Classic snake - eat and grow!</div>
+                <button class="play-button" type="button">Play Now</button>
+            </div>
+        </div>
+
+        <!-- Tetris Game -->
+        <div class="game-card" data-game="tetris" data-title="Tetris">
+            <div class="game-thumbnail">??</div>
+            <div class="game-info">
+                <div class="game-title">Tetris</div>
+                <div class="game-description">Stack blocks and clear lines!</div>
+                <button class="play-button" type="button">Play Now</button>
+            </div>
+        </div>
+
+        <!-- Memory Game -->
+        <div class="game-card" data-game="memory" data-title="Memory">
+            <div class="game-thumbnail">??</div>
+            <div class="game-info">
+                <div class="game-title">Memory</div>
+                <div class="game-description">Match the pairs - test your memory!</div>
+                <button class="play-button" type="button">Play Now</button>
+            </div>
+        </div>
+
+        <!-- Super Mario Brothers -->
+        <div class="game-card" data-game="mario" data-title="Super Mario Brothers">
+            <div class="game-thumbnail">??</div>
+            <div class="game-info">
+                <div class="game-title">Super Mario</div>
+                <div class="game-description">Jump and collect coins!</div>
+                <button class="play-button" type="button">Play Now</button>
+            </div>
+        </div>
+
+        <!-- Zelda -->
+        <div class="game-card" data-game="zelda" data-title="The Legend of Zelda">
+            <div class="game-thumbnail">???</div>
+            <div class="game-info">
+                <div class="game-title">Zelda</div>
+                <div class="game-description">Adventure and treasure await!</div>
+                <button class="play-button" type="button">Play Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Modal -->
+    <div id="gameModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="gameTitle">Game</div>
+                <button class="close-btn" type="button" id="closeBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="gameContainer">
+                <!-- Game will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SECURITY: Removed inline event handlers, migrated to addEventListener
+        // This prevents XSS attacks and improves maintainability
+
+        const ALLOWED_GAMES = ['snake', 'tetris', 'memory', 'mario', 'zelda'];
+        const BASE_PATH = './';  // Fixed: Changed from '' to './' so games load from current /games/ directory
+
+        function getGamePath(gameType) {
+            // SECURITY: Validate game type against whitelist to prevent path traversal
+            if (!ALLOWED_GAMES.includes(gameType)) {
+                console.error('Invalid game type:', gameType);
+                return null;
+            }
+            return BASE_PATH + gameType + '.html';
+        }
+
+        function openGame(gameType, gameTitle) {
+            const gamePath = getGamePath(gameType);
+            if (!gamePath) return;
+
+            const modal = document.getElementById('gameModal');
+            const container = document.getElementById('gameContainer');
+            const title = document.getElementById('gameTitle');
+
+            title.textContent = gameTitle;
+
+            // SECURITY: Use createElement instead of innerHTML for iframe to prevent injection
+            const iframe = document.createElement('iframe');
+            iframe.src = gamePath;
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = '8px';
+            // SECURITY: Critical - sandbox attribute restricts iframe capabilities
+            iframe.sandbox.add('allow-same-origin');
+            iframe.sandbox.add('allow-scripts');
+            iframe.sandbox.add('allow-forms');
+            iframe.sandbox.add('allow-pointer-lock');  // Fixed: Added to enable mouse/keyboard input in games
+
+            container.innerHTML = '';
+            container.appendChild(iframe);
+
+            modal.classList.add('show');
+        }
+
+        function closeGame() {
+            const modal = document.getElementById('gameModal');
+            const container = document.getElementById('gameContainer');
+            modal.classList.remove('show');
+            container.innerHTML = ''; // Clear the iframe
+        }
+
+        // SECURITY: Initialize event listeners on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click listeners to all game cards
+            document.querySelectorAll('.game-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const gameType = this.getAttribute('data-game');
+                    const gameTitle = this.getAttribute('data-title');
+                    openGame(gameType, gameTitle);
+                });
+            });
+
+            // Close button listener
+            document.getElementById('closeBtn').addEventListener('click', closeGame);
+
+            // Close modal when clicking outside
+            document.getElementById('gameModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeGame();
+                }
+            });
+
+            // Close on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeGame();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

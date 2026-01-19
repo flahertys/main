@@ -1,0 +1,185 @@
+Γ£à OpenTelemetry tracing initialized
+
+ΓòöΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòù
+Γòæ     Hackavelli Hax Backend - Security Hardened    Γòæ
+ΓòÜΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥
+
+≡ƒÜÇ Server listening on http://localhost:3001
+≡ƒöÆ Environment: development
+≡ƒîÉ Frontend: http://localhost:3000
+ΓÅ▒∩╕Å  Uptime: 2025-12-13T04:16:52.331Z
+
+≡ƒôï Endpoints:
+  Γ£ô POST   /auth/web3/challenge - Get challenge for wallet signing
+  Γ£ô POST   /auth/web3/verify - Verify signed message (with replay protection)
+  Γ£ô GET    /auth/oauth/discord/callback - Discord OAuth callback (CSRF protected)
+  Γ£ô GET    /auth/oauth/gmail/callback - Gmail OAuth callback (CSRF protected)
+  Γ£ô GET    /user/:wallet - Fetch user (JWT required)
+  Γ£ô POST   /user/:wallet/tier - Update user tier (admin only)
+  Γ£ô POST   /discord/assign-role - Assign Discord role (JWT required)
+  Γ£ô GET    /health - Health check
+
+≡ƒöÉ Security Features:
+  Γ£ô Rate limiting (general: 100/15min, auth: 10/15min)
+  Γ£ô CORS origin validation
+  Γ£ô Security headers (X-Frame-Options, CSP, HSTS)
+  Γ£ô JWT signature verification
+  Γ£ô Input validation (wallet, tier, email)
+  Γ£ô Replay attack prevention (timestamp checks)
+  Γ£ô CSRF protection (state parameter validation)
+  Γ£ô Token expiration (7 days)
+  Γ£ô Secure HTTP headers
+  Γ£ô Production environment checks
+  
+ΓÜá∩╕Å  WARNING: Running in development mode. Use production environment variables in production.
+
+{
+  resource: {
+    attributes: {
+      'service.name': 'tradehax-backend',
+      'host.name': 'LenovoYoga',
+      'host.arch': 'amd64',
+      'host.id': '00e9e42b-32f7-4041-9c8a-030dc4a6fcc0',
+      'process.pid': 33084,
+      'process.executable.name': 'C:\\Program Files\\PowerShell\\7\\pwsh.exe',
+      'process.executable.path': 'C:\\Program Files\\nodejs\\node.exe',
+      'process.command_args': [
+        'C:\\Program Files\\nodejs\\node.exe',
+        'c:\\Website\\shamrockstocks.github.io\\backend\\server.js'
+      ],
+      'process.runtime.version': '24.12.0',
+      'process.runtime.name': 'nodejs',
+      'process.runtime.description': 'Node.js',
+      'process.command': 'c:\\Website\\shamrockstocks.github.io\\backend\\server.js',
+      'process.owner': 'Guest1',
+      'telemetry.sdk.language': 'nodejs',
+      'telemetry.sdk.name': 'opentelemetry',
+      'telemetry.sdk.version': '2.2.0'
+    }
+  },
+  instrumentationScope: { name: 'tradehax-backend', version: '1.0.0', schemaUrl: undefined },
+  traceId: '74db800c3e1962e5577e9e3bd5a30579',
+  parentSpanContext: undefined,
+  traceState: undefined,
+  name: 'health-check',
+  id: '4ae129ce3842ddd2',
+  kind: 0,
+  timestamp: 1765599419397000,
+  duration: 3831.1,
+  attributes: {
+    'http.method': 'GET',
+    'http.route': '/health',
+    endpoint: '/health',
+    'response.status': 'ok'
+  },
+  status: { code: 1 },
+  events: [
+    {
+      name: 'Health check completed successfully',
+      attributes: {},
+      time: [ 1765599419, 397612600 ],
+      droppedAttributesCount: 0
+    }
+  ],
+  links: []
+}
+{
+  resource: {
+    attributes: {
+      'service.name': 'tradehax-backend',
+      'host.name': 'LenovoYoga',
+      'host.arch': 'amd64',
+      'host.id': '00e9e42b-32f7-4041-9c8a-030dc4a6fcc0',
+      'process.pid': 33084,
+      'process.executable.name': 'C:\\Program Files\\PowerShell\\7\\pwsh.exe',
+      'process.executable.path': 'C:\\Program Files\\nodejs\\node.exe',
+      'process.command_args': [
+        'C:\\Program Files\\nodejs\\node.exe',
+        'c:\\Website\\shamrockstocks.github.io\\backend\\server.js'
+      ],
+      'process.runtime.version': '24.12.0',
+      'process.runtime.name': 'nodejs',
+      'process.runtime.description': 'Node.js',
+      'process.command': 'c:\\Website\\shamrockstocks.github.io\\backend\\server.js',
+      'process.owner': 'Guest1',
+      'telemetry.sdk.language': 'nodejs',
+      'telemetry.sdk.name': 'opentelemetry',
+      'telemetry.sdk.version': '2.2.0'
+    }
+  },
+  instrumentationScope: { name: 'tradehax-backend', version: '1.0.0', schemaUrl: undefined },
+  traceId: '9dc364f55d67af1cd0cc28208b71780d',
+  parentSpanContext: undefined,
+  traceState: undefined,
+  name: 'health-check',
+  id: 'a9b028564ee9ea65',
+  kind: 0,
+  timestamp: 1765599434924000,
+  duration: 692.7,
+  attributes: {
+    'http.method': 'GET',
+    'http.route': '/health',
+    endpoint: '/health',
+    'response.status': 'ok'
+  },
+  status: { code: 1 },
+  events: [
+    {
+      name: 'Health check completed successfully',
+      attributes: {},
+      time: [ 1765599434, 924100700 ],
+      droppedAttributesCount: 0
+    }
+  ],
+  links: []
+}
+{
+  resource: {
+    attributes: {
+      'service.name': 'tradehax-backend',
+      'host.name': 'LenovoYoga',
+      'host.arch': 'amd64',
+      'host.id': '00e9e42b-32f7-4041-9c8a-030dc4a6fcc0',
+      'process.pid': 33084,
+      'process.executable.name': 'C:\\Program Files\\PowerShell\\7\\pwsh.exe',
+      'process.executable.path': 'C:\\Program Files\\nodejs\\node.exe',
+      'process.command_args': [
+        'C:\\Program Files\\nodejs\\node.exe',
+        'c:\\Website\\shamrockstocks.github.io\\backend\\server.js'
+      ],
+      'process.runtime.version': '24.12.0',
+      'process.runtime.name': 'nodejs',
+      'process.runtime.description': 'Node.js',
+      'process.command': 'c:\\Website\\shamrockstocks.github.io\\backend\\server.js',
+      'process.owner': 'Guest1',
+      'telemetry.sdk.language': 'nodejs',
+      'telemetry.sdk.name': 'opentelemetry',
+      'telemetry.sdk.version': '2.2.0'
+    }
+  },
+  instrumentationScope: { name: 'tradehax-backend', version: '1.0.0', schemaUrl: undefined },
+  traceId: '1be9d4163059c40c84fa855e7f000397',
+  parentSpanContext: undefined,
+  traceState: undefined,
+  name: 'health-check',
+  id: '3d129ccd2d898b37',
+  kind: 0,
+  timestamp: 1765599434954000,
+  duration: 561.9,
+  attributes: {
+    'http.method': 'GET',
+    'http.route': '/health',
+    endpoint: '/health',
+    'response.status': 'ok'
+  },
+  status: { code: 1 },
+  events: [
+    {
+      name: 'Health check completed successfully',
+      attributes: {},
+      time: [ 1765599434, 954095800 ],
+      droppedAttributesCount: 0
+    }
+  ],
+  links: []
+}

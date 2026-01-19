@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Mario Bros - TradeHax</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            color: #00ff88;
+        }
+
+        .header {
+            background: #1a1a2e;
+            border-bottom: 2px solid #00ff88;
+            padding: 15px 20px;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: #000;
+        }
+
+        #game {
+            width: 100%;
+            height: 100%;
+            max-width: 800px;
+            max-height: 600px;
+            background: #111;
+            border: 2px solid #00ff88;
+        }
+
+        .footer {
+            background: #1a1a2e;
+            border-top: 2px solid #00ff88;
+            padding: 15px 20px;
+            flex-shrink: 0;
+            text-align: center;
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        .btn {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #00ffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🍄 Super Mario Bros - NES (1985)</h1>
+    </div>
+
+    <div class="content">
+        <div id="game"></div>
+    </div>
+
+    <div class="footer">
+        <button class="btn" onclick="window.location.href='mario-debug.html'">🔧 Debug</button>
+        <button class="btn" onclick="window.location.href='quick-play-new.html'">← Back</button>
+        <p>Controls: Arrow Keys + Z (A) + X (B) | Press ENTER for Start</p>
+    </div>
+
+    <script>
+        console.log('🎮 Mario page loaded');
+        console.log('📂 ROM: /portfolio/roms/Super_mario_brothers.nes');
+        console.log('⏳ EmulatorJS loader starting...');
+    </script>
+
+    <!-- EmulatorJS Loader - must be LAST -->
+    <script>
+        // Set configuration BEFORE loader executes
+        window.EJS_player = '#game';
+        window.EJS_core = 'nes';
+        window.EJS_gameUrl = '/portfolio/roms/Super_mario_brothers.nes';
+        window.EJS_pathtodata = 'https://cdn.jsdelivr.net/npm/emulatorjs@latest/data/';
+        
+        console.log('✅ EJS variables set');
+        console.log('📊 EJS_player:', window.EJS_player);
+        console.log('📊 EJS_core:', window.EJS_core);
+        console.log('📊 EJS_gameUrl:', window.EJS_gameUrl);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/emulatorjs@latest/data/loader.js"></script>
+
+    <script>
+        window.addEventListener('load', () => {
+            console.log('✅ Page fully loaded');
+            console.log('📊 EJS available:', typeof EJS !== 'undefined');
+            
+            if (typeof EJS === 'undefined') {
+                console.error('❌ EmulatorJS failed to load');
+                document.getElementById('game').innerHTML = '<p style="color: red; padding: 20px;">Error: EmulatorJS failed to load</p>';
+            } else {
+                console.log('✅ EmulatorJS ready');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zelda - TradeHax</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #1a3a52, #0f2027);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #00ff88;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        h1 { font-size: 2rem; color: #f59e0b; text-shadow: 0 0 10px #00ff88; }
+        #gameCanvas {
+            border: 3px solid #00ff88;
+            background: linear-gradient(135deg, #2d5016 0%, #1a3a0d 100%);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            cursor: pointer;
+        }
+        .controls {
+            margin-top: 2rem;
+            color: #00ff88;
+            text-align: center;
+        }
+        .info {
+            margin-top: 1rem;
+            font-size: 14px;
+            color: #a0ffb3;
+        }
+        button {
+            margin: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #34d399;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #000;
+        }
+        button:hover { background: #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>??? The Legend of Zelda</h1>
+        <p>Explore and find treasures!</p>
+    </div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div class="controls">
+        <button onclick="startGame()">START</button>
+        <button onclick="togglePause()">PAUSE</button>
+        <button onclick="resetGame()">RESET</button>
+        <div class="info">
+            Use ARROW KEYS to move | Collect treasure chests for points
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        class Link {
+            constructor() {
+                this.x = 50;
+                this.y = canvas.height / 2;
+                this.width = 32;
+                this.height = 32;
+                this.speed = 3;
+                this.score = 0;
+                this.direction = 'right';
+            }
+
+            update(keys) {
+                // Movement
+                if (keys['ArrowLeft'] || keys['a']) {
+                    this.x -= this.speed;
+                    this.direction = 'left';
+                }
+                if (keys['ArrowRight'] || keys['d']) {
+                    this.x += this.speed;
+                    this.direction = 'right';
+                }
+                if (keys['ArrowUp'] || keys['w']) {
+                    this.y -= this.speed;
+                    this.direction = 'up';
+                }
+                if (keys['ArrowDown'] || keys['s']) {
+                    this.y += this.speed;
+                    this.direction = 'down';
+                }
+
+                // Boundary collision
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
+                if (this.y < 0) this.y = 0;
+                if (this.y + this.height > canvas.height) this.y = canvas.height - this.height;
+            }
+
+            draw() {
+                // Draw Link
+                ctx.fillStyle = '#00AA00';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Draw tunic (green)
+                ctx.fillStyle = '#008800';
+                ctx.fillRect(this.x + 8, this.y + 10, 16, 10);
+                
+                // Draw face
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(this.x + 10, this.y + 4, 12, 8);
+                
+                // Draw sword
+                if (this.direction === 'right') {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillRect(this.x + this.width, this.y + 12, 12, 4);
+                }
+            }
+        }
+
+        class Treasure {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 24;
+                this.height = 24;
+                this.collected = false;
+            }
+
+            draw() {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.fillStyle = '#FFA500';
+                ctx.fillRect(this.x + 4, this.y + 4, 16, 16);
+                ctx.strokeStyle = '#FFAA00';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
+            }
+
+            checkCollision(link) {
+                return link.x < this.x + this.width &&
+                       link.x + link.width > this.x &&
+                       link.y < this.y + this.height &&
+                       link.y + link.height > this.y;
+            }
+        }
+
+        let link = new Link();
+        let treasures = [];
+        let gameRunning = false;
+        let gamePaused = false;
+        let keys = {};
+        let gameLoop;
+
+        function spawnTreasures() {
+            treasures = [];
+            for (let i = 0; i < 8; i++) {
+                let x, y, collision = true;
+                while (collision) {
+                    x = Math.random() * (canvas.width - 50) + 25;
+                    y = Math.random() * (canvas.height - 50) + 25;
+                    collision = treasures.some(t => 
+                        Math.hypot(t.x - x, t.y - y) < 100
+                    );
+                }
+                treasures.push(new Treasure(x, y));
+            }
+        }
+
+        function update() {
+            if (gamePaused || gameRunning === false) return;
+
+            link.update(keys);
+
+            // Check treasure collisions
+            treasures.forEach((treasure, index) => {
+                if (treasure.checkCollision(link)) {
+                    treasures.splice(index, 1);
+                    link.score += 25;
+                }
+            });
+
+            // Spawn new treasures if all collected
+            if (treasures.length === 0 && gameRunning) {
+                spawnTreasures();
+            }
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#2d5016';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grass pattern
+            for (let i = 0; i < canvas.width; i += 50) {
+                for (let j = 0; j < canvas.height; j += 50) {
+                    ctx.fillStyle = Math.random() > 0.5 ? '#1a3a0d' : '#2d5016';
+                    ctx.fillRect(i, j, 50, 50);
+                }
+            }
+
+            // Draw treasures
+            treasures.forEach(treasure => treasure.draw());
+
+            // Draw Link
+            link.draw();
+
+            // Draw UI
+            ctx.fillStyle = '#00ff88';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('Treasures Found: ' + link.score / 25, 20, 30);
+
+            // Draw enemies
+            const time = Date.now() / 1000;
+            ctx.fillStyle = '#FF0000';
+            for (let i = 0; i < 2; i++) {
+                const x = canvas.width / 3 + i * canvas.width / 3 + Math.sin(time + i) * 50;
+                const y = canvas.height / 3 + Math.cos(time + i) * 50;
+                ctx.fillRect(x, y, 20, 20);
+            }
+        }
+
+        function startGame() {
+            if (!gameRunning) {
+                gameRunning = true;
+                gamePaused = false;
+                link.score = 0;
+                link.x = 50;
+                link.y = canvas.height / 2;
+                spawnTreasures();
+            }
+        }
+
+        function togglePause() {
+            if (gameRunning) gamePaused = !gamePaused;
+        }
+
+        function resetGame() {
+            gameRunning = false;
+            gamePaused = false;
+            link.score = 0;
+            link.x = 50;
+            link.y = canvas.height / 2;
+            treasures = [];
+            draw();
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Game loop
+        function mainLoop() {
+            update();
+            draw();
+            gameLoop = requestAnimationFrame(mainLoop);
+        }
+
+        // Start animation loop
+        mainLoop();
+    </script>
+</body>
+</html>

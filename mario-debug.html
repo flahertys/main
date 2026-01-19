@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mario Debug - TradeHax</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #00ff88;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background: #1a1a2e;
+            border-bottom: 2px solid #00ff88;
+            padding: 15px;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            gap: 10px;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #00ff88;
+            background: #111;
+        }
+
+        #game {
+            flex: 1;
+            background: #000;
+        }
+
+        .console {
+            flex: 1;
+            overflow-y: auto;
+            background: #0a0a0a;
+            border: 2px solid #00ffff;
+            padding: 10px;
+            font-size: 11px;
+            border-radius: 5px;
+        }
+
+        .log {
+            margin: 2px 0;
+            padding: 2px;
+            line-height: 1.3;
+        }
+
+        .log.error { color: #ff6464; }
+        .log.warn { color: #ffc857; }
+        .log.success { color: #00ff88; }
+        .log.info { color: #00ffff; }
+
+        .controls {
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            background: #1a1a2e;
+            border-top: 2px solid #00ff88;
+        }
+
+        button {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background: #00ffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>🍄 Mario Debug Console</h2>
+    </div>
+
+    <div class="container">
+        <div class="game-area">
+            <div id="game"></div>
+            <div class="controls">
+                <button onclick="startEmulator()">▶ START EMULATOR</button>
+                <button onclick="clearConsole()">CLEAR LOG</button>
+                <button onclick="window.location.href='quick-play-new.html'">BACK</button>
+            </div>
+        </div>
+
+        <div class="console" id="console"></div>
+    </div>
+
+    <script>
+        // Console logging system
+        const consoleEl = document.getElementById('console');
+        const logs = [];
+
+        function addLog(message, type = 'info') {
+            const logEl = document.createElement('div');
+            logEl.className = `log ${type}`;
+            logEl.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleEl.appendChild(logEl);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+            logs.push(message);
+        }
+
+        function clearConsole() {
+            consoleEl.innerHTML = '';
+            logs.length = 0;
+        }
+
+        // Override console
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.log = function(...args) {
+            addLog(args.join(' '), 'success');
+            originalLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            addLog(args.join(' '), 'error');
+            originalError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            addLog(args.join(' '), 'warn');
+            originalWarn.apply(console, args);
+        };
+
+        // Initial logs
+        addLog('🎮 Page loaded - waiting for EmulatorJS library...', 'info');
+        addLog(`📍 ROM Path: /portfolio/roms/Super_mario_brothers.nes`, 'info');
+
+        // Check if EmulatorJS loads
+        window.addEventListener('load', () => {
+            addLog('✅ Window load event fired', 'success');
+            
+            setTimeout(() => {
+                addLog(`📊 EJS library available: ${typeof EJS !== 'undefined'}`, 'info');
+                addLog(`📊 Loader script loaded: ${typeof window.EJS !== 'undefined'}`, 'info');
+                
+                if (typeof EJS === 'undefined') {
+                    addLog('❌ EJS class not found after load!', 'error');
+                } else {
+                    addLog('✅ EJS class found!', 'success');
+                }
+            }, 500);
+        });
+
+        function startEmulator() {
+            addLog('🎬 Starting emulator initialization...', 'info');
+
+            const gameContainer = document.getElementById('game');
+            addLog(`📂 Game container found: ${gameContainer !== null}`, 'info');
+            addLog(`📂 Container size: ${gameContainer.offsetWidth}x${gameContainer.offsetHeight}`, 'info');
+
+            // Check EJS availability
+            if (typeof EJS === 'undefined') {
+                addLog('❌ ERROR: EJS class is undefined!', 'error');
+                addLog('📚 Checking if loader.js was loaded...', 'warn');
+                return;
+            }
+
+            addLog('✅ EJS class available', 'success');
+
+            // Configuration
+            const config = {
+                player: '#game',
+                core: 'nes',
+                rom: '/portfolio/roms/Super_mario_brothers.nes'
+            };
+
+            addLog(`⚙️  Configuration:`, 'info');
+            addLog(`    - Player: ${config.player}`, 'info');
+            addLog(`    - Core: ${config.core}`, 'info');
+            addLog(`    - ROM: ${config.rom}`, 'info');
+
+            try {
+                addLog('🔧 Creating EJS instance...', 'info');
+                const emulator = new EJS(config);
+                addLog('✅ EJS instance created successfully!', 'success');
+            } catch (error) {
+                addLog(`❌ ERROR creating EJS: ${error.message}`, 'error');
+                addLog(`Stack: ${error.stack}`, 'error');
+            }
+        }
+    </script>
+
+    <!-- Load EmulatorJS AFTER page loads -->
+    <script src="https://cdn.jsdelivr.net/npm/emulatorjs@latest/data/loader.js"></script>
+</body>
+</html>

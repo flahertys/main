@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games Hub | TradeHax</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 3px solid #00ff88;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #00ff88, #00ffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .subtitle {
+            color: #00ff88;
+            font-size: 1.2em;
+            margin-top: 15px;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .game-card {
+            background: #0f1419;
+            border: 3px solid #00ff88;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent, rgba(0, 255, 136, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4);
+            border-color: #00ffff;
+        }
+
+        .game-card:hover::before {
+            opacity: 1;
+        }
+
+        .game-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .game-card:hover .game-icon {
+            animation: float 1s ease-in-out infinite;
+        }
+
+        .game-card h2 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #00ff88;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .game-card p {
+            color: #b0b0b0;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        .game-card .features {
+            list-style: none;
+            margin-bottom: 20px;
+            text-align: left;
+            background: rgba(0, 255, 136, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #00ff88;
+        }
+
+        .game-card .features li {
+            margin-bottom: 8px;
+            color: #a0a0a0;
+            font-size: 0.9em;
+        }
+
+        .game-card .features li::before {
+            content: '✓ ';
+            color: #00ff88;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #00ff88, #00ffff);
+            color: #0f1419;
+            padding: 12px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+            font-size: 0.95em;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(0, 255, 136, 0.5);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            border: 2px solid #00ff88;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(0, 255, 136, 0.2);
+        }
+
+        .featured-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #ff6b00, #ff00ff);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+
+        .footer-info {
+            background: #0f1419;
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            color: #b0b0b0;
+            margin-top: 40px;
+        }
+
+        .footer-info h3 {
+            color: #00ffff;
+            margin-bottom: 10px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 30px;
+            color: #00ff88;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #00ffff;
+            transform: translateX(-5px);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .game-card {
+                padding: 20px;
+            }
+
+            .game-icon {
+                font-size: 3em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
+
+        <header>
+            <h1>🎮 Games Hub</h1>
+            <p class="subtitle">Play, Compete, and Earn Rewards</p>
+        </header>
+
+        <div class="games-grid">
+            <!-- ROM Emulator -->
+            <div class="game-card">
+                <div class="featured-tag">⭐ NEW</div>
+                <div class="game-icon">🎮</div>
+                <h2>ROM Emulator</h2>
+                <p>Play classic NES, SNES, Genesis, and Game Boy games directly in your browser</p>
+                <ul class="features">
+                    <li>Multi-system support</li>
+                    <li>Upload custom ROMs</li>
+                    <li>Save & load states</li>
+                    <li>Earn coins</li>
+                </ul>
+                <a href="play.html" class="btn"><i class="fas fa-rocket"></i> Launch Emulator</a>
+            </div>
+
+            <!-- Retro Arcade -->
+            <div class="game-card">
+                <div class="game-icon">👾</div>
+                <h2>Retro Arcade</h2>
+                <p>Classic arcade games and retro favorites with enhanced gameplay and rewards</p>
+                <ul class="features">
+                    <li>Popular arcade games</li>
+                    <li>Leaderboards</li>
+                    <li>Power-ups & bonuses</li>
+                    <li>Daily challenges</li>
+                </ul>
+                <a href="retro.html" class="btn"><i class="fas fa-star"></i> Play Now</a>
+            </div>
+
+            <!-- Snake Game -->
+            <div class="game-card">
+                <div class="game-icon">🐍</div>
+                <h2>Snake</h2>
+                <p>The classic snake game with modern features, multiple difficulty levels, and rewards</p>
+                <ul class="features">
+                    <li>Multiple difficulty modes</li>
+                    <li>High scores tracking</li>
+                    <li>Power-ups system</li>
+                    <li>Coin rewards</li>
+                </ul>
+                <a href="snake.html" class="btn"><i class="fas fa-play"></i> Play Now</a>
+            </div>
+
+            <!-- Tetris -->
+            <div class="game-card">
+                <div class="game-icon">🟦</div>
+                <h2>Tetris</h2>
+                <p>The iconic block-stacking game with modern controls and progressive difficulty</p>
+                <ul class="features">
+                    <li>Classic gameplay</li>
+                    <li>Progressive difficulty</li>
+                    <li>Sound effects</li>
+                    <li>Leaderboard</li>
+                </ul>
+                <a href="tetris.html" class="btn"><i class="fas fa-play"></i> Play Now</a>
+            </div>
+
+            <!-- Spades Card Game -->
+            <div class="game-card">
+                <div class="game-icon">♠️</div>
+                <h2>Spades</h2>
+                <p>Multiplayer card game with AI opponents and competitive rankings</p>
+                <ul class="features">
+                    <li>AI opponents</li>
+                    <li>Multiplayer mode</li>
+                    <li>Competitive ranking</li>
+                    <li>Daily tournaments</li>
+                </ul>
+                <a href="spades.html" class="btn"><i class="fas fa-cards"></i> Play Now</a>
+            </div>
+
+            <!-- Clover Goals -->
+            <div class="game-card">
+                <div class="game-icon">🍀</div>
+                <h2>Clover Goals</h2>
+                <p>Match-3 puzzle game with goals system and coin rewards</p>
+                <ul class="features">
+                    <li>Match-3 mechanics</li>
+                    <li>Goal-based levels</li>
+                    <li>Power combos</li>
+                    <li>Earn coins</li>
+                </ul>
+                <a href="index.html" class="btn btn-secondary"><i class="fas fa-play"></i> Play Now</a>
+            </div>
+        </div>
+
+        <div class="footer-info">
+            <h3>🏆 Earn While You Play</h3>
+            <p>Every game you play earns you coins. Accumulate coins to unlock rewards and compete on global leaderboards!</p>
+        </div>
+    </div>
+</body>
+</html>
