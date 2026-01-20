@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spades - TradeHax Games | Earn Clover Coins</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" integrity="sha512-wnea99uKIC3TJF7v4eKk4Y+lMz2Mklv18+r4na2Gn1abDRPPOeef95xTzdwGD9e6zXJBteMIhZ1+68QC5byJZw==" crossorigin="anonymous">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        .card {
+            width: 80px;
+            height: 112px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .card:hover:not(.disabled) {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 16px rgba(74, 222, 128, 0.5);
+        }
+        
+        .card.selected {
+            transform: translateY(-15px);
+            border: 3px solid #4ade80;
+        }
+        
+        .card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .card-suit {
+            font-size: 48px;
+            text-align: center;
+        }
+        
+        .card-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .spade { color: #000; }
+        .heart { color: #dc2626; }
+        .diamond { color: #dc2626; }
+        .club { color: #000; }
+        
+        .player-area {
+            min-height: 140px;
+            padding: 16px;
+            border-radius: 12px;
+            background: rgba(31, 41, 55, 0.7);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(74, 222, 128, 0.3);
+        }
+        
+        .trick-area {
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .wallet-button {
+            background: linear-gradient(135deg, #9945FF 0%, #14F195 100%);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .wallet-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(153, 69, 255, 0.6);
+        }
+        
+        .coin-reward {
+            animation: coinFloat 2s ease-in-out infinite;
+        }
+        
+        @keyframes coinFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .game-table {
+            background: radial-gradient(circle, #1e3a1e 0%, #0a1f0a 100%);
+            border: 3px solid #4ade80;
+            border-radius: 20px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+        
+        .bid-button {
+            min-width: 60px;
+            padding: 8px 16px;
+            margin: 4px;
+            background: rgba(74, 222, 128, 0.2);
+            border: 2px solid #4ade80;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .bid-button:hover {
+            background: #4ade80;
+            color: #000;
+            transform: scale(1.1);
+        }
+        
+        .score-card {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #4ade80;
+            border-radius: 12px;
+            padding: 16px;
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">♠️ Spades</h1>
+                <p class="text-gray-300">Win tricks, earn Clover Coins on Solana L2</p>
+            </div>
+            <div class="text-right space-y-2 w-full sm:w-auto">
+                <div id="wallet-container"></div>
+                <a href="index.html" class="block text-sm text-gray-400 hover:text-green-400 transition">← Back to Games</a>
+            </div>
+        </div>
+
+        <!-- Game Container -->
+        <div class="grid grid-cols-12 gap-6">
+            <!-- Main Game Area -->
+            <div class="col-span-9">
+                <div class="game-table p-6">
+                    <!-- Opponent (North) -->
+                    <div class="player-area mb-6">
+                        <div class="text-center">
+                            <div class="text-sm text-gray-400">Opponent (North)</div>
+                            <div class="flex justify-center gap-2 mt-2" id="northHand"></div>
+                            <div class="text-xs mt-2">
+                                Bid: <span id="northBid" class="font-bold text-green-400">-</span> | 
+                                Tricks: <span id="northTricks" class="font-bold">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Middle Area (Trick Display) -->
+                    <div class="trick-area game-table my-6 relative">
+                        <div class="absolute top-4 left-4 text-sm">
+                            Round: <span id="roundNum" class="font-bold text-green-400">1</span> / 13
+                        </div>
+                        <div class="absolute top-4 right-4 text-sm">
+                            Lead Suit: <span id="leadSuit" class="font-bold text-yellow-400">-</span>
+                        </div>
+                        <div id="trickCards" class="flex gap-4 flex-wrap justify-center"></div>
+                        <div id="gameMessage" class="absolute bottom-4 left-0 right-0 text-center text-lg font-bold text-green-400"></div>
+                    </div>
+
+                    <!-- Player (South) -->
+                    <div class="player-area">
+                        <div class="text-center">
+                            <div class="text-sm text-gray-400 mb-2">Your Hand</div>
+                            <div class="flex justify-center gap-2 flex-wrap" id="playerHand"></div>
+                            <div class="text-xs mt-2">
+                                Bid: <span id="playerBid" class="font-bold text-green-400">-</span> | 
+                                Tricks: <span id="playerTricks" class="font-bold">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bidding Panel -->
+                <div id="biddingPanel" class="hidden mt-4 p-4 bg-gray-800 bg-opacity-80 rounded-lg border-2 border-green-400">
+                    <h3 class="text-xl font-bold mb-3 text-center">Place Your Bid</h3>
+                    <div class="text-center text-sm mb-3 text-gray-300">
+                        How many tricks will you take? (You have <span id="spadeCount" class="font-bold text-red-500">0</span> spades)
+                    </div>
+                    <div class="flex justify-center flex-wrap gap-2" id="bidButtons"></div>
+                </div>
+            </div>
+
+            <!-- Score Panel -->
+            <div class="col-span-3">
+                <div class="score-card">
+                    <h3 class="text-xl font-bold mb-4 text-center">Scoreboard</h3>
+                    
+                    <div class="mb-4">
+                        <div class="text-sm text-gray-400">Your Team</div>
+                        <div class="text-2xl font-bold text-green-400" id="teamScore">0</div>
+                        <div class="text-xs">Bags: <span id="teamBags">0</span> / 10</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="text-sm text-gray-400">Opponent Team</div>
+                        <div class="text-2xl font-bold text-red-400" id="oppScore">0</div>
+                        <div class="text-xs">Bags: <span id="oppBags">0</span> / 10</div>
+                    </div>
+
+                    <div class="border-t border-gray-600 pt-4 mt-4">
+                        <div class="text-sm text-gray-400 mb-2">Match Stats</div>
+                        <div class="text-xs">
+                            <div>Hands Played: <span id="handsPlayed">0</span></div>
+                            <div>Win Rate: <span id="winRate">0%</span></div>
+                            <div class="text-green-400 font-bold mt-2">Coins Earned: ☘️ <span id="coinsEarned">0</span></div>
+                        </div>
+                    </div>
+
+                    <button id="newGameBtn" class="w-full mt-4 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition">
+                        New Game
+                    </button>
+                    
+                    <div class="mt-4 text-xs text-gray-400">
+                        <div class="font-bold mb-1">Rewards:</div>
+                        <div>• Win hand: +10 coins</div>
+                        <div>• Make bid: +5 coins</div>
+                        <div>• Win game (500pts): +100 coins</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rules Modal (hidden by default) -->
+        <div id="rulesModal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+            <div class="bg-gray-800 rounded-lg p-6 max-w-2xl max-h-96 overflow-y-auto">
+                <h2 class="text-2xl font-bold mb-4">Spades Rules</h2>
+                <ul class="text-sm space-y-2 text-gray-300">
+                    <li>• Each player gets 13 cards</li>
+                    <li>• Bid how many tricks you think you'll win</li>
+                    <li>• Spades are always trump</li>
+                    <li>• Must follow suit if possible</li>
+                    <li>• Highest card of lead suit (or highest spade) wins</li>
+                    <li>• Make your bid for points, fail and lose points</li>
+                    <li>• Extra tricks (bags) count against you</li>
+                    <li>• First team to 500 points wins!</li>
+                </ul>
+                <button onclick="closeRules()" class="mt-4 bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg">Got It!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Solana Web3.js (pinned version for stability/security) -->
+    <script src="https://unpkg.com/@solana/web3.js@1.93.0/lib/index.iife.min.js"></script>
+    <script src="web3-rewards.js"></script>
+    <script src="spades-game.js"></script>
+</body>
+</html>

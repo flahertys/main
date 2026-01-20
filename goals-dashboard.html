@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goals & Exchange Dashboard - TradeHax</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" integrity="sha512-wnea99uKIC3TJF7v4eKk4Y+lMz2Mklv18+r4na2Gn1abDRPPOeef95xTzdwGD9e6zXJBteMIhZ1+68QC5byJZw==" crossorigin="anonymous">
+    <style>
+        :root {
+            --clover-green: #10b981;
+            --celtic-gold: #fbbf24;
+            --dark-bg: #0f1729;
+            --card-bg: rgba(15, 23, 41, 0.9);
+        }
+
+        body {
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%);
+            color: #e0f2fe;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+        }
+
+        .clover-glow {
+            color: var(--clover-green);
+            text-shadow: 0 0 10px var(--clover-green), 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .gold-glow {
+            color: var(--celtic-gold);
+            text-shadow: 0 0 10px var(--celtic-gold);
+        }
+
+        .header {
+            text-align: center;
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+
+        .stats-box {
+            background: var(--card-bg);
+            border: 2px solid var(--clover-green);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 32px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            color: var(--celtic-gold);
+            font-weight: bold;
+        }
+
+        .stat-label {
+            color: #cbd5e1;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--clover-green);
+            padding-bottom: 0;
+        }
+
+        .tab-button {
+            background: transparent;
+            border: 2px solid transparent;
+            color: #cbd5e1;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .tab-button:hover {
+            color: var(--clover-green);
+        }
+
+        .tab-button.active {
+            background: var(--card-bg);
+            color: var(--clover-green);
+            border-color: var(--clover-green) var(--clover-green) transparent var(--clover-green);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .goal-card {
+            background: var(--card-bg);
+            border: 2px solid var(--clover-green);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .goal-card:hover {
+            border-color: var(--celtic-gold);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+        }
+
+        .goal-card.completed {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: var(--celtic-gold);
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .goal-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--celtic-gold);
+        }
+
+        .goal-reward {
+            background: var(--clover-green);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .goal-description {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            background: var(--clover-green);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .exchange-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .exchange-card {
+            background: var(--card-bg);
+            border: 2px solid var(--clover-green);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .exchange-card:hover {
+            border-color: var(--celtic-gold);
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .exchange-card.popular {
+            border-color: var(--celtic-gold);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--celtic-gold);
+            color: #0f1729;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .exchange-amount {
+            font-size: 1.25rem;
+            color: var(--celtic-gold);
+            margin: 12px 0;
+        }
+
+        .exchange-coins {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+
+        .exchange-bonus {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid var(--clover-green);
+            padding: 8px;
+            border-radius: 4px;
+            color: var(--clover-green);
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+
+        .exchange-button {
+            background: var(--clover-green);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .exchange-button:hover {
+            background: #059669;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+        }
+
+        .transaction-item {
+            background: var(--card-bg);
+            border: 1px solid var(--clover-green);
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .transaction-info {
+            flex: 1;
+        }
+
+        .transaction-amount {
+            color: var(--celtic-gold);
+            font-weight: bold;
+            font-size: 1.05rem;
+        }
+
+        .transaction-timestamp {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-completed {
+            background: var(--clover-green);
+            color: white;
+        }
+
+        .status-pending {
+            background: #f59e0b;
+            color: #0f1729;
+        }
+
+        .status-failed {
+            background: #ef4444;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 2px solid var(--clover-green);
+            border-radius: 8px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            color: var(--celtic-gold);
+            margin-bottom: 16px;
+            font-weight: bold;
+        }
+
+        .modal-body {
+            color: #cbd5e1;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-button {
+            padding: 10px 20px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .button-confirm {
+            background: var(--clover-green);
+            color: white;
+        }
+
+        .button-confirm:hover {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+        }
+
+        .button-cancel {
+            background: #475569;
+            color: #e0f2fe;
+        }
+
+        .button-cancel:hover {
+            background: #334155;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 16px;
+            color: var(--clover-green);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--celtic-gold);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .stats-box {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .exchange-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <a href="index.html" class="back-link">← Back to Games Hub</a>
+            <h1>🏆 Goals & Exchange Dashboard 🍀</h1>
+            <p>Track your achievements and exchange coins for cash</p>
+        </div>
+
+        <!-- Stats Box -->
+        <div class="stats-box" id="stats-box">
+            <div class="stat">
+                <div class="stat-value" id="stat-playtime">0h</div>
+                <div class="stat-label">Playtime</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value clover-glow" id="stat-coins">0</div>
+                <div class="stat-label">Total Coins</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="stat-goals">0/12</div>
+                <div class="stat-label">Goals</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="stat-systems">0</div>
+                <div class="stat-label">Systems</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="stat-streak">0🔥</div>
+                <div class="stat-label">Day Streak</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('goals')">🎯 Goals</button>
+            <button class="tab-button" onclick="switchTab('exchange')">💱 Exchange</button>
+            <button class="tab-button" onclick="switchTab('history')">📋 History</button>
+        </div>
+
+        <!-- Goals Tab -->
+        <div id="goals" class="tab-content active">
+            <div id="goals-container"></div>
+        </div>
+
+        <!-- Exchange Tab -->
+        <div id="exchange" class="tab-content">
+            <div class="exchange-grid" id="exchange-packages"></div>
+            <div style="text-align: center; color: #94a3b8; margin-top: 32px;">
+                <p style="margin-bottom: 8px;">📊 <strong id="total-exchanged">$0</strong> total exchanged</p>
+                <p style="font-size: 0.9rem;">Your coins are securely stored in your browser</p>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history" class="tab-content">
+            <div id="history-container"></div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Confirm Exchange 💱</div>
+            <div class="modal-body">
+                <p>Exchanging <strong id="modal-coins" style="color: var(--clover-green);"></strong> coins for <strong id="modal-usd" style="color: var(--celtic-gold);"></strong></p>
+                <p style="margin-top: 16px; font-size: 0.9rem;">This will send the funds to your Phantom wallet connected to devnet.</p>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-button button-cancel" onclick="closeModal()">Cancel</button>
+                <button class="modal-button button-confirm" onclick="confirmExchange()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="web3-rewards.js"></script>
+    <script src="clover-goals.js"></script>
+    <script src="clover-exchange.js"></script>
+    <script>
+        let selectedExchange = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📊 Loading Dashboard...');
+            updateStats();
+            renderGoals();
+            renderExchangePackages();
+            renderHistory();
+
+            // Update stats in real-time
+            window.addEventListener('coinsEarned', updateStats);
+            window.addEventListener('goalCompleted', () => {
+                updateStats();
+                renderGoals();
+            });
+            window.addEventListener('exchangeCompleted', renderHistory);
+        });
+
+        /**
+         * Update statistics display
+         */
+        function updateStats() {
+            if (typeof window.cloverGoals === 'undefined') {
+                console.log('⏳ Waiting for Clover Goals to initialize...');
+                setTimeout(updateStats, 500);
+                return;
+            }
+
+            const stats = window.cloverGoals.getStats();
+            
+            document.getElementById('stat-playtime').textContent = `${stats.playtimeHours}h`;
+            document.getElementById('stat-coins').textContent = stats.totalCoinsEarned.toLocaleString();
+            document.getElementById('stat-goals').textContent = `${stats.goalsCompleted}/${stats.totalGoals}`;
+            document.getElementById('stat-systems').textContent = stats.systemsPlayed;
+            document.getElementById('stat-streak').textContent = `${stats.currentStreak}🔥`;
+
+            // Update exchange total
+            if (typeof window.cloverExchange !== 'undefined') {
+                const total = window.cloverExchange.getTotalExchanged();
+                document.getElementById('total-exchanged').textContent = `$${total.toFixed(2)}`;
+            }
+        }
+
+        /**
+         * Render all goals
+         */
+        function renderGoals() {
+            if (typeof window.cloverGoals === 'undefined') return;
+
+            const container = document.getElementById('goals-container');
+            const goalsProgress = window.cloverGoals.getAllGoalsProgress();
+
+            container.innerHTML = goalsProgress.map(progress => {
+                const { goal, current, target, percentage, completed } = progress;
+                
+                return `
+                    <div class="goal-card ${completed ? 'completed' : ''}">
+                        <div class="goal-header">
+                            <div class="goal-name">${goal.name}</div>
+                            <div class="goal-reward">🍀 +${goal.reward}</div>
+                        </div>
+                        <div class="goal-description">${goal.description}</div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: ${percentage}%"></div>
+                        </div>
+                        <div class="progress-text">${completed ? '✅ Completed' : `${current} / ${target}`}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * Render exchange packages
+         */
+        function renderExchangePackages() {
+            if (typeof window.cloverExchange === 'undefined') return;
+
+            const container = document.getElementById('exchange-packages');
+            const packages = window.cloverExchange.getExchangePackages();
+
+            container.innerHTML = packages.map(pkg => `
+                <div class="exchange-card ${pkg.popular ? 'popular' : ''}">
+                    ${pkg.popular ? '<div class="popular-badge">POPULAR</div>' : ''}
+                    <div class="exchange-amount">${pkg.usd === 1 ? '$' + pkg.usd : '$' + pkg.usd}</div>
+                    <div class="exchange-coins">${pkg.coins.toLocaleString()} 🍀</div>
+                    ${pkg.bonus > 0 ? `<div class="exchange-bonus">+${pkg.bonus} bonus coins</div>` : ''}
+                    <button class="exchange-button" onclick="openExchangeModal(${pkg.coins}, ${pkg.usd})">
+                        Exchange Now
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * Render exchange history
+         */
+        function renderHistory() {
+            if (typeof window.cloverExchange === 'undefined') return;
+
+            const container = document.getElementById('history-container');
+            const history = window.cloverExchange.getHistory();
+
+            if (history.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>No exchanges yet. Start exchanging coins to see transactions here!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = history.map(tx => `
+                <div class="transaction-item">
+                    <div class="transaction-info">
+                        <div class="transaction-amount">${tx.coinAmount.toLocaleString()} 🍀 → $${tx.usdValue.toFixed(2)}</div>
+                        <div class="transaction-timestamp">${new Date(tx.timestamp).toLocaleDateString()} ${new Date(tx.timestamp).toLocaleTimeString()}</div>
+                    </div>
+                    <span class="status-badge status-${tx.status.toLowerCase()}">${tx.status.toUpperCase()}</span>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * Switch between tabs
+         */
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+
+            // Mark button as active
+            event.target.classList.add('active');
+        }
+
+        /**
+         * Open exchange confirmation modal
+         */
+        function openExchangeModal(coins, usd) {
+            if (typeof window.cloverGoals === 'undefined') {
+                alert('❌ Goals system not initialized. Please refresh the page.');
+                return;
+            }
+
+            const stats = window.cloverGoals.getStats();
+            if (stats.totalCoinsEarned < coins) {
+                alert(`❌ Insufficient coins! You have ${stats.totalCoinsEarned}, need ${coins}`);
+                return;
+            }
+
+            selectedExchange = { coins, usd };
+            document.getElementById('modal-coins').textContent = coins.toLocaleString();
+            document.getElementById('modal-usd').textContent = `$${usd.toFixed(2)}`;
+            document.getElementById('confirmation-modal').classList.add('active');
+        }
+
+        /**
+         * Close confirmation modal
+         */
+        function closeModal() {
+            document.getElementById('confirmation-modal').classList.remove('active');
+            selectedExchange = null;
+        }
+
+        /**
+         * Confirm and process exchange
+         */
+        async function confirmExchange() {
+            if (!selectedExchange || typeof window.cloverExchange === 'undefined') return;
+
+            closeModal();
+
+            try {
+                // Show processing message
+                const historyContainer = document.getElementById('history-container');
+                const originalContent = historyContainer.innerHTML;
+                historyContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 2rem; animation: spin 1s linear infinite; margin-bottom: 16px;">⏳</div>
+                        <p>Processing exchange... This may take a few seconds.</p>
+                    </div>
+                `;
+
+                // Process exchange
+                const tx = await window.cloverExchange.processExchange(
+                    selectedExchange.coins,
+                    'USDC'
+                );
+
+                console.log('✅ Exchange completed:', tx);
+
+                // Refresh display
+                updateStats();
+                renderHistory();
+
+                // Show success message
+                alert(`✅ Exchange successful!\n\n$${tx.usdValue.toFixed(2)} USDC has been sent to your Phantom wallet.`);
+
+            } catch (error) {
+                console.error('❌ Exchange failed:', error);
+                alert(`❌ Exchange failed: ${error.message}`);
+                renderHistory();
+            }
+
+            selectedExchange = null;
+        }
+
+        // Add CSS animation for spinner
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

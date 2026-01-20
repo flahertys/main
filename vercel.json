@@ -1,25 +1,8 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api"
-    }
-  ],
-  "env": {
-    "SHAMROCK_MINT": "@shamrock_mint",
-    "AUTHORITY_SECRET": "@authority_secret",
-    "SOLANA_RPC": "https://api.devnet.solana.com",
-    "MONGODB_URI": "@mongodb_uri",
-    "TWITTER_APP_KEY": "@twitter_app_key",
-    "TWITTER_APP_SECRET": "@twitter_app_secret",
-    "TWITTER_ACCESS_TOKEN": "@twitter_access_token",
-    "TWITTER_ACCESS_SECRET": "@twitter_access_secret"
-  }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm build",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next"
 }

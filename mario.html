@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mario - TradeHax</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #1a3a52, #0f2027);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #00ff88;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        h1 { font-size: 2rem; color: #f59e0b; text-shadow: 0 0 10px #00ff88; }
+        #gameCanvas {
+            border: 3px solid #00ff88;
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 100%);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            cursor: pointer;
+        }
+        .controls {
+            margin-top: 2rem;
+            color: #00ff88;
+            text-align: center;
+        }
+        .info {
+            margin-top: 1rem;
+            font-size: 14px;
+            color: #a0ffb3;
+        }
+        button {
+            margin: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #34d399;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #000;
+        }
+        button:hover { background: #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>?? Super Mario</h1>
+        <p>Jump to collect coins!</p>
+    </div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div class="controls">
+        <button onclick="startGame()">START</button>
+        <button onclick="togglePause()">PAUSE</button>
+        <button onclick="resetGame()">RESET</button>
+        <div class="info">
+            Use SPACE or UP ARROW to jump | Collect coins for points
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        class Mario {
+            constructor() {
+                this.x = 50;
+                this.y = canvas.height - 100;
+                this.width = 32;
+                this.height = 48;
+                this.velocityY = 0;
+                this.velocityX = 0;
+                this.speed = 4;
+                this.jumpPower = 12;
+                this.gravity = 0.5;
+                this.isJumping = false;
+                this.score = 0;
+                this.lives = 3;
+            }
+
+            update() {
+                // Apply gravity
+                this.velocityY += this.gravity;
+                this.y += this.velocityY;
+
+                // Ground collision
+                if (this.y + this.height >= canvas.height) {
+                    this.y = canvas.height - this.height;
+                    this.velocityY = 0;
+                    this.isJumping = false;
+                }
+
+                // Boundary collision
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
+
+                // Fall off screen
+                if (this.y > canvas.height + 50) {
+                    this.lives--;
+                    this.reset();
+                    if (this.lives <= 0) gameOver = true;
+                }
+            }
+
+            jump() {
+                if (!this.isJumping) {
+                    this.velocityY = -this.jumpPower;
+                    this.isJumping = true;
+                }
+            }
+
+            moveLeft() { this.velocityX = -this.speed; }
+            moveRight() { this.velocityX = this.speed; }
+            stopMovement() { this.velocityX = 0; }
+
+            draw() {
+                // Draw Mario
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Eyes
+                ctx.fillStyle = '#000';
+                ctx.fillRect(this.x + 8, this.y + 8, 6, 6);
+                ctx.fillRect(this.x + 18, this.y + 8, 6, 6);
+            }
+
+            reset() {
+                this.x = 50;
+                this.y = canvas.height - 100;
+                this.velocityX = 0;
+                this.velocityY = 0;
+            }
+        }
+
+        class Coin {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 8;
+                this.collected = false;
+            }
+
+            draw() {
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#FFA500';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            checkCollision(mario) {
+                const dx = this.x - (mario.x + mario.width / 2);
+                const dy = this.y - (mario.y + mario.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance < this.radius + 15;
+            }
+        }
+
+        let mario = new Mario();
+        let coins = [];
+        let gameRunning = false;
+        let gamePaused = false;
+        let gameOver = false;
+        let gameLoop;
+
+        function spawnCoins() {
+            coins = [];
+            for (let i = 0; i < 5; i++) {
+                coins.push(new Coin(Math.random() * (canvas.width - 50) + 25, Math.random() * 200 + 50));
+            }
+        }
+
+        function update() {
+            if (gamePaused || gameOver) return;
+
+            mario.update();
+            mario.x += mario.velocityX;
+
+            // Check coin collisions
+            coins.forEach((coin, index) => {
+                if (coin.checkCollision(mario)) {
+                    coins.splice(index, 1);
+                    mario.score += 10;
+                    spawnCoins();
+                }
+            });
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = 'rgba(135, 206, 235, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw ground
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+
+            // Draw game elements
+            mario.draw();
+            coins.forEach(coin => coin.draw());
+
+            // Draw UI
+            ctx.fillStyle = '#00ff88';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('Score: ' + mario.score, 20, 30);
+            ctx.fillText('Lives: ' + mario.lives, canvas.width - 150, 30);
+
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#FF0000';
+                ctx.font = 'bold 40px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+                ctx.fillStyle = '#00ff88';
+                ctx.font = 'bold 20px Arial';
+                ctx.fillText('Final Score: ' + mario.score, canvas.width / 2, canvas.height / 2 + 50);
+            }
+        }
+
+        function startGame() {
+            if (!gameRunning) {
+                gameRunning = true;
+                gamePaused = false;
+                gameOver = false;
+                mario.score = 0;
+                mario.lives = 3;
+                mario.reset();
+                spawnCoins();
+            }
+        }
+
+        function togglePause() {
+            if (gameRunning) gamePaused = !gamePaused;
+        }
+
+        function resetGame() {
+            gameRunning = false;
+            gamePaused = false;
+            gameOver = false;
+            mario.score = 0;
+            mario.lives = 3;
+            mario.reset();
+            coins = [];
+            draw();
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning) return;
+            if (e.key === ' ' || e.key === 'ArrowUp') {
+                mario.jump();
+                e.preventDefault();
+            } else if (e.key === 'ArrowLeft' || e.key === 'a') {
+                mario.moveLeft();
+            } else if (e.key === 'ArrowRight' || e.key === 'd') {
+                mario.moveRight();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'a' || e.key === 'd') {
+                mario.stopMovement();
+            }
+        });
+
+        // Game loop
+        function mainLoop() {
+            update();
+            draw();
+            gameLoop = requestAnimationFrame(mainLoop);
+        }
+
+        // Start animation loop
+        mainLoop();
+    </script>
+</body>
+</html>

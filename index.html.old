@@ -1,0 +1,107 @@
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="game-card rounded-lg p-6 text-center cursor-pointer" onclick="selectGame('snake')">
+                <div class="text-6xl mb-4">🐍</div>
+                <h3 class="text-2xl font-bold mb-2">Snake</h3>
+                <p class="text-gray-300">Classic snake game. Use arrow keys or WASD to move.</p>
+            </div>
+
+            <div class="game-card rounded-lg p-6 text-center cursor-pointer" onclick="selectGame('tetris')">
+                <div class="text-6xl mb-4">🧩</div>
+                <h3 class="text-2xl font-bold mb-2">Tetris</h3>
+                <p class="text-gray-300">Falling blocks puzzle game. Use arrow keys to move and rotate.</p>
+            </div>
+
+            <div class="game-card rounded-lg p-6 text-center cursor-pointer" onclick="selectGame('memory')">
+                <div class="text-6xl mb-4">🧠</div>
+                <h3 class="text-2xl font-bold mb-2">Memory Game</h3>
+                <p class="text-gray-300">Match the pairs. Click cards to flip them over.</p>
+            </div>
+        </div>
+
+        <!-- Game Containers -->
+        <div id="snake-container" class="game-container">
+            <div class="text-center mb-4">
+                <h2 class="text-3xl font-bold mb-2">🐍 Snake Game</h2>
+                <button onclick="startSnake()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors">Start Game</button>
+                <button onclick="showMenu()" class="ml-4 bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">Back to Menu</button>
+            </div>
+            <div class="flex justify-center">
+                <canvas id="snakeCanvas" width="400" height="400"></canvas>
+            </div>
+        </div>
+
+        <div id="tetris-container" class="game-container">
+            <div class="text-center mb-4">
+                <h2 class="text-3xl font-bold mb-2">🧩 Tetris</h2>
+                <button onclick="startTetris()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">Start Game</button>
+                <button onclick="showMenu()" class="ml-4 bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">Back to Menu</button>
+            </div>
+            <div class="flex justify-center">
+                <canvas id="tetrisCanvas" width="300" height="600"></canvas>
+            </div>
+        </div>
+
+        <div id="memory-container" class="game-container">
+            <div class="text-center mb-4">
+                <h2 class="text-3xl font-bold mb-2">🧠 Memory Game</h2>
+                <button onclick="startMemory()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">Start Game</button>
+                <button onclick="showMenu()" class="ml-4 bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">Back to Menu</button>
+            </div>
+            <div class="flex justify-center">
+                <div id="memoryBoard" class="grid grid-cols-4 gap-2 w-80"></div>
+            </div>
+        </div>
+=======
+        <!-- Game Selection -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <a href="snake.html" class="game-card rounded-lg p-6 text-center block hover:scale-105 transition-transform">
+                <div class="text-6xl mb-4">🐍</div>
+                <h3 class="text-2xl font-bold mb-2">Snake</h3>
+                <p class="text-gray-300 text-sm">Classic arcade action with enhanced graphics</p>
+                <div class="mt-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors inline-block">Play Now</div>
+            </a>
+
+            <a href="tetris.html" class="game-card rounded-lg p-6 text-center block hover:scale-105 transition-transform">
+                <div class="text-6xl mb-4">🧩</div>
+                <h3 class="text-2xl font-bold mb-2">Tetris</h3>
+                <p class="text-gray-300 text-sm">Master the falling blocks with smooth controls</p>
+                <div class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors inline-block">Play Now</div>
+            </a>
+
+            <a href="memory.html" class="game-card rounded-lg p-6 text-center block hover:scale-105 transition-transform">
+                <div class="text-6xl mb-4">🧠</div>
+                <h3 class="text-2xl font-bold mb-2">Memory</h3>
+                <p class="text-gray-300 text-sm">Challenge your memory with card matching</p>
+                <div class="mt-4 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg transition-colors inline-block">Play Now</div>
+            </a>
+
+            <a href="spades.html" class="game-card rounded-lg p-6 text-center block hover:scale-105 transition-transform">
+                <div class="text-6xl mb-4">♠️</div>
+                <h3 class="text-2xl font-bold mb-2">Spades</h3>
+                <p class="text-gray-300 text-sm">Classic card game with clover coin rewards</p>
+                <div class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors inline-block">Play Now</div>
+            </a>
+        </div>
+
+        <!-- Game Features -->
+        <div class="bg-black bg-opacity-50 rounded-lg p-6 mb-8">
+            <h3 class="text-2xl font-bold mb-4 text-center">🎮 Game Features</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="text-4xl mb-2">📱</div>
+                    <h4 class="font-bold mb-2">Mobile Optimized</h4>
+                    <p class="text-sm text-gray-300">Each game loads individually for better mobile performance</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl mb-2">💾</div>
+                    <h4 class="font-bold mb-2">Progress Saved</h4>
+                    <p class="text-sm text-gray-300">High scores and coins persist across sessions</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl mb-2">🎨</div>
+                    <h4 class="font-bold mb-2">Enhanced Graphics</h4>
+                    <p class="text-sm text-gray-300">Modern UI with retro gaming aesthetics</p>
+                </div>
+            </div>
+        </div>
+
