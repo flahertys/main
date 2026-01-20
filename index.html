@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyporborea Quest: Wormhole Awakening</title>
+    <link rel="stylesheet" href="/hyporborea/styles.css">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-content">
+            <h1>Wormhole Awakening</h1>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+            <p>Initializing astral projection...</p>
+        </div>
+    </div>
+
+    <!-- Game Container -->
+    <div id="game-container"></div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div class="hud-section">
+            <span class="hud-label">Dimension</span>
+            <span id="dimension-display">1</span>
+        </div>
+        <div class="hud-section">
+            <span class="hud-label">Energy</span>
+            <span id="energy-display">0</span>
+        </div>
+        <div class="hud-section">
+            <span class="hud-label">Clovers</span>
+            <span id="clovers-display">0</span>
+        </div>
+    </div>
+
+    <!-- Wallet Button -->
+    <button id="connect-wallet" class="ethereal-button">Connect Wallet</button>
+    <div id="wallet-address" class="wallet-chip hidden"></div>
+
+    <!-- Instructions -->
+    <div class="instructions">
+        <h4>Controls</h4>
+        <p>W/A/S/D to move • Mouse to look</p>
+        <p>Collect clovers to build energy. Solve puzzles to summon the wormhole.</p>
+    </div>
+
+    <!-- Puzzle Overlay -->
+    <div id="puzzle-overlay" class="overlay hidden">
+        <div class="puzzle-content">
+            <h3>Astral Riddle</h3>
+            <div id="puzzle-text">...</div>
+            <input id="puzzle-input" type="text" placeholder="Enter answer" />
+            <button id="submit-puzzle" class="ethereal-button">Submit</button>
+            <button id="close-puzzle" class="ethereal-button secondary small">Close</button>
+        </div>
+    </div>
+
+    <!-- Wormhole Overlay -->
+    <div id="wormhole-overlay" class="overlay hidden">
+        <div class="wormhole-content">
+            <h2>Summon Wormhole</h2>
+            <p>Energy threshold reached. Proceed to the next dimension?</p>
+            <button id="summon-portal" class="ethereal-button">Enter</button>
+            <button id="cancel-portal" class="ethereal-button secondary">Cancel</button>
+        </div>
+    </div>
+
+    <!-- External libs -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.1/lib/index.iife.min.js"></script>
+    <!-- Game script -->
+    <script src="/hyporborea/main.js"></script>
+</body>
+</html>
