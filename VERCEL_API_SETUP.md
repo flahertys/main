@@ -19,7 +19,7 @@ Complete guide for setting up all required API keys and environment variables fo
 ### 1. Create Vercel Account
 1. Go to [vercel.com](https://vercel.com)
 2. Sign up with GitHub (recommended)
-3. Connect your repository: `shamrockstocks.github.io`
+3. Connect your repository: `darkmodder33.github.io`
 
 ### 2. Import Project
 ```bash
@@ -31,7 +31,7 @@ vercel --prod
 
 Or use the Vercel dashboard:
 - Dashboard → "Add New..." → "Project"
-- Import Git Repository → Select `shamrockstocks.github.io`
+- Import Git Repository → Select `darkmodder33.github.io`
 
 ---
 
@@ -342,7 +342,7 @@ VITE_WALLETCONNECT_PROJECT_ID=<your-project-id>
    ```bash
    npm i -g vercel
    vercel login
-   cd /path/to/shamrockstocks.github.io
+   cd /path/to/darkmodder33.github.io
    vercel
    ```
 
