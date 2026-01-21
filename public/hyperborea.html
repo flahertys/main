@@ -6,40 +6,273 @@
   <title>Hyperborea Quest: Wormhole Awakening</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1b263b">
   <style>
-    body { background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%); color: #e0f2fe; font-family: 'Courier New', monospace; min-height: 100vh; overflow: hidden; }
-    #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; }
-    #loading-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,41,0.98); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; transition: opacity 1s; }
+    body {
+      background: radial-gradient(ellipse at 60% 40%, #1b263b 0%, #0d1b2a 60%, #000 100%), url('https://www.transparenttextures.com/patterns/stardust.png');
+      color: #e0f2fe;
+      font-family: 'Orbitron', 'Courier New', monospace;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .animated-title {
+      font-size: 3.2rem;
+      font-family: 'Orbitron', 'Courier New', monospace;
+      font-weight: 900;
+      background: linear-gradient(90deg, #00FF41 10%, #9945ff 90%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-fill-color: transparent;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 32px #00FF41, 0 0 8px #9945ff;
+      animation: titleGlow 2.5s infinite alternate;
+      margin-bottom: 0.5em;
+    }
+    @keyframes titleGlow {
+      0% { text-shadow: 0 0 32px #00FF41, 0 0 8px #9945ff; }
+      100% { text-shadow: 0 0 64px #9945ff, 0 0 24px #00FF41; }
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 1;
+    }
+    #loading-screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15,23,41,0.98);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: opacity 1s;
+      box-shadow: 0 0 80px #9945ff44;
+      border-radius: 0 0 48px 48px;
+      border-bottom: 2px solid #00FF41;
+    }
     #loading-screen.fade-out { opacity: 0; pointer-events: none; }
-    .loading-progress { width: 0; height: 12px; background: linear-gradient(90deg, #00FF41 0%, #9945ff 100%); border-radius: 6px; margin-top: 24px; transition: width 0.3s; }
-    #hud { position: absolute; top: 24px; left: 24px; background: rgba(15,23,41,0.85); border-radius: 12px; padding: 18px 28px; box-shadow: 0 0 24px #00FF41; z-index: 5; display: flex; flex-direction: column; gap: 10px; }
-    #hud span { font-size: 1.2rem; font-weight: bold; color: #00FF41; text-shadow: 0 0 8px #00FF41; }
-    #wallet-address { font-size: 0.95rem; color: #9945ff; background: #222; border-radius: 8px; padding: 4px 12px; margin-top: 8px; display: none; }
-    .success-message { position: fixed; top: 20px; right: 20px; background: #00FF41; color: #222; padding: 12px 24px; border-radius: 8px; font-weight: bold; z-index: 100; box-shadow: 0 0 12px #00FF41; }
+    .loading-progress {
+      width: 0;
+      height: 14px;
+      background: linear-gradient(90deg, #00FF41 0%, #9945ff 100%);
+      border-radius: 8px;
+      margin-top: 28px;
+      transition: width 0.3s;
+      box-shadow: 0 0 16px #00FF41;
+    }
+    #hud {
+      position: absolute;
+      top: 32px;
+      left: 32px;
+      background: rgba(15,23,41,0.92);
+      border-radius: 16px;
+      padding: 22px 36px;
+      box-shadow: 0 0 32px #00FF41, 0 0 8px #9945ff;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      border: 2px solid #00FF41;
+      min-width: 220px;
+    }
+    #hud span {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #00FF41;
+      text-shadow: 0 0 12px #00FF41, 0 0 4px #9945ff;
+      letter-spacing: 0.04em;
+    }
+    #wallet-address {
+      font-size: 1.05rem;
+      color: #9945ff;
+      background: #222;
+      border-radius: 8px;
+      padding: 4px 12px;
+      margin-top: 8px;
+      display: none;
+      box-shadow: 0 0 8px #9945ff;
+    }
+    .success-message {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(90deg, #00FF41 0%, #9945ff 100%);
+      color: #222;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-weight: bold;
+      z-index: 100;
+      box-shadow: 0 0 18px #00FF41, 0 0 8px #9945ff;
+      font-size: 1.15rem;
+      letter-spacing: 0.04em;
+    }
     .hud-flash { animation: flash 0.35s; }
     @keyframes flash { 0% { background: #00FF41; color: #222; } 100% { background: none; color: #00FF41; } }
-    #puzzle-overlay, #wormhole-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; transition: opacity 0.5s; }
+    #puzzle-overlay, #wormhole-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.88);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      transition: opacity 0.5s;
+      backdrop-filter: blur(4px);
+    }
     #puzzle-overlay.hidden, #wormhole-overlay.hidden { display: none; }
-    .puzzle-box { background: #222; border-radius: 12px; padding: 32px 48px; box-shadow: 0 0 24px #9945ff; color: #fff; text-align: center; }
-    .puzzle-input { margin-top: 18px; padding: 8px 16px; border-radius: 6px; border: 1px solid #00FF41; font-size: 1.1rem; background: #111; color: #00FF41; }
-    .puzzle-btn { margin: 12px 8px 0 8px; padding: 10px 24px; border-radius: 8px; background: linear-gradient(90deg, #00FF41 0%, #9945ff 100%); color: #222; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 0 8px #00FF41; transition: background 0.3s; }
-    .puzzle-btn:hover { background: linear-gradient(90deg, #9945ff 0%, #00FF41 100%); color: #fff; }
-    #connect-wallet { position: absolute; top: 24px; right: 24px; z-index: 5; background: linear-gradient(90deg, #00FF41 0%, #9945ff 100%); color: #222; font-weight: bold; border-radius: 8px; padding: 12px 28px; border: none; cursor: pointer; box-shadow: 0 0 12px #00FF41; font-size: 1.1rem; transition: background 0.3s; }
+    .puzzle-box {
+      background: linear-gradient(135deg, #222 60%, #1b263b 100%);
+      border-radius: 16px;
+      padding: 38px 54px;
+      box-shadow: 0 0 32px #9945ff, 0 0 8px #00FF41;
+      color: #fff;
+      text-align: center;
+      border: 2px solid #9945ff;
+    }
+    .puzzle-input {
+      margin-top: 18px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 1.5px solid #00FF41;
+      font-size: 1.15rem;
+      background: #111;
+      color: #00FF41;
+      box-shadow: 0 0 8px #00FF41;
+    }
+    .puzzle-btn {
+      margin: 12px 8px 0 8px;
+      padding: 12px 28px;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #00FF41 0%, #9945ff 100%);
+      color: #222;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 12px #00FF41, 0 0 4px #9945ff;
+      font-size: 1.1rem;
+      transition: background 0.3s, color 0.3s;
+    }
+    .puzzle-btn:hover {
+      background: linear-gradient(90deg, #9945ff 0%, #00FF41 100%);
+      color: #fff;
+    }
+    #connect-wallet {
+      position: absolute;
+      top: 32px;
+      right: 32px;
+      z-index: 5;
+      background: linear-gradient(90deg, #00FF41 0%, #9945ff 100%);
+      color: #222;
+      font-weight: bold;
+      border-radius: 12px;
+      padding: 14px 32px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 16px #00FF41, 0 0 8px #9945ff;
+      font-size: 1.2rem;
+      transition: background 0.3s;
+    }
     #connect-wallet.secondary { background: #9945ff; color: #fff; }
   </style>
 </head>
 <body>
+    <!-- Avatar Selection Modal -->
+    <div id="avatar-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;background:rgba(0,0,0,0.92);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+      <div style="background:linear-gradient(135deg,#222 60%,#1b263b 100%);border-radius:18px;padding:36px 44px;box-shadow:0 0 32px #9945ff,0 0 8px #00FF41;max-width:420px;width:90vw;text-align:center;border:2px solid #9945ff;">
+        <h2 style="font-size:1.5rem;font-weight:800;color:#00FF41;margin-bottom:18px;">Choose Your Avatar</h2>
+        <div id="avatar-options" style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:18px;"></div>
+        <button id="close-avatar-modal" class="puzzle-btn" style="margin-top:8px;">Close</button>
+      </div>
+    </div>
+    <!-- In-Game Shop Modal -->
+    <div id="shop-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:201;background:rgba(0,0,0,0.92);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+      <div style="background:linear-gradient(135deg,#222 60%,#1b263b 100%);border-radius:18px;padding:36px 44px;box-shadow:0 0 32px #00FF41,0 0 8px #9945ff;max-width:420px;width:90vw;text-align:center;border:2px solid #00FF41;">
+        <h2 style="font-size:1.5rem;font-weight:800;color:#9945ff;margin-bottom:18px;">In-Game Shop</h2>
+        <div id="shop-items" style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:18px;"></div>
+        <div style="font-size:1.05rem;color:#b5e3ff;margin-bottom:10px;">Spend your <b>SHAMROCK</b> tokens for upgrades or cash out to L2!</div>
+        <button id="close-shop-modal" class="puzzle-btn" style="margin-top:8px;">Close</button>
+      </div>
+    </div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(reg) { console.log('ServiceWorker registered:', reg); })
+          .catch(function(err) { console.log('ServiceWorker registration failed:', err); });
+      });
+    }
+  </script>
   <div id="game-container"></div>
   <div id="loading-screen">
-    <h1 class="text-4xl font-bold text-[#00FF41] mb-4">Hyperborea Quest</h1>
-    <p class="text-lg text-gray-300 mb-2">Preparing game assets...</p>
+    <h1 class="animated-title">🌌 Hyperborea Quest</h1>
+    <p class="text-lg text-[#00FF41] mb-2" style="font-family:Orbitron,monospace;letter-spacing:0.06em;">Preparing astral gateway...</p>
+    <svg width="120" height="32" viewBox="0 0 120 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:18px;">
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="120" y2="0" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#00FF41"/>
+          <stop offset="1" stop-color="#9945ff"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="10" width="120" height="12" rx="6" fill="url(#g1)">
+        <animate attributeName="width" from="0" to="120" dur="2.2s" repeatCount="indefinite"/>
+      </rect>
+    </svg>
     <div class="loading-progress"></div>
+    <p class="text-sm text-gray-400 mt-4" style="font-family:monospace;">Tip: WASD to move • Solve puzzles to ascend</p>
   </div>
   <div id="hud">
-    <span>Dimension: <span id="dimension-display">1</span></span>
-    <span>Energy: <span id="energy-display">0</span></span>
-    <span>Clovers: <span id="clovers-display">0</span></span>
-    <div id="wallet-address" class="hidden"></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f30c.png" alt="Dimension" style="width:32px;height:32px;vertical-align:middle;"/>
+      <span style="font-size:1.25rem;font-weight:700;">Dimension <span id="dimension-display">1</span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+      <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4a5.png" alt="Energy" style="width:28px;height:28px;vertical-align:middle;"/>
+      <span style="font-size:1.1rem;">Energy</span>
+      <div style="flex:1;background:#222;border-radius:8px;height:18px;overflow:hidden;box-shadow:0 0 8px #00FF41 inset;margin:0 8px;">
+        <div id="energy-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#00FF41,#9945ff);transition:width 0.3s;"></div>
+      </div>
+      <span id="energy-display" style="font-size:1.1rem;min-width:32px;">0</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+      <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f340.png" alt="Clovers" style="width:28px;height:28px;vertical-align:middle;"/>
+      <span style="font-size:1.1rem;">Clovers</span>
+      <span id="clovers-display" style="font-size:1.1rem;font-weight:600;min-width:24px;">0</span>
+    </div>
+    <div id="wallet-address" class="hidden" style="margin-top:10px;"></div>
+    <div style="margin-top:18px;padding:10px 0 0 0;border-top:1.5px solid #9945ff;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <img src='https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3c6.png' alt="Leaderboard" style="width:22px;height:22px;"/>
+        <span style="font-size:1.05rem;font-weight:600;">Leaderboard</span>
+        <button id="toggle-leaderboard" style="margin-left:auto;background:#9945ff;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-weight:700;cursor:pointer;box-shadow:0 0 6px #9945ff;">Show</button>
+      </div>
+      <div id="leaderboard-panel" style="display:none;margin-top:10px;background:rgba(15,23,41,0.98);border-radius:12px;padding:12px 10px 10px 10px;box-shadow:0 0 12px #00FF41,0 0 4px #9945ff;max-width:320px;">
+        <table style="width:100%;font-size:0.98rem;color:#e0f2fe;text-align:left;">
+          <thead>
+            <tr style="color:#00FF41;font-weight:700;font-size:1.05rem;">
+              <th style="padding-bottom:4px;">Rank</th>
+              <th style="padding-bottom:4px;">Player</th>
+              <th style="padding-bottom:4px;">SHAM</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-rows">
+            <!-- Leaderboard rows injected here -->
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:0.98rem;color:#b5e3ff;margin-top:8px;">
+        <span>Complete quests, collect clovers, and solve puzzles to earn <b>SHAMROCK</b> tokens.<br>Connect your wallet to mint NFTs and join the community leaderboard!</span>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;">
+        <a href="#" id="open-avatar-modal" style="background:#9945ff;color:#fff;padding:6px 14px;border-radius:8px;font-weight:700;text-decoration:none;box-shadow:0 0 8px #9945ff;transition:background 0.2s;">Avatars</a>
+        <a href="#" id="open-shop-modal" style="background:#222;color:#00FF41;padding:6px 14px;border-radius:8px;font-weight:700;text-decoration:none;box-shadow:0 0 8px #00FF41;transition:background 0.2s;">Shop</a>
+      </div>
+    </div>
   </div>
   <button id="connect-wallet">Connect Wallet</button>
   <div id="puzzle-overlay" class="hidden">
@@ -65,5 +298,195 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
   <script src="/main.js"></script>
+      <script>
+        // Avatar selection logic
+        let avatarList = [
+          {name:'Astral Wolf', url:'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f43a.png'},
+          {name:'Solana Queen', url:'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f451.png'},
+          {name:'Pixel Mage', url:'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2728.png'},
+          {name:'Chain Runner', url:'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3c3.png'},
+          {name:'Nebulae', url:'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f30c.png'},
+          {name:'Alien', url:'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f47d.png'},
+          {name:'You', url:'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f47e.png'},
+        ];
+        let selectedAvatar = localStorage.getItem('hyperboreaAvatar') || avatarList[6].url;
+
+        // NFT Avatar Integration
+        async function fetchNFTAvatars(walletAddress) {
+          // Use public Metaplex API for demo (mainnet-beta)
+          if (!walletAddress) return [];
+          try {
+            const resp = await fetch(`https://api.helius.xyz/v0/addresses/${walletAddress}/nfts?api-key=heliusdemo`);
+            if (!resp.ok) return [];
+            const nfts = await resp.json();
+            // Filter for NFTs with image URIs
+            return (nfts || []).filter(nft => nft.content && nft.content.links && nft.content.links.image).map(nft => ({
+              name: nft.content.metadata.name || 'NFT',
+              url: nft.content.links.image
+            }));
+          } catch (e) { return []; }
+        }
+
+        async function addNFTAvatarsToList() {
+          if (!window.web3Rewards || !window.web3Rewards.walletConnected || !window.web3Rewards.walletAddress) return;
+          // Prevent duplicates
+          if (avatarList.some(a => a.isNFT)) return;
+          const nfts = await fetchNFTAvatars(window.web3Rewards.walletAddress);
+          if (nfts.length > 0) {
+            nfts.forEach(nft => avatarList.push({ ...nft, isNFT: true }));
+            renderAvatarOptions();
+          }
+        }
+
+        // Listen for wallet connect event to fetch NFTs
+        window.addEventListener('walletConnected', addNFTAvatarsToList);
+        // If already connected, fetch NFTs on load
+        if (window.web3Rewards && window.web3Rewards.walletConnected) addNFTAvatarsToList();
+        function renderAvatarOptions() {
+          document.getElementById('avatar-options').innerHTML = avatarList.map(a =>
+            `<div style='display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;' onclick='selectAvatar("${a.url}")'>
+              <img src='${a.url}' style='width:48px;height:48px;border-radius:50%;box-shadow:0 0 8px #00FF41;outline:${selectedAvatar===a.url?'3px solid #9945ff':'none'};transition:outline 0.2s;'>
+              <span style='font-size:0.95rem;color:#b5e3ff;'>${a.name}</span>
+            </div>`
+          ).join('');
+        }
+        window.selectAvatar = function(url) {
+          selectedAvatar = url;
+          localStorage.setItem('hyperboreaAvatar', url);
+          renderAvatarOptions();
+          renderLeaderboard();
+          if (window.sync3DAvatar) window.sync3DAvatar(url);
+        };
+        document.getElementById('open-avatar-modal').onclick = function(e){
+          e.preventDefault();
+          renderAvatarOptions();
+          document.getElementById('avatar-modal').style.display='flex';
+          // Sync 3D avatar to current selection when opening modal
+          if (window.sync3DAvatar) window.sync3DAvatar(selectedAvatar);
+        };
+        document.getElementById('close-avatar-modal').onclick = function(){document.getElementById('avatar-modal').style.display='none';};
+
+        // Shop logic: use live wallet balance from Web3RewardsSystem
+        const shopItems = [
+          {id:'speed', name:'Speed Boost', cost:100, desc:'Move 20% faster for 1 dimension.'},
+          {id:'vision', name:'Vision Upgrade', cost:150, desc:'See hidden clovers for 1 dimension.'},
+          {id:'cashout', name:'Cash Out', cost:200, desc:'Convert 200 SHAMROCK to 1 L2 token.'}
+        ];
+        // Get Web3RewardsSystem instance (assume window.web3Rewards exists)
+        function getShamrockBalance() {
+          return (window.web3Rewards && window.web3Rewards.totalCoins) || 0;
+        }
+        function spendShamrock(amount) {
+          if (window.web3Rewards) {
+            if (window.web3Rewards.totalCoins >= amount) {
+              window.web3Rewards.totalCoins -= amount;
+              window.web3Rewards.saveState();
+              window.web3Rewards.updateUI();
+              return true;
+            }
+          }
+          return false;
+        }
+        function renderShop() {
+          const balance = getShamrockBalance();
+          document.getElementById('shop-items').innerHTML = shopItems.map(item =>
+            `<div style='background:#181f2a;border-radius:10px;padding:14px 12px;box-shadow:0 0 8px #00FF41;margin-bottom:6px;min-width:120px;'>
+              <div style='font-size:1.08rem;font-weight:700;color:#00FF41;margin-bottom:4px;'>${item.name}</div>
+              <div style='font-size:0.97rem;color:#b5e3ff;margin-bottom:8px;'>${item.desc}</div>
+              <button onclick='buyShopItem("${item.id}")' style='background:#9945ff;color:#fff;padding:6px 14px;border-radius:8px;font-weight:700;box-shadow:0 0 8px #9945ff;cursor:pointer;' ${balance<item.cost?'disabled style="opacity:0.5;cursor:not-allowed;"':''}>Buy (${item.cost})</button>
+            </div>`
+          ).join('');
+        }
+        window.buyShopItem = function(id) {
+          const item = shopItems.find(i=>i.id===id);
+          if(!item) return;
+          const balance = getShamrockBalance();
+          if(balance<item.cost){alert('Not enough SHAMROCK!');return;}
+          if (!spendShamrock(item.cost)) { alert('Failed to spend SHAMROCK!'); return; }
+          if(id==='speed'){alert('Speed Boost activated for next dimension!');}
+          else if(id==='vision'){alert('Vision Upgrade activated!');}
+          else if(id==='cashout'){alert('You cashed out 1 L2 token!');}
+          renderShop();
+          renderLeaderboard();
+        };
+        document.getElementById('open-shop-modal').onclick = function(e){e.preventDefault();renderShop();document.getElementById('shop-modal').style.display='flex';};
+        document.getElementById('close-shop-modal').onclick = function(){document.getElementById('shop-modal').style.display='none';};
+
+        // NFT Avatar integration hook (to be implemented):
+        // 1. On wallet connect, fetch NFTs and add to avatarList
+        // 2. Allow selection and persist in localStorage
+        // 3. On avatar select, call sync3DAvatar(selectedAvatar)
+
+        // 3D Avatar sync hook (to be implemented in main.js):
+        // function sync3DAvatar(avatarUrl) { /* update 3D player model */ }
+
+        // Patch leaderboard to show selected avatar
+        const origRenderLeaderboard = window.renderLeaderboard;
+        window.renderLeaderboard = function() {
+          const rows = leaderboardData.map(entry =>
+            `<tr style="background:${entry.player==='You'?'#00FF4133':'none'};font-weight:${entry.player==='You'?'700':'500'};">
+              <td style="padding:2px 6px;">${entry.rank}</td>
+              <td style="padding:2px 6px;display:flex;align-items:center;gap:7px;">
+                <img src="${entry.player==='You'?selectedAvatar:entry.avatar}" alt="avatar" style="width:22px;height:22px;border-radius:50%;box-shadow:0 0 4px #00FF41;">${entry.player}
+              </td>
+              <td style="padding:2px 6px;">${entry.sham}</td>
+            </tr>`
+          ).join('');
+          document.getElementById('leaderboard-rows').innerHTML = rows;
+        };
+        window.renderLeaderboard();
+      </script>
+    <script>
+      // Leaderboard mock data
+      const leaderboardData = [
+        { rank: 1, player: 'AstralWolf', sham: 1280, avatar: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f43a.png' },
+        { rank: 2, player: 'SolanaQueen', sham: 1100, avatar: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f451.png' },
+        { rank: 3, player: 'PixelMage', sham: 950, avatar: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2728.png' },
+        { rank: 4, player: 'ChainRunner', sham: 800, avatar: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3c3.png' },
+        { rank: 5, player: 'Nebulae', sham: 700, avatar: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f30c.png' },
+        { rank: 6, player: 'You', sham: 420, avatar: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f47e.png' },
+      ];
+      function renderLeaderboard() {
+        const rows = leaderboardData.map(entry =>
+          `<tr style="background:${entry.player==='You'?'#00FF4133':'none'};font-weight:${entry.player==='You'?'700':'500'};">
+            <td style="padding:2px 6px;">${entry.rank}</td>
+            <td style="padding:2px 6px;display:flex;align-items:center;gap:7px;">
+              <img src="${entry.avatar}" alt="avatar" style="width:22px;height:22px;border-radius:50%;box-shadow:0 0 4px #00FF41;">${entry.player}
+            </td>
+            <td style="padding:2px 6px;">${entry.sham}</td>
+          </tr>`
+        ).join('');
+        document.getElementById('leaderboard-rows').innerHTML = rows;
+      }
+      renderLeaderboard();
+      // Toggle leaderboard panel
+      document.getElementById('toggle-leaderboard').onclick = function() {
+        const panel = document.getElementById('leaderboard-panel');
+        if (panel.style.display === 'none') {
+          panel.style.display = 'block';
+          this.textContent = 'Hide';
+        } else {
+          panel.style.display = 'none';
+          this.textContent = 'Show';
+        }
+      };
+    </script>
+  <script>
+    // Enhance HUD: animate energy bar
+    function updateEnergyBar(val) {
+      var bar = document.getElementById('energy-bar');
+      var percent = Math.min(100, Math.max(0, parseInt(val, 10) || 0));
+      bar.style.width = percent + '%';
+    }
+    // Patch updateHUD to also update energy bar
+    const origUpdateHUD = window.updateHUD;
+    window.updateHUD = function() {
+      origUpdateHUD && origUpdateHUD();
+      var val = document.getElementById('energy-display').textContent;
+      updateEnergyBar(val);
+    };
+    // Initial bar
+    updateEnergyBar(document.getElementById('energy-display').textContent);
+  </script>
 </body>
 </html>

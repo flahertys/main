@@ -34,6 +34,8 @@ function init() {
     setupWeb3();
     setupEventListeners();
     setupHUD();
+    // Expose avatar sync for UI
+    window.sync3DAvatar = sync3DAvatar;
     animate();
 }
 
@@ -94,18 +96,73 @@ function setupThreeJS() {
     directionalLight.castShadow = true;
     scene.add(directionalLight);
 
-    // Player Avatar
-    const playerGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-    const playerMaterial = new THREE.MeshPhongMaterial({
-        color: 0x00ff88,
-        emissive: 0x002211,
-        transparent: true,
-        opacity: 0.8,
-        wireframe: true
+        // Player Avatar: detailed, easy-to-control 3D model (crystal orb with glow and ring)
+        const orbGeometry = new THREE.SphereGeometry(0.55, 48, 48);
+        const orbMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x00fff7,
+                roughness: 0.15,
+                metalness: 0.7,
+                transmission: 0.85,
+                thickness: 0.5,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1,
+                ior: 1.4,
+                emissive: 0x00ffcc,
+                emissiveIntensity: 0.18,
+                opacity: 0.95,
+                transparent: true
+        });
+
+        player = new THREE.Mesh(orbGeometry, orbMaterial);
+        player.position.set(0, 1, 0);
+        scene.add(player);
+
+        // Avatar image mesh (for emoji/NFT)
+        const avatarTextureSize = 1.1;
+        const avatarGeometry = new THREE.PlaneGeometry(avatarTextureSize, avatarTextureSize);
+        // Placeholder white texture
+        const avatarMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 });
+        const avatarMesh = new THREE.Mesh(avatarGeometry, avatarMaterial);
+        avatarMesh.position.set(0, 1, 0.7);
+        avatarMesh.renderOrder = 2;
+        scene.add(avatarMesh);
+        player.avatarMesh = avatarMesh;
+// Sync 3D avatar (emoji or NFT image)
+function sync3DAvatar(avatarUrl) {
+    if (!player || !player.avatarMesh) return;
+    if (!avatarUrl) {
+        player.avatarMesh.material.opacity = 0;
+        return;
+    }
+    // Load image as texture
+    const loader = new THREE.TextureLoader();
+    loader.load(avatarUrl, function(tex) {
+        player.avatarMesh.material.map = tex;
+        player.avatarMesh.material.opacity = 1;
+        player.avatarMesh.material.needsUpdate = true;
+    }, undefined, function() {
+        // On error, hide
+        player.avatarMesh.material.opacity = 0;
     });
-    player = new THREE.Mesh(playerGeometry, playerMaterial);
-    player.position.set(0, 1, 0);
-    scene.add(player);
+}
+
+        // Add glowing ring around orb
+        const ringGeometry = new THREE.TorusGeometry(0.7, 0.07, 16, 64);
+        const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x9945ff, transparent: true, opacity: 0.7 });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.position.set(0, 1, 0);
+        ring.rotation.x = Math.PI / 2;
+        scene.add(ring);
+
+        // Animate ring in animate()
+        if (!window._hyperboreaRingAnim) {
+            window._hyperboreaRingAnim = true;
+            const origAnimate = animate;
+            animate = function() {
+                ring.rotation.z += 0.012;
+                origAnimate();
+            };
+        }
 
     // Floor
     const floorGeometry = new THREE.PlaneGeometry(50, 50, 50, 50);
@@ -439,9 +496,51 @@ function showSuccessMessage(message, isError = false) {
 
 // Show Puzzle
 function showPuzzle() {
-    document.getElementById('puzzle-text').textContent = 'What has keys but opens no locks? A: _____';
-    document.getElementById('puzzle-input').value = '';
-    document.getElementById('puzzle-overlay').classList.remove('hidden');
+    const overlay = document.getElementById('puzzle-overlay');
+    const puzzleText = document.getElementById('puzzle-text');
+    const puzzleInput = document.getElementById('puzzle-input');
+    overlay.classList.remove('hidden');
+    puzzleInput.value = '';
+
+    // Puzzle bank: base64, riddle, cipher
+    const puzzles = [
+        {
+            question: 'Decode this: YmFzZTY0IGlzIHRoZSBnYXRld2F5Lg==',
+            answer: 'base64 is the gateway'
+        },
+        {
+            question: 'Riddle: I speak without a mouth and hear without ears. What am I?',
+            answer: 'echo'
+        },
+        {
+            question: 'Caesar Cipher (+3): Khdulqj lv wkh nhb.',
+            answer: 'hearing is the key'
+        },
+        {
+            question: 'Decode this: U29sdmUgdGhlIHBvcnRhbCBwYXNzY29kZQ==',
+            answer: 'solve the portal passcode'
+        },
+        {
+            question: 'Riddle: What walks on four legs in the morning, two at noon, and three in the evening?',
+            answer: 'man'
+        }
+    ];
+    // Pick puzzle based on dimension
+    const idx = Math.min(gameState.currentDimension - 1, puzzles.length - 1);
+    const puzzle = puzzles[idx];
+    puzzleText.textContent = puzzle.question;
+
+    document.getElementById('submit-puzzle').onclick = function() {
+        if (puzzleInput.value.trim().toLowerCase() === puzzle.answer) {
+            overlay.classList.add('hidden');
+            showWormholePortal();
+        } else {
+            puzzleText.textContent = '❌ Incorrect. Try again!';
+        }
+    };
+    document.getElementById('close-puzzle').onclick = function() {
+        overlay.classList.add('hidden');
+    };
 }
 
 // Show Wormhole Portal
@@ -455,42 +554,95 @@ function advanceDimension() {
     gameState.energy = 0;
     gameState.collectedClovers = 0;
 
-    // Create portal effect
+    // Play portal sound
+    playPortalSound();
+
+    // Show lore snippet overlay
+    showLoreSnippet(gameState.currentDimension);
+
+    // Create enhanced portal effect
     createPortalEffect();
 
     setTimeout(() => {
         generateDimension(gameState.currentDimension);
         showSuccessMessage(`Welcome to Dimension ${gameState.currentDimension}!`);
-    }, 2000);
+    }, 3200);
+// Play portal sound effect
+function playPortalSound() {
+    const audio = new Audio('/sounds/portal-whoosh.mp3');
+    audio.volume = 0.7;
+    audio.play().catch(() => {});
+}
+
+// Show lore snippet overlay
+function showLoreSnippet(dimension) {
+    const lore = [
+        '',
+        'You feel the veil thin as you step beyond the first threshold...',
+        'A whisper echoes: "Only those who solve the riddle may ascend."',
+        'The maze shifts, revealing secrets of the old world.',
+        'A guardian spirit watches your journey with silent approval.',
+        'The air shimmers with ancient energy. Hyperborea draws near.',
+        'You glimpse the World Tree, roots entwined with fate itself.',
+        'A cosmic wind howls: "The final puzzle awaits the worthy."',
+        'You stand at the gates of Hyperborea. Destiny is yours to claim.'
+    ];
+    const msg = lore[dimension] || 'You feel reality bend as you ascend.';
+    const overlay = document.createElement('div');
+    overlay.className = 'success-message';
+    overlay.textContent = msg;
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 2600);
+}
 }
 
 // Create Portal Effect
 function createPortalEffect() {
-    const portalGeometry = new THREE.RingGeometry(2, 4, 32);
+    // Enhanced portal: glowing, particles, and color pulse
+    const portalGeometry = new THREE.TorusGeometry(3, 0.45, 24, 64);
     const portalMaterial = new THREE.MeshBasicMaterial({
         color: 0x9945ff,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.92,
         side: THREE.DoubleSide
     });
-
     const portal = new THREE.Mesh(portalGeometry, portalMaterial);
     portal.position.set(0, 2, 0);
     portal.rotation.x = -Math.PI / 2;
     scene.add(portal);
 
-    // Animate portal
-    let scale = 1;
-    const portalAnimation = setInterval(() => {
-        scale += 0.1;
-        portal.scale.setScalar(scale);
-        portal.material.opacity -= 0.02;
+    // Add swirling particles
+    for (let i = 0; i < 32; i++) {
+        const spriteMat = new THREE.SpriteMaterial({
+            color: i % 2 === 0 ? 0x00ff88 : 0x9945ff,
+            transparent: true,
+            opacity: 0.7
+        });
+        const sprite = new THREE.Sprite(spriteMat);
+        const angle = (i / 32) * Math.PI * 2;
+        sprite.position.set(Math.cos(angle) * 3, 2.1 + Math.random() * 0.3, Math.sin(angle) * 3);
+        sprite.scale.set(0.25, 0.25, 0.25);
+        scene.add(sprite);
+        // Animate out
+        setTimeout(() => {
+            scene.remove(sprite);
+        }, 2200 + Math.random() * 600);
+    }
 
+    // Animate portal: scale up, pulse color, fade out
+    let scale = 1;
+    let pulse = 0;
+    const portalAnimation = setInterval(() => {
+        scale += 0.13;
+        pulse += 0.18;
+        portal.scale.setScalar(scale);
+        portal.material.opacity -= 0.025;
+        portal.material.color.setHSL(0.75 + 0.1 * Math.sin(pulse), 1, 0.7);
         if (portal.material.opacity <= 0) {
             clearInterval(portalAnimation);
             scene.remove(portal);
         }
-    }, 50);
+    }, 45);
 }
 
 // Animation Loop
