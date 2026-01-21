@@ -1,1 +1,25 @@
-/* ...existing code... */
+/* Hyperborea Quest: Wormhole Awakening - Ethereal Styling */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: radial-gradient(circle at center, #000011 0%, #000000 100%);
+    color: #00ff88;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    cursor: none;
+}
+
+#game-container canvas {
+    display: block;
+}
+
+/* ...existing code from styles.css... */
+// (You would paste the entire styles.css content here for the real deployment)
