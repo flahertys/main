@@ -1,5 +1,8 @@
 name: Deploy to Vercel via Hook
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
