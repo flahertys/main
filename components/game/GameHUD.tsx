@@ -1,6 +1,6 @@
 'use client';
 
-import { Zap, Trophy } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
 interface GameHUDProps {
   energy: number;

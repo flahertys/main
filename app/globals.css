@@ -54,10 +54,12 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: hsl(var(--border));
+    outline-color: hsl(var(--ring) / 0.5);
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: 'Segoe UI', Arial, sans-serif;
   }
 }
@@ -65,33 +67,66 @@
 /* Matrix Green Celtic theme styles integration */
 @layer components {
   .shamrock-link {
-    @apply text-[#00FF41] hover:text-[#39FF14] transition-colors no-underline;
+    color: #00FF41;
+    text-decoration: none;
     text-shadow: 0 0 8px rgba(0, 255, 65, 0.5);
+    transition: color 0.2s;
+  }
+  
+  .shamrock-link:hover {
+    color: #39FF14;
   }
   
   .shamrock-button {
-    @apply bg-[#00D100] hover:bg-[#00FF41] text-black px-4 py-2 rounded-md transition-all;
+    background-color: #00D100;
+    color: black;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
     box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+    transition: all 0.2s;
+  }
+  
+  .shamrock-button:hover {
+    background-color: #00FF41;
   }
   
   .floating-download {
-    @apply fixed right-5 bottom-5 bg-[#00D100] text-black px-4 py-3 rounded-full shadow-lg z-50 flex items-center gap-2 font-semibold hover:bg-[#00FF41] transition-all;
-    box-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    background-color: #00D100;
+    color: black;
+    padding: 0.75rem 1rem;
+    border-radius: 9999px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 20px rgba(0, 255, 65, 0.6);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  
+  .floating-download:hover {
+    background-color: #00FF41;
   }
   
   .portfolio-container {
-    @apply max-w-4xl mx-auto px-4 py-10;
+    max-width: 56rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 2.5rem 1rem;
   }
   
   @media (max-width: 600px) {
     .floating-download {
-      @apply block;
+      display: flex;
     }
   }
   
   @media (min-width: 601px) {
     .floating-download {
-      @apply hidden;
+      display: none;
     }
   }
 }

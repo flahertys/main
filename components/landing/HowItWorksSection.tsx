@@ -28,22 +28,18 @@ function StepCard({ step, Icon }: { step: HowItWorksStep; Icon: LucideIcon }) {
     <div className="relative">
       {/* Connector line (hidden on last item) */}
       {step.number < 3 && (
-        <div className="hidden lg:block absolute top-12 left-full w-full h-0.5 bg-gradient-to-r from-green-500 to-emerald-500 opacity-30"></div>
+        <div className="hidden lg:block absolute top-12 left-full w-full h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 opacity-30"></div>
       )}
 
       <div className="text-center">
         {/* Number badge */}
-        <div className="inline-flex items-center justify-center w-24 h-24 mb-6 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30">
+        <div className="inline-flex items-center justify-center w-24 h-24 mb-6 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30">
           <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gray-900">
-<<<<<<< HEAD
             <Icon className="w-8 h-8 text-[#00FF41]" />
-=======
-            <Icon className="w-8 h-8 text-[#00FF41]" />
->>>>>>> origin/copilot/create-music-hub-landing-page
           </div>
         </div>
 
-        <h3 className="text-2xl font-bold mb-3 text-green-100">{step.title}</h3>
+        <h3 className="text-2xl font-bold mb-3 text-white">{step.title}</h3>
         <p className="text-gray-400 max-w-sm mx-auto">{step.description}</p>
       </div>
     </div>
@@ -55,11 +51,7 @@ export function HowItWorksSection() {
     <section className="py-20 px-6 relative">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-<<<<<<< HEAD
           <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-[#00FF41] to-[#39FF14] text-transparent bg-clip-text">
-=======
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-[#00FF41] to-[#39FF14] text-transparent bg-clip-text">
->>>>>>> origin/copilot/create-music-hub-landing-page
             How It Works
           </h2>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">

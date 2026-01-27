@@ -187,7 +187,7 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
       camera.lookAt(player.position);
 
       // Rotate clovers
-      clovers.forEach((clover, index) => {
+      clovers.forEach((clover) => {
         if (clover.visible) {
           clover.rotation.z += 0.02;
 

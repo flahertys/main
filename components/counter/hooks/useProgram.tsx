@@ -38,10 +38,10 @@ export function useProgram(): UseProgramReturn {
     const provider = new anchor.AnchorProvider(connection, wallet, {
       preflightCommitment: "confirmed",
     });
-    program = new anchor.Program<Counter>(Idl as any, provider);
+    program = new anchor.Program<Counter>(Idl as anchor.Idl, provider);
   } else {
     // Create program with just connection for read-only operations
-    program = new anchor.Program<Counter>(Idl as any, { connection });
+    program = new anchor.Program<Counter>(Idl as anchor.Idl, { connection });
   }
 
   // Get the counter account address

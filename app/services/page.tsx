@@ -2,7 +2,7 @@ import { ShamrockHeader } from '@/components/shamrock/ShamrockHeader';
 import { ShamrockFooter } from '@/components/shamrock/ShamrockFooter';
 import { EmailCapture } from '@/components/EmailCapture';
 import { AdSenseBlock } from '@/components/monetization/AdSenseBlock';
-import { Code, LineChart, Users, Zap, CheckCircle2, ArrowRight, Wrench, Megaphone, Server, Share2, Smartphone, Database, ShoppingCart } from 'lucide-react';
+import { Code, LineChart, Users, Zap, CheckCircle2, ArrowRight, Wrench, Megaphone, Server, Smartphone, Database, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 

@@ -16,7 +16,7 @@ export default function GamePage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [energy, setEnergy] = useState(0);
   const [cloversCollected, setCloversCollected] = useState(0);
-  const [walletConnected, setWalletConnected] = useState(false);
+  const [walletConnected] = useState(false);
 
   const handlePlayClick = () => {
     trackEvent.gameStart();

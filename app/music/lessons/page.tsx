@@ -81,6 +81,7 @@ export default function LessonsPage() {
           
           <div className="grid md:grid-cols-3 gap-8 mb-12">
             <LessonCard
+              title="Start Your Journey"
               level="Beginner Package"
               price="$50"
               packagePrice="$180 for 4 lessons"
@@ -95,6 +96,7 @@ export default function LessonsPage() {
             />
             
             <LessonCard
+              title="Level Up Your Skills"
               level="Intermediate"
               price="$75"
               packagePrice="$270 for 4 lessons"
@@ -110,6 +112,7 @@ export default function LessonsPage() {
             />
             
             <LessonCard
+              title="Master the Craft"
               level="Advanced"
               price="$100"
               packagePrice="$360 for 4 lessons"
