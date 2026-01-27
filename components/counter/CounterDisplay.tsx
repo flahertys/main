@@ -32,7 +32,7 @@ export function CounterDisplay() {
     } finally {
       setIsFetchingCounter(false);
     }
-  }, [connection]);
+  }, [connection, program, counterAddress]);
 
   // Initial fetch and on connection change
   useEffect(() => {

@@ -14,6 +14,9 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
   
   useEffect(() => {
     if (!mountRef.current) return;
+    
+    // Capture the current ref value at the start of the effect
+    const currentMount = mountRef.current;
 
     // Scene setup
     const scene = new THREE.Scene();
@@ -23,7 +26,7 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
     // Camera setup
     const camera = new THREE.PerspectiveCamera(
       75,
-      mountRef.current.clientWidth / mountRef.current.clientHeight,
+      currentMount.clientWidth / currentMount.clientHeight,
       0.1,
       1000
     );
@@ -31,10 +34,10 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
 
     // Renderer setup
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+    renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    mountRef.current.appendChild(renderer.domElement);
+    currentMount.appendChild(renderer.domElement);
 
     // Lighting
     const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
@@ -231,10 +234,10 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
 
     // Handle resize
     const handleResize = () => {
-      if (!mountRef.current) return;
-      camera.aspect = mountRef.current.clientWidth / mountRef.current.clientHeight;
+      if (!currentMount) return;
+      camera.aspect = currentMount.clientWidth / currentMount.clientHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+      renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
     };
     window.addEventListener('resize', handleResize);
 
@@ -247,8 +250,8 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
-      if (mountRef.current) {
-        mountRef.current.removeChild(renderer.domElement);
+      if (currentMount) {
+        currentMount.removeChild(renderer.domElement);
       }
       renderer.dispose();
     };

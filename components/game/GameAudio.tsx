@@ -33,7 +33,7 @@ export function GameAudio({ audioUrl, autoPlay = false }: GameAudioProps) {
         audioRef.current = null;
       }
     };
-  }, [audioUrl, autoPlay]);
+  }, [audioUrl, autoPlay, volume]);
 
   useEffect(() => {
     if (audioRef.current) {
