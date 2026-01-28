@@ -29,3 +29,9 @@ jobs:
           working-directory: ./
         env:
           VERCEL_TOKEN: ltLFGpRVBvstHWuZgzABsPIE
+
+const nextConfig = {
+  output: 'export',
+  // ...other config
+};
+module.exports = nextConfig;
