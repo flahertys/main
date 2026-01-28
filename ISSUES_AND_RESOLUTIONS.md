@@ -24,13 +24,14 @@ During the comprehensive preparation of the TradeHax AI platform for Vercel depl
 ```typescript
 // Before (deprecated)
 images: {
-  domains: ['tradehaxai.tech'],
+  domains: ['tradehaxai.tech', 'tradehaxai.me'],
 }
 
 // After (modern API)
 images: {
   remotePatterns: [
     { protocol: 'https', hostname: 'tradehaxai.tech' },
+    { protocol: 'https', hostname: 'tradehaxai.me' },
   ],
 }
 ```
