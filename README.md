@@ -111,22 +111,98 @@ npm run lint
 
 ## 🌍 Deployment to Vercel
 
-### Method 1: Vercel CLI (Recommended)
+This project is configured for automatic deployment to https://tradehaxai.tech via Vercel and GitHub Actions.
+
+### Automatic Deployment (Recommended)
+
+**The project automatically deploys when you push to the `main` branch.**
+
+Every push to `main` triggers:
+1. GitHub Actions workflow runs
+2. Code is built and tested
+3. Deployed to Vercel production
+4. Available at https://tradehaxai.tech
+
+**Required Setup:**
+- GitHub Secrets must be configured (see [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md))
+- DNS must be configured for custom domain (see [VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md))
+
+**Note:** This project uses GitHub Actions for deployment control. If you also have Vercel's automatic Git deployments enabled, you may want to disable them in Vercel Dashboard → Settings → Git to avoid duplicate deployments.
+
+### 📚 Deployment Documentation
+
+Comprehensive guides are available for setting up and troubleshooting deployments:
+
+- **[DEPLOYMENT_QUICKSTART.md](./DEPLOYMENT_QUICKSTART.md)** - ⚡ Quick 5-step setup guide for immediate deployment
+  - Fast setup in 15 minutes
+  - Essential steps only
+  - Quick verification checklist
+
+- **[VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md)** - Complete guide for configuring the custom domain `tradehaxai.tech`
+  - Domain verification TXT record instructions
+  - DNS configuration (A and CNAME records)
+  - SSL certificate setup
+  - Step-by-step Vercel dashboard configuration
+
+- **[GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)** - Guide for configuring GitHub Secrets for automated deployments
+  - How to get VERCEL_TOKEN
+  - How to get VERCEL_ORG_ID and VERCEL_PROJECT_ID
+  - Testing the workflow
+  - Security best practices
+
+- **[VERCEL_DEPLOYMENT_TROUBLESHOOTING.md](./VERCEL_DEPLOYMENT_TROUBLESHOOTING.md)** - Comprehensive troubleshooting guide
+  - Common deployment issues and solutions
+  - Vercel dashboard health checks
+  - DNS and SSL certificate problems
+  - Emergency rollback procedures
+
+### Quick Setup Checklist
+
+To deploy this project to production:
+
+- [ ] **Configure GitHub Secrets** (see [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md))
+  - Add `VERCEL_TOKEN`
+  - Add `VERCEL_ORG_ID`
+  - Add `VERCEL_PROJECT_ID`
+
+- [ ] **Configure DNS** (see [VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md))
+  - Add domain verification TXT record: `_vercel` → `vc-domain-verify=tradehaxai.tech,9b1517380c738599577c`
+  - Add A record: `@` → `76.76.21.21`
+  - Add CNAME record: `www` → `cname.vercel-dns.com.`
+
+- [ ] **Add Domain in Vercel Dashboard**
+  - Add `tradehaxai.tech` in Settings → Domains
+  - Wait for DNS propagation (5-60 minutes)
+  - Verify SSL certificate is issued
+
+- [ ] **Configure Environment Variables** (in Vercel Dashboard)
+  - Set required production environment variables
+  - See `.env.example` for all available variables
+
+- [ ] **Push to Main Branch**
+  - Commits to `main` automatically trigger deployment
+  - Monitor deployment in GitHub Actions tab
+
+### Manual Deployment via Vercel CLI (Alternative)
+
+If you prefer manual deployment:
 
 1. **Install Vercel CLI**
-
 ```bash
 npm install -g vercel
 ```
 
 2. **Login to Vercel**
-
 ```bash
 vercel login
 ```
 
-3. **Deploy**
+3. **Link Project** (first time only)
+```bash
+vercel link
+```
 
+4. **Deploy**
 ```bash
 # Deploy to preview
 vercel
@@ -135,94 +211,15 @@ vercel
 vercel --prod
 ```
 
-### Method 2: GitHub Integration
+### Troubleshooting
 
-1. **Import Project**
-   - Go to [https://vercel.com/new](https://vercel.com/new)
-   - Click "Import Git Repository"
-   - Select your repository
+If your site is not live after deployment:
 
-2. **Configure Project**
-   - Framework Preset: Next.js
-   - Root Directory: `./`
-   - Build Command: `npm run build`
-   - Output Directory: `.next`
-
-3. **Set Environment Variables**
-   
-   In Vercel Dashboard → Project → Settings → Environment Variables, add:
-
-   ```
-   NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta
-   NEXT_PUBLIC_SOLANA_RPC=https://api.mainnet-beta.solana.com
-   NEXT_PUBLIC_SITE_URL=https://tradehaxai.tech
-   NEXT_PUBLIC_CLAIM_API_BASE=https://tradehaxai.tech/api/claim
-   NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX (optional)
-   NEXT_PUBLIC_HELIUS_API_KEY=your-helius-key (optional, recommended)
-   ```
-
-4. **Deploy**
-   - Click "Deploy"
-   - Wait for build to complete
-
-### Method 3: Automatic Deployment
-
-The project is configured for automatic deployment:
-- Every push to `main` branch triggers a production deployment
-- Pull requests trigger preview deployments
-
-## 🌐 Domain Setup with Namecheap
-
-### Setting up tradehaxai.tech and tradehaxai.me
-
-#### Step 1: Add Domain in Vercel
-
-1. Go to Vercel Dashboard → Your Project → Settings → Domains
-2. Add your domain: `tradehaxai.tech`
-3. Add www subdomain: `www.tradehaxai.tech`
-4. Repeat for `tradehaxai.me` if using multiple domains
-
-#### Step 2: Configure DNS in Namecheap
-
-1. **Login to Namecheap**
-   - Go to [https://namecheap.com](https://namecheap.com)
-   - Navigate to Domain List → Manage your domain
-
-2. **Go to Advanced DNS**
-   - Click "Advanced DNS" tab
-
-3. **Add DNS Records**
-
-   For apex domain (tradehaxai.tech):
-   ```
-   Type: A Record
-   Host: @
-   Value: 76.76.21.21
-   TTL: Automatic
-   ```
-
-   For www subdomain:
-   ```
-   Type: CNAME Record
-   Host: www
-   Value: cname.vercel-dns.com
-   TTL: Automatic
-   ```
-
-4. **Save Changes**
-   - Click "Save All Changes"
-   - Wait for DNS propagation (5-60 minutes)
-
-#### Step 3: Verify Domain
-
-1. Go back to Vercel Dashboard → Domains
-2. Wait for verification (green checkmark)
-3. SSL certificate will be issued automatically
-
-**Troubleshooting DNS:**
-- Check propagation: [https://dnschecker.org](https://dnschecker.org)
-- Ensure old DNS records are removed
-- Allow up to 48 hours for full propagation
+1. **Check GitHub Actions** - Go to Actions tab and verify workflow succeeded
+2. **Check Vercel Dashboard** - Verify deployment shows "Ready" status
+3. **Check DNS Propagation** - Use https://dnschecker.org to verify DNS records
+4. **Review Logs** - Check GitHub Actions logs and Vercel deployment logs
+5. **Consult Guide** - See [VERCEL_DEPLOYMENT_TROUBLESHOOTING.md](./VERCEL_DEPLOYMENT_TROUBLESHOOTING.md) for detailed solutions
 
 ## 🔧 Environment Variables
 
