@@ -6,6 +6,11 @@
   "framework": "nextjs",
   "outputDirectory": ".next",
   "regions": ["iad1"],
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
   "redirects": [
     {
       "source": "/index.html",

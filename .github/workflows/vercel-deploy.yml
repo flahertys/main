@@ -1,19 +1,56 @@
-name: Deploy to Vercel via Hook
+name: Deploy to Vercel
 
 permissions:
   contents: read
+  pull-requests: write
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+      url: ${{ steps.deploy.outputs.url }}
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Trigger Vercel Deploy Hook
+      
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+      
+      - name: Build Project Artifacts
+        run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+      
+      - name: Deploy to Vercel
+        id: deploy
         run: |
-          curl -X POST https://api.vercel.com/v1/integrations/deploy/prj_M4wmI2Gjz7ctBZjtsyPuDUqbCyfj/owTDtwC0Ns
+          DEPLOY_URL=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOY_URL"
+      
+      - name: Comment PR with Preview URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 Preview deployment ready!\n\n**URL**: ${{ steps.deploy.outputs.url }}\n\nDeployed from commit: ${context.sha.substring(0, 7)}`
+            })
