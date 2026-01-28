@@ -9,7 +9,6 @@ A sophisticated automated Web3 trading platform built with Next.js, React, and p
 ## 🌐 Live Deployments
 
 - **Primary Domain**: [https://tradehaxai.tech](https://tradehaxai.tech)
-- **Secondary Domain**: [https://tradehaxai.me](https://tradehaxai.me)
 
 ## ✨ Features
 

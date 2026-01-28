@@ -184,9 +184,7 @@ X-RateLimit-Reset: 1609459200
 
 CORS is configured in `vercel.json` to allow requests from:
 - `https://tradehaxai.tech`
-- `https://tradehaxai.me`
 - `https://www.tradehaxai.tech`
-- `https://www.tradehaxai.me`
 
 Development mode allows `localhost` origins.
 

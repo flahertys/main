@@ -11,10 +11,6 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'tradehaxai.tech',
       },
-      {
-        protocol: 'https',
-        hostname: 'tradehaxai.me',
-      },
     ],
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,

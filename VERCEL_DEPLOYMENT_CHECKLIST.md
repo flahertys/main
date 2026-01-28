@@ -1,6 +1,6 @@
 # 🚀 Vercel Deployment Checklist
 
-This checklist ensures the TradeHax AI platform is production-ready for deployment on Vercel with custom domains tradehaxai.tech and tradehaxai.me.
+This checklist ensures the TradeHax AI platform is production-ready for deployment on Vercel with custom domain tradehaxai.tech.
 
 ## Pre-Deployment Checklist
 
@@ -174,16 +174,6 @@ TTL: Automatic
 2. Wait for green checkmark (✅ Valid Configuration)
 3. SSL certificate will be issued automatically
 4. Test: Visit https://tradehaxai.tech
-
-### For tradehaxai.me (Optional Second Domain)
-
-Repeat the above steps for `tradehaxai.me`:
-- Add domain in Vercel
-- Configure DNS in Namecheap
-- Use same A and CNAME records
-- Verify domain in Vercel
-
-**Note**: Both domains can point to the same Vercel deployment.
 
 ## Post-Deployment Verification
 

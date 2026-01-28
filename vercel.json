@@ -44,7 +44,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://va.vercel-scripts.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://api.mainnet-beta.solana.com https://*.solana.com wss://*.solana.com https://www.google-analytics.com https://analytics.google.com https://*.helius-rpc.com https://tradehaxai.tech https://tradehaxai.me; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://va.vercel-scripts.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://api.mainnet-beta.solana.com https://*.solana.com wss://*.solana.com https://www.google-analytics.com https://analytics.google.com https://*.helius-rpc.com https://tradehaxai.tech; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
         }
       ]
     },

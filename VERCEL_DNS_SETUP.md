@@ -173,14 +173,6 @@ Visit these URLs:
 - Ensure environment variables are set
 - Test build locally: `npm run build`
 
-## Alternative Domain: tradehaxai.me
-
-If you also own `tradehaxai.me`, you can set it up as a redirect:
-
-1. Add tradehaxai.me as domain in Vercel
-2. Configure DNS records same as above
-3. Vercel will automatically redirect to .tech domain
-
 ## Security Best Practices
 
 1. **Never commit sensitive data**

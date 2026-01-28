@@ -124,7 +124,6 @@ TTL: Automatic
 3. Enter: `tradehaxai.tech`
 4. Click "Add"
 5. Repeat for: `www.tradehaxai.tech`
-6. (Optional) Repeat for: `tradehaxai.me`
 
 ---
 
