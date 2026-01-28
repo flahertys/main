@@ -127,9 +127,16 @@ Every push to `main` triggers:
 - GitHub Secrets must be configured (see [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md))
 - DNS must be configured for custom domain (see [VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md))
 
+**Note:** This project uses GitHub Actions for deployment control. If you also have Vercel's automatic Git deployments enabled, you may want to disable them in Vercel Dashboard → Settings → Git to avoid duplicate deployments.
+
 ### 📚 Deployment Documentation
 
 Comprehensive guides are available for setting up and troubleshooting deployments:
+
+- **[DEPLOYMENT_QUICKSTART.md](./DEPLOYMENT_QUICKSTART.md)** - ⚡ Quick 5-step setup guide for immediate deployment
+  - Fast setup in 15 minutes
+  - Essential steps only
+  - Quick verification checklist
 
 - **[VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md)** - Complete guide for configuring the custom domain `tradehaxai.tech`
   - Domain verification TXT record instructions

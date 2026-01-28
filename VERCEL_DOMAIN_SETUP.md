@@ -66,7 +66,7 @@ TTL: 3600
 ## Step 3: Add Domain in Vercel Dashboard
 
 1. Log into [Vercel Dashboard](https://vercel.com/dashboard)
-2. Navigate to your project (DarkModder33/main)
+2. Navigate to your project (it will be named after your GitHub repository)
 3. Go to **Settings** → **Domains**
 4. Click **Add Domain**
 5. Enter: `tradehaxai.tech`
