@@ -1,15 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Static export for GitHub Pages and Vercel
-  output: 'export',
-  
   // Production optimizations
   reactStrictMode: true,
   
   // Disable image optimization for static export
   images: {
-    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -38,9 +34,6 @@ const nextConfig: NextConfig = {
   
   // Compression
   compress: true,
-  
-  // Trailing slash for static export compatibility
-  trailingSlash: true,
   
   // Production headers (additional to vercel.json)
   async headers() {

@@ -9,7 +9,7 @@ import {
   useWallet,
 } from "@solana/wallet-adapter-react";
 
-import { Counter } from "../../../anchor-idl/idl";
+import type { Counter } from "../../../anchor-idl/idl";
 import Idl from "../../../anchor-idl/idl.json";
 import { useEffect } from "react";
 
