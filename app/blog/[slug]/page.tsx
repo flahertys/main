@@ -32,6 +32,7 @@ const samplePost = {
 // Generate static params for static export
 export async function generateStaticParams() {
   // Return array of slugs to generate at build time
+  // TODO: In production, fetch slugs from CMS/database
   return [
     { slug: 'getting-started-with-solana' },
     { slug: 'advanced-trading-strategies' },
@@ -47,7 +48,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function BlogPostPage({ params }: BlogPostProps) {
-  // In production, use slug to fetch specific post
+  // In production, use slug to fetch specific post from CMS/database
+  // Currently using sample post as placeholder
   await params;
   const post = samplePost;
 
