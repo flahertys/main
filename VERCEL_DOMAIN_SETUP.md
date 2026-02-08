@@ -3,6 +3,8 @@
 ## Overview
 This document provides step-by-step instructions for configuring the custom domain `tradehaxai.tech` to work with your Vercel deployment. These steps must be completed manually through your domain registrar's DNS settings and Vercel dashboard.
 
+> **📋 Need DNS Inspection?** If you need to verify your current DNS configuration or troubleshoot issues, see [DNS_INSPECTION_REPORT.md](./DNS_INSPECTION_REPORT.md) for a detailed analysis of your DNS records.
+
 ## Prerequisites
 - ✅ Domain registered: tradehaxai.tech (via domain registrar like Namecheap, GoDaddy, etc.)
 - ✅ Vercel account with project deployed
@@ -25,6 +27,19 @@ Name: _vercel
 Value: vc-domain-verify=tradehaxai.tech,9b1517380c738599577c
 TTL: 3600 (or Auto)
 ```
+
+**⚠️ CRITICAL WARNING - COMMON MISTAKE**:
+- ❌ **WRONG**: Do NOT use `cname.vercel-dns.com.` as the value for the `_vercel` TXT record
+- ✅ **CORRECT**: Use the verification string format: `vc-domain-verify=tradehaxai.tech,XXXXXXXXXXXXX`
+- The `_vercel` record must be a **TXT record** with a **verification string**, NOT a CNAME domain
+- The verification string starts with `vc-domain-verify=` followed by your domain and a unique code
+
+**How to Get Your Verification String**:
+1. Go to Vercel Dashboard → Your Project → Settings → Domains
+2. Click "Add Domain" and enter `tradehaxai.tech`
+3. Vercel will display the exact TXT record value you need
+4. Copy the entire value (e.g., `vc-domain-verify=tradehaxai.tech,9b1517380c738599577c`)
+5. Add this as the value for your `_vercel` TXT record in your DNS settings
 
 **Note**: This verification record is specific to your Vercel account and domain. It must be added for Vercel to allow the custom domain to be configured.
 

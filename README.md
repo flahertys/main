@@ -5,6 +5,9 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 > **🚨 DEPLOYMENT ISSUES?**
+> - **DNS Configuration**: [DNS_QUICK_FIX.md](./DNS_QUICK_FIX.md) - Fix critical DNS issues (5 minutes) **⚡ START HERE**
+> - **Domain Setup**: [VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md) - Complete domain configuration guide
+> - **DNS Inspection**: [DNS_INSPECTION_REPORT.md](./DNS_INSPECTION_REPORT.md) - Detailed DNS analysis and troubleshooting
 > - **routes-manifest.json not found**: [VERCEL_STATIC_EXPORT_FIX.md](./VERCEL_STATIC_EXPORT_FIX.md) - Explains dual deployment strategy
 > - **"Could not read package.json"**: [VERCEL_BRANCH_FIX.md](./VERCEL_BRANCH_FIX.md) - Fix branch configuration (2 minutes)
 > - **Step-by-step guide**: [DEPLOYMENT_FIX_CHECKLIST.md](./DEPLOYMENT_FIX_CHECKLIST.md) - Complete checklist (10 minutes)
