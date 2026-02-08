@@ -4,9 +4,10 @@
 [![Next.js](https://img.shields.io/badge/Next.js-15.4-black)](https://nextjs.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **🚨 DEPLOYMENT ISSUE?** If your Vercel deployment is failing with "Could not read package.json":
-> 1. **Quick Fix**: [VERCEL_BRANCH_FIX.md](./VERCEL_BRANCH_FIX.md) (2 minutes)
-> 2. **Step-by-step**: [DEPLOYMENT_FIX_CHECKLIST.md](./DEPLOYMENT_FIX_CHECKLIST.md) (10 minutes)
+> **🚨 DEPLOYMENT ISSUES?**
+> - **routes-manifest.json not found**: [VERCEL_STATIC_EXPORT_FIX.md](./VERCEL_STATIC_EXPORT_FIX.md) - Explains dual deployment strategy
+> - **"Could not read package.json"**: [VERCEL_BRANCH_FIX.md](./VERCEL_BRANCH_FIX.md) - Fix branch configuration (2 minutes)
+> - **Step-by-step guide**: [DEPLOYMENT_FIX_CHECKLIST.md](./DEPLOYMENT_FIX_CHECKLIST.md) - Complete checklist (10 minutes)
 
 A sophisticated automated Web3 trading platform built with Next.js, React, and powered by Solana blockchain technology. Trade smarter with AI-driven insights and decentralized technology.
 
@@ -140,6 +141,11 @@ Comprehensive guides are available for setting up and troubleshooting deployment
   - Fast setup in 15 minutes
   - Essential steps only
   - Quick verification checklist
+
+- **[VERCEL_STATIC_EXPORT_FIX.md](./VERCEL_STATIC_EXPORT_FIX.md)** - 🔧 Fix for "routes-manifest.json not found" error
+  - Explains conditional static export strategy
+  - Dual deployment (GitHub Pages + Vercel)
+  - Verification steps and troubleshooting
 
 - **[VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md)** - Complete guide for configuring the custom domain `tradehaxai.tech`
   - Domain verification TXT record instructions
