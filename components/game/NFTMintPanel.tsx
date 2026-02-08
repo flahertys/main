@@ -82,6 +82,7 @@ export function NFTMintPanel({ walletConnected, onMintNFT }: NFTMintPanelProps) 
       console.error('Minting failed:', err);
       
       // Categorize error for better user feedback
+      // Note: In production, use error codes or custom error classes for more reliable detection
       let errorType: MintError['type'] = 'unknown';
       let errorMessage = 'Failed to mint NFT. Please try again.';
 

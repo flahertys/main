@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ShamrockHeader } from '@/components/shamrock/ShamrockHeader';
 import { ShamrockFooter } from '@/components/shamrock/ShamrockFooter';
 import { AdSenseBlock } from '@/components/monetization/AdSenseBlock';
@@ -19,12 +19,15 @@ export default function GamePage() {
   const [energy, setEnergy] = useState(0);
   const [cloversCollected, setCloversCollected] = useState(0);
   const [walletConnected] = useState(false);
-  const [hasPlayedBefore, setHasPlayedBefore] = useState(() => {
+  const [hasPlayedBefore, setHasPlayedBefore] = useState(false);
+
+  // Check localStorage after mount to avoid SSR/hydration issues
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('hyperborea_played') === 'true';
+      const played = localStorage.getItem('hyperborea_played') === 'true';
+      setHasPlayedBefore(played);
     }
-    return false;
-  });
+  }, []);
 
   const handlePlayClick = () => {
     trackEvent.gameStart();

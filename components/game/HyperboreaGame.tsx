@@ -26,10 +26,19 @@ export function HyperboreaGame({
     setShowTouchControls(isTouchDevice);
   }, []);
 
+  // Create audio context once and reuse it
+  const audioContextRef = useRef<AudioContext | null>(null);
+
   const playCollectSound = useCallback(() => {
     // Play a simple beep sound using Web Audio API
     if (typeof window === 'undefined') return;
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // Create audio context only once
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    
+    const audioContext = audioContextRef.current;
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
