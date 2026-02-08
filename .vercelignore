@@ -50,7 +50,7 @@ temp
 
 # Anchor/Solana program artifacts
 target
-anchor-idl
+# anchor-idl is needed for the frontend to import IDL types
 program/.anchor
 program/target
 
