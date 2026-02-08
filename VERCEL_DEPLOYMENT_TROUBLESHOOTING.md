@@ -299,9 +299,10 @@ nslookup -type=TXT _vercel.tradehaxai.tech
 
 **Wrong Build Output Directory**
 **Solution**:
-1. Verify `vercel.json` has: `"outputDirectory": ".next"`
+1. Verify `vercel.json` does NOT have `"outputDirectory"` set (let Vercel use default `.next`)
 2. Ensure Next.js is building correctly: `npm run build`
 3. Check `.next` directory exists after build
+4. Note: This repo uses conditional static export - GitHub Pages uses `out/`, Vercel uses `.next/`
 
 **Framework Not Detected**
 **Solution**:
@@ -401,7 +402,7 @@ Safari: Cmd+Option+R
 - [x] **Project Name**: Matches your repository
 - [x] **Framework Preset**: Next.js
 - [x] **Build Command**: `npm run build`
-- [x] **Output Directory**: `.next`
+- [x] **Output Directory**: Leave blank or set to `.next` (Vercel auto-detects)
 - [x] **Install Command**: `npm install`
 - [x] **Root Directory**: `./` (or leave blank)
 
