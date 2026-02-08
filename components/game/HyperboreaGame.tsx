@@ -369,6 +369,16 @@ export function HyperboreaGame({
     const accelerationRate = 0.008;
     const friction = 0.85;
     const keys: Record<string, boolean> = {};
+    
+    // Game constants
+    const CLOVER_VALUE = 20;
+    const OBSTACLE_DAMAGE = 5;
+    const POWERUP_DURATION = 300; // 5 seconds at 60fps
+    const CLOVER_RESPAWN_DELAY = 1000; // ms
+    const POWERUP_RESPAWN_DELAY = 10000; // ms
+    
+    // Timeout tracking for cleanup
+    const timeouts: NodeJS.Timeout[] = [];
 
     // Touch controls state
     let touchStartX = 0;
@@ -576,9 +586,9 @@ export function HyperboreaGame({
             comboTimer = comboDecayRate;
             const comboMultiplier = 1 + (combo - 1) * 0.5;
             const doubleMultiplier = doublePointsTimer > 0 ? 2 : 1;
-            const pointsEarned = Math.floor(20 * comboMultiplier * doubleMultiplier);
+            const pointsEarned = Math.floor(CLOVER_VALUE * comboMultiplier * doubleMultiplier);
             
-            energy += 20;
+            energy += CLOVER_VALUE;
             score += pointsEarned;
             
             // Create particle effect
@@ -599,9 +609,10 @@ export function HyperboreaGame({
               2 + Math.random() * 2,
               Math.sin(angle) * radius
             );
-            setTimeout(() => {
+            const timeout = setTimeout(() => {
               clover.visible = true;
-            }, 1000);
+            }, CLOVER_RESPAWN_DELAY);
+            timeouts.push(timeout);
           }
         }
       });
@@ -622,18 +633,18 @@ export function HyperboreaGame({
             
             // Activate power-up
             if (powerUp.type === 'speed') {
-              speedBoostTimer = 300; // 5 seconds at 60fps
+              speedBoostTimer = POWERUP_DURATION;
             } else if (powerUp.type === 'magnet') {
-              magnetTimer = 300;
+              magnetTimer = POWERUP_DURATION;
             } else if (powerUp.type === 'double') {
-              doublePointsTimer = 300;
+              doublePointsTimer = POWERUP_DURATION;
             }
             
             createParticles(powerUp.mesh.position, (powerUp.mesh.material as THREE.MeshStandardMaterial).color.getHex());
             playSound('powerup');
             
-            // Respawn power-up after 10 seconds
-            setTimeout(() => {
+            // Respawn power-up after delay
+            const timeout = setTimeout(() => {
               const angle = Math.random() * Math.PI * 2;
               const radius = 7 + Math.random() * 3;
               powerUp.mesh.position.set(
@@ -642,7 +653,8 @@ export function HyperboreaGame({
                 Math.sin(angle) * radius
               );
               powerUp.mesh.visible = true;
-            }, 10000);
+            }, POWERUP_RESPAWN_DELAY);
+            timeouts.push(timeout);
           }
         }
       });
@@ -666,7 +678,7 @@ export function HyperboreaGame({
           lastHitTime = currentTime;
           
           // Damage player (drain energy)
-          energy = Math.max(0, energy - 5);
+          energy = Math.max(0, energy - OBSTACLE_DAMAGE);
           combo = 0; // Reset combo on hit
           onEnergyChange?.(energy);
           onScoreChange?.(score, combo);
@@ -729,6 +741,10 @@ export function HyperboreaGame({
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
+      
+      // Clear all pending timeouts
+      timeouts.forEach(timeout => clearTimeout(timeout));
+      
       if (currentMount) {
         currentMount.removeChild(renderer.domElement);
       }
