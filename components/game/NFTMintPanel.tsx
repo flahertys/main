@@ -1,11 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, Loader2 } from 'lucide-react';
+import { Star, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface NFTMintPanelProps {
   walletConnected: boolean;
   onMintNFT?: (skinId: number) => Promise<void>;
+}
+
+interface MintError {
+  message: string;
+  type: 'network' | 'wallet' | 'transaction' | 'unknown';
 }
 
 const NFT_SKINS = [
@@ -55,19 +60,51 @@ export function NFTMintPanel({ walletConnected, onMintNFT }: NFTMintPanelProps) 
   const [selectedSkin, setSelectedSkin] = useState<number | null>(null);
   const [minting, setMinting] = useState(false);
   const [mintedSkins, setMintedSkins] = useState<Set<number>>(new Set());
+  const [error, setError] = useState<MintError | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleMint = async (skinId: number) => {
     if (!walletConnected || minting) return;
 
     setMinting(true);
+    setError(null);
+    setSuccessMessage(null);
+
     try {
       await onMintNFT?.(skinId);
       setMintedSkins(prev => new Set(prev).add(skinId));
       setSelectedSkin(null);
-    } catch (error) {
-      console.error('Minting failed:', error);
+      setSuccessMessage('NFT minted successfully! 🎉');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      console.error('Minting failed:', err);
+      
+      // Categorize error for better user feedback
+      let errorType: MintError['type'] = 'unknown';
+      let errorMessage = 'Failed to mint NFT. Please try again.';
+
+      if (err.message?.includes('network') || err.message?.includes('timeout')) {
+        errorType = 'network';
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (err.message?.includes('wallet') || err.message?.includes('signature')) {
+        errorType = 'wallet';
+        errorMessage = 'Wallet error. Please reconnect your wallet and try again.';
+      } else if (err.message?.includes('insufficient') || err.message?.includes('balance')) {
+        errorType = 'transaction';
+        errorMessage = 'Insufficient balance. Please add funds to your wallet.';
+      }
+
+      setError({ message: errorMessage, type: errorType });
     } finally {
       setMinting(false);
+    }
+  };
+
+  const retryMint = () => {
+    if (selectedSkin) {
+      handleMint(selectedSkin);
     }
   };
 
@@ -141,9 +178,43 @@ export function NFTMintPanel({ walletConnected, onMintNFT }: NFTMintPanelProps) 
 
       {/* Mint Button */}
       <div className="p-4 border-t border-purple-500/30 bg-gray-900/50">
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-3 p-3 bg-green-500/20 border border-green-500/50 rounded-lg flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <span className="text-green-300 text-sm">{successMessage}</span>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-3 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+            <div className="flex items-start gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-red-300 text-sm font-semibold">Minting Failed</p>
+                <p className="text-red-200 text-xs mt-1">{error.message}</p>
+              </div>
+            </div>
+            <button
+              onClick={retryMint}
+              className="w-full mt-2 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded font-semibold transition-all"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {!walletConnected ? (
-          <div className="text-center text-sm text-gray-400">
-            Connect wallet to mint NFTs
+          <div className="text-center">
+            <div className="text-sm text-gray-400 mb-2">
+              Connect wallet to mint NFTs
+            </div>
+            <button
+              className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-all text-sm"
+            >
+              Connect Wallet
+            </button>
           </div>
         ) : selectedSkin === null ? (
           <div className="text-center text-sm text-gray-400">

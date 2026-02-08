@@ -1,17 +1,50 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 
 interface HyperboreaGameProps {
   onEnergyChange?: (energy: number) => void;
   onCloverCollect?: (count: number) => void;
+  onGameStateChange?: (state: 'tutorial' | 'playing' | 'paused') => void;
+  onShowTutorial?: () => void;
 }
 
-export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGameProps) {
+export function HyperboreaGame({ 
+  onEnergyChange, 
+  onCloverCollect,
+  onGameStateChange,
+  onShowTutorial
+}: HyperboreaGameProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showTouchControls, setShowTouchControls] = useState(false);
   
+  // Detect if device supports touch
+  useEffect(() => {
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    setShowTouchControls(isTouchDevice);
+  }, []);
+
+  const playCollectSound = useCallback(() => {
+    // Play a simple beep sound using Web Audio API
+    if (typeof window === 'undefined') return;
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
+  }, []);
+
   useEffect(() => {
     if (!mountRef.current) return;
     
@@ -97,7 +130,7 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
     const maze = createEscherMaze();
     scene.add(maze);
 
-    // Create player (wireframe sphere)
+    // Create player (wireframe sphere with glow effect)
     const playerGeometry = new THREE.SphereGeometry(0.5, 16, 16);
     const playerMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ffff,
@@ -106,6 +139,16 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
     const player = new THREE.Mesh(playerGeometry, playerMaterial);
     player.position.set(0, 1, 5);
     scene.add(player);
+
+    // Add player glow effect
+    const glowGeometry = new THREE.SphereGeometry(0.6, 16, 16);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.3,
+    });
+    const playerGlow = new THREE.Mesh(glowGeometry, glowMaterial);
+    player.add(playerGlow);
 
     // Create clovers (magenta tori)
     const clovers: THREE.Mesh[] = [];
@@ -143,12 +186,56 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
     portal.position.set(0, 4, 0);
     scene.add(portal);
 
+    // Particle system for collection effects
+    const particles: Array<{
+      mesh: THREE.Mesh;
+      velocity: THREE.Vector3;
+      life: number;
+    }> = [];
+
+    const createParticles = (position: THREE.Vector3, color: number) => {
+      const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+      const particleMaterial = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 1,
+      });
+
+      for (let i = 0; i < 10; i++) {
+        const particle = new THREE.Mesh(particleGeometry, particleMaterial.clone());
+        particle.position.copy(position);
+        
+        const velocity = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.2,
+          Math.random() * 0.3 + 0.1,
+          (Math.random() - 0.5) * 0.2
+        );
+
+        particles.push({
+          mesh: particle,
+          velocity,
+          life: 1.0,
+        });
+
+        scene.add(particle);
+      }
+    };
+
     // Game state
     let energy = 0;
     let cloversCollected = 0;
     const velocity = new THREE.Vector3();
-    const moveSpeed = 0.1;
+    const acceleration = new THREE.Vector3();
+    const moveSpeed = 0.15;
+    const accelerationRate = 0.008;
+    const friction = 0.85;
     const keys: Record<string, boolean> = {};
+
+    // Touch controls state
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchDeltaX = 0;
+    let touchDeltaY = 0;
 
     // Input handling
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -159,8 +246,33 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
       keys[e.key.toLowerCase()] = false;
     };
 
+    // Touch controls
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        touchDeltaX = (currentX - touchStartX) / 100;
+        touchDeltaY = (currentY - touchStartY) / 100;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      touchDeltaX = 0;
+      touchDeltaY = 0;
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd);
 
     // Mouse control for camera
     let mouseX = 0;
@@ -175,24 +287,67 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
     const animate = () => {
       requestAnimationFrame(animate);
 
-      // Player movement (WASD)
-      velocity.set(0, 0, 0);
-      if (keys['w']) velocity.z -= moveSpeed;
-      if (keys['s']) velocity.z += moveSpeed;
-      if (keys['a']) velocity.x -= moveSpeed;
-      if (keys['d']) velocity.x += moveSpeed;
+      // Player movement with acceleration (WASD + Touch)
+      acceleration.set(0, 0, 0);
+      
+      // Keyboard controls
+      if (keys['w'] || keys['arrowup']) acceleration.z -= accelerationRate;
+      if (keys['s'] || keys['arrowdown']) acceleration.z += accelerationRate;
+      if (keys['a'] || keys['arrowleft']) acceleration.x -= accelerationRate;
+      if (keys['d'] || keys['arrowright']) acceleration.x += accelerationRate;
+
+      // Touch controls
+      if (touchDeltaX !== 0 || touchDeltaY !== 0) {
+        acceleration.x += touchDeltaX * accelerationRate * 2;
+        acceleration.z += touchDeltaY * accelerationRate * 2;
+      }
+
+      // Apply acceleration and friction
+      velocity.add(acceleration);
+      velocity.multiplyScalar(friction);
+
+      // Limit max speed
+      if (velocity.length() > moveSpeed) {
+        velocity.normalize().multiplyScalar(moveSpeed);
+      }
 
       player.position.add(velocity);
+
+      // Update player glow based on movement
+      if (playerGlow) {
+        const speed = velocity.length();
+        playerGlow.material.opacity = 0.3 + speed * 2;
+        playerGlow.scale.set(1 + speed * 2, 1 + speed * 2, 1 + speed * 2);
+      }
 
       // Camera follows player with mouse offset
       camera.position.x = player.position.x + mouseX * 5;
       camera.position.z = player.position.z + 10 + mouseY * 3;
       camera.lookAt(player.position);
 
+      // Update particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const particle = particles[i];
+        particle.mesh.position.add(particle.velocity);
+        particle.velocity.y -= 0.01; // gravity
+        particle.life -= 0.02;
+
+        const material = particle.mesh.material as THREE.MeshBasicMaterial;
+        material.opacity = particle.life;
+
+        if (particle.life <= 0) {
+          scene.remove(particle.mesh);
+          particles.splice(i, 1);
+        }
+      }
+
       // Rotate clovers
       clovers.forEach((clover) => {
         if (clover.visible) {
           clover.rotation.z += 0.02;
+          
+          // Floating animation
+          clover.position.y += Math.sin(Date.now() * 0.003 + clover.position.x) * 0.005;
 
           // Collision detection
           const distance = player.position.distanceTo(clover.position);
@@ -200,6 +355,13 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
             clover.visible = false;
             cloversCollected++;
             energy += 20;
+            
+            // Create particle effect
+            createParticles(clover.position, 0xff00ff);
+            
+            // Play sound
+            playCollectSound();
+            
             onEnergyChange?.(energy);
             onCloverCollect?.(cloversCollected);
 
@@ -250,12 +412,15 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
       if (currentMount) {
         currentMount.removeChild(renderer.domElement);
       }
       renderer.dispose();
     };
-  }, [onEnergyChange, onCloverCollect]);
+  }, [onEnergyChange, onCloverCollect, playCollectSound]);
 
   return (
     <div className="relative w-full h-full">
@@ -265,6 +430,19 @@ export function HyperboreaGame({ onEnergyChange, onCloverCollect }: HyperboreaGa
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-500 mx-auto mb-4"></div>
             <p className="text-gray-400">Loading Hyperborea...</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Touch Controls Overlay for Mobile */}
+      {showTouchControls && isLoaded && (
+        <div className="absolute bottom-20 left-0 right-0 pointer-events-none">
+          <div className="max-w-md mx-auto px-4">
+            <div className="bg-black/40 backdrop-blur-sm border border-purple-500/30 rounded-lg p-3 text-center">
+              <p className="text-white text-sm">
+                👆 <span className="font-bold">Tap and drag</span> anywhere to move
+              </p>
+            </div>
           </div>
         </div>
       )}
