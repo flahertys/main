@@ -6,6 +6,8 @@ import * as THREE from 'three';
 interface HyperboreaGameProps {
   onEnergyChange?: (energy: number) => void;
   onCloverCollect?: (count: number) => void;
+  onScoreChange?: (score: number, combo: number) => void;
+  onPowerUpChange?: (powerUps: Array<{ type: string; timeLeft: number }>) => void;
   onGameStateChange?: (state: 'tutorial' | 'playing' | 'paused') => void;
   onShowTutorial?: () => void;
 }
@@ -13,6 +15,8 @@ interface HyperboreaGameProps {
 export function HyperboreaGame({ 
   onEnergyChange, 
   onCloverCollect,
+  onScoreChange,
+  onPowerUpChange,
   onGameStateChange,
   onShowTutorial
 }: HyperboreaGameProps) {
@@ -122,16 +126,41 @@ export function HyperboreaGame({
         mazeGroup.add(stair);
       });
 
-      // Add platforms
-      const platformGeometry = new THREE.BoxGeometry(8, 0.2, 8);
+      // Add more platforms at different heights
+      const platformGeometry1 = new THREE.BoxGeometry(8, 0.2, 8);
+      const platformGeometry2 = new THREE.BoxGeometry(6, 0.2, 6);
       const platformMaterial = new THREE.MeshStandardMaterial({
         color: 0x1a1a2a,
         roughness: 0.8,
       });
-      const platform = new THREE.Mesh(platformGeometry, platformMaterial);
-      platform.position.y = -0.5;
-      platform.receiveShadow = true;
-      mazeGroup.add(platform);
+      
+      const platforms = [
+        { x: 0, y: -0.5, z: 0, geometry: platformGeometry1 },
+        { x: -8, y: 0.5, z: -8, geometry: platformGeometry2 },
+        { x: 8, y: 1, z: 8, geometry: platformGeometry2 },
+        { x: -8, y: 1.5, z: 8, geometry: platformGeometry2 },
+      ];
+      
+      platforms.forEach((platformData) => {
+        const platform = new THREE.Mesh(platformData.geometry, platformMaterial);
+        platform.position.set(platformData.x, platformData.y, platformData.z);
+        platform.receiveShadow = true;
+        mazeGroup.add(platform);
+      });
+
+      // Add pillars
+      const pillarGeometry = new THREE.CylinderGeometry(0.3, 0.4, 3, 8);
+      const pillarPositions = [
+        { x: -6, z: -6 }, { x: 6, z: -6 },
+        { x: -6, z: 6 }, { x: 6, z: 6 },
+      ];
+      
+      pillarPositions.forEach((pos) => {
+        const pillar = new THREE.Mesh(pillarGeometry, stairMaterial);
+        pillar.position.set(pos.x, 1.5, pos.z);
+        pillar.castShadow = true;
+        mazeGroup.add(pillar);
+      });
 
       return mazeGroup;
     };
@@ -159,6 +188,18 @@ export function HyperboreaGame({
     const playerGlow = new THREE.Mesh(glowGeometry, glowMaterial);
     player.add(playerGlow);
 
+    // Player trail effect
+    const trailPositions: THREE.Vector3[] = [];
+    const maxTrailLength = 20;
+    const trailGeometry = new THREE.BufferGeometry();
+    const trailMaterial = new THREE.LineBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.5,
+    });
+    const trail = new THREE.Line(trailGeometry, trailMaterial);
+    scene.add(trail);
+
     // Create clovers (magenta tori)
     const clovers: THREE.Mesh[] = [];
     const cloverGeometry = new THREE.TorusGeometry(0.4, 0.15, 16, 32);
@@ -180,6 +221,67 @@ export function HyperboreaGame({
       clover.rotation.x = Math.PI / 2;
       clovers.push(clover);
       scene.add(clover);
+    }
+
+    // Create power-ups
+    const powerUps: Array<{ mesh: THREE.Mesh; type: 'speed' | 'magnet' | 'double' }> = [];
+    const powerUpGeometry = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+    const powerUpTypes = [
+      { type: 'speed' as const, color: 0x00ffff, emissive: 0x00ffff },
+      { type: 'magnet' as const, color: 0xffff00, emissive: 0xffff00 },
+      { type: 'double' as const, color: 0xff8800, emissive: 0xff8800 },
+    ];
+
+    powerUpTypes.forEach((powerUpType, i) => {
+      const material = new THREE.MeshStandardMaterial({
+        color: powerUpType.color,
+        emissive: powerUpType.emissive,
+        emissiveIntensity: 0.7,
+      });
+      const powerUp = new THREE.Mesh(powerUpGeometry, material);
+      const angle = (i / 3) * Math.PI * 2 + Math.PI / 6;
+      const radius = 8;
+      powerUp.position.set(
+        Math.cos(angle) * radius,
+        2,
+        Math.sin(angle) * radius
+      );
+      powerUps.push({ mesh: powerUp, type: powerUpType.type });
+      scene.add(powerUp);
+    });
+
+    // Create obstacles (red cubes that drain energy)
+    const obstacles: Array<{
+      mesh: THREE.Mesh;
+      velocity: THREE.Vector3;
+      angle: number;
+    }> = [];
+    const obstacleGeometry = new THREE.OctahedronGeometry(0.5);
+    const obstacleMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff0000,
+      emissive: 0xff0000,
+      emissiveIntensity: 0.5,
+    });
+
+    for (let i = 0; i < 3; i++) {
+      const obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial.clone());
+      const angle = (i / 3) * Math.PI * 2;
+      const radius = 4;
+      obstacle.position.set(
+        Math.cos(angle) * radius,
+        1.5,
+        Math.sin(angle) * radius
+      );
+      obstacles.push({
+        mesh: obstacle,
+        velocity: new THREE.Vector3(
+          (Math.random() - 0.5) * 0.02,
+          0,
+          (Math.random() - 0.5) * 0.02
+        ),
+        angle: angle,
+      });
+      scene.add(obstacle);
     }
 
     // Create wormhole portal (initially hidden)
@@ -233,9 +335,17 @@ export function HyperboreaGame({
     // Game state
     let energy = 0;
     let cloversCollected = 0;
+    let score = 0;
+    let combo = 0;
+    let comboTimer = 0;
+    const comboDecayRate = 60; // frames until combo resets
+    let speedBoostTimer = 0;
+    let magnetTimer = 0;
+    let doublePointsTimer = 0;
     const velocity = new THREE.Vector3();
     const acceleration = new THREE.Vector3();
-    const moveSpeed = 0.15;
+    let moveSpeed = 0.15;
+    const baseSpeed = 0.15;
     const accelerationRate = 0.008;
     const friction = 0.85;
     const keys: Record<string, boolean> = {};
@@ -245,6 +355,8 @@ export function HyperboreaGame({
     let touchStartY = 0;
     let touchDeltaX = 0;
     let touchDeltaY = 0;
+    let cameraShake = 0;
+    let lastHitTime = 0;
 
     // Input handling
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -315,6 +427,38 @@ export function HyperboreaGame({
       velocity.add(acceleration);
       velocity.multiplyScalar(friction);
 
+      // Apply active power-ups
+      const activePowerUps: Array<{ type: string; timeLeft: number }> = [];
+      
+      if (speedBoostTimer > 0) {
+        speedBoostTimer--;
+        moveSpeed = baseSpeed * 2;
+        player.material.color.setHex(0x00ffff);
+        activePowerUps.push({ type: 'speed', timeLeft: speedBoostTimer });
+      } else {
+        moveSpeed = baseSpeed;
+        player.material.color.setHex(0x00ffff);
+      }
+
+      if (magnetTimer > 0) {
+        magnetTimer--;
+        activePowerUps.push({ type: 'magnet', timeLeft: magnetTimer });
+        if (speedBoostTimer === 0) {
+          player.material.color.setHex(0xffff00);
+        }
+      }
+
+      if (doublePointsTimer > 0) {
+        doublePointsTimer--;
+        activePowerUps.push({ type: 'double', timeLeft: doublePointsTimer });
+        if (speedBoostTimer === 0 && magnetTimer === 0) {
+          player.material.color.setHex(0xff8800);
+        }
+      }
+
+      // Update parent with power-up state
+      onPowerUpChange?.(activePowerUps);
+
       // Limit max speed
       if (velocity.length() > moveSpeed) {
         velocity.normalize().multiplyScalar(moveSpeed);
@@ -329,9 +473,43 @@ export function HyperboreaGame({
         playerGlow.scale.set(1 + speed * 2, 1 + speed * 2, 1 + speed * 2);
       }
 
-      // Camera follows player with mouse offset
-      camera.position.x = player.position.x + mouseX * 5;
-      camera.position.z = player.position.z + 10 + mouseY * 3;
+      // Update trail
+      if (velocity.length() > 0.01) {
+        trailPositions.push(player.position.clone());
+        if (trailPositions.length > maxTrailLength) {
+          trailPositions.shift();
+        }
+        
+        const positions = new Float32Array(trailPositions.length * 3);
+        trailPositions.forEach((pos, i) => {
+          positions[i * 3] = pos.x;
+          positions[i * 3 + 1] = pos.y;
+          positions[i * 3 + 2] = pos.z;
+        });
+        
+        trailGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        trailGeometry.attributes.position.needsUpdate = true;
+      }
+
+      // Update combo timer
+      if (comboTimer > 0) {
+        comboTimer--;
+      } else if (combo > 0) {
+        combo = 0;
+        onScoreChange?.(score, combo);
+      }
+
+      // Update camera shake
+      if (cameraShake > 0) {
+        cameraShake *= 0.9;
+      }
+
+      // Camera follows player with mouse offset and shake
+      const shakeX = (Math.random() - 0.5) * cameraShake;
+      const shakeY = (Math.random() - 0.5) * cameraShake;
+      camera.position.x = player.position.x + mouseX * 5 + shakeX;
+      camera.position.y = 5 + shakeY;
+      camera.position.z = player.position.z + 10 + mouseY * 3 + shakeX;
       camera.lookAt(player.position);
 
       // Update particles
@@ -358,12 +536,30 @@ export function HyperboreaGame({
           // Floating animation
           clover.position.y += Math.sin(Date.now() * 0.003 + clover.position.x) * 0.005;
 
+          // Magnet effect - pull clovers toward player
+          if (magnetTimer > 0) {
+            const direction = new THREE.Vector3().subVectors(player.position, clover.position);
+            if (direction.length() < 5) {
+              direction.normalize().multiplyScalar(0.1);
+              clover.position.add(direction);
+            }
+          }
+
           // Collision detection
           const distance = player.position.distanceTo(clover.position);
           if (distance < 1) {
             clover.visible = false;
             cloversCollected++;
+            
+            // Combo system
+            combo++;
+            comboTimer = comboDecayRate;
+            const comboMultiplier = 1 + (combo - 1) * 0.5;
+            const doubleMultiplier = doublePointsTimer > 0 ? 2 : 1;
+            const pointsEarned = Math.floor(20 * comboMultiplier * doubleMultiplier);
+            
             energy += 20;
+            score += pointsEarned;
             
             // Create particle effect
             createParticles(clover.position, 0xff00ff);
@@ -373,6 +569,7 @@ export function HyperboreaGame({
             
             onEnergyChange?.(energy);
             onCloverCollect?.(cloversCollected);
+            onScoreChange?.(score, combo);
 
             // Teleport clover to new random position
             const angle = Math.random() * Math.PI * 2;
@@ -386,6 +583,91 @@ export function HyperboreaGame({
               clover.visible = true;
             }, 1000);
           }
+        }
+      });
+
+      // Power-up logic
+      powerUps.forEach((powerUp) => {
+        if (powerUp.mesh.visible) {
+          powerUp.mesh.rotation.x += 0.05;
+          powerUp.mesh.rotation.y += 0.05;
+          
+          // Floating animation
+          powerUp.mesh.position.y = 2 + Math.sin(Date.now() * 0.002) * 0.3;
+
+          // Collision detection
+          const distance = player.position.distanceTo(powerUp.mesh.position);
+          if (distance < 1.2) {
+            powerUp.mesh.visible = false;
+            
+            // Activate power-up
+            if (powerUp.type === 'speed') {
+              speedBoostTimer = 300; // 5 seconds at 60fps
+            } else if (powerUp.type === 'magnet') {
+              magnetTimer = 300;
+            } else if (powerUp.type === 'double') {
+              doublePointsTimer = 300;
+            }
+            
+            createParticles(powerUp.mesh.position, (powerUp.mesh.material as THREE.MeshStandardMaterial).color.getHex());
+            playCollectSound();
+            
+            // Respawn power-up after 10 seconds
+            setTimeout(() => {
+              const angle = Math.random() * Math.PI * 2;
+              const radius = 7 + Math.random() * 3;
+              powerUp.mesh.position.set(
+                Math.cos(angle) * radius,
+                2,
+                Math.sin(angle) * radius
+              );
+              powerUp.mesh.visible = true;
+            }, 10000);
+          }
+        }
+      });
+
+      // Obstacle logic (patrol and damage player)
+      obstacles.forEach((obstacle) => {
+        obstacle.mesh.rotation.x += 0.03;
+        obstacle.mesh.rotation.y += 0.05;
+        
+        // Move obstacle in circular pattern
+        obstacle.angle += 0.01;
+        const radius = 4 + Math.sin(obstacle.angle) * 2;
+        obstacle.mesh.position.x = Math.cos(obstacle.angle * 2) * radius;
+        obstacle.mesh.position.z = Math.sin(obstacle.angle * 2) * radius;
+        obstacle.mesh.position.y = 1.5 + Math.sin(obstacle.angle * 3) * 0.5;
+
+        // Check collision with player (with cooldown)
+        const distance = player.position.distanceTo(obstacle.mesh.position);
+        const currentTime = Date.now();
+        if (distance < 1 && currentTime - lastHitTime > 1000) {
+          lastHitTime = currentTime;
+          
+          // Damage player (drain energy)
+          energy = Math.max(0, energy - 5);
+          combo = 0; // Reset combo on hit
+          onEnergyChange?.(energy);
+          onScoreChange?.(score, combo);
+          
+          // Camera shake
+          cameraShake = 0.5;
+          
+          // Push player away
+          const pushDirection = new THREE.Vector3().subVectors(player.position, obstacle.mesh.position);
+          pushDirection.normalize().multiplyScalar(0.5);
+          velocity.add(pushDirection);
+          
+          // Flash obstacle
+          const material = obstacle.mesh.material as THREE.MeshStandardMaterial;
+          material.emissiveIntensity = 1.5;
+          setTimeout(() => {
+            material.emissiveIntensity = 0.5;
+          }, 100);
+          
+          // Create red particles at collision
+          createParticles(obstacle.mesh.position, 0xff0000);
         }
       });
 

@@ -37,11 +37,12 @@ const nextConfig: NextConfig = {
   // Experimental features - Enable ALL
   experimental: {
     optimizePackageImports: ['lucide-react', '@solana/wallet-adapter-react'],
-    turbo: {},
-    typedRoutes: false,
     optimisticClientCache: true,
     // Enable all experimental features for maximum functionality
   },
+  
+  // Turbopack configuration
+  turbopack: {},
   
   // Output configuration
   poweredByHeader: false,

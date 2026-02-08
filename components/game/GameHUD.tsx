@@ -6,10 +6,13 @@ import { useState, useEffect } from 'react';
 interface GameHUDProps {
   energy: number;
   cloversCollected: number;
+  score: number;
+  combo: number;
   walletConnected: boolean;
+  activePowerUps?: Array<{ type: string; timeLeft: number }>;
 }
 
-export function GameHUD({ energy, cloversCollected, walletConnected }: GameHUDProps) {
+export function GameHUD({ energy, cloversCollected, score, combo, walletConnected, activePowerUps = [] }: GameHUDProps) {
   const energyPercentage = Math.min((energy / 100) * 100, 100);
   const portalUnlocked = energy >= 100;
   const [showEnergyPulse, setShowEnergyPulse] = useState(false);
@@ -79,6 +82,19 @@ export function GameHUD({ energy, cloversCollected, walletConnected }: GameHUDPr
               </div>
             </div>
           </div>
+
+          {/* Score & Combo */}
+          <div className="bg-black/90 backdrop-blur-sm border border-purple-500/30 rounded-lg p-3 sm:p-4">
+            <div className="text-center">
+              <div className="text-white font-bold text-lg sm:text-xl">{score.toLocaleString()}</div>
+              <div className="text-purple-400 text-xs sm:text-sm">Score</div>
+              {combo > 1 && (
+                <div className="mt-1 text-yellow-400 text-xs sm:text-sm font-bold animate-pulse">
+                  {combo}x Combo!
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Progress Indicator */}
@@ -121,6 +137,34 @@ export function GameHUD({ energy, cloversCollected, walletConnected }: GameHUDPr
             <div className="text-yellow-300 text-xs sm:text-sm">
               <strong>💰 Connect Wallet</strong> to unlock NFT minting and rewards!
             </div>
+          </div>
+        )}
+
+        {/* Active Power-Ups */}
+        {activePowerUps.length > 0 && (
+          <div className="mt-2 sm:mt-4 flex flex-wrap gap-2 max-w-md">
+            {activePowerUps.map((powerUp, index) => (
+              <div
+                key={index}
+                className="bg-black/90 backdrop-blur-sm border rounded-lg p-2 flex items-center gap-2 animate-pulse"
+                style={{
+                  borderColor:
+                    powerUp.type === 'speed'
+                      ? '#00ffff'
+                      : powerUp.type === 'magnet'
+                      ? '#ffff00'
+                      : '#ff8800',
+                }}
+              >
+                <span className="text-xl">
+                  {powerUp.type === 'speed' ? '⚡' : powerUp.type === 'magnet' ? '🧲' : '✨'}
+                </span>
+                <div className="text-white text-xs">
+                  <div className="font-bold capitalize">{powerUp.type}</div>
+                  <div className="text-gray-400">{(powerUp.timeLeft / 60).toFixed(1)}s</div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

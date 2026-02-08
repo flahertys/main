@@ -18,6 +18,9 @@ export default function GamePage() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [energy, setEnergy] = useState(0);
   const [cloversCollected, setCloversCollected] = useState(0);
+  const [score, setScore] = useState(0);
+  const [combo, setCombo] = useState(0);
+  const [activePowerUps, setActivePowerUps] = useState<Array<{ type: string; timeLeft: number }>>([]);
   const [walletConnected] = useState(false);
   const [hasPlayedBefore, setHasPlayedBefore] = useState(false);
 
@@ -47,6 +50,8 @@ export default function GamePage() {
   const handleRestart = () => {
     setEnergy(0);
     setCloversCollected(0);
+    setScore(0);
+    setCombo(0);
     setIsPaused(false);
     // Game will restart automatically due to state reset
   };
@@ -74,12 +79,20 @@ export default function GamePage() {
         <HyperboreaGame
           onEnergyChange={setEnergy}
           onCloverCollect={setCloversCollected}
+          onScoreChange={(newScore, newCombo) => {
+            setScore(newScore);
+            setCombo(newCombo);
+          }}
+          onPowerUpChange={setActivePowerUps}
         />
         
         {/* Game HUD Overlay */}
         <GameHUD
           energy={energy}
           cloversCollected={cloversCollected}
+          score={score}
+          combo={combo}
+          activePowerUps={activePowerUps}
           walletConnected={walletConnected}
         />
         
@@ -177,6 +190,9 @@ export default function GamePage() {
                   <ul className="space-y-2 text-sm sm:text-base list-disc list-inside">
                     <li>Each clover gives you +20 energy</li>
                     <li>Clovers respawn after 1 second in a new location</li>
+                    <li>Build combos by collecting clovers quickly for bonus points!</li>
+                    <li>Collect power-ups: ⚡ Speed, 🧲 Magnet, ✨ Double Points</li>
+                    <li>Avoid red obstacles - they drain energy and break combos</li>
                     <li>The portal unlocks at 100 energy</li>
                     <li>Connect your wallet to mint NFT skins with rewards</li>
                   </ul>
@@ -250,6 +266,16 @@ export default function GamePage() {
                     <div className="text-2xl mb-1">🍀</div>
                     <div className="text-white font-bold">{cloversCollected}</div>
                     <div className="text-xs text-gray-400">Clovers</div>
+                  </div>
+                  <div className="bg-blue-500/20 rounded-lg p-3">
+                    <div className="text-2xl mb-1">🏆</div>
+                    <div className="text-white font-bold">{score.toLocaleString()}</div>
+                    <div className="text-xs text-gray-400">Score</div>
+                  </div>
+                  <div className="bg-yellow-500/20 rounded-lg p-3">
+                    <div className="text-2xl mb-1">🔥</div>
+                    <div className="text-white font-bold">{combo}x</div>
+                    <div className="text-xs text-gray-400">Combo</div>
                   </div>
                 </div>
               </div>
@@ -371,6 +397,9 @@ export default function GamePage() {
                   <ul className="space-y-2 text-sm sm:text-base list-disc list-inside">
                     <li>Each clover gives you +20 energy</li>
                     <li>Clovers respawn after 1 second in a new location</li>
+                    <li>Build combos by collecting clovers quickly for bonus points!</li>
+                    <li>Collect power-ups: ⚡ Speed, 🧲 Magnet, ✨ Double Points</li>
+                    <li>Avoid red obstacles - they drain energy and break combos</li>
                     <li>The portal unlocks at 100 energy</li>
                     <li>Connect your wallet to mint NFT skins with rewards</li>
                     <li>Use the pause button anytime to take a break</li>
