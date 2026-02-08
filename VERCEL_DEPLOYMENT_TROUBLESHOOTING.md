@@ -109,6 +109,24 @@ Check Vercel deployment logs:
 
 #### Common Causes & Fixes
 
+**Wrong Branch Configuration - Deploying from gh-pages**
+```
+Error: ENOENT: no such file or directory, open '/vercel/path0/package.json'
+npm error enoent Could not read package.json
+Command "npm install" exited with 254
+```
+**Problem**: Vercel is trying to deploy from the `gh-pages` branch, which only contains static build output (HTML/CSS/JS files) without source code or package.json.
+
+**Solution**:
+1. Go to Vercel Dashboard → Settings → Git
+2. Under "Production Branch", change from `gh-pages` to `main`
+3. Click "Save"
+4. Go to Deployments tab
+5. Click "Redeploy" on the latest deployment
+6. The build should now succeed
+
+**Why this happens**: The `gh-pages` branch is used for GitHub Pages deployment (static hosting) and contains only the build output from the `out/` directory. Vercel needs the source code from the `main` branch to run `npm install` and `npm run build`.
+
 **Missing Dependencies**
 ```
 Error: Cannot find module 'some-package'
@@ -389,9 +407,11 @@ Safari: Cmd+Option+R
 
 #### Settings → Git
 - [x] **Connected Repository**: DarkModder33/main
-- [x] **Production Branch**: `main`
+- [x] **Production Branch**: `main` ⚠️ **IMPORTANT: Must be `main`, NOT `gh-pages`**
 - [x] **Automatic Deployments**: Enabled
 - [x] **Deploy Hooks**: Optional (can coexist with GitHub Actions)
+
+**Note**: The `gh-pages` branch is used exclusively for GitHub Pages static hosting and contains only build output. Vercel must deploy from the `main` branch which contains source code.
 
 #### Settings → Domains
 - [x] **tradehaxai.tech**: Valid Configuration ✅
