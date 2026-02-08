@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Static export for GitHub Pages
-  output: 'export',
+  // Static export for GitHub Pages only (not for Vercel)
+  // Vercel automatically sets VERCEL=1 environment variable
+  ...(process.env.VERCEL !== '1' && { output: 'export' }),
   
   // Development optimizations - More permissive
   reactStrictMode: false,
