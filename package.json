@@ -13,7 +13,8 @@
     "clean": "rm -rf .next out node_modules/.cache",
     "reinstall": "rm -rf node_modules package-lock.json && npm install",
     "deploy:build": "npm run clean && npm run build",
-    "check:vercel": "bash ./scripts/check-vercel-config.sh"
+    "check:vercel": "bash ./scripts/check-vercel-config.sh",
+    "check:dns": "bash ./scripts/check-dns-config.sh"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
