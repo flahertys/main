@@ -1,12 +1,13 @@
-import "./globals.css";
 import "@solana/wallet-adapter-react-ui/styles.css";
+import "./globals.css";
 
+import { SolanaProvider } from "@/components/counter/provider/Solana";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { IntroVideoWrapper } from "@/components/IntroVideoWrapper";
+import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Analytics } from "@vercel/analytics/react";
-import { SolanaProvider } from "@/components/counter/provider/Solana";
 import { Toaster } from "sonner";
-import { IntroVideoWrapper } from "@/components/IntroVideoWrapper";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -20,8 +21,18 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "TradeHax AI - Automated Web3 Trading Platform",
-  description: "Advanced automated trading platform powered by Solana blockchain. Trade smarter with AI-driven insights and decentralized technology.",
-  keywords: ["Web3 trading", "Solana", "automated trading", "DeFi", "blockchain", "crypto trading", "AI trading", "decentralized finance"],
+  description:
+    "Advanced automated trading platform powered by Solana blockchain. Trade smarter with AI-driven insights and decentralized technology.",
+  keywords: [
+    "Web3 trading",
+    "Solana",
+    "automated trading",
+    "DeFi",
+    "blockchain",
+    "crypto trading",
+    "AI trading",
+    "decentralized finance",
+  ],
   authors: [{ name: "TradeHax AI" }],
   creator: "TradeHax AI",
   publisher: "TradeHax AI",
@@ -31,7 +42,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "TradeHax AI - Automated Web3 Trading Platform",
-    description: "Advanced automated trading platform powered by Solana blockchain. Trade smarter with AI-driven insights and decentralized technology.",
+    description:
+      "Advanced automated trading platform powered by Solana blockchain. Trade smarter with AI-driven insights and decentralized technology.",
     url: "https://tradehaxai.tech",
     siteName: "TradeHax AI",
     locale: "en_US",
@@ -48,7 +60,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "TradeHax AI - Automated Web3 Trading Platform",
-    description: "Advanced automated trading platform powered by Solana blockchain. Trade smarter with AI-driven insights and decentralized technology.",
+    description:
+      "Advanced automated trading platform powered by Solana blockchain. Trade smarter with AI-driven insights and decentralized technology.",
     images: ["/twitter-image.png"],
     creator: "@tradehaxai",
   },
@@ -77,7 +90,8 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "WebApplication",
     name: "TradeHax AI",
-    description: "Advanced automated trading platform powered by Solana blockchain",
+    description:
+      "Advanced automated trading platform powered by Solana blockchain",
     url: "https://tradehaxai.tech",
     applicationCategory: "FinanceApplication",
     operatingSystem: "Any",
@@ -101,9 +115,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body
-        className="antialiased bg-black text-green-100 font-sans"
-      >
+      <body className="antialiased bg-black text-green-100 font-sans">
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <>
             <Script
@@ -124,7 +136,7 @@ export default function RootLayout({
         )}
         <IntroVideoWrapper>
           <SolanaProvider>
-            {children}
+            <ErrorBoundary>{children}</ErrorBoundary>
             <Toaster
               position="bottom-right"
               theme="dark"

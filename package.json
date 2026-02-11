@@ -10,8 +10,9 @@
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",
-    "clean": "rm -rf .next out node_modules/.cache",
-    "reinstall": "rm -rf node_modules package-lock.json && npm install",
+    "clean": "rimraf .next out node_modules/.cache",
+    "clean:ps": "powershell -ExecutionPolicy Bypass -File ./scripts/cleanup.ps1",
+    "reinstall": "rimraf node_modules package-lock.json && npm install",
     "deploy:build": "npm run clean && npm run build",
     "check:vercel": "bash ./scripts/check-vercel-config.sh",
     "check:dns": "bash ./scripts/check-dns-config.sh"
@@ -40,6 +41,7 @@
     "three": "^0.182.0"
   },
   "devDependencies": {
+    "rimraf": "^5.0.0",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
