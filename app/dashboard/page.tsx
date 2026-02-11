@@ -1,16 +1,60 @@
-import Link from "next/link";
+import { AdSense } from "@/components/AdSense";
+import { CounterCard } from "@/components/counter/CounterCard";
 import { Navbar } from "@/components/dashboard/Navbar";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { CounterCard } from "@/components/counter/CounterCard";
-import { AdSense } from "@/components/AdSense";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Wallet, Activity, Target, Plus, BarChart3, Link as LinkIcon } from "lucide-react";
+import {
+    Activity,
+    BarChart3,
+    Link as LinkIcon,
+    Plus,
+    Target,
+    TrendingUp,
+    Wallet,
+} from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Trading Dashboard - Monitor & Analyze | TradeHax AI",
+  description:
+    "Real-time trading dashboard with analytics, performance tracking, and strategy management for automated Web3 trading.",
+  keywords: [
+    "trading dashboard",
+    "analytics",
+    "crypto trading",
+    "performance tracking",
+    "Solana",
+  ],
+  openGraph: {
+    title: "Trading Dashboard - TradeHax AI",
+    description:
+      "Monitor your trades, analyze performance, and manage strategies in real-time.",
+    url: "https://tradehaxai.tech/dashboard",
+    type: "website",
+    images: [
+      {
+        url: "/og-dashboard.svg",
+        width: 1200,
+        height: 630,
+        alt: "Trading Dashboard",
+        type: "image/svg+xml",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Trading Dashboard - TradeHax AI",
+    description: "Real-time analytics and strategy management dashboard.",
+    images: ["/og-dashboard.svg"],
+  },
+};
 
 export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
@@ -57,12 +101,15 @@ export default function DashboardPage() {
           {/* Trading Demo Section */}
           <div className="lg:col-span-2">
             <div className="mb-4">
-              <h2 className="text-2xl font-bold text-white mb-2">Demo Trading Counter</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Demo Trading Counter
+              </h2>
               <p className="text-gray-400 text-sm">
-                Interact with the Solana blockchain to test trading functionality
+                Interact with the Solana blockchain to test trading
+                functionality
               </p>
             </div>
-            
+
             <div className="flex items-center justify-center p-8 bg-gradient-to-b from-gray-900/50 to-gray-950/50 rounded-xl border border-gray-800">
               <CounterCard />
             </div>
@@ -70,8 +117,10 @@ export default function DashboardPage() {
 
           {/* Quick Actions Panel */}
           <div>
-            <h2 className="text-2xl font-bold text-white mb-4">Quick Actions</h2>
-            
+            <h2 className="text-2xl font-bold text-white mb-4">
+              Quick Actions
+            </h2>
+
             <div className="space-y-4">
               <Button
                 className="w-full justify-start bg-gradient-to-r from-[#00D100] to-[#00FF41] hover:from-purple-700 hover:to-blue-700 text-white"
@@ -102,16 +151,24 @@ export default function DashboardPage() {
 
             {/* Ad Space */}
             <div className="mt-6">
-              <AdSense adSlot="9876543210" adFormat="auto" className="min-h-[250px]" />
+              <AdSense
+                adSlot="9876543210"
+                adFormat="auto"
+                className="min-h-[250px]"
+              />
             </div>
 
             {/* Info Card */}
             <div className="mt-6 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
               <h3 className="text-white font-semibold mb-2">Getting Started</h3>
               <p className="text-sm text-gray-400 mb-3">
-                Connect your wallet to start trading on the Solana blockchain. Use the demo counter above to test blockchain interactions.
+                Connect your wallet to start trading on the Solana blockchain.
+                Use the demo counter above to test blockchain interactions.
               </p>
-              <Link href="/" className="text-sm text-purple-400 hover:text-purple-300">
+              <Link
+                href="/"
+                className="text-sm text-purple-400 hover:text-purple-300"
+              >
                 Learn more →
               </Link>
             </div>

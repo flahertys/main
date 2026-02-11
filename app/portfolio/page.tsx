@@ -5,7 +5,46 @@ import { AdSenseBlock } from "@/components/monetization/AdSenseBlock";
 import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { Award, Briefcase, Code, Mail } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Michael S. Flaherty - Full-Stack Developer & Web3 Architect",
+  description:
+    "Full-Stack Developer with expertise in Web3, blockchain trading systems, and modern web applications. Hire for freelance projects and consulting.",
+  keywords: [
+    "developer",
+    "full-stack",
+    "Web3",
+    "blockchain",
+    "trading systems",
+    "React",
+    "Next.js",
+  ],
+  openGraph: {
+    title: "Michael S. Flaherty - Developer Portfolio",
+    description:
+      "Full-stack developer specializing in Web3, automated trading platforms, and scalable web applications.",
+    url: "https://tradehaxai.tech/portfolio",
+    type: "website",
+    images: [
+      {
+        url: "/og-portfolio.svg",
+        width: 1200,
+        height: 630,
+        alt: "Portfolio - Michael S. Flaherty",
+        type: "image/svg+xml",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Michael S. Flaherty - Developer Portfolio",
+    description:
+      "Full-stack developer & Web3 architect. Available for projects and consulting.",
+    images: ["/og-portfolio.svg"],
+  },
+};
 
 export default function PortfolioPage() {
   return (

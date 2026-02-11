@@ -22,11 +22,35 @@ export const metadata: Metadata = {
     "Music & Arts Platform - Remote Guitar Lessons & Artist Showcase | TradeHax AI",
   description:
     "Learn guitar online with professional instructors. Showcase your music, earn tips, and join the L2 token revolution for music education.",
+  keywords: [
+    "guitar lessons",
+    "online music teacher",
+    "music education",
+    "artist showcase",
+    "blockchain music",
+  ],
   openGraph: {
     title: "Music & Arts Platform - TradeHax AI",
     description:
       "Remote guitar lessons, artist showcase, and music education scholarships.",
+    url: "https://tradehaxai.tech/music",
     type: "website",
+    images: [
+      {
+        url: "/og-music.svg",
+        width: 1200,
+        height: 630,
+        alt: "Music & Arts Platform",
+        type: "image/svg+xml",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Music & Arts Platform - TradeHax AI",
+    description:
+      "Learn guitar, showcase your music, earn tips on the blockchain",
+    images: ["/og-music.svg"],
   },
 };
 

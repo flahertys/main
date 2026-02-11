@@ -1,0 +1,67 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient6" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a2e1a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient6" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00FF41;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#39FF14;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <rect width="1200" height="630" fill="url(#bgGradient6)"/>
+  
+  <!-- Toolbox icons -->
+  <text x="120" y="180" font-family="Arial, sans-serif" font-size="70" opacity="0.3">
+    ⚙️
+  </text>
+  <text x="1050" y="520" font-family="Arial, sans-serif" font-size="70" opacity="0.3">
+    🔧
+  </text>
+  
+  <!-- Main content -->
+  <text x="600" y="120" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="url(#textGradient6)" text-anchor="middle">
+    Professional Services
+  </text>
+  
+  <text x="600" y="200" font-family="Arial, sans-serif" font-size="36" font-weight="600" fill="#e0e0e0" text-anchor="middle">
+    Web3 • Trading • Development
+  </text>
+  
+  <!-- Service boxes -->
+  <g>
+    <rect x="80" y="280" width="320" height="100" fill="#00FF41" opacity="0.1" rx="8" stroke="#00FF41" stroke-width="2"/>
+    <text x="240" y="315" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#00FF41" text-anchor="middle">
+      Web3 Development
+    </text>
+    <text x="240" y="345" font-family="Arial, sans-serif" font-size="14" fill="#b0b0b0" text-anchor="middle">
+      Smart Contracts & DApps
+    </text>
+  </g>
+  
+  <g>
+    <rect x="440" y="280" width="320" height="100" fill="#39FF14" opacity="0.1" rx="8" stroke="#39FF14" stroke-width="2"/>
+    <text x="600" y="315" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#39FF14" text-anchor="middle">
+      Trading Systems
+    </text>
+    <text x="600" y="345" font-family="Arial, sans-serif" font-size="14" fill="#b0b0b0" text-anchor="middle">
+      Bots & Algorithms
+    </text>
+  </g>
+  
+  <g>
+    <rect x="800" y="280" width="320" height="100" fill="#00FF41" opacity="0.1" rx="8" stroke="#00FF41" stroke-width="2"/>
+    <text x="960" y="315" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#00FF41" text-anchor="middle">
+      Full-Stack Dev
+    </text>
+    <text x="960" y="345" font-family="Arial, sans-serif" font-size="14" fill="#b0b0b0" text-anchor="middle">
+      Complete Solutions
+    </text>
+  </g>
+  
+  <!-- CTA -->
+  <text x="600" y="580" font-family="Arial, sans-serif" font-size="18" fill="#00FF41" text-anchor="middle" font-weight="bold">
+    Starting from $3,000 • Contact for Custom Solutions
+  </text>
+</svg>
