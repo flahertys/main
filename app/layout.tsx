@@ -4,6 +4,7 @@ import "./globals.css";
 import { SolanaProvider } from "@/components/counter/provider/Solana";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { IntroVideoWrapper } from "@/components/IntroVideoWrapper";
+import { HeaderBannerAd } from "@/components/monetization/AdSenseBlock";
 import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
@@ -115,9 +116,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-          <body className="antialiased bg-black text-green-100 font-sans">
-            {/* Header ad for quick monetization; only renders when NEXT_PUBLIC_ADSENSE_ID set */}
-            <HeaderBannerAd />
+      <body className="antialiased bg-black text-green-100 font-sans">
+        {/* Header ad for quick monetization; only renders when NEXT_PUBLIC_ADSENSE_ID set */}
+        <HeaderBannerAd />
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <>
             <Script
