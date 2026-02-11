@@ -64,10 +64,10 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "TradeHax AI - Automated Web3 Trading Platform",
     description:
-      "Advancedog-home.svg"],
+      "Advanced automated trading platform powered by Solana blockchain. Trade smarter with AI-driven insights and decentralized technology.",
+    images: ["/og-home.svg"],
     creator: "@tradehaxai",
-    site ["/twitter-image.png"],
-    creator: "@tradehaxai",
+    site: "@tradehaxai",
   },
   robots: {
     index: true,
