@@ -1,78 +1,98 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import * as THREE from 'three';
+import { useCallback, useEffect, useRef, useState } from "react";
+import * as THREE from "three";
 
 interface HyperboreaGameProps {
   onEnergyChange?: (energy: number) => void;
   onCloverCollect?: (count: number) => void;
   onScoreChange?: (score: number, combo: number) => void;
-  onPowerUpChange?: (powerUps: Array<{ type: string; timeLeft: number }>) => void;
-  onGameStateChange?: (state: 'tutorial' | 'playing' | 'paused') => void;
+  onPowerUpChange?: (
+    powerUps: Array<{ type: string; timeLeft: number }>,
+  ) => void;
+  onGameStateChange?: (state: "tutorial" | "playing" | "paused") => void;
   onShowTutorial?: () => void;
 }
 
-export function HyperboreaGame({ 
-  onEnergyChange, 
+export function HyperboreaGame({
+  onEnergyChange,
   onCloverCollect,
   onScoreChange,
   onPowerUpChange,
   onGameStateChange,
-  onShowTutorial
+  onShowTutorial,
 }: HyperboreaGameProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [showTouchControls, setShowTouchControls] = useState(false);
-  
+
   // Detect if device supports touch
   useEffect(() => {
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isTouchDevice =
+      "ontouchstart" in window || navigator.maxTouchPoints > 0;
     setShowTouchControls(isTouchDevice);
   }, []);
 
   // Create audio context once and reuse it
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const playSound = useCallback((type: 'collect' | 'powerup' | 'damage') => {
+  const playSound = useCallback((type: "collect" | "powerup" | "damage") => {
     // Play different sounds using Web Audio API
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined") return;
+
     // Create audio context only once
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )();
     }
-    
+
     const audioContext = audioContextRef.current;
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-    
+
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
-    
+
     // Different sounds for different events
-    if (type === 'collect') {
+    if (type === "collect") {
       oscillator.frequency.value = 800;
-      oscillator.type = 'sine';
+      oscillator.type = "sine";
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.2,
+      );
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.2);
-    } else if (type === 'powerup') {
+    } else if (type === "powerup") {
       // Ascending tones for power-up
       oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.2);
-      oscillator.type = 'square';
+      oscillator.frequency.exponentialRampToValueAtTime(
+        800,
+        audioContext.currentTime + 0.2,
+      );
+      oscillator.type = "square";
       gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.3,
+      );
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
-    } else if (type === 'damage') {
+    } else if (type === "damage") {
       // Low descending tone for damage
       oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.15);
-      oscillator.type = 'sawtooth';
+      oscillator.frequency.exponentialRampToValueAtTime(
+        50,
+        audioContext.currentTime + 0.15,
+      );
+      oscillator.type = "sawtooth";
       gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.15,
+      );
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.15);
     }
@@ -80,27 +100,35 @@ export function HyperboreaGame({
 
   useEffect(() => {
     if (!mountRef.current) return;
-    
+
     // Capture the current ref value at the start of the effect
     const currentMount = mountRef.current;
+
+    // Ensure the mount element has proper dimensions
+    if (!currentMount.clientWidth || !currentMount.clientHeight) {
+      console.warn("Mount element has no dimensions");
+      return;
+    }
 
     // Scene setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0a0a);
     scene.fog = new THREE.Fog(0x0a0a0a, 10, 50);
 
-    // Camera setup
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      currentMount.clientWidth / currentMount.clientHeight,
-      0.1,
-      1000
-    );
+    // Camera setup with proper aspect ratio
+    const width = Math.max(currentMount.clientWidth, 1);
+    const height = Math.max(currentMount.clientHeight, 1);
+
+    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     camera.position.set(0, 5, 10);
 
     // Renderer setup
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(width, height);
+    renderer.setSizeAttribute = function (width, height) {
+      this.domElement.width = width;
+      this.domElement.height = height;
+    };
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     currentMount.appendChild(renderer.domElement);
@@ -153,16 +181,19 @@ export function HyperboreaGame({
         color: 0x1a1a2a,
         roughness: 0.8,
       });
-      
+
       const platforms = [
         { x: 0, y: -0.5, z: 0, geometry: platformGeometry1 },
         { x: -8, y: 0.5, z: -8, geometry: platformGeometry2 },
         { x: 8, y: 1, z: 8, geometry: platformGeometry2 },
         { x: -8, y: 1.5, z: 8, geometry: platformGeometry2 },
       ];
-      
+
       platforms.forEach((platformData) => {
-        const platform = new THREE.Mesh(platformData.geometry, platformMaterial);
+        const platform = new THREE.Mesh(
+          platformData.geometry,
+          platformMaterial,
+        );
         platform.position.set(platformData.x, platformData.y, platformData.z);
         platform.receiveShadow = true;
         mazeGroup.add(platform);
@@ -171,10 +202,12 @@ export function HyperboreaGame({
       // Add pillars
       const pillarGeometry = new THREE.CylinderGeometry(0.3, 0.4, 3, 8);
       const pillarPositions = [
-        { x: -6, z: -6 }, { x: 6, z: -6 },
-        { x: -6, z: 6 }, { x: 6, z: 6 },
+        { x: -6, z: -6 },
+        { x: 6, z: -6 },
+        { x: -6, z: 6 },
+        { x: 6, z: 6 },
       ];
-      
+
       pillarPositions.forEach((pos) => {
         const pillar = new THREE.Mesh(pillarGeometry, stairMaterial);
         pillar.position.set(pos.x, 1.5, pos.z);
@@ -236,7 +269,7 @@ export function HyperboreaGame({
       clover.position.set(
         Math.cos(angle) * radius,
         2 + Math.random() * 2,
-        Math.sin(angle) * radius
+        Math.sin(angle) * radius,
       );
       clover.rotation.x = Math.PI / 2;
       clovers.push(clover);
@@ -244,12 +277,15 @@ export function HyperboreaGame({
     }
 
     // Create power-ups
-    const powerUps: Array<{ mesh: THREE.Mesh; type: 'speed' | 'magnet' | 'double' }> = [];
+    const powerUps: Array<{
+      mesh: THREE.Mesh;
+      type: "speed" | "magnet" | "double";
+    }> = [];
     const powerUpGeometry = new THREE.BoxGeometry(0.6, 0.6, 0.6);
     const powerUpTypes = [
-      { type: 'speed' as const, color: 0x00ffff, emissive: 0x00ffff },
-      { type: 'magnet' as const, color: 0xffff00, emissive: 0xffff00 },
-      { type: 'double' as const, color: 0xff8800, emissive: 0xff8800 },
+      { type: "speed" as const, color: 0x00ffff, emissive: 0x00ffff },
+      { type: "magnet" as const, color: 0xffff00, emissive: 0xffff00 },
+      { type: "double" as const, color: 0xff8800, emissive: 0xff8800 },
     ];
 
     powerUpTypes.forEach((powerUpType, i) => {
@@ -264,7 +300,7 @@ export function HyperboreaGame({
       powerUp.position.set(
         Math.cos(angle) * radius,
         2,
-        Math.sin(angle) * radius
+        Math.sin(angle) * radius,
       );
       powerUps.push({ mesh: powerUp, type: powerUpType.type });
       scene.add(powerUp);
@@ -284,20 +320,23 @@ export function HyperboreaGame({
     });
 
     for (let i = 0; i < 3; i++) {
-      const obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial.clone());
+      const obstacle = new THREE.Mesh(
+        obstacleGeometry,
+        obstacleMaterial.clone(),
+      );
       const angle = (i / 3) * Math.PI * 2;
       const radius = 4;
       obstacle.position.set(
         Math.cos(angle) * radius,
         1.5,
-        Math.sin(angle) * radius
+        Math.sin(angle) * radius,
       );
       obstacles.push({
         mesh: obstacle,
         velocity: new THREE.Vector3(
           (Math.random() - 0.5) * 0.02,
           0,
-          (Math.random() - 0.5) * 0.02
+          (Math.random() - 0.5) * 0.02,
         ),
         angle: angle,
       });
@@ -333,13 +372,16 @@ export function HyperboreaGame({
       });
 
       for (let i = 0; i < 10; i++) {
-        const particle = new THREE.Mesh(particleGeometry, particleMaterial.clone());
+        const particle = new THREE.Mesh(
+          particleGeometry,
+          particleMaterial.clone(),
+        );
         particle.position.copy(position);
-        
+
         const velocity = new THREE.Vector3(
           (Math.random() - 0.5) * 0.2,
           Math.random() * 0.3 + 0.1,
-          (Math.random() - 0.5) * 0.2
+          (Math.random() - 0.5) * 0.2,
         );
 
         particles.push({
@@ -369,14 +411,14 @@ export function HyperboreaGame({
     const accelerationRate = 0.008;
     const friction = 0.85;
     const keys: Record<string, boolean> = {};
-    
+
     // Game constants
     const CLOVER_VALUE = 20;
     const OBSTACLE_DAMAGE = 5;
     const POWERUP_DURATION = 300; // 5 seconds at 60fps
     const CLOVER_RESPAWN_DELAY = 1000; // ms
     const POWERUP_RESPAWN_DELAY = 10000; // ms
-    
+
     // Timeout tracking for cleanup
     const timeouts: NodeJS.Timeout[] = [];
 
@@ -419,11 +461,11 @@ export function HyperboreaGame({
       touchDeltaY = 0;
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
-    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd);
 
     // Mouse control for camera
     let mouseX = 0;
@@ -432,7 +474,7 @@ export function HyperboreaGame({
       mouseX = (e.clientX / window.innerWidth) * 2 - 1;
       mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
     };
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove);
 
     // Animation loop
     const animate = () => {
@@ -440,12 +482,12 @@ export function HyperboreaGame({
 
       // Player movement with acceleration (WASD + Touch)
       acceleration.set(0, 0, 0);
-      
+
       // Keyboard controls
-      if (keys['w'] || keys['arrowup']) acceleration.z -= accelerationRate;
-      if (keys['s'] || keys['arrowdown']) acceleration.z += accelerationRate;
-      if (keys['a'] || keys['arrowleft']) acceleration.x -= accelerationRate;
-      if (keys['d'] || keys['arrowright']) acceleration.x += accelerationRate;
+      if (keys["w"] || keys["arrowup"]) acceleration.z -= accelerationRate;
+      if (keys["s"] || keys["arrowdown"]) acceleration.z += accelerationRate;
+      if (keys["a"] || keys["arrowleft"]) acceleration.x -= accelerationRate;
+      if (keys["d"] || keys["arrowright"]) acceleration.x += accelerationRate;
 
       // Touch controls
       if (touchDeltaX !== 0 || touchDeltaY !== 0) {
@@ -459,12 +501,12 @@ export function HyperboreaGame({
 
       // Apply active power-ups
       const activePowerUps: Array<{ type: string; timeLeft: number }> = [];
-      
+
       if (speedBoostTimer > 0) {
         speedBoostTimer--;
         moveSpeed = baseSpeed * 2;
         player.material.color.setHex(0x00ffff);
-        activePowerUps.push({ type: 'speed', timeLeft: speedBoostTimer });
+        activePowerUps.push({ type: "speed", timeLeft: speedBoostTimer });
       } else {
         moveSpeed = baseSpeed;
         player.material.color.setHex(0x00ffff);
@@ -472,7 +514,7 @@ export function HyperboreaGame({
 
       if (magnetTimer > 0) {
         magnetTimer--;
-        activePowerUps.push({ type: 'magnet', timeLeft: magnetTimer });
+        activePowerUps.push({ type: "magnet", timeLeft: magnetTimer });
         if (speedBoostTimer === 0) {
           player.material.color.setHex(0xffff00);
         }
@@ -480,7 +522,7 @@ export function HyperboreaGame({
 
       if (doublePointsTimer > 0) {
         doublePointsTimer--;
-        activePowerUps.push({ type: 'double', timeLeft: doublePointsTimer });
+        activePowerUps.push({ type: "double", timeLeft: doublePointsTimer });
         if (speedBoostTimer === 0 && magnetTimer === 0) {
           player.material.color.setHex(0xff8800);
         }
@@ -509,15 +551,18 @@ export function HyperboreaGame({
         if (trailPositions.length > maxTrailLength) {
           trailPositions.shift();
         }
-        
+
         const positions = new Float32Array(trailPositions.length * 3);
         trailPositions.forEach((pos, i) => {
           positions[i * 3] = pos.x;
           positions[i * 3 + 1] = pos.y;
           positions[i * 3 + 2] = pos.z;
         });
-        
-        trailGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        trailGeometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(positions, 3),
+        );
         trailGeometry.attributes.position.needsUpdate = true;
       }
 
@@ -562,13 +607,17 @@ export function HyperboreaGame({
       clovers.forEach((clover) => {
         if (clover.visible) {
           clover.rotation.z += 0.02;
-          
+
           // Floating animation
-          clover.position.y += Math.sin(Date.now() * 0.003 + clover.position.x) * 0.005;
+          clover.position.y +=
+            Math.sin(Date.now() * 0.003 + clover.position.x) * 0.005;
 
           // Magnet effect - pull clovers toward player
           if (magnetTimer > 0) {
-            const direction = new THREE.Vector3().subVectors(player.position, clover.position);
+            const direction = new THREE.Vector3().subVectors(
+              player.position,
+              clover.position,
+            );
             if (direction.length() < 5) {
               direction.normalize().multiplyScalar(0.1);
               clover.position.add(direction);
@@ -580,23 +629,25 @@ export function HyperboreaGame({
           if (distance < 1) {
             clover.visible = false;
             cloversCollected++;
-            
+
             // Combo system
             combo++;
             comboTimer = comboDecayRate;
             const comboMultiplier = 1 + (combo - 1) * 0.5;
             const doubleMultiplier = doublePointsTimer > 0 ? 2 : 1;
-            const pointsEarned = Math.floor(CLOVER_VALUE * comboMultiplier * doubleMultiplier);
-            
+            const pointsEarned = Math.floor(
+              CLOVER_VALUE * comboMultiplier * doubleMultiplier,
+            );
+
             energy += CLOVER_VALUE;
             score += pointsEarned;
-            
+
             // Create particle effect
             createParticles(clover.position, 0xff00ff);
-            
+
             // Play sound
-            playSound('collect');
-            
+            playSound("collect");
+
             onEnergyChange?.(energy);
             onCloverCollect?.(cloversCollected);
             onScoreChange?.(score, combo);
@@ -607,7 +658,7 @@ export function HyperboreaGame({
             clover.position.set(
               Math.cos(angle) * radius,
               2 + Math.random() * 2,
-              Math.sin(angle) * radius
+              Math.sin(angle) * radius,
             );
             const timeout = setTimeout(() => {
               clover.visible = true;
@@ -622,7 +673,7 @@ export function HyperboreaGame({
         if (powerUp.mesh.visible) {
           powerUp.mesh.rotation.x += 0.05;
           powerUp.mesh.rotation.y += 0.05;
-          
+
           // Floating animation
           powerUp.mesh.position.y = 2 + Math.sin(Date.now() * 0.002) * 0.3;
 
@@ -630,19 +681,24 @@ export function HyperboreaGame({
           const distance = player.position.distanceTo(powerUp.mesh.position);
           if (distance < 1.2) {
             powerUp.mesh.visible = false;
-            
+
             // Activate power-up
-            if (powerUp.type === 'speed') {
+            if (powerUp.type === "speed") {
               speedBoostTimer = POWERUP_DURATION;
-            } else if (powerUp.type === 'magnet') {
+            } else if (powerUp.type === "magnet") {
               magnetTimer = POWERUP_DURATION;
-            } else if (powerUp.type === 'double') {
+            } else if (powerUp.type === "double") {
               doublePointsTimer = POWERUP_DURATION;
             }
-            
-            createParticles(powerUp.mesh.position, (powerUp.mesh.material as THREE.MeshStandardMaterial).color.getHex());
-            playSound('powerup');
-            
+
+            createParticles(
+              powerUp.mesh.position,
+              (
+                powerUp.mesh.material as THREE.MeshStandardMaterial
+              ).color.getHex(),
+            );
+            playSound("powerup");
+
             // Respawn power-up after delay
             const timeout = setTimeout(() => {
               const angle = Math.random() * Math.PI * 2;
@@ -650,7 +706,7 @@ export function HyperboreaGame({
               powerUp.mesh.position.set(
                 Math.cos(angle) * radius,
                 2,
-                Math.sin(angle) * radius
+                Math.sin(angle) * radius,
               );
               powerUp.mesh.visible = true;
             }, POWERUP_RESPAWN_DELAY);
@@ -663,7 +719,7 @@ export function HyperboreaGame({
       obstacles.forEach((obstacle) => {
         obstacle.mesh.rotation.x += 0.03;
         obstacle.mesh.rotation.y += 0.05;
-        
+
         // Move obstacle in circular pattern
         obstacle.angle += 0.01;
         const radius = 4 + Math.sin(obstacle.angle) * 2;
@@ -676,31 +732,34 @@ export function HyperboreaGame({
         const currentTime = Date.now();
         if (distance < 1 && currentTime - lastHitTime > 1000) {
           lastHitTime = currentTime;
-          
+
           // Damage player (drain energy)
           energy = Math.max(0, energy - OBSTACLE_DAMAGE);
           combo = 0; // Reset combo on hit
           onEnergyChange?.(energy);
           onScoreChange?.(score, combo);
-          
+
           // Camera shake
           cameraShake = 0.5;
-          
+
           // Play damage sound
-          playSound('damage');
-          
+          playSound("damage");
+
           // Push player away
-          const pushDirection = new THREE.Vector3().subVectors(player.position, obstacle.mesh.position);
+          const pushDirection = new THREE.Vector3().subVectors(
+            player.position,
+            obstacle.mesh.position,
+          );
           pushDirection.normalize().multiplyScalar(0.5);
           velocity.add(pushDirection);
-          
+
           // Flash obstacle
           const material = obstacle.mesh.material as THREE.MeshStandardMaterial;
           material.emissiveIntensity = 1.5;
           setTimeout(() => {
             material.emissiveIntensity = 0.5;
           }, 100);
-          
+
           // Create red particles at collision
           createParticles(obstacle.mesh.position, 0xff0000);
         }
@@ -713,7 +772,7 @@ export function HyperboreaGame({
         portal.scale.set(
           1 + Math.sin(Date.now() * 0.001) * 0.1,
           1 + Math.sin(Date.now() * 0.001) * 0.1,
-          1
+          1,
         );
       }
 
@@ -727,50 +786,61 @@ export function HyperboreaGame({
       camera.updateProjectionMatrix();
       renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
     };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     setIsLoaded(true);
     animate();
 
     // Cleanup
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
-      
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+
       // Clear all pending timeouts
-      timeouts.forEach(timeout => clearTimeout(timeout));
-      
+      timeouts.forEach((timeout) => clearTimeout(timeout));
+
       if (currentMount) {
         currentMount.removeChild(renderer.domElement);
       }
       renderer.dispose();
     };
-  }, [onEnergyChange, onCloverCollect, onScoreChange, onPowerUpChange, playSound]);
+  }, [
+    onEnergyChange,
+    onCloverCollect,
+    onScoreChange,
+    onPowerUpChange,
+    playSound,
+  ]);
 
   return (
-    <div className="relative w-full h-full">
-      <div ref={mountRef} className="w-full h-full" />
+    <div className="relative w-full h-full bg-black">
+      <div
+        ref={mountRef}
+        className="w-full h-full"
+        style={{ display: "block" }}
+      />
       {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm z-50">
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-500 mx-auto mb-4"></div>
-            <p className="text-gray-400">Loading Hyperborea...</p>
+            <p className="text-gray-300 font-semibold">Loading Hyperborea...</p>
           </div>
         </div>
       )}
-      
+
       {/* Touch Controls Overlay for Mobile */}
       {showTouchControls && isLoaded && (
         <div className="absolute bottom-20 left-0 right-0 pointer-events-none">
           <div className="max-w-md mx-auto px-4">
             <div className="bg-black/40 backdrop-blur-sm border border-purple-500/30 rounded-lg p-3 text-center">
               <p className="text-white text-sm">
-                👆 <span className="font-bold">Tap and drag</span> anywhere to move
+                👆 <span className="font-bold">Tap and drag</span> anywhere to
+                move
               </p>
             </div>
           </div>

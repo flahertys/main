@@ -1,0 +1,53 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#003B00;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF8B57;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <rect width="1200" height="630" fill="url(#bgGradient2)"/>
+  
+  <!-- Stripes background -->
+  <rect x="0" y="0" width="1200" height="630" fill="url(#bgGradient2)"/>
+  <line x1="0" y1="100" x2="1200" y2="100" stroke="#FF6B35" stroke-width="3" opacity="0.2"/>
+  <line x1="0" y1="300" x2="1200" y2="300" stroke="#FF6B35" stroke-width="3" opacity="0.2"/>
+  <line x1="0" y1="530" x2="1200" y2="530" stroke="#FF6B35" stroke-width="3" opacity="0.2"/>
+  
+  <!-- Main content -->
+  <text x="600" y="160" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="url(#textGradient2)" text-anchor="middle">
+    🎸 Hyperborea
+  </text>
+  
+  <text x="600" y="250" font-family="Arial, sans-serif" font-size="40" font-weight="600" fill="#e0e0e0" text-anchor="middle">
+    Browser-Based Adventure Game
+  </text>
+  
+  <text x="600" y="330" font-family="Arial, sans-serif" font-size="24" fill="#00FF41" text-anchor="middle">
+    Play • Compete • Earn NFT Rewards
+  </text>
+  
+  <!-- Features -->
+  <text x="200" y="420" font-family="Arial, sans-serif" font-size="18" fill="#d0d0d0" text-anchor="start">
+    ✓ No Download Required
+  </text>
+  <text x="200" y="460" font-family="Arial, sans-serif" font-size="18" fill="#d0d0d0" text-anchor="start">
+    ✓ Mobile & Desktop
+  </text>
+  
+  <text x="700" y="420" font-family="Arial, sans-serif" font-size="18" fill="#d0d0d0" text-anchor="start">
+    ✓ Blockchain Integration
+  </text>
+  <text x="700" y="460" font-family="Arial, sans-serif" font-size="18" fill="#d0d0d0" text-anchor="start">
+    ✓ Instant Play
+  </text>
+  
+  <!-- CTA -->
+  <text x="600" y="580" font-family="Arial, sans-serif" font-size="20" fill="#FF6B35" text-anchor="middle" font-weight="bold">
+    Play Now at tradehaxai.tech/game
+  </text>
+</svg>

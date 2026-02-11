@@ -1,16 +1,64 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { ShamrockHeader } from '@/components/shamrock/ShamrockHeader';
-import { ShamrockFooter } from '@/components/shamrock/ShamrockFooter';
-import { AdSenseBlock } from '@/components/monetization/AdSenseBlock';
-import { PremiumUpgrade } from '@/components/monetization/PremiumUpgrade';
-import { HyperboreaGame } from '@/components/game/HyperboreaGame';
-import { GameHUD } from '@/components/game/GameHUD';
-import { NFTMintPanel } from '@/components/game/NFTMintPanel';
-import { GameAudio } from '@/components/game/GameAudio';
-import { Gamepad2, Trophy, Star, Zap, Play, RotateCcw, X, Pause, HelpCircle } from 'lucide-react';
-import { trackEvent } from '@/lib/analytics';
+import { GameAudio } from "@/components/game/GameAudio";
+import { GameHUD } from "@/components/game/GameHUD";
+import { HyperboreaGame } from "@/components/game/HyperboreaGame";
+import { NFTMintPanel } from "@/components/game/NFTMintPanel";
+import { AdSenseBlock } from "@/components/monetization/AdSenseBlock";
+import { PremiumUpgrade } from "@/components/monetization/PremiumUpgrade";
+import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
+import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
+import { trackEvent } from "@/lib/analytics";
+import {
+    Gamepad2,
+    HelpCircle,
+    Pause,
+    Play,
+    RotateCcw,
+    Star,
+    Trophy,
+    X,
+    Zap,
+} from "lucide-react";
+import type { Metadata } from "next";
+import { useEffect, useState } from "react";
+
+export const metadata: Metadata = {
+  title: "Hyperborea - 3D Browser Game | TradeHax AI",
+  description:
+    "Play Hyperborea, an epic Escher-inspired 3D browser game with NFT rewards and blockchain integration. No download required.",
+  keywords: [
+    "browser game",
+    "3D game",
+    "Hyperborea",
+    "NFT game",
+    "free game",
+    "blockchain game",
+  ],
+  openGraph: {
+    title: "Hyperborea - 3D Browser Game",
+    description:
+      "Join 10,000+ players in Hyperborea. Collect clovers, earn power-ups, and mint NFT rewards.",
+    url: "https://tradehaxai.tech/game",
+    type: "website",
+    images: [
+      {
+        url: "/og-game.svg",
+        width: 1200,
+        height: 630,
+        alt: "Hyperborea Game",
+        type: "image/svg+xml",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Hyperborea - 3D Browser Game",
+    description:
+      "Play Hyperborea on tradehaxai.tech - Free 3D game with NFT rewards",
+    images: ["/og-game.svg"],
+  },
+};
 
 export default function GamePage() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -20,14 +68,16 @@ export default function GamePage() {
   const [cloversCollected, setCloversCollected] = useState(0);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
-  const [activePowerUps, setActivePowerUps] = useState<Array<{ type: string; timeLeft: number }>>([]);
+  const [activePowerUps, setActivePowerUps] = useState<
+    Array<{ type: string; timeLeft: number }>
+  >([]);
   const [walletConnected] = useState(false);
   const [hasPlayedBefore, setHasPlayedBefore] = useState(false);
 
   // Check localStorage after mount to avoid SSR/hydration issues
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const played = localStorage.getItem('hyperborea_played') === 'true';
+    if (typeof window !== "undefined") {
+      const played = localStorage.getItem("hyperborea_played") === "true";
       setHasPlayedBefore(played);
     }
   }, []);
@@ -36,12 +86,12 @@ export default function GamePage() {
     trackEvent.gameStart();
     setIsPlaying(true);
     setIsPaused(false);
-    
+
     // Show tutorial for first-time players
     if (!hasPlayedBefore) {
       setShowTutorial(true);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('hyperborea_played', 'true');
+      if (typeof window !== "undefined") {
+        localStorage.setItem("hyperborea_played", "true");
       }
       setHasPlayedBefore(true);
     }
@@ -68,24 +118,26 @@ export default function GamePage() {
 
   const handleMintNFT = async (skinId: number) => {
     // NFT minting logic will be implemented when backend is ready
-    console.log('Minting NFT skin:', skinId);
+    console.log("Minting NFT skin:", skinId);
     // This would call the backend API for NFT minting
   };
 
   if (isPlaying) {
     return (
-      <div className="fixed inset-0 bg-black">
+      <div className="fixed inset-0 w-screen h-screen bg-black overflow-hidden">
         {/* Game Canvas */}
-        <HyperboreaGame
-          onEnergyChange={setEnergy}
-          onCloverCollect={setCloversCollected}
-          onScoreChange={(newScore, newCombo) => {
-            setScore(newScore);
-            setCombo(newCombo);
-          }}
-          onPowerUpChange={setActivePowerUps}
-        />
-        
+        <div className="w-full h-full">
+          <HyperboreaGame
+            onEnergyChange={setEnergy}
+            onCloverCollect={setCloversCollected}
+            onScoreChange={(newScore, newCombo) => {
+              setScore(newScore);
+              setCombo(newCombo);
+            }}
+            onPowerUpChange={setActivePowerUps}
+          />
+        </div>
+
         {/* Game HUD Overlay */}
         <GameHUD
           energy={energy}
@@ -95,7 +147,7 @@ export default function GamePage() {
           activePowerUps={activePowerUps}
           walletConnected={walletConnected}
         />
-        
+
         {/* NFT Minting Panel - Hidden on mobile */}
         <div className="hidden lg:block">
           <NFTMintPanel
@@ -156,43 +208,71 @@ export default function GamePage() {
 
               <div className="space-y-6 text-gray-300">
                 <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-                  <h3 className="text-xl font-bold text-purple-400 mb-3">🎯 Objective</h3>
+                  <h3 className="text-xl font-bold text-purple-400 mb-3">
+                    🎯 Objective
+                  </h3>
                   <p className="text-sm sm:text-base">
-                    Collect magical clovers (🍀) to gain energy. Reach 100 energy to unlock the mysterious wormhole portal!
+                    Collect magical clovers (🍀) to gain energy. Reach 100
+                    energy to unlock the mysterious wormhole portal!
                   </p>
                 </div>
 
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                  <h3 className="text-xl font-bold text-blue-400 mb-3">🎮 Controls</h3>
+                  <h3 className="text-xl font-bold text-blue-400 mb-3">
+                    🎮 Controls
+                  </h3>
                   <div className="space-y-2 text-sm sm:text-base">
                     <div className="flex items-center gap-3">
-                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">W A S D</span>
-                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">WASD</span>
+                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">
+                        W A S D
+                      </span>
+                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">
+                        WASD
+                      </span>
                       <span>or</span>
-                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">ARROWS</span>
-                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">↑↓←→</span>
+                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">
+                        ARROWS
+                      </span>
+                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">
+                        ↑↓←→
+                      </span>
                       <span>Move your character</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">MOUSE</span>
-                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">MOUSE</span>
+                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">
+                        MOUSE
+                      </span>
+                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">
+                        MOUSE
+                      </span>
                       <span>Move mouse to look around</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">👆 TOUCH</span>
+                      <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">
+                        👆 TOUCH
+                      </span>
                       <span>Tap & drag to move (mobile)</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-pink-500/10 border border-pink-500/30 rounded-lg p-4">
-                  <h3 className="text-xl font-bold text-pink-400 mb-3">✨ Tips</h3>
+                  <h3 className="text-xl font-bold text-pink-400 mb-3">
+                    ✨ Tips
+                  </h3>
                   <ul className="space-y-2 text-sm sm:text-base list-disc list-inside">
                     <li>Each clover gives you +20 energy</li>
                     <li>Clovers respawn after 1 second in a new location</li>
-                    <li>Build combos by collecting clovers quickly for bonus points!</li>
-                    <li>Collect power-ups: ⚡ Speed, 🧲 Magnet, ✨ Double Points</li>
-                    <li>Avoid red obstacles - they drain energy and break combos</li>
+                    <li>
+                      Build combos by collecting clovers quickly for bonus
+                      points!
+                    </li>
+                    <li>
+                      Collect power-ups: ⚡ Speed, 🧲 Magnet, ✨ Double Points
+                    </li>
+                    <li>
+                      Avoid red obstacles - they drain energy and break combos
+                    </li>
                     <li>The portal unlocks at 100 energy</li>
                     <li>Connect your wallet to mint NFT skins with rewards</li>
                   </ul>
@@ -255,7 +335,9 @@ export default function GamePage() {
 
               {/* Stats Display */}
               <div className="mt-6 pt-6 border-t border-gray-700">
-                <h3 className="text-white font-bold mb-3 text-center">Current Stats</h3>
+                <h3 className="text-white font-bold mb-3 text-center">
+                  Current Stats
+                </h3>
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div className="bg-purple-500/20 rounded-lg p-3">
                     <div className="text-2xl mb-1">⚡</div>
@@ -264,12 +346,16 @@ export default function GamePage() {
                   </div>
                   <div className="bg-pink-500/20 rounded-lg p-3">
                     <div className="text-2xl mb-1">🍀</div>
-                    <div className="text-white font-bold">{cloversCollected}</div>
+                    <div className="text-white font-bold">
+                      {cloversCollected}
+                    </div>
                     <div className="text-xs text-gray-400">Clovers</div>
                   </div>
                   <div className="bg-blue-500/20 rounded-lg p-3">
                     <div className="text-2xl mb-1">🏆</div>
-                    <div className="text-white font-bold">{score.toLocaleString()}</div>
+                    <div className="text-white font-bold">
+                      {score.toLocaleString()}
+                    </div>
                     <div className="text-xs text-gray-400">Score</div>
                   </div>
                   <div className="bg-yellow-500/20 rounded-lg p-3">
@@ -289,7 +375,7 @@ export default function GamePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
       <ShamrockHeader />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Hero Section */}
         <div className="text-center mb-8 sm:mb-12">
@@ -297,16 +383,16 @@ export default function GamePage() {
             <Star className="w-4 h-4" />
             BETA VERSION - PLAY NOW!
           </div>
-          
+
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 text-transparent bg-clip-text mb-6">
             Hyperborea
           </h1>
-          
+
           <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto px-4">
-            Experience the ultimate browser-based adventure game with blockchain integration.
-            Play, compete, and earn exclusive NFT rewards!
+            Experience the ultimate browser-based adventure game with blockchain
+            integration. Play, compete, and earn exclusive NFT rewards!
           </p>
-          
+
           {/* Prominent Quick Play Button */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
             <button
@@ -316,7 +402,7 @@ export default function GamePage() {
               <Gamepad2 className="w-6 h-6" />
               Quick Play (Free)
             </button>
-            
+
             <button
               onClick={() => setShowTutorial(true)}
               className="w-full sm:w-auto px-6 py-3 bg-purple-600/20 border-2 border-purple-500 text-purple-300 rounded-xl font-bold hover:bg-purple-600/30 transition-all inline-flex items-center justify-center gap-2"
@@ -362,44 +448,72 @@ export default function GamePage() {
 
               <div className="space-y-6 text-gray-300">
                 <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-                  <h3 className="text-xl font-bold text-purple-400 mb-3">🎯 Objective</h3>
+                  <h3 className="text-xl font-bold text-purple-400 mb-3">
+                    🎯 Objective
+                  </h3>
                   <p className="text-sm sm:text-base">
-                    Navigate the Escher-inspired impossible maze and collect magical clovers (🍀) to gain energy. 
-                    Reach 100 energy to unlock the mysterious wormhole portal!
+                    Navigate the Escher-inspired impossible maze and collect
+                    magical clovers (🍀) to gain energy. Reach 100 energy to
+                    unlock the mysterious wormhole portal!
                   </p>
                 </div>
 
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                  <h3 className="text-xl font-bold text-blue-400 mb-3">🎮 Controls</h3>
+                  <h3 className="text-xl font-bold text-blue-400 mb-3">
+                    🎮 Controls
+                  </h3>
                   <div className="space-y-2 text-sm sm:text-base">
                     <div className="flex items-center gap-3">
-                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">W A S D</span>
-                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">WASD</span>
+                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">
+                        W A S D
+                      </span>
+                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">
+                        WASD
+                      </span>
                       <span>or</span>
-                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">ARROWS</span>
-                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">↑↓←→</span>
+                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">
+                        ARROWS
+                      </span>
+                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">
+                        ↑↓←→
+                      </span>
                       <span>Move your character</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">MOUSE</span>
-                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">MOUSE</span>
+                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">
+                        MOUSE
+                      </span>
+                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">
+                        MOUSE
+                      </span>
                       <span>Move mouse to look around</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">👆 TOUCH</span>
+                      <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">
+                        👆 TOUCH
+                      </span>
                       <span>Tap & drag to move (mobile)</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-pink-500/10 border border-pink-500/30 rounded-lg p-4">
-                  <h3 className="text-xl font-bold text-pink-400 mb-3">✨ Tips</h3>
+                  <h3 className="text-xl font-bold text-pink-400 mb-3">
+                    ✨ Tips
+                  </h3>
                   <ul className="space-y-2 text-sm sm:text-base list-disc list-inside">
                     <li>Each clover gives you +20 energy</li>
                     <li>Clovers respawn after 1 second in a new location</li>
-                    <li>Build combos by collecting clovers quickly for bonus points!</li>
-                    <li>Collect power-ups: ⚡ Speed, 🧲 Magnet, ✨ Double Points</li>
-                    <li>Avoid red obstacles - they drain energy and break combos</li>
+                    <li>
+                      Build combos by collecting clovers quickly for bonus
+                      points!
+                    </li>
+                    <li>
+                      Collect power-ups: ⚡ Speed, 🧲 Magnet, ✨ Double Points
+                    </li>
+                    <li>
+                      Avoid red obstacles - they drain energy and break combos
+                    </li>
                     <li>The portal unlocks at 100 energy</li>
                     <li>Connect your wallet to mint NFT skins with rewards</li>
                     <li>Use the pause button anytime to take a break</li>
@@ -437,15 +551,16 @@ export default function GamePage() {
         <div className="bg-gray-900/50 border-2 border-purple-500/30 rounded-xl p-8 mb-12 min-h-[600px] flex items-center justify-center relative overflow-hidden">
           {/* Animated Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-blue-900/20 animate-pulse"></div>
-          
+
           <div className="text-center relative z-10">
             <Gamepad2 className="w-24 h-24 text-purple-400 mx-auto mb-6 animate-bounce" />
             <h2 className="text-3xl font-bold text-white mb-4">
               Ready to Enter Hyperborea?
             </h2>
             <p className="text-gray-400 mb-6 max-w-lg mx-auto">
-              Navigate the Escher-inspired impossible maze, collect magical clovers, 
-              and unlock the wormhole portal. Mint legendary NFT skins with your earned rewards!
+              Navigate the Escher-inspired impossible maze, collect magical
+              clovers, and unlock the wormhole portal. Mint legendary NFT skins
+              with your earned rewards!
             </p>
             <button
               onClick={handlePlayClick}
@@ -483,10 +598,14 @@ export default function GamePage() {
 
         {/* Game Info */}
         <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-8 mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6">About Hyperborea</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">
+            About Hyperborea
+          </h2>
           <div className="grid md:grid-cols-2 gap-8 text-gray-300">
             <div>
-              <h3 className="text-lg font-semibold text-white mb-3">Free Tier</h3>
+              <h3 className="text-lg font-semibold text-white mb-3">
+                Free Tier
+              </h3>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">
                   <span className="text-purple-400 mt-1">✓</span>
@@ -507,7 +626,9 @@ export default function GamePage() {
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white mb-3">Premium ($4.99)</h3>
+              <h3 className="text-lg font-semibold text-white mb-3">
+                Premium ($4.99)
+              </h3>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">
                   <span className="text-purple-400 mt-1">✓</span>
@@ -541,7 +662,11 @@ export default function GamePage() {
   );
 }
 
-function FeatureCard({ icon, title, description }: {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
   icon: React.ReactNode;
   title: string;
   description: string;

@@ -4,6 +4,7 @@ import "./globals.css";
 import { SolanaProvider } from "@/components/counter/provider/Solana";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { IntroVideoWrapper } from "@/components/IntroVideoWrapper";
+import { HeaderBannerAd } from "@/components/monetization/AdSenseBlock";
 import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
@@ -13,6 +14,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: dark)", color: "#00FF41" },
     { media: "(prefers-color-scheme: light)", color: "#00FF41" },
@@ -50,10 +52,11 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-home.svg",
         width: 1200,
         height: 630,
         alt: "TradeHax AI - Automated Web3 Trading Platform",
+        type: "image/svg+xml",
       },
     ],
   },
@@ -62,8 +65,9 @@ export const metadata: Metadata = {
     title: "TradeHax AI - Automated Web3 Trading Platform",
     description:
       "Advanced automated trading platform powered by Solana blockchain. Trade smarter with AI-driven insights and decentralized technology.",
-    images: ["/twitter-image.png"],
+    images: ["/og-home.svg"],
     creator: "@tradehaxai",
+    site: "@tradehaxai",
   },
   robots: {
     index: true,
@@ -115,9 +119,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-          <body className="antialiased bg-black text-green-100 font-sans">
-            {/* Header ad for quick monetization; only renders when NEXT_PUBLIC_ADSENSE_ID set */}
-            <HeaderBannerAd />
+      <body className="antialiased bg-black text-green-100 font-sans">
+        {/* Header ad for quick monetization; only renders when NEXT_PUBLIC_ADSENSE_ID set */}
+        <HeaderBannerAd />
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <>
             <Script

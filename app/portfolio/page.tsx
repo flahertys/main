@@ -1,18 +1,56 @@
-'use client';
+"use client";
 
-import { ShamrockHeader } from '@/components/shamrock/ShamrockHeader';
-import { ShamrockFooter } from '@/components/shamrock/ShamrockFooter';
-import { EmailCapture } from '@/components/EmailCapture';
-import { AdSenseBlock } from '@/components/monetization/AdSenseBlock';
-import { Download, Mail, Briefcase, Code, Award } from 'lucide-react';
-import Link from 'next/link';
-import { trackEvent } from '@/lib/analytics';
+import { EmailCapture } from "@/components/EmailCapture";
+import { AdSenseBlock } from "@/components/monetization/AdSenseBlock";
+import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
+import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
+import { Award, Briefcase, Code, Mail } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Michael S. Flaherty - Full-Stack Developer & Web3 Architect",
+  description:
+    "Full-Stack Developer with expertise in Web3, blockchain trading systems, and modern web applications. Hire for freelance projects and consulting.",
+  keywords: [
+    "developer",
+    "full-stack",
+    "Web3",
+    "blockchain",
+    "trading systems",
+    "React",
+    "Next.js",
+  ],
+  openGraph: {
+    title: "Michael S. Flaherty - Developer Portfolio",
+    description:
+      "Full-stack developer specializing in Web3, automated trading platforms, and scalable web applications.",
+    url: "https://tradehaxai.tech/portfolio",
+    type: "website",
+    images: [
+      {
+        url: "/og-portfolio.svg",
+        width: 1200,
+        height: 630,
+        alt: "Portfolio - Michael S. Flaherty",
+        type: "image/svg+xml",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Michael S. Flaherty - Developer Portfolio",
+    description:
+      "Full-stack developer & Web3 architect. Available for projects and consulting.",
+    images: ["/og-portfolio.svg"],
+  },
+};
 
 export default function PortfolioPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
       <ShamrockHeader />
-      
+
       <main className="portfolio-container py-12">
         {/* Header Section */}
         <div className="text-center mb-12 animate-fade-in">
@@ -22,20 +60,11 @@ export default function PortfolioPage() {
           <p className="text-xl text-gray-300 mb-6">
             Full-Stack Developer | Web3 Architect | Trading Systems Expert
           </p>
-          
+
           <div className="flex flex-wrap justify-center gap-4 mb-8">
-            <a
-              href="/portfolio/MichaelSFlahertyResume.pdf"
-              download
-              onClick={() => trackEvent.downloadResume()}
-              className="shamrock-button inline-flex items-center gap-2 px-6 py-3 text-lg shadow-lg hover:shadow-[#0366d6]/50"
-            >
-              <Download className="w-5 h-5" />
-              Download Resume
-            </a>
             <Link
               href="#contact"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-all text-lg"
+              className="shamrock-button inline-flex items-center gap-2 px-6 py-3 text-lg shadow-lg hover:shadow-[#0366d6]/50"
             >
               <Mail className="w-5 h-5" />
               Hire Me
@@ -45,7 +74,11 @@ export default function PortfolioPage() {
 
         {/* Ad Placement */}
         <div className="mb-12">
-          <AdSenseBlock adSlot="portfolio-top" adFormat="horizontal" className="max-w-3xl mx-auto" />
+          <AdSenseBlock
+            adSlot="portfolio-top"
+            adFormat="horizontal"
+            className="max-w-3xl mx-auto"
+          />
         </div>
 
         {/* About Section */}
@@ -55,13 +88,20 @@ export default function PortfolioPage() {
             About Me
           </h2>
           <p className="text-gray-300 space-y-4">
-            <span className="block">I&apos;m a passionate full-stack developer with expertise in building scalable Web3 applications,
-            automated trading systems, and modern web platforms. With a strong foundation in both frontend
-            and backend technologies, I specialize in creating high-performance applications that leverage
-            blockchain technology and AI.</span>
-            <span className="block">My recent work includes developing TradeHax AI, an advanced automated trading platform powered
-            by Solana blockchain, featuring real-time trading capabilities, wallet integration, and
-            sophisticated analytics dashboards.</span>
+            <span className="block">
+              I&apos;m a passionate full-stack developer with expertise in
+              building scalable Web3 applications, automated trading systems,
+              and modern web platforms. With a strong foundation in both
+              frontend and backend technologies, I specialize in creating
+              high-performance applications that leverage blockchain technology
+              and AI.
+            </span>
+            <span className="block">
+              My recent work includes developing TradeHax AI, an advanced
+              automated trading platform powered by Solana blockchain, featuring
+              real-time trading capabilities, wallet integration, and
+              sophisticated analytics dashboards.
+            </span>
           </p>
         </section>
 
@@ -74,27 +114,50 @@ export default function PortfolioPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <SkillCategory
               title="Frontend"
-              skills={['React', 'Next.js', 'TypeScript', 'Tailwind CSS', 'shadcn/ui']}
+              skills={[
+                "React",
+                "Next.js",
+                "TypeScript",
+                "Tailwind CSS",
+                "shadcn/ui",
+              ]}
             />
             <SkillCategory
               title="Backend"
-              skills={['Node.js', 'Python', 'REST APIs', 'GraphQL', 'WebSockets']}
+              skills={[
+                "Node.js",
+                "Python",
+                "REST APIs",
+                "GraphQL",
+                "WebSockets",
+              ]}
             />
             <SkillCategory
               title="Web3 & Blockchain"
-              skills={['Solana', 'Anchor', 'Web3.js', 'Wallet Adapters', 'Smart Contracts']}
+              skills={[
+                "Solana",
+                "Anchor",
+                "Web3.js",
+                "Wallet Adapters",
+                "Smart Contracts",
+              ]}
             />
             <SkillCategory
               title="Databases"
-              skills={['PostgreSQL', 'MongoDB', 'Redis', 'Prisma ORM']}
+              skills={["PostgreSQL", "MongoDB", "Redis", "Prisma ORM"]}
             />
             <SkillCategory
               title="DevOps & Tools"
-              skills={['Git', 'Docker', 'Vercel', 'CI/CD', 'GitHub Actions']}
+              skills={["Git", "Docker", "Vercel", "CI/CD", "GitHub Actions"]}
             />
             <SkillCategory
               title="Trading & Finance"
-              skills={['Algorithmic Trading', 'Market Analysis', 'Risk Management', 'DeFi']}
+              skills={[
+                "Algorithmic Trading",
+                "Market Analysis",
+                "Risk Management",
+                "DeFi",
+              ]}
             />
           </div>
         </section>
@@ -109,54 +172,67 @@ export default function PortfolioPage() {
             <ProjectCard
               title="TradeHax AI"
               description="Advanced automated trading platform powered by Solana blockchain. Features real-time trading, wallet integration, AI-driven insights, and comprehensive analytics dashboards."
-              technologies={['Next.js', 'Solana', 'TypeScript', 'Tailwind CSS', 'Anchor']}
+              technologies={[
+                "Next.js",
+                "Solana",
+                "TypeScript",
+                "Tailwind CSS",
+                "Anchor",
+              ]}
               link="https://tradehaxai.tech"
             />
             <ProjectCard
               title="Hyperborea Game"
               description="Browser-based gaming platform with NFT integration and in-game monetization. Features progressive difficulty, leaderboards, and blockchain-based achievements."
-              technologies={['HTML5 Canvas', 'TypeScript', 'Web3', 'Solana NFTs']}
+              technologies={[
+                "HTML5 Canvas",
+                "TypeScript",
+                "Web3",
+                "Solana NFTs",
+              ]}
               link="/game"
             />
             <ProjectCard
               title="Web3 Portfolio Site"
               description="Modern portfolio website showcasing full-stack development skills with integrated monetization strategies including AdSense, email marketing, and affiliate programs."
-              technologies={['Next.js 15', 'React 19', 'Tailwind CSS v4', 'TypeScript']}
+              technologies={[
+                "Next.js 15",
+                "React 19",
+                "Tailwind CSS v4",
+                "TypeScript",
+              ]}
               link="/"
             />
           </div>
         </section>
 
         {/* Contact CTA Section */}
-        <section id="contact" className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-8 text-center mb-12">
+        <section
+          id="contact"
+          className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-8 text-center mb-12"
+        >
           <h2 className="text-3xl font-bold text-white mb-4">
             Let&apos;s Work Together
           </h2>
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            I&apos;m available for freelance projects, consulting, and full-time opportunities.
-            Let&apos;s discuss how I can help bring your ideas to life.
+            I&apos;m available for freelance projects, consulting, and full-time
+            opportunities. Let&apos;s discuss how I can help bring your ideas to
+            life.
           </p>
           <EmailCapture />
         </section>
 
         {/* Ad Placement */}
         <div className="mb-8">
-          <AdSenseBlock adSlot="portfolio-bottom" adFormat="horizontal" className="max-w-3xl mx-auto" />
+          <AdSenseBlock
+            adSlot="portfolio-bottom"
+            adFormat="horizontal"
+            className="max-w-3xl mx-auto"
+          />
         </div>
       </main>
 
       <ShamrockFooter />
-      
-      {/* Floating Download Button (Mobile) */}
-      <a
-        href="/portfolio/MichaelSFlahertyResume.pdf"
-        download
-        onClick={() => trackEvent.downloadResume()}
-        className="floating-download"
-      >
-        <Download className="w-5 h-5" />
-        Resume
-      </a>
     </div>
   );
 }
@@ -204,8 +280,8 @@ function ProjectCard({
       </div>
       <a
         href={link}
-        target={link.startsWith('http') ? '_blank' : undefined}
-        rel={link.startsWith('http') ? 'noopener noreferrer' : undefined}
+        target={link.startsWith("http") ? "_blank" : undefined}
+        rel={link.startsWith("http") ? "noopener noreferrer" : undefined}
         className="shamrock-link font-semibold"
       >
         View Project →

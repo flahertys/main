@@ -1,18 +1,57 @@
-import { ShamrockHeader } from '@/components/shamrock/ShamrockHeader';
-import { ShamrockFooter } from '@/components/shamrock/ShamrockFooter';
-import { EmailCapture } from '@/components/EmailCapture';
-import { AdSenseBlock } from '@/components/monetization/AdSenseBlock';
-import { Code, LineChart, Users, Zap, CheckCircle2, ArrowRight, Wrench, Megaphone, Server, Smartphone, Database, ShoppingCart } from 'lucide-react';
-import Link from 'next/link';
-import type { Metadata } from 'next';
+import { EmailCapture } from "@/components/EmailCapture";
+import { AdSenseBlock } from "@/components/monetization/AdSenseBlock";
+import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
+import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
+import {
+    ArrowRight,
+    CheckCircle2,
+    Code,
+    Database,
+    LineChart,
+    Megaphone,
+    Server,
+    ShoppingCart,
+    Smartphone,
+    Users,
+    Wrench,
+    Zap,
+} from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: 'Professional Services - Web3 Development & Trading Consulting | TradeHax AI',
-  description: 'Expert Web3 development, blockchain consulting, and automated trading system implementation. Custom solutions for your business needs.',
+  title:
+    "Professional Services - Web3 Development & Trading Consulting | TradeHax AI",
+  description:
+    "Expert Web3 development, blockchain consulting, and automated trading system implementation. Custom solutions for your business needs.",
+  keywords: [
+    "web3 development",
+    "blockchain consulting",
+    "trading systems",
+    "smart contracts",
+    "DApp development",
+  ],
   openGraph: {
-    title: 'Professional Services - TradeHax AI',
-    description: 'Expert Web3 development and trading consulting services.',
-    type: 'website',
+    title: "Professional Services - TradeHax AI",
+    description: "Expert Web3 development and trading consulting services.",
+    url: "https://tradehaxai.tech/services",
+    type: "website",
+    images: [
+      {
+        url: "/og-services.svg",
+        width: 1200,
+        height: 630,
+        alt: "Professional Services",
+        type: "image/svg+xml",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Professional Services - TradeHax AI",
+    description:
+      "Web3 development, blockchain consulting, and trading system services.",
+    images: ["/og-services.svg"],
   },
 };
 
@@ -20,7 +59,7 @@ export default function ServicesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
       <ShamrockHeader />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
         <div className="text-center mb-16">
@@ -28,8 +67,9 @@ export default function ServicesPage() {
             Professional Services
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Complete technology solutions from Web3 development to hardware repair, social media marketing,
-            and automated trading systems built by experienced developers.
+            Complete technology solutions from Web3 development to hardware
+            repair, social media marketing, and automated trading systems built
+            by experienced developers.
           </p>
         </div>
 
@@ -45,11 +85,11 @@ export default function ServicesPage() {
             title="Web3 Development"
             description="Custom blockchain applications, smart contracts, and decentralized platforms built with modern technologies."
             features={[
-              'Solana & Ethereum development',
-              'Smart contract auditing',
-              'DApp architecture & design',
-              'Wallet integration',
-              'NFT marketplace development',
+              "Solana & Ethereum development",
+              "Smart contract auditing",
+              "DApp architecture & design",
+              "Wallet integration",
+              "NFT marketplace development",
             ]}
             pricing="Starting at $5,000"
           />
@@ -59,12 +99,12 @@ export default function ServicesPage() {
             title="Trading System Development & Community"
             description="Automated trading bots, algorithmic strategies, real-time market analysis, and exclusive livestream trading sessions."
             features={[
-              'Custom trading algorithms',
-              'Portfolio management systems',
-              'Market data integration',
-              'Risk management tools',
-              'Backtesting frameworks',
-              'Live trading sessions & community (coming soon)',
+              "Custom trading algorithms",
+              "Portfolio management systems",
+              "Market data integration",
+              "Risk management tools",
+              "Backtesting frameworks",
+              "Live trading sessions & community (coming soon)",
             ]}
             pricing="Starting at $3,000"
           />
@@ -74,11 +114,11 @@ export default function ServicesPage() {
             title="Consulting & Strategy"
             description="Expert guidance on blockchain adoption, DeFi strategies, and Web3 business models."
             features={[
-              'Technical architecture review',
-              'Blockchain strategy planning',
-              'DeFi protocol optimization',
-              'Team training & workshops',
-              'Code review & audits',
+              "Technical architecture review",
+              "Blockchain strategy planning",
+              "DeFi protocol optimization",
+              "Team training & workshops",
+              "Code review & audits",
             ]}
             pricing="$200/hour"
           />
@@ -88,11 +128,11 @@ export default function ServicesPage() {
             title="Full-Stack Development"
             description="Complete web applications with modern frameworks, APIs, and database architecture."
             features={[
-              'Next.js & React applications',
-              'Backend API development',
-              'Database design & optimization',
-              'Cloud deployment & DevOps',
-              'Performance optimization',
+              "Next.js & React applications",
+              "Backend API development",
+              "Database design & optimization",
+              "Cloud deployment & DevOps",
+              "Performance optimization",
             ]}
             pricing="Starting at $4,000"
           />
@@ -102,12 +142,12 @@ export default function ServicesPage() {
             title="Software & Hardware Support"
             description="Remote-first technical support for all your computer needs. Fast diagnostics, troubleshooting, and optimization."
             features={[
-              'Remote software troubleshooting & fixes',
-              'Hardware diagnostic support',
-              'Virus & malware removal',
-              'System optimization & cleanup',
-              'Data recovery assistance',
-              'OS installation & updates',
+              "Remote software troubleshooting & fixes",
+              "Hardware diagnostic support",
+              "Virus & malware removal",
+              "System optimization & cleanup",
+              "Data recovery assistance",
+              "OS installation & updates",
             ]}
             pricing="$50-100/hour"
           />
@@ -117,12 +157,12 @@ export default function ServicesPage() {
             title="Social Media Marketing"
             description="Complete social media management and digital marketing services to grow your online presence and engage your audience."
             features={[
-              'Social media strategy development',
-              'Content creation & scheduling',
-              'Community management & engagement',
-              'Paid advertising campaigns (FB, IG, TikTok)',
-              'SEO optimization & analytics',
-              'Influencer outreach & partnerships',
+              "Social media strategy development",
+              "Content creation & scheduling",
+              "Community management & engagement",
+              "Paid advertising campaigns (FB, IG, TikTok)",
+              "SEO optimization & analytics",
+              "Influencer outreach & partnerships",
             ]}
             pricing="Starting at $1,000/month"
           />
@@ -132,12 +172,12 @@ export default function ServicesPage() {
             title="Complete IT Solutions"
             description="End-to-end IT management for businesses. From domain setup to ongoing technical support."
             features={[
-              'Domain registration & DNS management',
-              'Email hosting & configuration',
-              'SSL certificate installation',
-              'Website backups & security monitoring',
-              'Cloud infrastructure setup',
-              '24/7 technical support retainers',
+              "Domain registration & DNS management",
+              "Email hosting & configuration",
+              "SSL certificate installation",
+              "Website backups & security monitoring",
+              "Cloud infrastructure setup",
+              "24/7 technical support retainers",
             ]}
             pricing="Starting at $500/month"
           />
@@ -147,12 +187,12 @@ export default function ServicesPage() {
             title="Custom Application Development"
             description="Native mobile apps, web applications, and cross-platform solutions built with modern frameworks."
             features={[
-              'iOS & Android app development',
-              'Progressive Web Apps (PWA)',
-              'React Native cross-platform apps',
-              'API development & integration',
-              'App Store & Play Store deployment',
-              'Ongoing maintenance & updates',
+              "iOS & Android app development",
+              "Progressive Web Apps (PWA)",
+              "React Native cross-platform apps",
+              "API development & integration",
+              "App Store & Play Store deployment",
+              "Ongoing maintenance & updates",
             ]}
             pricing="Starting at $8,000"
           />
@@ -162,12 +202,12 @@ export default function ServicesPage() {
             title="Database & Cloud Architecture"
             description="Scalable database design, cloud migration, and infrastructure optimization for growing businesses."
             features={[
-              'PostgreSQL, MongoDB, MySQL setup',
-              'AWS, Google Cloud, Azure deployment',
-              'Database optimization & indexing',
-              'Cloud cost optimization',
-              'Backup & disaster recovery',
-              'DevOps & CI/CD pipelines',
+              "PostgreSQL, MongoDB, MySQL setup",
+              "AWS, Google Cloud, Azure deployment",
+              "Database optimization & indexing",
+              "Cloud cost optimization",
+              "Backup & disaster recovery",
+              "DevOps & CI/CD pipelines",
             ]}
             pricing="Starting at $3,500"
           />
@@ -177,12 +217,12 @@ export default function ServicesPage() {
             title="E-Commerce Development"
             description="Complete online store setup with payment processing, inventory management, and marketing tools."
             features={[
-              'Shopify, WooCommerce, custom builds',
-              'Payment gateway integration (Stripe, PayPal)',
-              'Inventory & order management',
-              'Email marketing automation',
-              'Product photography & descriptions',
-              'Conversion rate optimization',
+              "Shopify, WooCommerce, custom builds",
+              "Payment gateway integration (Stripe, PayPal)",
+              "Inventory & order management",
+              "Email marketing automation",
+              "Product photography & descriptions",
+              "Conversion rate optimization",
             ]}
             pricing="Starting at $6,000"
           />
@@ -244,12 +284,12 @@ export default function ServicesPage() {
             Ready to Start Your Project?
           </h2>
           <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-            Let&apos;s discuss how we can bring your vision to life with cutting-edge technology
-            and proven development practices.
+            Let&apos;s discuss how we can bring your vision to life with
+            cutting-edge technology and proven development practices.
           </p>
-          
+
           <EmailCapture />
-          
+
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/portfolio"
@@ -297,10 +337,10 @@ function ServiceCard({
       <div className="w-16 h-16 bg-purple-500/20 rounded-lg flex items-center justify-center mb-6 text-purple-400">
         {icon}
       </div>
-      
+
       <h3 className="text-2xl font-bold text-white mb-3">{title}</h3>
       <p className="text-gray-400 mb-6">{description}</p>
-      
+
       <ul className="space-y-3 mb-6">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-3 text-gray-300">
@@ -309,7 +349,7 @@ function ServiceCard({
           </li>
         ))}
       </ul>
-      
+
       <div className="pt-6 border-t border-gray-800">
         <p className="text-2xl font-bold text-white">{pricing}</p>
       </div>
@@ -337,7 +377,13 @@ function ProcessStep({
   );
 }
 
-function Benefit({ title, description }: { title: string; description: string }) {
+function Benefit({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
   return (
     <div className="text-center">
       <h3 className="text-xl font-bold text-white mb-2">{title}</h3>

@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { Github, Twitter, Mail, Linkedin } from 'lucide-react';
+import { Github, Linkedin, Mail, Twitter } from "lucide-react";
+import Link from "next/link";
 
 /**
  * Footer component with shamrock theme styling
@@ -18,7 +18,8 @@ export function ShamrockFooter() {
               TradeHax AI
             </div>
             <p className="text-gray-400 text-sm mb-4">
-              3-portal business ecosystem: Music education, fintech trading, and complete tech services.
+              3-portal business ecosystem: Music education, fintech trading, and
+              complete tech services.
             </p>
             <div className="flex space-x-4">
               <a
@@ -40,7 +41,7 @@ export function ShamrockFooter() {
                 <Github className="w-5 h-5" />
               </a>
               <a
-                href="https://linkedin.com"
+                href="https://linkedin.com/company/tradehax-ai"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-[#0366d6] transition-colors"
@@ -75,13 +76,10 @@ export function ShamrockFooter() {
 
           {/* Trading Portal */}
           <div>
-            <h3 className="text-white font-semibold mb-4">💰 Trading & Fintech</h3>
+            <h3 className="text-white font-semibold mb-4">
+              💰 Trading & Fintech
+            </h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/music" className="shamrock-link text-sm">
-                  Music Lessons
-                </Link>
-              </li>
               <li>
                 <Link href="/dashboard" className="shamrock-link text-sm">
                   Trading Dashboard
@@ -93,8 +91,8 @@ export function ShamrockFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/services" className="shamrock-link text-sm">
-                  Tech Services
+                <Link href="/todos" className="shamrock-link text-sm">
+                  Task Management
                 </Link>
               </li>
               <li>
@@ -188,19 +186,22 @@ export function ShamrockFooter() {
             <h3 className="text-white font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/terms" className="shamrock-link text-sm">
-                  Terms of Service
-                </Link>
+                <a
+                  href="mailto:support@tradehaxai.tech"
+                  className="shamrock-link text-sm"
+                >
+                  Contact Support
+                </a>
               </li>
               <li>
-                <Link href="/privacy" className="shamrock-link text-sm">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/disclaimer" className="shamrock-link text-sm">
-                  Disclaimer
-                </Link>
+                <a
+                  href="https://github.com/DarkModder33/main"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shamrock-link text-sm"
+                >
+                  Source Code
+                </a>
               </li>
             </ul>
           </div>
@@ -212,26 +213,31 @@ export function ShamrockFooter() {
             <p className="text-sm text-gray-400">
               &copy; {currentYear} TradeHax AI. All rights reserved.
             </p>
-            
+
             <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-400">
               <p className="text-gray-500">
                 🎯 Music • Trading • Tech Services
               </p>
             </div>
           </div>
-          
+
           {/* Affiliate Disclosure */}
           <p className="text-xs text-gray-500 text-center mt-4">
-            🔗 We may earn commissions from affiliate links on this site. See our{' '}
-            <Link href="/disclaimer" className="underline hover:text-gray-400">
-              disclaimer
-            </Link>{' '}
+            🔗 We may earn commissions from affiliate links on this site. See
+            our{" "}
+            <a
+              href="mailto:support@tradehaxai.tech"
+              className="underline hover:text-gray-400"
+            >
+              contact us
+            </a>{" "}
             for details.
           </p>
-          
+
           {/* Additional Info */}
           <p className="text-xs text-gray-500 text-center mt-2">
-            💡 Built with Next.js, Solana, and ❤️ | 🔒 Secured by blockchain technology
+            💡 Built with Next.js, Solana, and ❤️ | 🔒 Secured by blockchain
+            technology
           </p>
         </div>
       </div>

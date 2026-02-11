@@ -1,22 +1,56 @@
-import { ShamrockHeader } from '@/components/shamrock/ShamrockHeader';
-import { ShamrockFooter } from '@/components/shamrock/ShamrockFooter';
-import { LessonCard } from '@/components/music/LessonCard';
-import { LessonBooking } from '@/components/music/LessonBooking';
-import { ArtistCard } from '@/components/music/ArtistCard';
-import { TokenRoadmap } from '@/components/music/TokenRoadmap';
-import { AdSenseBlock } from '@/components/monetization/AdSenseBlock';
-import { bookingLinks } from '@/lib/booking';
-import { Music, Guitar, Users, Sparkles, TrendingUp, ArrowRight } from 'lucide-react';
-import Link from 'next/link';
-import type { Metadata } from 'next';
+import { AdSenseBlock } from "@/components/monetization/AdSenseBlock";
+import { ArtistCard } from "@/components/music/ArtistCard";
+import { LessonBooking } from "@/components/music/LessonBooking";
+import { LessonCard } from "@/components/music/LessonCard";
+import { TokenRoadmap } from "@/components/music/TokenRoadmap";
+import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
+import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
+import { bookingLinks } from "@/lib/booking";
+import {
+    ArrowRight,
+    Guitar,
+    Music,
+    Sparkles,
+    TrendingUp,
+    Users,
+} from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: 'Music & Arts Platform - Remote Guitar Lessons & Artist Showcase | TradeHax AI',
-  description: 'Learn guitar online with professional instructors. Showcase your music, earn tips, and join the L2 token revolution for music education.',
+  title:
+    "Music & Arts Platform - Remote Guitar Lessons & Artist Showcase | TradeHax AI",
+  description:
+    "Learn guitar online with professional instructors. Showcase your music, earn tips, and join the L2 token revolution for music education.",
+  keywords: [
+    "guitar lessons",
+    "online music teacher",
+    "music education",
+    "artist showcase",
+    "blockchain music",
+  ],
   openGraph: {
-    title: 'Music & Arts Platform - TradeHax AI',
-    description: 'Remote guitar lessons, artist showcase, and music education scholarships.',
-    type: 'website',
+    title: "Music & Arts Platform - TradeHax AI",
+    description:
+      "Remote guitar lessons, artist showcase, and music education scholarships.",
+    url: "https://tradehaxai.tech/music",
+    type: "website",
+    images: [
+      {
+        url: "/og-music.svg",
+        width: 1200,
+        height: 630,
+        alt: "Music & Arts Platform",
+        type: "image/svg+xml",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Music & Arts Platform - TradeHax AI",
+    description:
+      "Learn guitar, showcase your music, earn tips on the blockchain",
+    images: ["/og-music.svg"],
   },
 };
 
@@ -24,17 +58,17 @@ export default function MusicPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
       <ShamrockHeader />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
         <div className="text-center mb-16 relative">
           <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B35]/20 to-purple-600/20 blur-3xl -z-10" />
-          
+
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#FF6B35]/20 border border-[#FF6B35]/30 rounded-full text-[#FF6B35] text-sm font-semibold mb-6">
             <Music className="w-4 h-4" />
             <span>Music Education & Artist Platform</span>
           </div>
-          
+
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
             <span className="bg-gradient-to-r from-[#FF6B35] to-purple-400 text-transparent bg-clip-text">
               Master Your Craft
@@ -42,12 +76,13 @@ export default function MusicPage() {
             <br />
             <span className="text-white">Share Your Music</span>
           </h1>
-          
+
           <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-            Professional remote guitar lessons, artist showcase platform, and revolutionary 
-            music education scholarships powered by blockchain technology.
+            Professional remote guitar lessons, artist showcase platform, and
+            revolutionary music education scholarships powered by blockchain
+            technology.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="#lessons"
@@ -78,7 +113,8 @@ export default function MusicPage() {
               Remote Guitar Lessons
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              One-on-one instruction from experienced musicians. All skill levels welcome.
+              One-on-one instruction from experienced musicians. All skill
+              levels welcome.
             </p>
           </div>
 
@@ -89,11 +125,11 @@ export default function MusicPage() {
               price="$50/lesson"
               packagePrice="$180"
               features={[
-                'Basic chord progressions',
-                'Strumming patterns',
-                'Music theory fundamentals',
-                'Song learning techniques',
-                'Personalized practice plans',
+                "Basic chord progressions",
+                "Strumming patterns",
+                "Music theory fundamentals",
+                "Song learning techniques",
+                "Personalized practice plans",
               ]}
             />
 
@@ -103,11 +139,11 @@ export default function MusicPage() {
               price="$75/lesson"
               packagePrice="$270"
               features={[
-                'Advanced techniques',
-                'Scale mastery',
-                'Improvisation skills',
-                'Genre-specific styles',
-                'Performance coaching',
+                "Advanced techniques",
+                "Scale mastery",
+                "Improvisation skills",
+                "Genre-specific styles",
+                "Performance coaching",
               ]}
               popular={true}
             />
@@ -118,23 +154,25 @@ export default function MusicPage() {
               price="$100/lesson"
               packagePrice="$360"
               features={[
-                'Complex compositions',
-                'Professional recording tips',
-                'Career development',
-                'Music production basics',
-                'Industry networking',
+                "Complex compositions",
+                "Professional recording tips",
+                "Career development",
+                "Music production basics",
+                "Industry networking",
               ]}
             />
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
             <LessonBooking />
-            
+
             <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-8">
-              <h3 className="text-2xl font-bold text-white mb-6">Group Workshops</h3>
+              <h3 className="text-2xl font-bold text-white mb-6">
+                Group Workshops
+              </h3>
               <p className="text-gray-300 mb-6">
-                Learn alongside fellow musicians in our interactive group sessions. 
-                Minimum 4 students, maximum 8 per workshop.
+                Learn alongside fellow musicians in our interactive group
+                sessions. Minimum 4 students, maximum 8 per workshop.
               </p>
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between items-center">
@@ -147,10 +185,12 @@ export default function MusicPage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400">Format</span>
-                  <span className="text-white font-semibold">Live via Zoom</span>
+                  <span className="text-white font-semibold">
+                    Live via Zoom
+                  </span>
                 </div>
               </div>
-              <a 
+              <a
                 href={bookingLinks.guitarLessons}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -163,32 +203,42 @@ export default function MusicPage() {
 
           {/* Instructor Profiles */}
           <div className="mt-12 bg-gray-900/50 border border-gray-800 rounded-xl p-8">
-            <h3 className="text-2xl font-bold text-white mb-6">Meet Your Instructors</h3>
+            <h3 className="text-2xl font-bold text-white mb-6">
+              Meet Your Instructors
+            </h3>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="flex items-start gap-4">
                 <div className="w-20 h-20 bg-gradient-to-br from-[#FF6B35] to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
                   JD
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-white mb-2">John Davis</h4>
-                  <p className="text-[#FF6B35] text-sm font-semibold mb-2">Lead Guitar Instructor</p>
+                  <h4 className="text-xl font-bold text-white mb-2">
+                    John Davis
+                  </h4>
+                  <p className="text-[#FF6B35] text-sm font-semibold mb-2">
+                    Lead Guitar Instructor
+                  </p>
                   <p className="text-gray-400 text-sm">
-                    15+ years teaching experience. Berklee College of Music graduate. 
-                    Specializes in rock, blues, and jazz techniques.
+                    15+ years teaching experience. Berklee College of Music
+                    graduate. Specializes in rock, blues, and jazz techniques.
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-4">
                 <div className="w-20 h-20 bg-gradient-to-br from-[#00D100] to-[#00FF41] rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
                   SM
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-white mb-2">Sarah Martinez</h4>
-                  <p className="text-[#FF6B35] text-sm font-semibold mb-2">Classical & Acoustic Specialist</p>
+                  <h4 className="text-xl font-bold text-white mb-2">
+                    Sarah Martinez
+                  </h4>
+                  <p className="text-[#FF6B35] text-sm font-semibold mb-2">
+                    Classical & Acoustic Specialist
+                  </p>
                   <p className="text-gray-400 text-sm">
-                    Master&apos;s degree in Music Performance. 20+ years playing professionally. 
-                    Expert in fingerstyle and classical guitar.
+                    Master&apos;s degree in Music Performance. 20+ years playing
+                    professionally. Expert in fingerstyle and classical guitar.
                   </p>
                 </div>
               </div>
@@ -203,7 +253,8 @@ export default function MusicPage() {
               Artist Showcase
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Discover talented musicians, support their work with SOL tips, and follow your favorites.
+              Discover talented musicians, support their work with SOL tips, and
+              follow your favorites.
             </p>
           </div>
 
@@ -214,14 +265,14 @@ export default function MusicPage() {
               bio="Blues and rock guitarist with a passion for improvisation. Currently working on my debut album featuring original compositions."
               followers={1247}
             />
-            
+
             <ArtistCard
               name="Maya Chen"
               instrument="Acoustic Guitar & Vocals"
               bio="Singer-songwriter blending folk and indie styles. Creating music that tells stories and connects hearts."
               followers={892}
             />
-            
+
             <ArtistCard
               name="Marcus Johnson"
               instrument="Jazz Guitar"
@@ -235,15 +286,18 @@ export default function MusicPage() {
               Become a Featured Artist
             </h3>
             <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
-              Upload your music, gain followers, and earn SOL tips from your fans. 
-              Our discovery algorithm helps talented artists reach new audiences.
+              Upload your music, gain followers, and earn SOL tips from your
+              fans. Our discovery algorithm helps talented artists reach new
+              audiences.
             </p>
-            <Link
-              href="/music/submit-profile"
+            <a
+              href={bookingLinks.guitarLessons}
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-8 py-3 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-[#FF6B35] transition-all font-semibold inline-flex items-center justify-center"
             >
-              Submit Your Profile
-            </Link>
+              Get Started
+            </a>
           </div>
         </section>
 
@@ -254,12 +308,13 @@ export default function MusicPage() {
               <Sparkles className="w-4 h-4" />
               <span>Coming Soon</span>
             </div>
-            
+
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               L2 Utility Token
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Revolutionary blockchain-powered music education scholarships and community governance.
+              Revolutionary blockchain-powered music education scholarships and
+              community governance.
             </p>
           </div>
 
@@ -278,12 +333,15 @@ export default function MusicPage() {
             <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
               <div className="flex items-center gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-[#FF6B35]">★</span>
+                  <span key={i} className="text-[#FF6B35]">
+                    ★
+                  </span>
                 ))}
               </div>
               <p className="text-gray-300 mb-4">
-                &quot;John&apos;s teaching style is incredible! I went from struggling with basic chords 
-                to playing my first song in just 3 months.&quot;
+                &quot;John&apos;s teaching style is incredible! I went from
+                struggling with basic chords to playing my first song in just 3
+                months.&quot;
               </p>
               <p className="text-white font-semibold">- Emily T.</p>
             </div>
@@ -291,12 +349,14 @@ export default function MusicPage() {
             <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
               <div className="flex items-center gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-[#FF6B35]">★</span>
+                  <span key={i} className="text-[#FF6B35]">
+                    ★
+                  </span>
                 ))}
               </div>
               <p className="text-gray-300 mb-4">
-                &quot;The artist platform helped me gain 500+ followers in my first month. 
-                The SOL tips are a game-changer!&quot;
+                &quot;The artist platform helped me gain 500+ followers in my
+                first month. The SOL tips are a game-changer!&quot;
               </p>
               <p className="text-white font-semibold">- Carlos M.</p>
             </div>
@@ -304,12 +364,14 @@ export default function MusicPage() {
             <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
               <div className="flex items-center gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-[#FF6B35]">★</span>
+                  <span key={i} className="text-[#FF6B35]">
+                    ★
+                  </span>
                 ))}
               </div>
               <p className="text-gray-300 mb-4">
-                &quot;Sarah&apos;s expertise in classical guitar is unmatched. Best investment 
-                I&apos;ve made in my musical journey.&quot;
+                &quot;Sarah&apos;s expertise in classical guitar is unmatched.
+                Best investment I&apos;ve made in my musical journey.&quot;
               </p>
               <p className="text-white font-semibold">- Rachel K.</p>
             </div>
@@ -328,7 +390,8 @@ export default function MusicPage() {
                 Need a Music Website?
               </h3>
               <p className="text-gray-300 mb-4">
-                Check out our professional web development services to build your online presence.
+                Check out our professional web development services to build
+                your online presence.
               </p>
               <span className="inline-flex items-center gap-2 text-blue-400 font-semibold">
                 Explore Services
@@ -345,7 +408,8 @@ export default function MusicPage() {
                 Fund Your Music Career
               </h3>
               <p className="text-gray-300 mb-4">
-                Learn smart trading strategies to support your musical ambitions.
+                Learn smart trading strategies to support your musical
+                ambitions.
               </p>
               <span className="inline-flex items-center gap-2 text-green-400 font-semibold">
                 Explore Trading
