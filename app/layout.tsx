@@ -115,7 +115,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="antialiased bg-black text-green-100 font-sans">
+          <body className="antialiased bg-black text-green-100 font-sans">
+            {/* Header ad for quick monetization; only renders when NEXT_PUBLIC_ADSENSE_ID set */}
+            <HeaderBannerAd />
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <>
             <Script
