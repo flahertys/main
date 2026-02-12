@@ -114,12 +114,18 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="antialiased bg-black text-green-100 font-sans">
+      <body className="antialiased bg-black text-gray-100 font-sans">
         {/* Header ad for quick monetization; only renders when NEXT_PUBLIC_ADSENSE_ID set */}
         <HeaderBannerAd />
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
