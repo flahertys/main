@@ -1,847 +1,790 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 interface HyperboreaGameProps {
   onEnergyChange?: (energy: number) => void;
   onCloverCollect?: (count: number) => void;
   onScoreChange?: (score: number, combo: number) => void;
-  onPowerUpChange?: (
-    powerUps: Array<{ type: string; timeLeft: number }>,
-  ) => void;
-  onGameStateChange?: (state: "tutorial" | "playing" | "paused") => void;
-  onShowTutorial?: () => void;
+  onPowerUpChange?: (powerUps: Array<{ type: string; timeLeft: number }>) => void;
+  isPaused?: boolean;
 }
 
+type PowerUpType = "odins_shield" | "thors_magnet" | "freyas_double";
+type ObstacleType = "icespike" | "frostwall" | "lowbarrier";
+
+interface TrackSegment {
+  mesh: THREE.Mesh;
+  zPosition: number;
+  decorations: THREE.Mesh[];
+}
+
+interface Obstacle {
+  mesh: THREE.Mesh;
+  lane: number;
+  zPosition: number;
+  type: ObstacleType;
+}
+
+interface Collectible {
+  mesh: THREE.Mesh;
+  lane: number;
+  zPosition: number;
+  collected: boolean;
+}
+
+interface PowerUp {
+  mesh: THREE.Mesh;
+  lane: number;
+  zPosition: number;
+  type: PowerUpType;
+  collected: boolean;
+}
+
+interface TrailParticle {
+  mesh: THREE.Mesh;
+  velocity: THREE.Vector3;
+  life: number;
+}
+
+function isTexture(value: unknown): value is THREE.Texture {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "isTexture" in value &&
+    (value as { isTexture?: boolean }).isTexture === true
+  );
+}
+
+// NORDIC/CELTIC HYPERBOREA ENDLESS RUNNER
+// Temple Run inspired runner with Norse + cyberpunk art direction
 export function HyperboreaGame({
   onEnergyChange,
   onCloverCollect,
   onScoreChange,
   onPowerUpChange,
-  onGameStateChange,
-  onShowTutorial,
+  isPaused = false,
 }: HyperboreaGameProps) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [showTouchControls, setShowTouchControls] = useState(false);
-
-  // Detect if device supports touch
-  useEffect(() => {
-    const isTouchDevice =
-      "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    setShowTouchControls(isTouchDevice);
-  }, []);
-
-  // Create audio context once and reuse it
-  const audioContextRef = useRef<AudioContext | null>(null);
-
-  const playSound = useCallback((type: "collect" | "powerup" | "damage") => {
-    // Play different sounds using Web Audio API
-    if (typeof window === "undefined") return;
-
-    // Create audio context only once
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (
-        window.AudioContext || (window as any).webkitAudioContext
-      )();
-    }
-
-    const audioContext = audioContextRef.current;
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    // Different sounds for different events
-    if (type === "collect") {
-      oscillator.frequency.value = 800;
-      oscillator.type = "sine";
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioContext.currentTime + 0.2,
-      );
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.2);
-    } else if (type === "powerup") {
-      // Ascending tones for power-up
-      oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(
-        800,
-        audioContext.currentTime + 0.2,
-      );
-      oscillator.type = "square";
-      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioContext.currentTime + 0.3,
-      );
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-    } else if (type === "damage") {
-      // Low descending tone for damage
-      oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(
-        50,
-        audioContext.currentTime + 0.15,
-      );
-      oscillator.type = "sawtooth";
-      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioContext.currentTime + 0.15,
-      );
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.15);
-    }
-  }, []);
+  const pausedRef = useRef(isPaused);
 
   useEffect(() => {
-    if (!mountRef.current) return;
+    pausedRef.current = isPaused;
+  }, [isPaused]);
 
-    // Capture the current ref value at the start of the effect
+  useEffect(() => {
     const currentMount = mountRef.current;
+    if (!currentMount) return;
+    if (!currentMount.clientWidth || !currentMount.clientHeight) return;
 
-    // Ensure the mount element has proper dimensions
-    if (!currentMount.clientWidth || !currentMount.clientHeight) {
-      console.warn("Mount element has no dimensions");
-      return;
-    }
+    let isMounted = true;
+    let animationFrameId = 0;
 
-    // Scene setup
+    const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    const isSmallViewport = window.matchMedia("(max-width: 900px)").matches;
+    const isMobile = isTouchDevice || isSmallViewport;
+
+    // Improve mobile controls and prevent browser gesture conflict while playing.
+    currentMount.style.touchAction = "none";
+    currentMount.style.overscrollBehavior = "none";
+
+    const maxDpr = isMobile ? 1.5 : 2;
+    const initialWidth = Math.max(currentMount.clientWidth, 1);
+    const initialHeight = Math.max(currentMount.clientHeight, 1);
+
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a0a);
-    scene.fog = new THREE.Fog(0x0a0a0a, 10, 50);
+    scene.background = new THREE.Color(0x0a0520);
+    scene.fog = new THREE.FogExp2(0x0a0520, 0.015);
 
-    // Camera setup with proper aspect ratio
-    const width = Math.max(currentMount.clientWidth, 1);
-    const height = Math.max(currentMount.clientHeight, 1);
-
-    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      initialWidth / initialHeight,
+      0.1,
+      1000,
+    );
     camera.position.set(0, 5, 10);
+    camera.lookAt(0, 2, 0);
 
-    // Renderer setup
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setSize(width, height);
+    const renderer = new THREE.WebGLRenderer({
+      antialias: !isMobile,
+      alpha: false,
+      powerPreference: "high-performance",
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
+    renderer.setSize(initialWidth, initialHeight, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     currentMount.appendChild(renderer.domElement);
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+    const ambientLight = new THREE.AmbientLight(0x4060ff, 0.4);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const directionalLight = new THREE.DirectionalLight(0x80c0ff, 0.8);
     directionalLight.position.set(10, 20, 10);
     directionalLight.castShadow = true;
-    directionalLight.shadow.camera.left = -20;
-    directionalLight.shadow.camera.right = 20;
-    directionalLight.shadow.camera.top = 20;
-    directionalLight.shadow.camera.bottom = -20;
+    directionalLight.shadow.mapSize.width = isMobile ? 1024 : 2048;
+    directionalLight.shadow.mapSize.height = isMobile ? 1024 : 2048;
     scene.add(directionalLight);
 
-    // Create Escher-inspired maze structure
-    const createEscherMaze = () => {
-      const mazeGroup = new THREE.Group();
-      const stairMaterial = new THREE.MeshStandardMaterial({
-        color: 0x2a2a3a,
-        roughness: 0.7,
-        metalness: 0.3,
-        wireframe: false,
-      });
+    const rimLight1 = new THREE.PointLight(0x00ffaa, 0.6, 50);
+    rimLight1.position.set(-15, 8, -20);
+    scene.add(rimLight1);
 
-      // Create impossible stairs illusion
-      const stairGeometry = new THREE.BoxGeometry(2, 0.3, 4);
-      const positions = [
-        { x: 0, y: 0, z: 0, rotation: 0 },
-        { x: 4, y: 1, z: 0, rotation: Math.PI / 2 },
-        { x: 4, y: 2, z: 4, rotation: Math.PI },
-        { x: 0, y: 3, z: 4, rotation: -Math.PI / 2 },
-      ];
+    const rimLight2 = new THREE.PointLight(0xff00aa, 0.6, 50);
+    rimLight2.position.set(15, 8, -20);
+    scene.add(rimLight2);
 
-      positions.forEach((pos) => {
-        const stair = new THREE.Mesh(stairGeometry, stairMaterial);
-        stair.position.set(pos.x, pos.y, pos.z);
-        stair.rotation.y = pos.rotation;
-        stair.castShadow = true;
-        stair.receiveShadow = true;
-        mazeGroup.add(stair);
-      });
+    const LANE_WIDTH = 3.5;
+    const lanes = [-LANE_WIDTH, 0, LANE_WIDTH];
+    let currentLane = 1;
 
-      // Add more platforms at different heights
-      const platformGeometry1 = new THREE.BoxGeometry(8, 0.2, 8);
-      const platformGeometry2 = new THREE.BoxGeometry(6, 0.2, 6);
-      const platformMaterial = new THREE.MeshStandardMaterial({
-        color: 0x1a1a2a,
-        roughness: 0.8,
-      });
-
-      const platforms = [
-        { x: 0, y: -0.5, z: 0, geometry: platformGeometry1 },
-        { x: -8, y: 0.5, z: -8, geometry: platformGeometry2 },
-        { x: 8, y: 1, z: 8, geometry: platformGeometry2 },
-        { x: -8, y: 1.5, z: 8, geometry: platformGeometry2 },
-      ];
-
-      platforms.forEach((platformData) => {
-        const platform = new THREE.Mesh(
-          platformData.geometry,
-          platformMaterial,
-        );
-        platform.position.set(platformData.x, platformData.y, platformData.z);
-        platform.receiveShadow = true;
-        mazeGroup.add(platform);
-      });
-
-      // Add pillars
-      const pillarGeometry = new THREE.CylinderGeometry(0.3, 0.4, 3, 8);
-      const pillarPositions = [
-        { x: -6, z: -6 },
-        { x: 6, z: -6 },
-        { x: -6, z: 6 },
-        { x: 6, z: 6 },
-      ];
-
-      pillarPositions.forEach((pos) => {
-        const pillar = new THREE.Mesh(pillarGeometry, stairMaterial);
-        pillar.position.set(pos.x, 1.5, pos.z);
-        pillar.castShadow = true;
-        mazeGroup.add(pillar);
-      });
-
-      return mazeGroup;
-    };
-
-    const maze = createEscherMaze();
-    scene.add(maze);
-
-    // Create player (wireframe sphere with glow effect)
-    const playerGeometry = new THREE.SphereGeometry(0.5, 16, 16);
-    const playerMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
-      wireframe: true,
+    const playerGeometry = new THREE.CapsuleGeometry(0.4, 1.2, 8, 16);
+    const playerMaterial = new THREE.MeshStandardMaterial({
+      color: 0x00e0ff,
+      emissive: 0x00e0ff,
+      emissiveIntensity: 0.5,
+      roughness: 0.3,
+      metalness: 0.7,
     });
     const player = new THREE.Mesh(playerGeometry, playerMaterial);
-    player.position.set(0, 1, 5);
+    player.position.set(lanes[currentLane], 1.2, 0);
+    player.castShadow = true;
     scene.add(player);
 
-    // Add player glow effect
-    const glowGeometry = new THREE.SphereGeometry(0.6, 16, 16);
-    const glowMaterial = new THREE.MeshBasicMaterial({
+    const auraGeometry = new THREE.SphereGeometry(0.7, 16, 16);
+    const auraMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ffff,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.2,
+      side: THREE.BackSide,
     });
-    const playerGlow = new THREE.Mesh(glowGeometry, glowMaterial);
-    player.add(playerGlow);
+    const aura = new THREE.Mesh(auraGeometry, auraMaterial);
+    player.add(aura);
 
-    // Player trail effect
-    const trailPositions: THREE.Vector3[] = [];
-    const maxTrailLength = 20;
-    const trailGeometry = new THREE.BufferGeometry();
-    const trailMaterial = new THREE.LineBasicMaterial({
-      color: 0x00ffff,
-      transparent: true,
-      opacity: 0.5,
-    });
-    const trail = new THREE.Line(trailGeometry, trailMaterial);
-    scene.add(trail);
+    const trackSegments: TrackSegment[] = [];
+    const obstacles: Obstacle[] = [];
+    const collectibles: Collectible[] = [];
+    const powerUps: PowerUp[] = [];
+    const trailParticles: TrailParticle[] = [];
+    const maxTrailParticles = isMobile ? 40 : 80;
 
-    // Create clovers (magenta tori)
-    const clovers: THREE.Mesh[] = [];
-    const cloverGeometry = new THREE.TorusGeometry(0.4, 0.15, 16, 32);
-    const cloverMaterial = new THREE.MeshStandardMaterial({
-      color: 0xff00ff,
-      emissive: 0xff00ff,
-      emissiveIntensity: 0.5,
-    });
-
-    for (let i = 0; i < 5; i++) {
-      const clover = new THREE.Mesh(cloverGeometry, cloverMaterial);
-      const angle = (i / 5) * Math.PI * 2;
-      const radius = 6;
-      clover.position.set(
-        Math.cos(angle) * radius,
-        2 + Math.random() * 2,
-        Math.sin(angle) * radius,
-      );
-      clover.rotation.x = Math.PI / 2;
-      clovers.push(clover);
-      scene.add(clover);
-    }
-
-    // Create power-ups
-    const powerUps: Array<{
-      mesh: THREE.Mesh;
-      type: "speed" | "magnet" | "double";
-    }> = [];
-    const powerUpGeometry = new THREE.BoxGeometry(0.6, 0.6, 0.6);
-    const powerUpTypes = [
-      { type: "speed" as const, color: 0x00ffff, emissive: 0x00ffff },
-      { type: "magnet" as const, color: 0xffff00, emissive: 0xffff00 },
-      { type: "double" as const, color: 0xff8800, emissive: 0xff8800 },
-    ];
-
-    powerUpTypes.forEach((powerUpType, i) => {
-      const material = new THREE.MeshStandardMaterial({
-        color: powerUpType.color,
-        emissive: powerUpType.emissive,
-        emissiveIntensity: 0.7,
-      });
-      const powerUp = new THREE.Mesh(powerUpGeometry, material);
-      const angle = (i / 3) * Math.PI * 2 + Math.PI / 6;
-      const radius = 8;
-      powerUp.position.set(
-        Math.cos(angle) * radius,
-        2,
-        Math.sin(angle) * radius,
-      );
-      powerUps.push({ mesh: powerUp, type: powerUpType.type });
-      scene.add(powerUp);
-    });
-
-    // Create obstacles (red cubes that drain energy)
-    const obstacles: Array<{
-      mesh: THREE.Mesh;
-      velocity: THREE.Vector3;
-      angle: number;
-    }> = [];
-    const obstacleGeometry = new THREE.OctahedronGeometry(0.5);
-    const obstacleMaterial = new THREE.MeshStandardMaterial({
-      color: 0xff0000,
-      emissive: 0xff0000,
-      emissiveIntensity: 0.5,
-    });
-
-    for (let i = 0; i < 3; i++) {
-      const obstacle = new THREE.Mesh(
-        obstacleGeometry,
-        obstacleMaterial.clone(),
-      );
-      const angle = (i / 3) * Math.PI * 2;
-      const radius = 4;
-      obstacle.position.set(
-        Math.cos(angle) * radius,
-        1.5,
-        Math.sin(angle) * radius,
-      );
-      obstacles.push({
-        mesh: obstacle,
-        velocity: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.02,
-          0,
-          (Math.random() - 0.5) * 0.02,
-        ),
-        angle: angle,
-      });
-      scene.add(obstacle);
-    }
-
-    // Create wormhole portal (initially hidden)
-    const portalGeometry = new THREE.TorusGeometry(2, 0.3, 16, 100);
-    const portalMaterial = new THREE.MeshStandardMaterial({
-      color: 0x00ffff,
-      emissive: 0x00ffff,
-      emissiveIntensity: 1,
-      transparent: true,
-      opacity: 0,
-    });
-    const portal = new THREE.Mesh(portalGeometry, portalMaterial);
-    portal.position.set(0, 4, 0);
-    scene.add(portal);
-
-    // Particle system for collection effects
-    const particles: Array<{
-      mesh: THREE.Mesh;
-      velocity: THREE.Vector3;
-      life: number;
-    }> = [];
-
-    const createParticles = (position: THREE.Vector3, color: number) => {
-      const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-      const particleMaterial = new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: 1,
-      });
-
-      for (let i = 0; i < 10; i++) {
-        const particle = new THREE.Mesh(
-          particleGeometry,
-          particleMaterial.clone(),
-        );
-        particle.position.copy(position);
-
-        const velocity = new THREE.Vector3(
-          (Math.random() - 0.5) * 0.2,
-          Math.random() * 0.3 + 0.1,
-          (Math.random() - 0.5) * 0.2,
-        );
-
-        particles.push({
-          mesh: particle,
-          velocity,
-          life: 1.0,
-        });
-
-        scene.add(particle);
+    const createRuneParticle = (position: THREE.Vector3) => {
+      if (trailParticles.length >= maxTrailParticles) {
+        const oldest = trailParticles.shift();
+        if (oldest) {
+          scene.remove(oldest.mesh);
+          oldest.mesh.geometry.dispose();
+          (oldest.mesh.material as THREE.Material).dispose();
+        }
       }
+
+      const particleGeometry = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+      const particleMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.8,
+      });
+      const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+      particle.position.copy(position);
+
+      const velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.1,
+        Math.random() * 0.1,
+        Math.random() * 0.2,
+      );
+
+      scene.add(particle);
+      trailParticles.push({ mesh: particle, velocity, life: 1.0 });
     };
 
-    // Game state
-    let energy = 0;
-    let cloversCollected = 0;
+    const createTrackSegment = (zPos: number): TrackSegment => {
+      const trackGeometry = new THREE.BoxGeometry(12, 0.3, 12);
+      const trackMaterial = new THREE.MeshStandardMaterial({
+        color: 0x1a2550,
+        roughness: 0.2,
+        metalness: 0.8,
+        emissive: 0x0a1530,
+        emissiveIntensity: 0.3,
+      });
+      const track = new THREE.Mesh(trackGeometry, trackMaterial);
+      track.position.set(0, 0, zPos);
+      track.receiveShadow = true;
+      track.castShadow = true;
+      scene.add(track);
+
+      const decorations: THREE.Mesh[] = [];
+
+      for (const side of [-5.5, 5.5]) {
+        const pillarGeometry = new THREE.CylinderGeometry(0.2, 0.3, 2, 8);
+        const pillarMaterial = new THREE.MeshStandardMaterial({
+          color: 0x3060a0,
+          emissive: 0x2050ff,
+          emissiveIntensity: 0.4,
+        });
+        const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+        pillar.position.set(side, 1, zPos);
+        scene.add(pillar);
+        decorations.push(pillar);
+      }
+
+      if (Math.random() < 0.3) {
+        const crystalGeometry = new THREE.OctahedronGeometry(0.3);
+        const crystalMaterial = new THREE.MeshStandardMaterial({
+          color: 0x00ffaa,
+          emissive: 0x00ffaa,
+          emissiveIntensity: 1.0,
+        });
+        const crystal = new THREE.Mesh(crystalGeometry, crystalMaterial);
+        crystal.position.set((Math.random() - 0.5) * 8, 2 + Math.random(), zPos - 5);
+        scene.add(crystal);
+        decorations.push(crystal);
+      }
+
+      return { mesh: track, zPosition: zPos, decorations };
+    };
+
+    const createObstacle = (
+      zPos: number,
+      lane: number,
+      type: ObstacleType,
+    ): Obstacle => {
+      let geometry: THREE.BufferGeometry;
+      let yPos = 0;
+
+      if (type === "icespike") {
+        geometry = new THREE.ConeGeometry(0.6, 2, 8);
+        yPos = 1;
+      } else if (type === "frostwall") {
+        geometry = new THREE.BoxGeometry(2, 2, 0.6);
+        yPos = 1;
+      } else {
+        geometry = new THREE.BoxGeometry(2, 0.5, 0.8);
+        yPos = 0.25;
+      }
+
+      const material = new THREE.MeshStandardMaterial({
+        color: 0xff3060,
+        emissive: 0xff0040,
+        emissiveIntensity: 0.6,
+        roughness: 0.4,
+        metalness: 0.6,
+      });
+
+      const obstacleMesh = new THREE.Mesh(geometry, material);
+      obstacleMesh.position.set(lanes[lane], yPos, zPos);
+      obstacleMesh.castShadow = true;
+      scene.add(obstacleMesh);
+
+      return { mesh: obstacleMesh, lane, zPosition: zPos, type };
+    };
+
+    const createCollectible = (zPos: number, lane: number): Collectible => {
+      const geometry = new THREE.TorusKnotGeometry(0.25, 0.08, 32, 8);
+      const material = new THREE.MeshStandardMaterial({
+        color: 0xffdd00,
+        emissive: 0xffdd00,
+        emissiveIntensity: 1.2,
+        roughness: 0.2,
+        metalness: 0.9,
+      });
+      const rune = new THREE.Mesh(geometry, material);
+      rune.position.set(lanes[lane], 1.5, zPos);
+      scene.add(rune);
+      return { mesh: rune, lane, zPosition: zPos, collected: false };
+    };
+
+    const createPowerUp = (
+      zPos: number,
+      lane: number,
+      type: PowerUpType,
+    ): PowerUp => {
+      const geometry = new THREE.IcosahedronGeometry(0.5, 0);
+      const colors: Record<PowerUpType, number> = {
+        odins_shield: 0x00ddff,
+        thors_magnet: 0xff00ff,
+        freyas_double: 0xff8800,
+      };
+      const material = new THREE.MeshStandardMaterial({
+        color: colors[type],
+        emissive: colors[type],
+        emissiveIntensity: 1.5,
+        roughness: 0,
+        metalness: 1,
+      });
+      const powerUpMesh = new THREE.Mesh(geometry, material);
+      powerUpMesh.position.set(lanes[lane], 2, zPos);
+      scene.add(powerUpMesh);
+      return { mesh: powerUpMesh, lane, zPosition: zPos, type, collected: false };
+    };
+
+    const emitPowerUps = (active: Array<{ type: PowerUpType; timeLeft: number }>) => {
+      onPowerUpChange?.(
+        active.map((value) => ({
+          type: value.type,
+          timeLeft: value.timeLeft,
+        })),
+      );
+    };
+
+    const getClosestLane = () => {
+      let bestIndex = 0;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      for (let i = 0; i < lanes.length; i++) {
+        const distance = Math.abs(player.position.x - lanes[i]);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = i;
+        }
+      }
+      return bestIndex;
+    };
+
+    const initialTrackSegments = isMobile ? 18 : 25;
+    for (let i = 0; i < initialTrackSegments; i++) {
+      trackSegments.push(createTrackSegment(-i * 12));
+    }
+
+    let gameSpeed = 0.18;
+    let distance = 0;
     let score = 0;
+    let runesCollected = 0;
     let combo = 0;
     let comboTimer = 0;
-    const comboDecayRate = 60; // frames until combo resets
-    let speedBoostTimer = 0;
-    let magnetTimer = 0;
-    let doublePointsTimer = 0;
-    const velocity = new THREE.Vector3();
-    const acceleration = new THREE.Vector3();
-    let moveSpeed = 0.15;
-    const baseSpeed = 0.15;
-    const accelerationRate = 0.008;
-    const friction = 0.85;
+    let energy = 0;
+    let isJumping = false;
+    let jumpVelocity = 0;
+    let isSliding = false;
+    let slideTimer = 0;
+    let isDead = false;
+    let hasEmittedGameOver = false;
+    let frameCount = 0;
+
+    const activePowerUps: Array<{ type: PowerUpType; timeLeft: number }> = [];
+    let hasShield = false;
+    let hasMagnet = false;
+    let hasDouble = false;
+
+    let lastSpawnZ = -60;
+    const spawnInterval = isMobile ? 20 : 18;
+    const obstacleTypes: ObstacleType[] = ["icespike", "frostwall", "lowbarrier"];
+    const powerUpTypes: PowerUpType[] = ["odins_shield", "thors_magnet", "freyas_double"];
+
     const keys: Record<string, boolean> = {};
-
-    // Game constants
-    const CLOVER_VALUE = 20;
-    const OBSTACLE_DAMAGE = 5;
-    const POWERUP_DURATION = 300; // 5 seconds at 60fps
-    const CLOVER_RESPAWN_DELAY = 1000; // ms
-    const POWERUP_RESPAWN_DELAY = 10000; // ms
-
-    // Timeout tracking for cleanup
-    const timeouts: NodeJS.Timeout[] = [];
-
-    // Touch controls state
     let touchStartX = 0;
     let touchStartY = 0;
-    let touchDeltaX = 0;
-    let touchDeltaY = 0;
-    let cameraShake = 0;
-    let lastHitTime = 0;
 
-    // Input handling
-    const handleKeyDown = (e: KeyboardEvent) => {
-      keys[e.key.toLowerCase()] = true;
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      keys[e.key.toLowerCase()] = false;
-    };
-
-    // Touch controls
-    const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches.length > 0) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
+    const updateEnergy = (nextValue: number) => {
+      const normalized = Math.max(0, Math.min(100, Math.round(nextValue)));
+      if (normalized !== energy) {
+        energy = normalized;
+        onEnergyChange?.(energy);
       }
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length > 0) {
-        const currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY;
-        touchDeltaX = (currentX - touchStartX) / 100;
-        touchDeltaY = (currentY - touchStartY) / 100;
+    const spawnObjects = () => {
+      if (trackSegments.length === 0) return;
+      const nearestTrack = trackSegments[trackSegments.length - 1].zPosition;
+      if (Math.abs(lastSpawnZ) - Math.abs(nearestTrack) >= spawnInterval) return;
+
+      lastSpawnZ -= spawnInterval;
+      const pattern = Math.random();
+
+      if (pattern < 0.6) {
+        const lane = Math.floor(Math.random() * 3);
+        const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+        obstacles.push(createObstacle(lastSpawnZ, lane, type));
+      }
+
+      if (Math.random() < 0.7) {
+        const runeZ = lastSpawnZ - 6;
+        const patternType = Math.floor(Math.random() * 3);
+
+        if (patternType === 0) {
+          const lane = Math.floor(Math.random() * 3);
+          for (let i = 0; i < 5; i++) {
+            collectibles.push(createCollectible(runeZ - i * 2, lane));
+          }
+        } else if (patternType === 1) {
+          for (let lane = 0; lane < 3; lane++) {
+            collectibles.push(createCollectible(runeZ, lane));
+          }
+        } else {
+          for (let i = 0; i < 5; i++) {
+            collectibles.push(createCollectible(runeZ - i * 2, i % 3));
+          }
+        }
+      }
+
+      if (Math.random() < 0.15) {
+        const lane = Math.floor(Math.random() * 3);
+        const type = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+        powerUps.push(createPowerUp(lastSpawnZ - 10, lane, type));
       }
     };
 
-    const handleTouchEnd = () => {
-      touchDeltaX = 0;
-      touchDeltaY = 0;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isDead) return;
+      keys[event.key.toLowerCase()] = true;
+
+      if ((event.key === "ArrowLeft" || event.key === "a") && currentLane > 0) {
+        currentLane--;
+      }
+      if ((event.key === "ArrowRight" || event.key === "d") && currentLane < 2) {
+        currentLane++;
+      }
+      if (
+        (event.key === "ArrowUp" || event.key === "w" || event.key === " ") &&
+        !isJumping &&
+        !isSliding
+      ) {
+        isJumping = true;
+        jumpVelocity = 0.3;
+      }
+      if ((event.key === "ArrowDown" || event.key === "s") && !isJumping && !isSliding) {
+        isSliding = true;
+        slideTimer = 25;
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      keys[event.key.toLowerCase()] = false;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length === 0) return;
+      touchStartX = event.touches[0].clientX;
+      touchStartY = event.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      if (isDead || event.changedTouches.length === 0) return;
+      const touchEndX = event.changedTouches[0].clientX;
+      const touchEndY = event.changedTouches[0].clientY;
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = touchEndY - touchStartY;
+
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (deltaX > 40 && currentLane < 2) currentLane++;
+        if (deltaX < -40 && currentLane > 0) currentLane--;
+        return;
+      }
+
+      if (deltaY < -40 && !isJumping && !isSliding) {
+        isJumping = true;
+        jumpVelocity = 0.3;
+      }
+      if (deltaY > 40 && !isJumping && !isSliding) {
+        isSliding = true;
+        slideTimer = 25;
+      }
+    };
+
+    const handleResize = () => {
+      if (!isMounted) return;
+      const nextWidth = Math.max(currentMount.clientWidth, 1);
+      const nextHeight = Math.max(currentMount.clientHeight, 1);
+      camera.aspect = nextWidth / nextHeight;
+      camera.updateProjectionMatrix();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
+      renderer.setSize(nextWidth, nextHeight, false);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
-    window.addEventListener("touchstart", handleTouchStart, { passive: true });
-    window.addEventListener("touchmove", handleTouchMove, { passive: true });
-    window.addEventListener("touchend", handleTouchEnd);
+    window.addEventListener("resize", handleResize);
+    currentMount.addEventListener("touchstart", handleTouchStart, { passive: true });
+    currentMount.addEventListener("touchend", handleTouchEnd, { passive: true });
 
-    // Mouse control for camera
-    let mouseX = 0;
-    let mouseY = 0;
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-      mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-
-    // Animation loop
     const animate = () => {
-      requestAnimationFrame(animate);
+      if (!isMounted) return;
+      animationFrameId = window.requestAnimationFrame(animate);
 
-      // Player movement with acceleration (WASD + Touch)
-      acceleration.set(0, 0, 0);
-
-      // Keyboard controls
-      if (keys["w"] || keys["arrowup"]) acceleration.z -= accelerationRate;
-      if (keys["s"] || keys["arrowdown"]) acceleration.z += accelerationRate;
-      if (keys["a"] || keys["arrowleft"]) acceleration.x -= accelerationRate;
-      if (keys["d"] || keys["arrowright"]) acceleration.x += accelerationRate;
-
-      // Touch controls
-      if (touchDeltaX !== 0 || touchDeltaY !== 0) {
-        acceleration.x += touchDeltaX * accelerationRate * 2;
-        acceleration.z += touchDeltaY * accelerationRate * 2;
+      if (pausedRef.current) {
+        renderer.render(scene, camera);
+        return;
       }
 
-      // Apply acceleration and friction
-      velocity.add(acceleration);
-      velocity.multiplyScalar(friction);
-
-      // Apply active power-ups
-      const activePowerUps: Array<{ type: string; timeLeft: number }> = [];
-
-      if (speedBoostTimer > 0) {
-        speedBoostTimer--;
-        moveSpeed = baseSpeed * 2;
-        player.material.color.setHex(0x00ffff);
-        activePowerUps.push({ type: "speed", timeLeft: speedBoostTimer });
-      } else {
-        moveSpeed = baseSpeed;
-        player.material.color.setHex(0x00ffff);
+      if (isDead) {
+        if (!hasEmittedGameOver) {
+          hasEmittedGameOver = true;
+          emitPowerUps([]);
+        }
+        renderer.render(scene, camera);
+        return;
       }
 
-      if (magnetTimer > 0) {
-        magnetTimer--;
-        activePowerUps.push({ type: "magnet", timeLeft: magnetTimer });
-        if (speedBoostTimer === 0) {
-          player.material.color.setHex(0xffff00);
+      frameCount++;
+      gameSpeed = 0.18 + Math.min(distance * 0.000008, 0.15);
+      distance += gameSpeed;
+
+      const targetX = lanes[currentLane];
+      player.position.x += (targetX - player.position.x) * 0.2;
+
+      if (isJumping) {
+        player.position.y += jumpVelocity;
+        jumpVelocity -= 0.018;
+        if (player.position.y <= 1.2) {
+          player.position.y = 1.2;
+          isJumping = false;
+          jumpVelocity = 0;
         }
       }
 
-      if (doublePointsTimer > 0) {
-        doublePointsTimer--;
-        activePowerUps.push({ type: "double", timeLeft: doublePointsTimer });
-        if (speedBoostTimer === 0 && magnetTimer === 0) {
-          player.material.color.setHex(0xff8800);
+      if (isSliding) {
+        player.scale.y = 0.5;
+        player.position.y = 0.7;
+        slideTimer--;
+        if (slideTimer <= 0) {
+          isSliding = false;
+          player.scale.y = 1;
+          player.position.y = 1.2;
         }
       }
 
-      // Update parent with power-up state
-      onPowerUpChange?.(activePowerUps);
+      aura.rotation.y += 0.05;
+      const pulse = 1 + Math.sin(frameCount * 0.05) * 0.1;
+      aura.scale.set(pulse, pulse, pulse);
 
-      // Limit max speed
-      if (velocity.length() > moveSpeed) {
-        velocity.normalize().multiplyScalar(moveSpeed);
+      if (frameCount % (isMobile ? 4 : 3) === 0) {
+        createRuneParticle(player.position.clone());
       }
 
-      player.position.add(velocity);
-
-      // Update player glow based on movement
-      if (playerGlow) {
-        const speed = velocity.length();
-        playerGlow.material.opacity = 0.3 + speed * 2;
-        playerGlow.scale.set(1 + speed * 2, 1 + speed * 2, 1 + speed * 2);
-      }
-
-      // Update trail
-      if (velocity.length() > 0.01) {
-        trailPositions.push(player.position.clone());
-        if (trailPositions.length > maxTrailLength) {
-          trailPositions.shift();
+      for (let i = trailParticles.length - 1; i >= 0; i--) {
+        const particle = trailParticles[i];
+        particle.mesh.position.add(particle.velocity);
+        particle.life -= 0.02;
+        const material = particle.mesh.material as THREE.MeshBasicMaterial;
+        material.opacity = particle.life;
+        if (particle.life <= 0) {
+          scene.remove(particle.mesh);
+          particle.mesh.geometry.dispose();
+          material.dispose();
+          trailParticles.splice(i, 1);
         }
+      }
 
-        const positions = new Float32Array(trailPositions.length * 3);
-        trailPositions.forEach((pos, i) => {
-          positions[i * 3] = pos.x;
-          positions[i * 3 + 1] = pos.y;
-          positions[i * 3 + 2] = pos.z;
-        });
+      for (const segment of trackSegments) {
+        segment.zPosition += gameSpeed;
+        segment.mesh.position.z = segment.zPosition;
+        for (const decoration of segment.decorations) {
+          decoration.position.z += gameSpeed;
+          decoration.rotation.y += 0.02;
+        }
+      }
 
-        trailGeometry.setAttribute(
-          "position",
-          new THREE.BufferAttribute(positions, 3),
+      for (const segment of trackSegments) {
+        if (segment.zPosition <= 25) continue;
+        const farthestZ = trackSegments.reduce(
+          (lowestZ, current) => Math.min(lowestZ, current.zPosition),
+          Number.POSITIVE_INFINITY,
         );
-        trailGeometry.attributes.position.needsUpdate = true;
+        segment.zPosition = farthestZ - 12;
+        segment.mesh.position.z = segment.zPosition;
+        for (const decoration of segment.decorations) {
+          decoration.position.z = segment.zPosition;
+        }
       }
 
-      // Update combo timer
+      const playerLane = getClosestLane();
+
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obstacle = obstacles[i];
+        obstacle.zPosition += gameSpeed;
+        obstacle.mesh.position.z = obstacle.zPosition;
+        obstacle.mesh.rotation.y += 0.03;
+
+        if (
+          Math.abs(obstacle.zPosition - player.position.z) < 1.2 &&
+          obstacle.lane === playerLane
+        ) {
+          let hit = false;
+          if (obstacle.type === "frostwall" && !isJumping) hit = true;
+          if (obstacle.type === "lowbarrier" && !isSliding && player.position.y < 2) hit = true;
+          if (obstacle.type === "icespike" && !isJumping && !isSliding) hit = true;
+
+          if (hit) {
+            if (!hasShield) {
+              isDead = true;
+            } else {
+              hasShield = false;
+              scene.remove(obstacle.mesh);
+              obstacle.mesh.geometry.dispose();
+              (obstacle.mesh.material as THREE.Material).dispose();
+              obstacles.splice(i, 1);
+            }
+          }
+        }
+
+        if (obstacle.zPosition > 15) {
+          scene.remove(obstacle.mesh);
+          obstacle.mesh.geometry.dispose();
+          (obstacle.mesh.material as THREE.Material).dispose();
+          obstacles.splice(i, 1);
+        }
+      }
+
+      for (let i = collectibles.length - 1; i >= 0; i--) {
+        const collectible = collectibles[i];
+        if (!collectible.collected) {
+          collectible.zPosition += gameSpeed;
+          collectible.mesh.position.z = collectible.zPosition;
+          collectible.mesh.rotation.x += 0.05;
+          collectible.mesh.rotation.y += 0.08;
+
+          const magnetRange = hasMagnet ? 4 : 1;
+          if (Math.abs(collectible.zPosition - player.position.z) < magnetRange) {
+            const laneDistance = Math.abs(collectible.lane - playerLane);
+            if (laneDistance <= (hasMagnet ? 1 : 0)) {
+              collectible.collected = true;
+              scene.remove(collectible.mesh);
+              collectible.mesh.geometry.dispose();
+              (collectible.mesh.material as THREE.Material).dispose();
+              runesCollected++;
+              score += hasDouble ? 20 : 10;
+              combo++;
+              comboTimer = 120;
+              updateEnergy(energy + 5);
+              onCloverCollect?.(runesCollected);
+              onScoreChange?.(score, combo);
+            }
+          }
+        }
+
+        if (collectible.zPosition > 15 || collectible.collected) {
+          if (!collectible.collected) {
+            scene.remove(collectible.mesh);
+            collectible.mesh.geometry.dispose();
+            (collectible.mesh.material as THREE.Material).dispose();
+          }
+          collectibles.splice(i, 1);
+        }
+      }
+
       if (comboTimer > 0) {
         comboTimer--;
       } else if (combo > 0) {
-        combo = 0;
+        combo = Math.max(0, combo - 1);
         onScoreChange?.(score, combo);
       }
 
-      // Update camera shake
-      if (cameraShake > 0) {
-        cameraShake *= 0.9;
-      }
+      for (let i = powerUps.length - 1; i >= 0; i--) {
+        const powerUp = powerUps[i];
+        if (!powerUp.collected) {
+          powerUp.zPosition += gameSpeed;
+          powerUp.mesh.position.z = powerUp.zPosition;
+          powerUp.mesh.rotation.y += 0.1;
+          powerUp.mesh.position.y = 2 + Math.sin(frameCount * 0.05 + i) * 0.3;
 
-      // Camera follows player with mouse offset and shake
-      const shakeX = (Math.random() - 0.5) * cameraShake;
-      const shakeY = (Math.random() - 0.5) * cameraShake;
-      camera.position.x = player.position.x + mouseX * 5 + shakeX;
-      camera.position.y = 5 + shakeY;
-      camera.position.z = player.position.z + 10 + mouseY * 3 + shakeX;
-      camera.lookAt(player.position);
+          if (
+            Math.abs(powerUp.zPosition - player.position.z) < 1.2 &&
+            powerUp.lane === playerLane
+          ) {
+            powerUp.collected = true;
+            scene.remove(powerUp.mesh);
+            powerUp.mesh.geometry.dispose();
+            (powerUp.mesh.material as THREE.Material).dispose();
+            activePowerUps.push({ type: powerUp.type, timeLeft: 360 });
 
-      // Update particles
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const particle = particles[i];
-        particle.mesh.position.add(particle.velocity);
-        particle.velocity.y -= 0.01; // gravity
-        particle.life -= 0.02;
-
-        const material = particle.mesh.material as THREE.MeshBasicMaterial;
-        material.opacity = particle.life;
-
-        if (particle.life <= 0) {
-          scene.remove(particle.mesh);
-          particles.splice(i, 1);
-        }
-      }
-
-      // Rotate clovers
-      clovers.forEach((clover) => {
-        if (clover.visible) {
-          clover.rotation.z += 0.02;
-
-          // Floating animation
-          clover.position.y +=
-            Math.sin(Date.now() * 0.003 + clover.position.x) * 0.005;
-
-          // Magnet effect - pull clovers toward player
-          if (magnetTimer > 0) {
-            const direction = new THREE.Vector3().subVectors(
-              player.position,
-              clover.position,
-            );
-            if (direction.length() < 5) {
-              direction.normalize().multiplyScalar(0.1);
-              clover.position.add(direction);
-            }
-          }
-
-          // Collision detection
-          const distance = player.position.distanceTo(clover.position);
-          if (distance < 1) {
-            clover.visible = false;
-            cloversCollected++;
-
-            // Combo system
-            combo++;
-            comboTimer = comboDecayRate;
-            const comboMultiplier = 1 + (combo - 1) * 0.5;
-            const doubleMultiplier = doublePointsTimer > 0 ? 2 : 1;
-            const pointsEarned = Math.floor(
-              CLOVER_VALUE * comboMultiplier * doubleMultiplier,
-            );
-
-            energy += CLOVER_VALUE;
-            score += pointsEarned;
-
-            // Create particle effect
-            createParticles(clover.position, 0xff00ff);
-
-            // Play sound
-            playSound("collect");
-
-            onEnergyChange?.(energy);
-            onCloverCollect?.(cloversCollected);
-            onScoreChange?.(score, combo);
-
-            // Teleport clover to new random position
-            const angle = Math.random() * Math.PI * 2;
-            const radius = 5 + Math.random() * 5;
-            clover.position.set(
-              Math.cos(angle) * radius,
-              2 + Math.random() * 2,
-              Math.sin(angle) * radius,
-            );
-            const timeout = setTimeout(() => {
-              clover.visible = true;
-            }, CLOVER_RESPAWN_DELAY);
-            timeouts.push(timeout);
+            if (powerUp.type === "odins_shield") hasShield = true;
+            if (powerUp.type === "thors_magnet") hasMagnet = true;
+            if (powerUp.type === "freyas_double") hasDouble = true;
+            emitPowerUps(activePowerUps);
           }
         }
-      });
 
-      // Power-up logic
-      powerUps.forEach((powerUp) => {
-        if (powerUp.mesh.visible) {
-          powerUp.mesh.rotation.x += 0.05;
-          powerUp.mesh.rotation.y += 0.05;
-
-          // Floating animation
-          powerUp.mesh.position.y = 2 + Math.sin(Date.now() * 0.002) * 0.3;
-
-          // Collision detection
-          const distance = player.position.distanceTo(powerUp.mesh.position);
-          if (distance < 1.2) {
-            powerUp.mesh.visible = false;
-
-            // Activate power-up
-            if (powerUp.type === "speed") {
-              speedBoostTimer = POWERUP_DURATION;
-            } else if (powerUp.type === "magnet") {
-              magnetTimer = POWERUP_DURATION;
-            } else if (powerUp.type === "double") {
-              doublePointsTimer = POWERUP_DURATION;
-            }
-
-            createParticles(
-              powerUp.mesh.position,
-              (
-                powerUp.mesh.material as THREE.MeshStandardMaterial
-              ).color.getHex(),
-            );
-            playSound("powerup");
-
-            // Respawn power-up after delay
-            const timeout = setTimeout(() => {
-              const angle = Math.random() * Math.PI * 2;
-              const radius = 7 + Math.random() * 3;
-              powerUp.mesh.position.set(
-                Math.cos(angle) * radius,
-                2,
-                Math.sin(angle) * radius,
-              );
-              powerUp.mesh.visible = true;
-            }, POWERUP_RESPAWN_DELAY);
-            timeouts.push(timeout);
+        if (powerUp.zPosition > 15 || powerUp.collected) {
+          if (!powerUp.collected) {
+            scene.remove(powerUp.mesh);
+            powerUp.mesh.geometry.dispose();
+            (powerUp.mesh.material as THREE.Material).dispose();
           }
+          powerUps.splice(i, 1);
         }
-      });
-
-      // Obstacle logic (patrol and damage player)
-      obstacles.forEach((obstacle) => {
-        obstacle.mesh.rotation.x += 0.03;
-        obstacle.mesh.rotation.y += 0.05;
-
-        // Move obstacle in circular pattern
-        obstacle.angle += 0.01;
-        const radius = 4 + Math.sin(obstacle.angle) * 2;
-        obstacle.mesh.position.x = Math.cos(obstacle.angle * 2) * radius;
-        obstacle.mesh.position.z = Math.sin(obstacle.angle * 2) * radius;
-        obstacle.mesh.position.y = 1.5 + Math.sin(obstacle.angle * 3) * 0.5;
-
-        // Check collision with player (with cooldown)
-        const distance = player.position.distanceTo(obstacle.mesh.position);
-        const currentTime = Date.now();
-        if (distance < 1 && currentTime - lastHitTime > 1000) {
-          lastHitTime = currentTime;
-
-          // Damage player (drain energy)
-          energy = Math.max(0, energy - OBSTACLE_DAMAGE);
-          combo = 0; // Reset combo on hit
-          onEnergyChange?.(energy);
-          onScoreChange?.(score, combo);
-
-          // Camera shake
-          cameraShake = 0.5;
-
-          // Play damage sound
-          playSound("damage");
-
-          // Push player away
-          const pushDirection = new THREE.Vector3().subVectors(
-            player.position,
-            obstacle.mesh.position,
-          );
-          pushDirection.normalize().multiplyScalar(0.5);
-          velocity.add(pushDirection);
-
-          // Flash obstacle
-          const material = obstacle.mesh.material as THREE.MeshStandardMaterial;
-          material.emissiveIntensity = 1.5;
-          setTimeout(() => {
-            material.emissiveIntensity = 0.5;
-          }, 100);
-
-          // Create red particles at collision
-          createParticles(obstacle.mesh.position, 0xff0000);
-        }
-      });
-
-      // Unlock portal at 100 energy
-      if (energy >= 100) {
-        portalMaterial.opacity = Math.min(portalMaterial.opacity + 0.01, 0.8);
-        portal.rotation.z += 0.05;
-        portal.scale.set(
-          1 + Math.sin(Date.now() * 0.001) * 0.1,
-          1 + Math.sin(Date.now() * 0.001) * 0.1,
-          1,
-        );
       }
+
+      for (let i = activePowerUps.length - 1; i >= 0; i--) {
+        const powerUp = activePowerUps[i];
+        powerUp.timeLeft -= 1;
+        if (powerUp.timeLeft > 0) continue;
+
+        if (powerUp.type === "odins_shield") hasShield = false;
+        if (powerUp.type === "thors_magnet") hasMagnet = false;
+        if (powerUp.type === "freyas_double") hasDouble = false;
+        activePowerUps.splice(i, 1);
+        emitPowerUps(activePowerUps);
+      }
+
+      spawnObjects();
+
+      score += Math.floor(gameSpeed * 5);
+      if (frameCount % 15 === 0) {
+        onScoreChange?.(score, combo);
+      }
+
+      // Passive energy decay keeps the meter active and visible in long runs.
+      if (frameCount % 60 === 0) {
+        updateEnergy(energy - 1);
+      }
+
+      camera.position.x += (player.position.x - camera.position.x) * 0.1;
+      camera.position.z += (player.position.z + 10 - camera.position.z) * 0.05;
+      rimLight1.intensity = 0.6 + Math.sin(frameCount * 0.02) * 0.2;
+      rimLight2.intensity = 0.6 + Math.cos(frameCount * 0.02) * 0.2;
 
       renderer.render(scene, camera);
     };
 
-    // Handle resize
-    const handleResize = () => {
-      if (!currentMount) return;
-      camera.aspect = currentMount.clientWidth / currentMount.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
-    };
-    window.addEventListener("resize", handleResize);
-
-    setIsLoaded(true);
+    updateEnergy(0);
+    onCloverCollect?.(0);
+    onScoreChange?.(0, 0);
+    emitPowerUps([]);
     animate();
 
-    // Cleanup
     return () => {
+      isMounted = false;
+      window.cancelAnimationFrame(animationFrameId);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
-      window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleTouchEnd);
+      currentMount.removeEventListener("touchstart", handleTouchStart);
+      currentMount.removeEventListener("touchend", handleTouchEnd);
 
-      // Clear all pending timeouts
-      timeouts.forEach((timeout) => clearTimeout(timeout));
+      scene.traverse((object) => {
+        const mesh = object as THREE.Mesh;
+        if (mesh.geometry) {
+          mesh.geometry.dispose();
+        }
+        const materialOrMaterials = mesh.material;
+        if (!materialOrMaterials) return;
 
-      if (currentMount) {
+        const materials = Array.isArray(materialOrMaterials)
+          ? materialOrMaterials
+          : [materialOrMaterials];
+
+        for (const material of materials) {
+          for (const value of Object.values(material as unknown as Record<string, unknown>)) {
+            if (isTexture(value)) {
+              value.dispose();
+            }
+          }
+          material.dispose();
+        }
+      });
+
+      renderer.dispose();
+      if (currentMount.contains(renderer.domElement)) {
         currentMount.removeChild(renderer.domElement);
       }
-      renderer.dispose();
     };
-  }, [
-    onEnergyChange,
-    onCloverCollect,
-    onScoreChange,
-    onPowerUpChange,
-    playSound,
-  ]);
+  }, [onCloverCollect, onEnergyChange, onPowerUpChange, onScoreChange]);
 
   return (
-    <div className="relative w-full h-full bg-black">
-      <div
-        ref={mountRef}
-        className="w-full h-full"
-        style={{ display: "block" }}
-      />
-      {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm z-50">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-500 mx-auto mb-4"></div>
-            <p className="text-gray-300 font-semibold">Loading Hyperborea...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Touch Controls Overlay for Mobile */}
-      {showTouchControls && isLoaded && (
-        <div className="absolute bottom-20 left-0 right-0 pointer-events-none">
-          <div className="max-w-md mx-auto px-4">
-            <div className="bg-black/40 backdrop-blur-sm border border-purple-500/30 rounded-lg p-3 text-center">
-              <p className="text-white text-sm">
-                👆 <span className="font-bold">Tap and drag</span> anywhere to
-                move
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    <div
+      ref={mountRef}
+      className="w-full h-full"
+      aria-label="Hyperborea Game Canvas"
+    />
   );
 }

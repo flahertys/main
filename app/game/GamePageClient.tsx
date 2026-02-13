@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 export default function GamePage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [gameSession, setGameSession] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
   const [energy, setEnergy] = useState(0);
   const [cloversCollected, setCloversCollected] = useState(0);
@@ -48,6 +49,7 @@ export default function GamePage() {
     trackEvent.gameStart();
     setIsPlaying(true);
     setIsPaused(false);
+    setGameSession((value) => value + 1);
 
     // Show tutorial for first-time players
     if (!hasPlayedBefore) {
@@ -65,7 +67,7 @@ export default function GamePage() {
     setScore(0);
     setCombo(0);
     setIsPaused(false);
-    // Game will restart automatically due to state reset
+    setGameSession((value) => value + 1);
   };
 
   const handleExit = () => {
@@ -90,6 +92,7 @@ export default function GamePage() {
         {/* Game Canvas */}
         <div className="w-full h-full">
           <HyperboreaGame
+            key={gameSession}
             onEnergyChange={setEnergy}
             onCloverCollect={setCloversCollected}
             onScoreChange={(newScore, newCombo) => {
@@ -97,6 +100,7 @@ export default function GamePage() {
               setCombo(newCombo);
             }}
             onPowerUpChange={setActivePowerUps}
+            isPaused={isPaused}
           />
         </div>
 
