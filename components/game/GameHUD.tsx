@@ -12,9 +12,22 @@ interface GameHUDProps {
   activePowerUps?: Array<{ type: string; timeLeft: number }>;
 }
 
+const POWER_UP_META: Record<
+  string,
+  { label: string; icon: string; borderColor: string }
+> = {
+  odins_shield: { label: "Odin Shield", icon: "🛡️", borderColor: "#00ddff" },
+  thors_magnet: { label: "Thor Magnet", icon: "🧲", borderColor: "#ff00ff" },
+  freyas_double: { label: "Freyja Double", icon: "✨", borderColor: "#ff8800" },
+  speed: { label: "Speed", icon: "⚡", borderColor: "#00ffff" },
+  magnet: { label: "Magnet", icon: "🧲", borderColor: "#ffff00" },
+  double: { label: "Double", icon: "✨", borderColor: "#ff8800" },
+};
+
 export function GameHUD({ energy, cloversCollected, score, combo, walletConnected, activePowerUps = [] }: GameHUDProps) {
   const energyPercentage = Math.min((energy / 100) * 100, 100);
   const portalUnlocked = energy >= 100;
+  const cloversNeeded = Math.ceil((100 - energy) / 5);
   const [showEnergyPulse, setShowEnergyPulse] = useState(false);
   const [showCloverPulse, setShowCloverPulse] = useState(false);
   const [lastEnergy, setLastEnergy] = useState(energy);
@@ -103,7 +116,7 @@ export function GameHUD({ energy, cloversCollected, score, combo, walletConnecte
             <div className="flex items-center gap-2">
               <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
               <div className="text-blue-300 text-xs sm:text-sm">
-                <span className="font-bold">Objective:</span> Collect {Math.ceil((100 - energy) / 20)} more clover{Math.ceil((100 - energy) / 20) !== 1 ? 's' : ''} to unlock the portal!
+                <span className="font-bold">Objective:</span> Collect {cloversNeeded} more clover{cloversNeeded !== 1 ? 's' : ''} to unlock the portal!
               </div>
             </div>
           </div>
@@ -114,19 +127,19 @@ export function GameHUD({ energy, cloversCollected, score, combo, walletConnecte
           <div className="text-gray-300 text-xs sm:text-sm space-y-1">
             <div className="hidden sm:flex items-center gap-2">
               <span className="text-purple-400 font-mono font-bold">WASD / ARROWS</span>
-              <span>Move</span>
+              <span>Lane Switch</span>
             </div>
             <div className="sm:hidden flex items-center gap-2">
-              <span className="text-purple-400 font-bold">👆 Touch & Drag</span>
+              <span className="text-purple-400 font-bold">👆 Swipe</span>
               <span>to Move</span>
             </div>
             <div className="hidden sm:flex items-center gap-2">
-              <span className="text-purple-400 font-mono font-bold">MOUSE</span>
-              <span>Look Around</span>
+              <span className="text-purple-400 font-mono font-bold">W/SPACE + S</span>
+              <span>Jump / Slide</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-pink-400 text-base">🍀</span>
-              <span>+20 energy each</span>
+              <span>+5 energy each</span>
             </div>
           </div>
         </div>
@@ -143,28 +156,29 @@ export function GameHUD({ energy, cloversCollected, score, combo, walletConnecte
         {/* Active Power-Ups */}
         {activePowerUps.length > 0 && (
           <div className="mt-2 sm:mt-4 flex flex-wrap gap-2 max-w-md">
-            {activePowerUps.map((powerUp, index) => (
-              <div
-                key={index}
-                className="bg-black/90 backdrop-blur-sm border rounded-lg p-2 flex items-center gap-2 animate-pulse"
-                style={{
-                  borderColor:
-                    powerUp.type === 'speed'
-                      ? '#00ffff'
-                      : powerUp.type === 'magnet'
-                      ? '#ffff00'
-                      : '#ff8800',
-                }}
-              >
-                <span className="text-xl">
-                  {powerUp.type === 'speed' ? '⚡' : powerUp.type === 'magnet' ? '🧲' : '✨'}
-                </span>
-                <div className="text-white text-xs">
-                  <div className="font-bold capitalize">{powerUp.type}</div>
-                  <div className="text-gray-400">{(powerUp.timeLeft / 60).toFixed(1)}s</div>
+            {activePowerUps.map((powerUp, index) => {
+              const powerUpMeta = POWER_UP_META[powerUp.type] ?? {
+                label: powerUp.type,
+                icon: "✨",
+                borderColor: "#ff8800",
+              };
+
+              return (
+                <div
+                  key={index}
+                  className="bg-black/90 backdrop-blur-sm border rounded-lg p-2 flex items-center gap-2 animate-pulse"
+                  style={{ borderColor: powerUpMeta.borderColor }}
+                >
+                  <span className="text-xl">{powerUpMeta.icon}</span>
+                  <div className="text-white text-xs">
+                    <div className="font-bold">{powerUpMeta.label}</div>
+                    <div className="text-gray-400">
+                      {(Math.max(powerUp.timeLeft, 0) / 60).toFixed(1)}s
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

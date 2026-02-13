@@ -206,18 +206,27 @@ export default function GamePage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">
-                        MOUSE
+                        W / SPACE
                       </span>
                       <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">
-                        MOUSE
+                        W / SPACE
                       </span>
-                      <span>Move mouse to look around</span>
+                      <span>Jump</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">
+                        S / ↓
+                      </span>
+                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">
+                        S / ↓
+                      </span>
+                      <span>Slide</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">
-                        👆 TOUCH
+                        👆 SWIPE
                       </span>
-                      <span>Tap & drag to move (mobile)</span>
+                      <span>Left/Right switch lanes, Up jump, Down slide</span>
                     </div>
                   </div>
                 </div>
@@ -227,7 +236,7 @@ export default function GamePage() {
                     ✨ Tips
                   </h3>
                   <ul className="space-y-2 text-sm sm:text-base list-disc list-inside">
-                    <li>Each clover gives you +20 energy</li>
+                    <li>Each clover gives you +5 energy</li>
                     <li>Clovers respawn after 1 second in a new location</li>
                     <li>
                       Build combos by collecting clovers quickly for bonus
@@ -447,18 +456,27 @@ export default function GamePage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">
-                        MOUSE
+                        W / SPACE
                       </span>
                       <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">
-                        MOUSE
+                        W / SPACE
                       </span>
-                      <span>Move mouse to look around</span>
+                      <span>Jump</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="hidden sm:inline font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold">
+                        S / ↓
+                      </span>
+                      <span className="sm:hidden font-mono bg-gray-800 px-2 py-1 rounded text-purple-400 text-xs font-bold">
+                        S / ↓
+                      </span>
+                      <span>Slide</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">
-                        👆 TOUCH
+                        👆 SWIPE
                       </span>
-                      <span>Tap & drag to move (mobile)</span>
+                      <span>Left/Right switch lanes, Up jump, Down slide</span>
                     </div>
                   </div>
                 </div>
@@ -468,7 +486,7 @@ export default function GamePage() {
                     ✨ Tips
                   </h3>
                   <ul className="space-y-2 text-sm sm:text-base list-disc list-inside">
-                    <li>Each clover gives you +20 energy</li>
+                    <li>Each clover gives you +5 energy</li>
                     <li>Clovers respawn after 1 second in a new location</li>
                     <li>
                       Build combos by collecting clovers quickly for bonus

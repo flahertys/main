@@ -371,9 +371,12 @@ export function HyperboreaGame({
     const obstacleTypes: ObstacleType[] = ["icespike", "frostwall", "lowbarrier"];
     const powerUpTypes: PowerUpType[] = ["odins_shield", "thors_magnet", "freyas_double"];
 
-    const keys: Record<string, boolean> = {};
     let touchStartX = 0;
     let touchStartY = 0;
+    let simulationAccumulator = 0;
+    const fixedStepSeconds = 1 / 60;
+    const maxSubSteps = 3;
+    const simulationClock = new THREE.Clock();
 
     const updateEnergy = (nextValue: number) => {
       const normalized = Math.max(0, Math.min(100, Math.round(nextValue)));
@@ -426,7 +429,16 @@ export function HyperboreaGame({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isDead) return;
-      keys[event.key.toLowerCase()] = true;
+      const shouldPreventDefault =
+        event.key === "ArrowLeft" ||
+        event.key === "ArrowRight" ||
+        event.key === "ArrowUp" ||
+        event.key === "ArrowDown" ||
+        event.key === " " ||
+        event.code === "Space";
+      if (shouldPreventDefault) {
+        event.preventDefault();
+      }
 
       if ((event.key === "ArrowLeft" || event.key === "a") && currentLane > 0) {
         currentLane--;
@@ -435,7 +447,7 @@ export function HyperboreaGame({
         currentLane++;
       }
       if (
-        (event.key === "ArrowUp" || event.key === "w" || event.key === " ") &&
+        (event.key === "ArrowUp" || event.key === "w" || event.key === " " || event.code === "Space") &&
         !isJumping &&
         !isSliding
       ) {
@@ -449,7 +461,16 @@ export function HyperboreaGame({
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
-      keys[event.key.toLowerCase()] = false;
+      const shouldPreventDefault =
+        event.key === "ArrowLeft" ||
+        event.key === "ArrowRight" ||
+        event.key === "ArrowUp" ||
+        event.key === "ArrowDown" ||
+        event.key === " " ||
+        event.code === "Space";
+      if (shouldPreventDefault) {
+        event.preventDefault();
+      }
     };
 
     const handleTouchStart = (event: TouchEvent) => {
@@ -497,24 +518,7 @@ export function HyperboreaGame({
     currentMount.addEventListener("touchstart", handleTouchStart, { passive: true });
     currentMount.addEventListener("touchend", handleTouchEnd, { passive: true });
 
-    const animate = () => {
-      if (!isMounted) return;
-      animationFrameId = window.requestAnimationFrame(animate);
-
-      if (pausedRef.current) {
-        renderer.render(scene, camera);
-        return;
-      }
-
-      if (isDead) {
-        if (!hasEmittedGameOver) {
-          hasEmittedGameOver = true;
-          emitPowerUps([]);
-        }
-        renderer.render(scene, camera);
-        return;
-      }
-
+    const stepSimulation = () => {
       frameCount++;
       gameSpeed = 0.18 + Math.min(distance * 0.000008, 0.15);
       distance += gameSpeed;
@@ -732,6 +736,35 @@ export function HyperboreaGame({
       camera.position.z += (player.position.z + 10 - camera.position.z) * 0.05;
       rimLight1.intensity = 0.6 + Math.sin(frameCount * 0.02) * 0.2;
       rimLight2.intensity = 0.6 + Math.cos(frameCount * 0.02) * 0.2;
+    };
+
+    const animate = () => {
+      if (!isMounted) return;
+      animationFrameId = window.requestAnimationFrame(animate);
+
+      const deltaSeconds = Math.min(simulationClock.getDelta(), 0.05);
+
+      if (pausedRef.current) {
+        renderer.render(scene, camera);
+        return;
+      }
+
+      if (isDead) {
+        if (!hasEmittedGameOver) {
+          hasEmittedGameOver = true;
+          emitPowerUps([]);
+        }
+        renderer.render(scene, camera);
+        return;
+      }
+
+      simulationAccumulator += deltaSeconds;
+      let subSteps = 0;
+      while (simulationAccumulator >= fixedStepSeconds && subSteps < maxSubSteps) {
+        stepSimulation();
+        simulationAccumulator -= fixedStepSeconds;
+        subSteps++;
+      }
 
       renderer.render(scene, camera);
     };
