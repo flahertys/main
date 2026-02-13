@@ -17,6 +17,7 @@ interface HyperboreaGameProps {
   onPowerUpChange?: (powerUps: Array<{ type: string; timeLeft: number }>) => void;
   onArtifactCollected?: (event: ArtifactCollectionEvent) => void;
   onStatusChange?: (message: string) => void;
+  onInteractionHintChange?: (hint: string | null, actionable: boolean) => void;
   levelDefinition?: HyperboreaLevelDefinition | null;
   sessionId?: string;
   isPaused?: boolean;
@@ -42,6 +43,11 @@ interface PuzzleInstance {
   blockedCellKey?: string;
 }
 
+type InteractionCandidate =
+  | { type: "artifact"; distance: number; instance: ArtifactInstance }
+  | { type: "puzzle"; distance: number; instance: PuzzleInstance }
+  | { type: "exit"; distance: number };
+
 function isTexture(value: unknown): value is THREE.Texture {
   return (
     typeof value === "object" &&
@@ -65,6 +71,23 @@ const WALL_HEIGHT = 3.5;
 const PLAYER_RADIUS = 0.38;
 const EYE_HEIGHT = 1.5;
 const INTERACT_DISTANCE = 2.7;
+const NAVIGATION_KEYS = new Set([
+  "w",
+  "a",
+  "s",
+  "d",
+  "arrowup",
+  "arrowdown",
+  "arrowleft",
+  "arrowright",
+  "e",
+  "f",
+  "enter",
+  " ",
+  "space",
+  "spacebar",
+]);
+const INTERACT_KEYS = new Set(["e", "f", "enter", " ", "space", "spacebar"]);
 
 export function HyperboreaGame({
   onEnergyChange,
@@ -73,6 +96,7 @@ export function HyperboreaGame({
   onPowerUpChange,
   onArtifactCollected,
   onStatusChange,
+  onInteractionHintChange,
   levelDefinition,
   sessionId = "session-local",
   isPaused = false,
@@ -102,26 +126,26 @@ export function HyperboreaGame({
     const isSmallViewport = window.matchMedia("(max-width: 900px)").matches;
     const isMobile = isTouchDevice || isSmallViewport;
     const maxDpr = isMobile ? 1.5 : 2;
+    let currentDpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+    let viewportWidth = Math.max(currentMount.clientWidth, 1);
+    let viewportHeight = Math.max(currentMount.clientHeight, 1);
 
     currentMount.style.touchAction = "none";
     currentMount.style.overscrollBehavior = "none";
-
-    const initialWidth = Math.max(currentMount.clientWidth, 1);
-    const initialHeight = Math.max(currentMount.clientHeight, 1);
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(activeLevel.theme.fogColor || 0x0a0520);
     scene.fog = new THREE.FogExp2(new THREE.Color(activeLevel.theme.fogColor || 0x0a0520), 0.03);
 
-    const camera = new THREE.PerspectiveCamera(78, initialWidth / initialHeight, 0.1, 400);
+    const camera = new THREE.PerspectiveCamera(78, viewportWidth / viewportHeight, 0.1, 400);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: !isMobile,
       alpha: false,
       powerPreference: "high-performance",
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
-    renderer.setSize(initialWidth, initialHeight, false);
+    renderer.setPixelRatio(currentDpr);
+    renderer.setSize(viewportWidth, viewportHeight, false);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -325,6 +349,12 @@ export function HyperboreaGame({
     let energyDecayClock = 0;
     let exitUnlocked = false;
     let missionComplete = false;
+    let lastInteractionHint = "";
+    let lastHintActionable = false;
+
+    let performanceCheckTimer = 0;
+    let performanceFrameCounter = 0;
+    let performanceTimeAccumulator = 0;
 
     const keyState: Record<string, boolean> = {};
     const virtualControlState: Record<ControlAction, boolean> = {
@@ -364,6 +394,27 @@ export function HyperboreaGame({
 
     const emitRelics = () => {
       onCloverCollect?.(relicsCollected);
+    };
+
+    const clearControlState = () => {
+      for (const key of Object.keys(keyState)) {
+        keyState[key] = false;
+      }
+      virtualControlState.forward = false;
+      virtualControlState.backward = false;
+      virtualControlState.turn_left = false;
+      virtualControlState.turn_right = false;
+      virtualControlState.use = false;
+    };
+
+    const emitInteractionHint = (hint: string | null, actionable: boolean) => {
+      const normalizedHint = hint ?? "";
+      if (normalizedHint === lastInteractionHint && actionable === lastHintActionable) {
+        return;
+      }
+      lastInteractionHint = normalizedHint;
+      lastHintActionable = actionable;
+      onInteractionHintChange?.(hint, actionable);
     };
 
     const updateEnergy = (nextValue: number) => {
@@ -529,15 +580,8 @@ export function HyperboreaGame({
       return (fx * dx + fz * dz) / magnitude;
     };
 
-    const tryInteract = () => {
-      if (missionComplete) return;
-
-      type Candidate =
-        | { type: "artifact"; distance: number; instance: ArtifactInstance }
-        | { type: "puzzle"; distance: number; instance: PuzzleInstance }
-        | { type: "exit"; distance: number };
-
-      const candidates: Candidate[] = [];
+    const getNearestInteractionCandidate = (): InteractionCandidate | null => {
+      const candidates: InteractionCandidate[] = [];
 
       for (const artifact of artifactInstances) {
         if (artifact.collected) continue;
@@ -565,20 +609,47 @@ export function HyperboreaGame({
       }
 
       if (candidates.length === 0) {
-        emitStatus("No interactable object in range. Move closer and press Use.");
-        return;
+        return null;
       }
 
       candidates.sort((a, b) => a.distance - b.distance);
-      const nearest = candidates[0];
+      return candidates[0];
+    };
+
+    const formatInteractionHint = (candidate: InteractionCandidate | null) => {
+      if (!candidate) return "";
+      const actionVerb = isMobile ? "Tap Use" : "Press E";
+      if (candidate.type === "artifact") {
+        return `${actionVerb}: collect ${candidate.instance.data.name}`;
+      }
+      if (candidate.type === "puzzle") {
+        return `${actionVerb}: activate ${candidate.instance.data.label}`;
+      }
+      if (!exitUnlocked) {
+        return "Portal ahead: complete relic and puzzle requirements first.";
+      }
+      return `${actionVerb}: enter unlocked portal`;
+    };
+
+    const tryInteract = () => {
+      if (missionComplete) return;
+
+      const nearest = getNearestInteractionCandidate();
+      if (!nearest) {
+        emitStatus("No interactable object in range. Move closer and press Use.");
+        emitInteractionHint("", false);
+        return;
+      }
 
       if (nearest.type === "artifact") {
         collectArtifact(nearest.instance);
+        emitInteractionHint("", false);
         return;
       }
 
       if (nearest.type === "puzzle") {
         activatePuzzle(nearest.instance);
+        emitInteractionHint("", false);
         return;
       }
 
@@ -593,6 +664,7 @@ export function HyperboreaGame({
       updateEnergy(100);
       onPowerUpChange?.([]);
       emitStatus("Level complete. Portal traversal confirmed.");
+      emitInteractionHint("Portal traversal complete.", false);
     };
 
     const applyControlHold = (action: ControlAction, pressed: boolean) => {
@@ -607,33 +679,24 @@ export function HyperboreaGame({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
-      const navigationKeys = new Set([
-        "w",
-        "a",
-        "s",
-        "d",
-        "arrowup",
-        "arrowdown",
-        "arrowleft",
-        "arrowright",
-        "e",
-        "f",
-        "enter",
-      ]);
+      const keyIsSpace = key === " " || key === "spacebar" || key === "space" || event.code === "Space";
+      const normalizedKey = keyIsSpace ? "space" : key;
 
-      if (navigationKeys.has(key)) {
+      if (NAVIGATION_KEYS.has(key) || keyIsSpace) {
         event.preventDefault();
       }
 
-      keyState[key] = true;
-      if (key === "e" || key === "f" || key === "enter") {
+      keyState[normalizedKey] = true;
+      if ((INTERACT_KEYS.has(key) || keyIsSpace) && !event.repeat) {
         tryInteract();
       }
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
-      keyState[key] = false;
+      const keyIsSpace = key === " " || key === "spacebar" || key === "space" || event.code === "Space";
+      const normalizedKey = keyIsSpace ? "space" : key;
+      keyState[normalizedKey] = false;
     };
 
     const handleTouchStart = (event: TouchEvent) => {
@@ -682,25 +745,39 @@ export function HyperboreaGame({
 
     const handleResize = () => {
       if (!isMounted) return;
-      const width = Math.max(currentMount.clientWidth, 1);
-      const height = Math.max(currentMount.clientHeight, 1);
-      camera.aspect = width / height;
+      viewportWidth = Math.max(currentMount.clientWidth, 1);
+      viewportHeight = Math.max(currentMount.clientHeight, 1);
+      currentDpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+      camera.aspect = viewportWidth / viewportHeight;
       camera.updateProjectionMatrix();
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
-      renderer.setSize(width, height, false);
+      renderer.setPixelRatio(currentDpr);
+      renderer.setSize(viewportWidth, viewportHeight, false);
+    };
+
+    const handleWindowBlur = () => {
+      clearControlState();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        clearControlState();
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("resize", handleResize);
+    window.addEventListener("blur", handleWindowBlur);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("hyperborea-control", handleExternalControl as EventListener);
     currentMount.addEventListener("touchstart", handleTouchStart, { passive: true });
     currentMount.addEventListener("touchmove", handleTouchMove, { passive: false });
     currentMount.addEventListener("touchend", handleTouchEnd, { passive: true });
 
     const stepSimulation = (dt: number) => {
+      const nowMs = performance.now();
       portalMesh.rotation.z += 0.01;
-      portalMesh.scale.setScalar(1 + Math.sin(performance.now() * 0.003) * 0.04);
+      portalMesh.scale.setScalar(1 + Math.sin(nowMs * 0.003) * 0.04);
 
       if (pausedRef.current) {
         return;
@@ -787,7 +864,7 @@ export function HyperboreaGame({
       for (const artifact of artifactInstances) {
         if (artifact.collected) continue;
         artifact.mesh.rotation.y += 0.035;
-        artifact.mesh.position.y = 1.1 + Math.sin(performance.now() * 0.004 + artifact.mesh.position.x) * 0.08;
+        artifact.mesh.position.y = 1.1 + Math.sin(nowMs * 0.004 + artifact.mesh.position.x) * 0.08;
       }
 
       for (const puzzle of puzzleInstances) {
@@ -795,6 +872,13 @@ export function HyperboreaGame({
       }
 
       simulationFrame += 1;
+      if (simulationFrame % 6 === 0) {
+        const nearestCandidate = missionComplete ? null : getNearestInteractionCandidate();
+        const hint = missionComplete
+          ? "Portal traversal complete."
+          : formatInteractionHint(nearestCandidate) || null;
+        emitInteractionHint(hint, Boolean(nearestCandidate));
+      }
       if (simulationFrame % 6 === 0) {
         emitScore();
       }
@@ -806,6 +890,25 @@ export function HyperboreaGame({
 
       const deltaSeconds = Math.min(simulationClock.getDelta(), 0.05);
       simulationAccumulator += deltaSeconds;
+      performanceCheckTimer += deltaSeconds;
+      performanceFrameCounter += 1;
+      performanceTimeAccumulator += deltaSeconds;
+
+      if (performanceCheckTimer >= 2 && performanceFrameCounter > 0 && performanceTimeAccumulator > 0) {
+        const fps = performanceFrameCounter / performanceTimeAccumulator;
+        if (fps < 45 && currentDpr > 1) {
+          currentDpr = Math.max(1, currentDpr - 0.25);
+          renderer.setPixelRatio(currentDpr);
+          renderer.setSize(viewportWidth, viewportHeight, false);
+        } else if (fps > 58 && currentDpr < maxDpr) {
+          currentDpr = Math.min(maxDpr, currentDpr + 0.25);
+          renderer.setPixelRatio(currentDpr);
+          renderer.setSize(viewportWidth, viewportHeight, false);
+        }
+        performanceCheckTimer = 0;
+        performanceFrameCounter = 0;
+        performanceTimeAccumulator = 0;
+      }
 
       let subSteps = 0;
       while (simulationAccumulator >= fixedStepSeconds && subSteps < maxSubSteps) {
@@ -822,6 +925,7 @@ export function HyperboreaGame({
     emitScore(true);
     onPowerUpChange?.([]);
     setPortalState(false);
+    emitInteractionHint("Use crosshair + E (or Use button) near relics and runes.", false);
     emitStatus(
       isMobile
         ? "Use on-screen Forward/Back/Turn and tap Use near runes."
@@ -835,10 +939,13 @@ export function HyperboreaGame({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("blur", handleWindowBlur);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("hyperborea-control", handleExternalControl as EventListener);
       currentMount.removeEventListener("touchstart", handleTouchStart);
       currentMount.removeEventListener("touchmove", handleTouchMove);
       currentMount.removeEventListener("touchend", handleTouchEnd);
+      onInteractionHintChange?.(null, false);
 
       scene.traverse((object) => {
         const mesh = object as THREE.Mesh;
@@ -873,6 +980,7 @@ export function HyperboreaGame({
     onPowerUpChange,
     onScoreChange,
     onStatusChange,
+    onInteractionHintChange,
     sessionId,
   ]);
 

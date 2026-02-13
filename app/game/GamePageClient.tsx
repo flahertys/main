@@ -26,7 +26,7 @@ import {
     X,
     Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type ControlAction = "forward" | "backward" | "turn_left" | "turn_right" | "use";
 
@@ -57,6 +57,10 @@ export default function GamePage() {
   const [artifactFeed, setArtifactFeed] = useState<ArtifactCollectionEvent[]>([]);
   const [claimFeedback, setClaimFeedback] = useState<string>("");
   const [gameHint, setGameHint] = useState("Loading controls...");
+  const [interactionHint, setInteractionHint] = useState<string | null>(null);
+  const [isInteractionReady, setIsInteractionReady] = useState(false);
+  const [showControlCoach, setShowControlCoach] = useState(false);
+  const pressedControlsRef = useRef<Set<Exclude<ControlAction, "use">>>(new Set());
 
   const topArtifacts = useMemo(() => artifactFeed.slice(0, 3), [artifactFeed]);
 
@@ -107,6 +111,22 @@ export default function GamePage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isPlaying) {
+      setShowControlCoach(false);
+      return;
+    }
+
+    setShowControlCoach(true);
+    const timerId = window.setTimeout(() => {
+      setShowControlCoach(false);
+    }, 12000);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [isPlaying, gameSession]);
+
   const emitControlAction = useCallback((action: ControlAction, pressed?: boolean) => {
     if (typeof window === "undefined") return;
     if (pressed !== false && "vibrate" in navigator) {
@@ -119,14 +139,55 @@ export default function GamePage() {
     );
   }, []);
 
+  const releaseMovementControl = useCallback(
+    (action: Exclude<ControlAction, "use">) => {
+      if (!pressedControlsRef.current.has(action)) {
+        return;
+      }
+      pressedControlsRef.current.delete(action);
+      emitControlAction(action, false);
+    },
+    [emitControlAction],
+  );
+
+  const releaseAllMovementControls = useCallback(() => {
+    const actions = Array.from(pressedControlsRef.current);
+    for (const action of actions) {
+      emitControlAction(action, false);
+    }
+    pressedControlsRef.current.clear();
+  }, [emitControlAction]);
+
   const getHoldButtonHandlers = useCallback(
     (action: Exclude<ControlAction, "use">) => ({
-      onPointerDown: () => emitControlAction(action, true),
-      onPointerUp: () => emitControlAction(action, false),
-      onPointerCancel: () => emitControlAction(action, false),
-      onPointerLeave: () => emitControlAction(action, false),
+      onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        if (!pressedControlsRef.current.has(action)) {
+          pressedControlsRef.current.add(action);
+          emitControlAction(action, true);
+        }
+      },
+      onPointerUp: () => releaseMovementControl(action),
+      onPointerCancel: () => releaseMovementControl(action),
+      onPointerLeave: () => releaseMovementControl(action),
+      onLostPointerCapture: () => releaseMovementControl(action),
+      onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => event.preventDefault(),
     }),
-    [emitControlAction],
+    [emitControlAction, releaseMovementControl],
+  );
+
+  useEffect(() => {
+    if (!isPlaying || isPaused) {
+      releaseAllMovementControls();
+    }
+  }, [isPaused, isPlaying, releaseAllMovementControls]);
+
+  useEffect(
+    () => () => {
+      releaseAllMovementControls();
+    },
+    [releaseAllMovementControls],
   );
 
   const handleArtifactCollected = useCallback(
@@ -163,6 +224,7 @@ export default function GamePage() {
   );
 
   const handlePlayClick = () => {
+    releaseAllMovementControls();
     trackEvent.gameStart();
     setIsPlaying(true);
     setIsPaused(false);
@@ -171,6 +233,8 @@ export default function GamePage() {
     setArtifactFeed([]);
     setClaimFeedback("");
     setGameHint("W/S move, A/D turn, E interact. Recover relics to unlock the portal.");
+    setInteractionHint("Align crosshair with a nearby rune or relic, then press Use.");
+    setIsInteractionReady(false);
 
     // Show tutorial for first-time players
     if (!hasPlayedBefore) {
@@ -183,6 +247,7 @@ export default function GamePage() {
   };
 
   const handleRestart = () => {
+    releaseAllMovementControls();
     setEnergy(0);
     setCloversCollected(0);
     setScore(0);
@@ -193,16 +258,22 @@ export default function GamePage() {
     setArtifactFeed([]);
     setClaimFeedback("");
     setGameHint("Level restarted. Follow rune hints and use E to interact.");
+    setInteractionHint("Level restarted. Re-orient and follow the nearest rune hint.");
+    setIsInteractionReady(false);
+    setShowControlCoach(true);
   };
 
   const handleExit = () => {
+    releaseAllMovementControls();
     setIsPlaying(false);
     setIsPaused(false);
     setShowTutorial(false);
+    setInteractionHint(null);
+    setIsInteractionReady(false);
   };
 
   const togglePause = () => {
-    setIsPaused(!isPaused);
+    setIsPaused((value) => !value);
   };
 
   const handleMintNFT = async (skinId: number) => {
@@ -227,6 +298,10 @@ export default function GamePage() {
             onPowerUpChange={setActivePowerUps}
             onArtifactCollected={handleArtifactCollected}
             onStatusChange={setGameHint}
+            onInteractionHintChange={(hint, actionable) => {
+              setInteractionHint(hint);
+              setIsInteractionReady(actionable);
+            }}
             levelDefinition={activeLevel}
             sessionId={sessionId}
             isPaused={isPaused}
@@ -331,14 +406,43 @@ export default function GamePage() {
             <div className="font-bold text-emerald-300">Controls</div>
             <div>Move: W/S or ↑/↓</div>
             <div>Turn: A/D or ←/→</div>
-            <div>Use/Interact: E or ENTER</div>
+            <div>Use/Interact: E, ENTER, or SPACE</div>
             <div className="text-emerald-200">Mobile: hold direction buttons + tap Use</div>
           </div>
         </div>
 
-        {/* Center crosshair for first-person interaction clarity */}
-        <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
-          <div className="h-5 w-5 rounded-full border border-cyan-300/70 bg-cyan-100/10" />
+        {/* Quick onboarding coach */}
+        {showControlCoach && !isPaused && (
+          <div className="absolute top-20 inset-x-0 z-20 pointer-events-none flex justify-center px-3">
+            <div className="max-w-xl rounded-xl border border-emerald-300/40 bg-black/75 px-4 py-3 text-xs sm:text-sm text-emerald-100 backdrop-blur">
+              <div className="font-bold text-emerald-300">Quick Start</div>
+              <div>1) Move with W/S and turn with A/D.</div>
+              <div>2) Center crosshair on glowing node or relic.</div>
+              <div>3) Press E (or tap Use) to interact.</div>
+            </div>
+          </div>
+        )}
+
+        {/* Center crosshair + contextual interaction prompt */}
+        <div className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center px-3">
+          <div
+            className={`h-5 w-5 rounded-full border bg-cyan-100/10 transition-all ${
+              isInteractionReady
+                ? "border-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.8)]"
+                : "border-cyan-300/70"
+            }`}
+          />
+          {interactionHint && (
+            <div
+              className={`mt-3 max-w-sm rounded-md border px-3 py-1.5 text-center text-[11px] sm:text-xs backdrop-blur ${
+                isInteractionReady
+                  ? "border-emerald-300/50 bg-emerald-500/15 text-emerald-100"
+                  : "border-cyan-300/40 bg-black/55 text-cyan-100"
+              }`}
+            >
+              {interactionHint}
+            </div>
+          )}
         </div>
 
         {/* Mobile touch buttons: explicit first-person controls */}
@@ -347,6 +451,7 @@ export default function GamePage() {
             <button
               type="button"
               {...getHoldButtonHandlers("turn_left")}
+              aria-label="Turn left"
               className="rounded-lg bg-indigo-600/90 px-3 py-3 text-white font-semibold"
             >
               Turn L
@@ -354,6 +459,7 @@ export default function GamePage() {
             <button
               type="button"
               {...getHoldButtonHandlers("forward")}
+              aria-label="Move forward"
               className="rounded-lg bg-emerald-600/90 px-3 py-3 text-white font-semibold"
             >
               Forward
@@ -361,6 +467,7 @@ export default function GamePage() {
             <button
               type="button"
               {...getHoldButtonHandlers("turn_right")}
+              aria-label="Turn right"
               className="rounded-lg bg-indigo-600/90 px-3 py-3 text-white font-semibold"
             >
               Turn R
@@ -368,14 +475,20 @@ export default function GamePage() {
             <button
               type="button"
               {...getHoldButtonHandlers("backward")}
+              aria-label="Move backward"
               className="col-span-2 rounded-lg bg-slate-600/90 px-3 py-3 text-white font-semibold"
             >
               Back
             </button>
             <button
               type="button"
+              aria-label="Use or interact"
               onClick={() => emitControlAction("use", true)}
-              className="rounded-lg bg-pink-600/90 px-3 py-3 text-white font-semibold"
+              className={`rounded-lg px-3 py-3 text-white font-semibold transition-all ${
+                isInteractionReady
+                  ? "bg-emerald-500/95 shadow-[0_0_14px_rgba(16,185,129,0.8)] animate-pulse"
+                  : "bg-pink-600/90"
+              }`}
             >
               Use
             </button>
@@ -435,7 +548,7 @@ export default function GamePage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">
-                        E / ENTER
+                        E / ENTER / SPACE
                       </span>
                       <span>Use/interact with relics and puzzle nodes</span>
                     </div>
@@ -630,7 +743,7 @@ export default function GamePage() {
             </div>
             <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-gray-200">
               <div className="rounded-md border border-white/15 bg-black/40 p-2">
-                Desktop: W/S move, A/D turn, E to interact with nodes and relics.
+                Desktop: W/S move, A/D turn, E/Space to interact with nodes and relics.
               </div>
               <div className="rounded-md border border-white/15 bg-black/40 p-2">
                 Mobile: hold Forward/Back/Turn buttons and tap Use near a target.
@@ -693,7 +806,7 @@ export default function GamePage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">
-                        E / ENTER
+                        E / ENTER / SPACE
                       </span>
                       <span>Use/interact with relics and puzzle nodes</span>
                     </div>
