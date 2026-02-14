@@ -822,7 +822,7 @@ export function HyperboreaGame({
       if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) >= 36) {
         const action: ControlAction = deltaY < 0 ? "forward" : "backward";
         applyControlHold(action, true);
-        window.setTimeout(() => applyControlHold(action, false), 220);
+        window.setTimeout(() => applyControlHold(action, false), 620);
       }
 
       if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) >= 36) {
@@ -848,8 +848,9 @@ export function HyperboreaGame({
         return;
       }
 
+      const pulseDurationMs = isMobile ? 520 : 120;
       applyControlHold(action, true);
-      window.setTimeout(() => applyControlHold(action, false), 120);
+      window.setTimeout(() => applyControlHold(action, false), pulseDurationMs);
     };
 
     const handleResize = () => {
@@ -927,7 +928,7 @@ export function HyperboreaGame({
         playerYaw += turnInput * 2.25 * dt;
       }
 
-      const moveSpeed = missionComplete ? 0 : 4.2;
+      const moveSpeed = missionComplete ? 0 : isMobile ? 6.8 : 4.2;
       const desiredDx = Math.sin(playerYaw) * moveInput * moveSpeed * dt;
       const desiredDz = Math.cos(playerYaw) * moveInput * moveSpeed * dt;
 
