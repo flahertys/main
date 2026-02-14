@@ -131,26 +131,64 @@ export function HyperboreaGame({
 
     currentMount.style.touchAction = "none";
     currentMount.style.overscrollBehavior = "none";
+    currentMount.style.backgroundColor = "#0a1020";
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(activeLevel.theme.fogColor || 0x0a0520);
-    scene.fog = new THREE.FogExp2(new THREE.Color(activeLevel.theme.fogColor || 0x0a0520), 0.03);
+    const fogColor = new THREE.Color(activeLevel.theme.fogColor || 0x0a0520);
+    const fogDensity = isMobile ? 0.018 : 0.03;
+    scene.background = fogColor;
+    scene.fog = new THREE.FogExp2(fogColor, fogDensity);
 
-    const camera = new THREE.PerspectiveCamera(78, viewportWidth / viewportHeight, 0.1, 400);
+    const camera = new THREE.PerspectiveCamera(78, viewportWidth / viewportHeight, 0.08, 400);
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: !isMobile,
-      alpha: false,
-      powerPreference: "high-performance",
-    });
+    const createRenderer = (antialias: boolean, powerPreference: WebGLPowerPreference) => {
+      try {
+        return new THREE.WebGLRenderer({
+          antialias,
+          alpha: false,
+          powerPreference,
+        });
+      } catch {
+        return null;
+      }
+    };
+
+    let renderer =
+      createRenderer(!isMobile, "high-performance") ??
+      createRenderer(false, "default") ??
+      createRenderer(false, "low-power");
+
+    if (!renderer) {
+      onStatusChange?.(
+        "3D renderer unavailable on this device/browser. Try Chrome and disable battery saver.",
+      );
+      onInteractionHintChange?.("3D initialization failed on this device.", false);
+      return;
+    }
+
     renderer.setPixelRatio(currentDpr);
-    renderer.setSize(viewportWidth, viewportHeight, false);
+    renderer.setSize(viewportWidth, viewportHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = isMobile ? 1.25 : 1.1;
     renderer.shadowMap.enabled = !isMobile;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.display = "block";
+    renderer.domElement.style.touchAction = "none";
     currentMount.appendChild(renderer.domElement);
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      onStatusChange?.("Graphics context lost. Try reloading if the scene stays black.");
+    };
+    const handleContextRestored = () => {
+      onStatusChange?.("Graphics context restored.");
+    };
+    renderer.domElement.addEventListener("webglcontextlost", handleContextLost as EventListener);
+    renderer.domElement.addEventListener("webglcontextrestored", handleContextRestored as EventListener);
 
-    const ambientLight = new THREE.AmbientLight(0x5577aa, 0.55);
+    const ambientLight = new THREE.AmbientLight(0x9bbdff, isMobile ? 0.95 : 0.62);
     scene.add(ambientLight);
 
     const moonLight = new THREE.DirectionalLight(0x99bbff, 0.75);
@@ -167,6 +205,9 @@ export function HyperboreaGame({
     const portalLight = new THREE.PointLight(0x77ccff, 0.4, 45);
     portalLight.position.set(8, 2.6, 7);
     scene.add(portalLight);
+
+    const fillLight = new THREE.HemisphereLight(0x9fd8ff, 0x1a2740, isMobile ? 0.72 : 0.38);
+    scene.add(fillLight);
 
     const gridToWorld = (x: number, y: number) => ({
       x: (x - gridWidth / 2 + 0.5) * CELL_SIZE,
@@ -187,8 +228,8 @@ export function HyperboreaGame({
 
     const floorGeometry = new THREE.PlaneGeometry(gridWidth * CELL_SIZE, gridHeight * CELL_SIZE);
     const floorMaterial = new THREE.MeshStandardMaterial({
-      color: 0x10233a,
-      roughness: 0.85,
+      color: isMobile ? 0x1a3550 : 0x10233a,
+      roughness: 0.82,
       metalness: 0.1,
     });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -198,8 +239,8 @@ export function HyperboreaGame({
 
     const ceilingGeometry = new THREE.PlaneGeometry(gridWidth * CELL_SIZE, gridHeight * CELL_SIZE);
     const ceilingMaterial = new THREE.MeshStandardMaterial({
-      color: 0x0d1321,
-      roughness: 0.65,
+      color: isMobile ? 0x101a2b : 0x0d1321,
+      roughness: 0.62,
       metalness: 0.25,
       side: THREE.DoubleSide,
     });
@@ -211,11 +252,11 @@ export function HyperboreaGame({
 
     const wallGeometry = new THREE.BoxGeometry(CELL_SIZE, WALL_HEIGHT, CELL_SIZE);
     const wallMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1f2e4a,
-      roughness: 0.62,
+      color: isMobile ? 0x2b3f61 : 0x1f2e4a,
+      roughness: 0.58,
       metalness: 0.25,
-      emissive: 0x060b16,
-      emissiveIntensity: 0.25,
+      emissive: isMobile ? 0x0d1628 : 0x060b16,
+      emissiveIntensity: isMobile ? 0.34 : 0.25,
     });
 
     for (let y = 0; y < gridHeight; y++) {
@@ -750,7 +791,7 @@ export function HyperboreaGame({
       camera.aspect = viewportWidth / viewportHeight;
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(currentDpr);
-      renderer.setSize(viewportWidth, viewportHeight, false);
+      renderer.setSize(viewportWidth, viewportHeight);
     };
 
     const handleWindowBlur = () => {
@@ -907,11 +948,11 @@ export function HyperboreaGame({
         if (fps < 45 && currentDpr > 1) {
           currentDpr = Math.max(1, currentDpr - 0.25);
           renderer.setPixelRatio(currentDpr);
-          renderer.setSize(viewportWidth, viewportHeight, false);
+          renderer.setSize(viewportWidth, viewportHeight);
         } else if (fps > 58 && currentDpr < maxDpr) {
           currentDpr = Math.min(maxDpr, currentDpr + 0.25);
           renderer.setPixelRatio(currentDpr);
-          renderer.setSize(viewportWidth, viewportHeight, false);
+          renderer.setSize(viewportWidth, viewportHeight);
         }
         performanceCheckTimer = 0;
         performanceFrameCounter = 0;
@@ -955,6 +996,8 @@ export function HyperboreaGame({
       currentMount.removeEventListener("touchend", handleTouchEnd);
       resizeObserver?.disconnect();
       onInteractionHintChange?.(null, false);
+      renderer.domElement.removeEventListener("webglcontextlost", handleContextLost as EventListener);
+      renderer.domElement.removeEventListener("webglcontextrestored", handleContextRestored as EventListener);
 
       scene.traverse((object) => {
         const mesh = object as THREE.Mesh;
