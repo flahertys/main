@@ -314,6 +314,19 @@ export default function GamePage() {
     // This would call the backend API for NFT minting
   };
 
+  const handleScoreChange = useCallback((newScore: number, newCombo: number) => {
+    setScore(newScore);
+    setCombo(newCombo);
+  }, []);
+
+  const handleInteractionHintChange = useCallback(
+    (hint: string | null, actionable: boolean) => {
+      setInteractionHint(hint);
+      setIsInteractionReady(actionable);
+    },
+    [],
+  );
+
   if (isPlaying) {
     return (
       <div className="fixed inset-0 w-screen h-screen bg-black overflow-hidden">
@@ -323,17 +336,11 @@ export default function GamePage() {
             key={gameSession}
             onEnergyChange={setEnergy}
             onCloverCollect={setCloversCollected}
-            onScoreChange={(newScore, newCombo) => {
-              setScore(newScore);
-              setCombo(newCombo);
-            }}
+            onScoreChange={handleScoreChange}
             onPowerUpChange={setActivePowerUps}
             onArtifactCollected={handleArtifactCollected}
             onStatusChange={setGameHint}
-            onInteractionHintChange={(hint, actionable) => {
-              setInteractionHint(hint);
-              setIsInteractionReady(actionable);
-            }}
+            onInteractionHintChange={handleInteractionHintChange}
             levelDefinition={activeLevel}
             sessionId={sessionId}
             isPaused={isPaused}
