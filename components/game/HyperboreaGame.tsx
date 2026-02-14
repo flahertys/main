@@ -529,6 +529,37 @@ export function HyperboreaGame({
       return true;
     };
 
+    const attemptStepMove = (direction: 1 | -1, distance = isMobile ? 1.9 : 1.4) => {
+      if (missionComplete) return false;
+
+      const stepDx = Math.sin(playerYaw) * direction * distance;
+      const stepDz = Math.cos(playerYaw) * direction * distance;
+      let moved = false;
+
+      if (canOccupy(playerX + stepDx, playerZ + stepDz)) {
+        playerX += stepDx;
+        playerZ += stepDz;
+        moved = true;
+      } else {
+        if (canOccupy(playerX + stepDx, playerZ)) {
+          playerX += stepDx;
+          moved = true;
+        }
+        if (canOccupy(playerX, playerZ + stepDz)) {
+          playerZ += stepDz;
+          moved = true;
+        }
+      }
+
+      if (moved) {
+        bobTimer += 0.65;
+        score += distance * 2.6;
+        emitScore();
+      }
+
+      return moved;
+    };
+
     const setPortalState = (unlocked: boolean) => {
       if (unlocked) {
         portalMaterial.color.set(0x66e0ff);
@@ -750,6 +781,9 @@ export function HyperboreaGame({
         }
         return;
       }
+      if ((action === "forward" || action === "backward") && pressed) {
+        attemptStepMove(action === "forward" ? 1 : -1);
+      }
       virtualControlState[action] = pressed;
     };
 
@@ -763,6 +797,17 @@ export function HyperboreaGame({
       }
 
       keyState[normalizedKey] = true;
+      if (!event.repeat) {
+        if (key === "w" || key === "arrowup") {
+          attemptStepMove(1);
+        } else if (key === "s" || key === "arrowdown") {
+          attemptStepMove(-1);
+        } else if (key === "a" || key === "arrowleft") {
+          playerYaw += 0.2;
+        } else if (key === "d" || key === "arrowright") {
+          playerYaw -= 0.2;
+        }
+      }
       if ((INTERACT_KEYS.has(key) || keyIsSpace) && !event.repeat) {
         tryInteract();
       }
@@ -820,9 +865,7 @@ export function HyperboreaGame({
 
       // Fallback gestures for browsers where continuous touch controls are unreliable.
       if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) >= 36) {
-        const action: ControlAction = deltaY < 0 ? "forward" : "backward";
-        applyControlHold(action, true);
-        window.setTimeout(() => applyControlHold(action, false), 620);
+        attemptStepMove(deltaY < 0 ? 1 : -1);
       }
 
       if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) >= 36) {
