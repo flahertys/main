@@ -41,6 +41,7 @@ if (process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET) {
 
 export const authOptions: NextAuthOptions = {
   providers,
+  secret: process.env.NEXTAUTH_SECRET ?? process.env.JWT_SECRET ?? "tradehax-change-this-secret",
   session: {
     strategy: "jwt",
   },
