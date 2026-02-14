@@ -8,7 +8,8 @@ function isArtifactCollectionEvent(value: unknown): value is ArtifactCollectionE
     (typeof event.utilityPointsDelta === "number" || event.utilityPointsDelta === undefined) &&
     (typeof event.utilityPointsAfterEvent === "number" ||
       event.utilityPointsAfterEvent === undefined) &&
-    (typeof event.utilityTokenBonusUnits === "number" || event.utilityTokenBonusUnits === undefined);
+    (typeof event.utilityTokenBonusUnits === "number" || event.utilityTokenBonusUnits === undefined) &&
+    (typeof event.lockedAtPickup === "boolean" || event.lockedAtPickup === undefined);
   return (
     typeof event.eventId === "string" &&
     typeof event.sessionId === "string" &&
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
         utilityPointsDelta: payload.utilityPointsDelta ?? 0,
         utilityPointsAfterEvent: payload.utilityPointsAfterEvent ?? null,
         utilityTokenBonusUnits: payload.utilityTokenBonusUnits ?? 0,
+        lockedAtPickup: payload.lockedAtPickup ?? false,
         collection: payload.web5Collection,
       },
     });

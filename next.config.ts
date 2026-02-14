@@ -1,17 +1,19 @@
 import type { NextConfig } from "next";
 
+const useStaticExport = process.env.NEXT_FORCE_STATIC_EXPORT === "1";
+
 const nextConfig: NextConfig = {
-  // Static export for GitHub Pages only (not for Vercel)
-  // Vercel automatically sets VERCEL=1 environment variable
-  ...(process.env.VERCEL !== "1" && { output: "export" }),
+  // Enable static export only when explicitly requested.
+  // Dynamic routes (OAuth, leaderboard APIs, claim queue) require server output.
+  ...(useStaticExport && { output: "export" }),
 
   // Development optimizations - More permissive
   reactStrictMode: false,
 
   // Image optimization configuration
   images: {
-    // Use Next.js image optimization on Vercel; only disable when doing static export
-    unoptimized: process.env.VERCEL !== "1",
+    // Disable optimization only when forcing static export.
+    unoptimized: useStaticExport,
     remotePatterns: [
       {
         protocol: "https",

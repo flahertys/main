@@ -6,18 +6,26 @@ import { HyperboreaGame } from "@/components/game/HyperboreaGame";
 import { NFTMintPanel } from "@/components/game/NFTMintPanel";
 import { AdSenseBlock } from "@/components/monetization/AdSenseBlock";
 import { PremiumUpgrade } from "@/components/monetization/PremiumUpgrade";
+import { WalletButton } from "@/components/counter/WalletButton";
 import { generateDefaultLevel001 } from "@/lib/game/level-generator";
 import type {
   ArtifactCollectionEvent,
+  GameRunSummary,
+  GameScoreSnapshot,
   HyperboreaLevelDefinition,
 } from "@/lib/game/level-types";
 import { isHyperboreaLevelDefinition } from "@/lib/game/level-types";
+import type { LeaderboardEntry, LeaderboardSubmission } from "@/lib/game/leaderboard-types";
 import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { trackEvent } from "@/lib/analytics";
+import { useWallet } from "@solana/wallet-adapter-react";
 import {
     Gamepad2,
     HelpCircle,
+    LogIn,
+    LogOut,
+    Medal,
     Pause,
     Play,
     RotateCcw,
@@ -26,12 +34,22 @@ import {
     X,
     Zap,
 } from "lucide-react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type ControlAction = "forward" | "backward" | "turn_left" | "turn_right" | "use";
 
 function createSessionId() {
   return `session-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+const LEADERBOARD_STORAGE_KEY = "hyperborea_leaderboard_v1";
+
+function sortLeaderboard(entries: LeaderboardEntry[]) {
+  entries.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime();
+  });
 }
 
 export default function GamePage() {
@@ -46,10 +64,13 @@ export default function GamePage() {
   const [combo, setCombo] = useState(0);
   const [utilityPoints, setUtilityPoints] = useState(0);
   const [projectedUtilityUnits, setProjectedUtilityUnits] = useState(0);
+  const [scoreSnapshot, setScoreSnapshot] = useState<GameScoreSnapshot | null>(null);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const [runCompleteSummary, setRunCompleteSummary] = useState<GameRunSummary | null>(null);
+  const [showRunCompleteModal, setShowRunCompleteModal] = useState(false);
   const [activePowerUps, setActivePowerUps] = useState<
     Array<{ type: string; timeLeft: number }>
   >([]);
-  const [walletConnected] = useState(false);
   const [hasPlayedBefore, setHasPlayedBefore] = useState(false);
   const [activeLevel, setActiveLevel] = useState<HyperboreaLevelDefinition | null>(null);
   const [levelLoadState, setLevelLoadState] = useState<"loading" | "ready" | "fallback">(
@@ -62,9 +83,18 @@ export default function GamePage() {
   const [interactionHint, setInteractionHint] = useState<string | null>(null);
   const [isInteractionReady, setIsInteractionReady] = useState(false);
   const [showControlCoach, setShowControlCoach] = useState(false);
+  const [playerAlias, setPlayerAlias] = useState("Guest");
   const pressedControlsRef = useRef<Set<Exclude<ControlAction, "use">>>(new Set());
+  const { connected: walletConnected, publicKey } = useWallet();
+  const { data: session } = useSession();
+  const walletAddress = publicKey?.toBase58();
 
   const topArtifacts = useMemo(() => artifactFeed.slice(0, 3), [artifactFeed]);
+  const oauthProvider = useMemo(() => {
+    const provider = (session?.user as { provider?: string } | undefined)?.provider;
+    return provider === "google" || provider === "facebook" ? provider : "guest";
+  }, [session]);
+  const oauthIdentity = session?.user?.email ?? session?.user?.name ?? undefined;
 
   // Check localStorage after mount to avoid SSR/hydration issues
   useEffect(() => {
@@ -72,6 +102,57 @@ export default function GamePage() {
       const played = localStorage.getItem("hyperborea_played") === "true";
       setHasPlayedBefore(played);
     }
+  }, []);
+
+  useEffect(() => {
+    if (session?.user?.name && session.user.name.trim().length > 0) {
+      setPlayerAlias(session.user.name.trim().slice(0, 32));
+    }
+  }, [session]);
+
+  const refreshLeaderboard = useCallback(() => {
+    const load = async () => {
+      try {
+        const response = await fetch("/api/game/leaderboard?limit=10", {
+          cache: "no-store",
+        });
+        if (response.ok) {
+          const payload = (await response.json()) as {
+            ok?: boolean;
+            entries?: LeaderboardEntry[];
+          };
+          if (payload.ok && Array.isArray(payload.entries)) {
+            setLeaderboardEntries(payload.entries);
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem(
+                LEADERBOARD_STORAGE_KEY,
+                JSON.stringify(payload.entries.slice(0, 50)),
+              );
+            }
+            return;
+          }
+        }
+      } catch {
+        // Fall through to local cache.
+      }
+
+      if (typeof window === "undefined") return;
+      try {
+        const raw = window.localStorage.getItem(LEADERBOARD_STORAGE_KEY);
+        if (!raw) {
+          setLeaderboardEntries([]);
+          return;
+        }
+        const parsed = JSON.parse(raw) as LeaderboardEntry[];
+        const normalized = Array.isArray(parsed) ? parsed : [];
+        sortLeaderboard(normalized);
+        setLeaderboardEntries(normalized.slice(0, 10));
+      } catch {
+        setLeaderboardEntries([]);
+      }
+    };
+
+    void load();
   }, []);
 
   useEffect(() => {
@@ -134,6 +215,10 @@ export default function GamePage() {
       isCancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    refreshLeaderboard();
+  }, [refreshLeaderboard]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -244,7 +329,7 @@ export default function GamePage() {
         }
 
         setClaimFeedback(
-          `Relic claim queued: ${event.artifactName} (+${event.tokenRewardUnits} ${tokenConfig.l2TokenSymbol})${
+          `Relic ${event.lockedAtPickup ? "capture" : "claim"} queued: ${event.artifactName} (+${event.tokenRewardUnits} ${tokenConfig.l2TokenSymbol})${
             event.utilityTokenBonusUnits
               ? ` | Utility snapshot: ${event.utilityTokenBonusUnits} ${tokenConfig.l2TokenSymbol}`
               : ""
@@ -269,6 +354,9 @@ export default function GamePage() {
     setGameSession((value) => value + 1);
     setSessionId(createSessionId());
     setArtifactFeed([]);
+    setScoreSnapshot(null);
+    setRunCompleteSummary(null);
+    setShowRunCompleteModal(false);
     setUtilityPoints(0);
     setProjectedUtilityUnits(0);
     setClaimFeedback("");
@@ -298,6 +386,9 @@ export default function GamePage() {
     setGameSession((value) => value + 1);
     setSessionId(createSessionId());
     setArtifactFeed([]);
+    setScoreSnapshot(null);
+    setRunCompleteSummary(null);
+    setShowRunCompleteModal(false);
     setClaimFeedback("");
     setGameHint("Level restarted. Follow rune hints and move close to relics to collect.");
     setInteractionHint("Level restarted. Move near relics to auto-pickup or tap Use at runes.");
@@ -310,6 +401,9 @@ export default function GamePage() {
     setIsPlaying(false);
     setIsPaused(false);
     setShowTutorial(false);
+    setScoreSnapshot(null);
+    setRunCompleteSummary(null);
+    setShowRunCompleteModal(false);
     setUtilityPoints(0);
     setProjectedUtilityUnits(0);
     setInteractionHint(null);
@@ -336,6 +430,98 @@ export default function GamePage() {
     setProjectedUtilityUnits(projectedTokenUnits);
   }, []);
 
+  const handleStructuredScoreChange = useCallback((snapshot: GameScoreSnapshot) => {
+    setScoreSnapshot(snapshot);
+    setScore(snapshot.score);
+    setCombo(snapshot.combo);
+    setUtilityPoints(snapshot.utilityPoints);
+    setProjectedUtilityUnits(snapshot.projectedTokenUnits);
+  }, []);
+
+  const handleRunComplete = useCallback(
+    (summary: GameRunSummary) => {
+      setRunCompleteSummary(summary);
+      setShowRunCompleteModal(true);
+      setGameHint(
+        `Run complete. Final score: ${summary.score.toLocaleString()} | Utility: ${summary.utilityPoints.toLocaleString()} pts`,
+      );
+
+      const submission: LeaderboardSubmission = {
+        run: summary,
+        displayName: playerAlias.trim() || "Guest",
+        oauthProvider,
+        oauthUserId: oauthIdentity,
+        walletAddress,
+        web5Enabled: Boolean(walletAddress),
+      };
+
+      const entry: LeaderboardEntry = {
+        id: `lb-${summary.sessionId}-${Date.now().toString(36)}`,
+        displayName: submission.displayName,
+        oauthProvider: submission.oauthProvider,
+        oauthUserId: submission.oauthUserId,
+        walletAddress: submission.walletAddress,
+        web5Enabled: Boolean(submission.web5Enabled && submission.walletAddress),
+        levelId: summary.levelId,
+        score: Math.round(summary.score),
+        combo: Math.round(summary.combo),
+        coinsCollected: Math.round(summary.coinsCollected),
+        runesActivated: Math.round(summary.runesActivated),
+        relicsCollected: Math.round(summary.relicsCollected),
+        coinPoints: Math.round(summary.coinPoints),
+        runePoints: Math.round(summary.runePoints),
+        relicPoints: Math.round(summary.relicPoints),
+        explorationPoints: Math.round(summary.explorationPoints),
+        utilityPoints: Math.round(summary.utilityPoints),
+        projectedTokenUnits: Math.round(summary.projectedTokenUnits),
+        completedAt: summary.completedAt,
+      };
+
+      const persistLocal = () => {
+        if (typeof window === "undefined") return;
+        const existing = window.localStorage.getItem(LEADERBOARD_STORAGE_KEY);
+        const parsed = existing ? ((JSON.parse(existing) as LeaderboardEntry[]) ?? []) : [];
+        const merged = Array.isArray(parsed) ? [...parsed, entry] : [entry];
+        sortLeaderboard(merged);
+        const top = merged.slice(0, 50);
+        window.localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(top));
+        setLeaderboardEntries(top.slice(0, 10));
+      };
+
+      const submit = async () => {
+        try {
+          const response = await fetch("/api/game/leaderboard", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(submission),
+          });
+          if (response.ok) {
+            const payload = (await response.json()) as {
+              ok?: boolean;
+              entries?: LeaderboardEntry[];
+            };
+            if (payload.ok && Array.isArray(payload.entries)) {
+              setLeaderboardEntries(payload.entries);
+              if (typeof window !== "undefined") {
+                window.localStorage.setItem(
+                  LEADERBOARD_STORAGE_KEY,
+                  JSON.stringify(payload.entries.slice(0, 50)),
+                );
+              }
+              return;
+            }
+          }
+        } catch {
+          // Fall back to local persistence.
+        }
+        persistLocal();
+      };
+
+      void submit();
+    },
+    [oauthIdentity, oauthProvider, playerAlias, walletAddress],
+  );
+
   const handleInteractionHintChange = useCallback(
     (hint: string | null, actionable: boolean) => {
       setInteractionHint(hint);
@@ -355,6 +541,8 @@ export default function GamePage() {
             onCloverCollect={setCloversCollected}
             onScoreChange={handleScoreChange}
             onUtilityPointsChange={handleUtilityPointsChange}
+            onStructuredScoreChange={handleStructuredScoreChange}
+            onRunComplete={handleRunComplete}
             onPowerUpChange={setActivePowerUps}
             onArtifactCollected={handleArtifactCollected}
             onStatusChange={setGameHint}
@@ -400,6 +588,15 @@ export default function GamePage() {
               <div className="text-emerald-100/70">
                 L2/Web5 queue: {activeLevel.tokenConfig.l2TokenSymbol} on {activeLevel.tokenConfig.l2Network}
               </div>
+              <div className="text-emerald-100">
+                Score: {score.toLocaleString()} | Combo: {combo}x
+              </div>
+              {scoreSnapshot && (
+                <div className="text-emerald-100/80">
+                  Coins: {scoreSnapshot.coinsCollected} | Runes: {scoreSnapshot.runesActivated} | Relics:{" "}
+                  {scoreSnapshot.relicsCollected}
+                </div>
+              )}
               <div className="text-emerald-100/80">
                 Utility points: {utilityPoints.toLocaleString()} | Projected token units:{" "}
                 {projectedUtilityUnits} {activeLevel.tokenConfig.l2TokenSymbol}
@@ -416,6 +613,7 @@ export default function GamePage() {
               <div>
                 {artifact.pantheon.toUpperCase()} | +{artifact.tokenRewardUnits}{" "}
                 {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"}
+                {artifact.lockedAtPickup ? " | Dormant" : ""}
               </div>
               {typeof artifact.utilityPointsAfterEvent === "number" && (
                 <div>
@@ -469,6 +667,55 @@ export default function GamePage() {
             <X className="w-4 h-4" />
             <span className="hidden sm:inline">Exit</span>
           </button>
+        </div>
+
+        {/* OAuth + Web5 Controls */}
+        <div className="absolute top-4 left-4 sm:left-auto sm:right-[22rem] z-20 pointer-events-auto">
+          <div className="rounded-lg border border-emerald-400/40 bg-black/80 px-3 py-2 text-xs text-emerald-100 backdrop-blur space-y-2 min-w-[220px]">
+            <div className="font-semibold text-emerald-300">Identity + Web5</div>
+            <input
+              value={playerAlias}
+              onChange={(event) => setPlayerAlias(event.target.value.slice(0, 32))}
+              className="w-full rounded border border-emerald-500/40 bg-black/60 px-2 py-1 text-emerald-100 outline-none"
+              placeholder="Leaderboard name"
+              aria-label="Leaderboard display name"
+            />
+            <div className="flex flex-wrap gap-2">
+              {oauthProvider === "guest" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => signIn("google")}
+                    className="rounded bg-white/90 px-2 py-1 text-black font-semibold inline-flex items-center gap-1"
+                  >
+                    <LogIn className="h-3 w-3" />
+                    Google
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => signIn("facebook")}
+                    className="rounded bg-blue-600 px-2 py-1 text-white font-semibold inline-flex items-center gap-1"
+                  >
+                    <LogIn className="h-3 w-3" />
+                    Facebook
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => signOut()}
+                  className="rounded bg-slate-700 px-2 py-1 text-white font-semibold inline-flex items-center gap-1"
+                >
+                  <LogOut className="h-3 w-3" />
+                  Sign out ({oauthProvider})
+                </button>
+              )}
+            </div>
+            <div className="text-[11px] text-emerald-200/80">
+              Wallet-linked score submissions mark Web5 utility readiness.
+            </div>
+            <WalletButton />
+          </div>
         </div>
 
         {/* Always-visible controls primer */}
@@ -565,6 +812,93 @@ export default function GamePage() {
             </button>
           </div>
         </div>
+
+        {/* Final Score + Leaderboard */}
+        {showRunCompleteModal && runCompleteSummary && (
+          <div className="absolute inset-0 z-30 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto">
+            <div className="w-full max-w-3xl rounded-xl border border-emerald-400/50 bg-[#071014] p-5 text-emerald-100">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-lg font-bold text-emerald-300">Run Complete</div>
+                  <div className="text-sm text-emerald-100/80">
+                    Final score submitted to leaderboard
+                    {walletAddress ? ` | Web5 wallet: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : ""}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowRunCompleteModal(false)}
+                  className="rounded bg-slate-700 px-3 py-1 text-white"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-3 text-sm">
+                <div className="rounded border border-emerald-500/30 bg-black/40 p-2">
+                  Score: {runCompleteSummary.score.toLocaleString()}
+                </div>
+                <div className="rounded border border-emerald-500/30 bg-black/40 p-2">
+                  Coins: {runCompleteSummary.coinsCollected} ({runCompleteSummary.coinPoints} pts)
+                </div>
+                <div className="rounded border border-emerald-500/30 bg-black/40 p-2">
+                  Runes: {runCompleteSummary.runesActivated} ({runCompleteSummary.runePoints} pts)
+                </div>
+                <div className="rounded border border-emerald-500/30 bg-black/40 p-2">
+                  Relics: {runCompleteSummary.relicsCollected} ({runCompleteSummary.relicPoints} pts)
+                </div>
+                <div className="rounded border border-emerald-500/30 bg-black/40 p-2">
+                  Explore: {runCompleteSummary.explorationPoints} pts
+                </div>
+                <div className="rounded border border-emerald-500/30 bg-black/40 p-2">
+                  Utility: {runCompleteSummary.utilityPoints} pts | {runCompleteSummary.projectedTokenUnits}{" "}
+                  {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded border border-cyan-400/30 bg-black/40 p-3">
+                <div className="mb-2 flex items-center gap-2 text-cyan-200 font-semibold">
+                  <Medal className="h-4 w-4" />
+                  Leaderboard Top 10
+                </div>
+                <div className="space-y-1 text-xs sm:text-sm">
+                  {leaderboardEntries.length === 0 && <div>No leaderboard entries yet.</div>}
+                  {leaderboardEntries.map((entry, index) => (
+                    <div
+                      key={entry.id}
+                      className="flex items-center justify-between rounded border border-cyan-500/20 bg-black/30 px-2 py-1"
+                    >
+                      <div>
+                        #{index + 1} {entry.displayName} ({entry.oauthProvider})
+                      </div>
+                      <div>
+                        {entry.score.toLocaleString()} pts | {entry.projectedTokenUnits}{" "}
+                        {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleRestart}
+                  className="rounded bg-emerald-600 px-3 py-2 text-white font-semibold"
+                >
+                  Play Again
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExit}
+                  className="rounded bg-slate-700 px-3 py-2 text-white font-semibold"
+                >
+                  Exit to Menu
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tutorial Overlay */}
         {showTutorial && (
@@ -804,6 +1138,69 @@ export default function GamePage() {
               <span className="text-green-400">✓</span>
               <span>Mobile & Desktop</span>
             </div>
+          </div>
+
+          <div className="mt-6 mx-auto max-w-3xl rounded-xl border border-cyan-500/30 bg-black/45 p-4 text-left">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-cyan-300 font-bold">Leaderboard Identity</div>
+                <div className="text-xs text-gray-300">
+                  Sign in with OAuth or play as guest. Optional wallet connection adds Web5 utility context.
+                </div>
+              </div>
+              <WalletButton />
+            </div>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input
+                value={playerAlias}
+                onChange={(event) => setPlayerAlias(event.target.value.slice(0, 32))}
+                className="flex-1 rounded border border-cyan-500/30 bg-black/60 px-3 py-2 text-sm text-cyan-100 outline-none"
+                placeholder="Display name"
+                aria-label="Display name"
+              />
+              {oauthProvider === "guest" ? (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => signIn("google")}
+                    className="rounded bg-white/90 px-3 py-2 text-sm font-semibold text-black inline-flex items-center gap-2"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    Google OAuth
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => signIn("facebook")}
+                    className="rounded bg-blue-600 px-3 py-2 text-sm font-semibold text-white inline-flex items-center gap-2"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    Facebook OAuth
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => signOut()}
+                  className="rounded bg-slate-700 px-3 py-2 text-sm font-semibold text-white inline-flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out ({oauthProvider})
+                </button>
+              )}
+            </div>
+            {leaderboardEntries.length > 0 && (
+              <div className="mt-3 rounded border border-cyan-500/20 bg-black/35 p-2 text-xs text-cyan-100">
+                <div className="mb-1 font-semibold text-cyan-300">Current Top 5</div>
+                {leaderboardEntries.slice(0, 5).map((entry, index) => (
+                  <div key={entry.id} className="flex items-center justify-between py-0.5">
+                    <span>
+                      #{index + 1} {entry.displayName}
+                    </span>
+                    <span>{entry.score.toLocaleString()} pts</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mt-6 mx-auto max-w-3xl rounded-xl border border-emerald-500/30 bg-black/40 p-4 text-left">
