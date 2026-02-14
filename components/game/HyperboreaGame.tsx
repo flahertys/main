@@ -111,7 +111,6 @@ export function HyperboreaGame({
   useEffect(() => {
     const currentMount = mountRef.current;
     if (!currentMount) return;
-    if (!currentMount.clientWidth || !currentMount.clientHeight) return;
 
     const activeLevel = levelDefinition ?? FALLBACK_LEVEL;
     const layout = activeLevel.layout;
@@ -127,8 +126,8 @@ export function HyperboreaGame({
     const isMobile = isTouchDevice || isSmallViewport;
     const maxDpr = isMobile ? 1.5 : 2;
     let currentDpr = Math.min(window.devicePixelRatio || 1, maxDpr);
-    let viewportWidth = Math.max(currentMount.clientWidth, 1);
-    let viewportHeight = Math.max(currentMount.clientHeight, 1);
+    let viewportWidth = Math.max(currentMount.clientWidth || window.innerWidth, 1);
+    let viewportHeight = Math.max(currentMount.clientHeight || window.innerHeight, 1);
 
     currentMount.style.touchAction = "none";
     currentMount.style.overscrollBehavior = "none";
@@ -147,7 +146,7 @@ export function HyperboreaGame({
     renderer.setPixelRatio(currentDpr);
     renderer.setSize(viewportWidth, viewportHeight, false);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = !isMobile;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     currentMount.appendChild(renderer.domElement);
 
@@ -156,7 +155,7 @@ export function HyperboreaGame({
 
     const moonLight = new THREE.DirectionalLight(0x99bbff, 0.75);
     moonLight.position.set(10, 22, 10);
-    moonLight.castShadow = true;
+    moonLight.castShadow = !isMobile;
     moonLight.shadow.mapSize.width = isMobile ? 1024 : 2048;
     moonLight.shadow.mapSize.height = isMobile ? 1024 : 2048;
     scene.add(moonLight);
@@ -745,8 +744,8 @@ export function HyperboreaGame({
 
     const handleResize = () => {
       if (!isMounted) return;
-      viewportWidth = Math.max(currentMount.clientWidth, 1);
-      viewportHeight = Math.max(currentMount.clientHeight, 1);
+      viewportWidth = Math.max(currentMount.clientWidth || window.innerWidth, 1);
+      viewportHeight = Math.max(currentMount.clientHeight || window.innerHeight, 1);
       currentDpr = Math.min(window.devicePixelRatio || 1, maxDpr);
       camera.aspect = viewportWidth / viewportHeight;
       camera.updateProjectionMatrix();
@@ -764,6 +763,14 @@ export function HyperboreaGame({
       }
     };
 
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => {
+            handleResize();
+          })
+        : null;
+    resizeObserver?.observe(currentMount);
+
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("resize", handleResize);
@@ -773,6 +780,7 @@ export function HyperboreaGame({
     currentMount.addEventListener("touchstart", handleTouchStart, { passive: true });
     currentMount.addEventListener("touchmove", handleTouchMove, { passive: false });
     currentMount.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.requestAnimationFrame(handleResize);
 
     const stepSimulation = (dt: number) => {
       const nowMs = performance.now();
@@ -945,6 +953,7 @@ export function HyperboreaGame({
       currentMount.removeEventListener("touchstart", handleTouchStart);
       currentMount.removeEventListener("touchmove", handleTouchMove);
       currentMount.removeEventListener("touchend", handleTouchEnd);
+      resizeObserver?.disconnect();
       onInteractionHintChange?.(null, false);
 
       scene.traverse((object) => {
