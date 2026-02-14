@@ -4,6 +4,11 @@ import { NextResponse } from "next/server";
 function isArtifactCollectionEvent(value: unknown): value is ArtifactCollectionEvent {
   if (!value || typeof value !== "object") return false;
   const event = value as Partial<ArtifactCollectionEvent>;
+  const utilityFieldsValid =
+    (typeof event.utilityPointsDelta === "number" || event.utilityPointsDelta === undefined) &&
+    (typeof event.utilityPointsAfterEvent === "number" ||
+      event.utilityPointsAfterEvent === undefined) &&
+    (typeof event.utilityTokenBonusUnits === "number" || event.utilityTokenBonusUnits === undefined);
   return (
     typeof event.eventId === "string" &&
     typeof event.sessionId === "string" &&
@@ -12,7 +17,8 @@ function isArtifactCollectionEvent(value: unknown): value is ArtifactCollectionE
     typeof event.artifactName === "string" &&
     typeof event.tokenRewardUnits === "number" &&
     typeof event.claimEndpoint === "string" &&
-    typeof event.web5Collection === "string"
+    typeof event.web5Collection === "string" &&
+    utilityFieldsValid
   );
 }
 
@@ -43,6 +49,9 @@ export async function POST(request: Request) {
         levelId: payload.levelId,
         artifactId: payload.artifactId,
         tokenUnits: payload.tokenRewardUnits,
+        utilityPointsDelta: payload.utilityPointsDelta ?? 0,
+        utilityPointsAfterEvent: payload.utilityPointsAfterEvent ?? null,
+        utilityTokenBonusUnits: payload.utilityTokenBonusUnits ?? 0,
         collection: payload.web5Collection,
       },
     });

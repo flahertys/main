@@ -44,6 +44,8 @@ export default function GamePage() {
   const [cloversCollected, setCloversCollected] = useState(0);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
+  const [utilityPoints, setUtilityPoints] = useState(0);
+  const [projectedUtilityUnits, setProjectedUtilityUnits] = useState(0);
   const [activePowerUps, setActivePowerUps] = useState<
     Array<{ type: string; timeLeft: number }>
   >([]);
@@ -242,7 +244,11 @@ export default function GamePage() {
         }
 
         setClaimFeedback(
-          `Relic claim queued: ${event.artifactName} (+${event.tokenRewardUnits} ${tokenConfig.l2TokenSymbol})`,
+          `Relic claim queued: ${event.artifactName} (+${event.tokenRewardUnits} ${tokenConfig.l2TokenSymbol})${
+            event.utilityTokenBonusUnits
+              ? ` | Utility snapshot: ${event.utilityTokenBonusUnits} ${tokenConfig.l2TokenSymbol}`
+              : ""
+          }`,
         );
       } catch (error) {
         setClaimFeedback(
@@ -263,9 +269,11 @@ export default function GamePage() {
     setGameSession((value) => value + 1);
     setSessionId(createSessionId());
     setArtifactFeed([]);
+    setUtilityPoints(0);
+    setProjectedUtilityUnits(0);
     setClaimFeedback("");
-    setGameHint("W/S move, A/D turn, E interact. Recover relics to unlock the portal.");
-    setInteractionHint("Align crosshair with a nearby rune or relic, then press Use.");
+    setGameHint("W/S move, A/D turn, E interact. Move close to relics for auto-pickup.");
+    setInteractionHint("Move close to a relic to auto-pickup, or align with runes and press Use.");
     setIsInteractionReady(false);
 
     // Show tutorial for first-time players
@@ -284,13 +292,15 @@ export default function GamePage() {
     setCloversCollected(0);
     setScore(0);
     setCombo(0);
+    setUtilityPoints(0);
+    setProjectedUtilityUnits(0);
     setIsPaused(false);
     setGameSession((value) => value + 1);
     setSessionId(createSessionId());
     setArtifactFeed([]);
     setClaimFeedback("");
-    setGameHint("Level restarted. Follow rune hints and use E to interact.");
-    setInteractionHint("Level restarted. Re-orient and follow the nearest rune hint.");
+    setGameHint("Level restarted. Follow rune hints and move close to relics to collect.");
+    setInteractionHint("Level restarted. Move near relics to auto-pickup or tap Use at runes.");
     setIsInteractionReady(false);
     setShowControlCoach(true);
   };
@@ -300,6 +310,8 @@ export default function GamePage() {
     setIsPlaying(false);
     setIsPaused(false);
     setShowTutorial(false);
+    setUtilityPoints(0);
+    setProjectedUtilityUnits(0);
     setInteractionHint(null);
     setIsInteractionReady(false);
   };
@@ -317,6 +329,11 @@ export default function GamePage() {
   const handleScoreChange = useCallback((newScore: number, newCombo: number) => {
     setScore(newScore);
     setCombo(newCombo);
+  }, []);
+
+  const handleUtilityPointsChange = useCallback((points: number, projectedTokenUnits: number) => {
+    setUtilityPoints(points);
+    setProjectedUtilityUnits(projectedTokenUnits);
   }, []);
 
   const handleInteractionHintChange = useCallback(
@@ -337,6 +354,7 @@ export default function GamePage() {
             onEnergyChange={setEnergy}
             onCloverCollect={setCloversCollected}
             onScoreChange={handleScoreChange}
+            onUtilityPointsChange={handleUtilityPointsChange}
             onPowerUpChange={setActivePowerUps}
             onArtifactCollected={handleArtifactCollected}
             onStatusChange={setGameHint}
@@ -382,6 +400,10 @@ export default function GamePage() {
               <div className="text-emerald-100/70">
                 L2/Web5 queue: {activeLevel.tokenConfig.l2TokenSymbol} on {activeLevel.tokenConfig.l2Network}
               </div>
+              <div className="text-emerald-100/80">
+                Utility points: {utilityPoints.toLocaleString()} | Projected token units:{" "}
+                {projectedUtilityUnits} {activeLevel.tokenConfig.l2TokenSymbol}
+              </div>
             </div>
           )}
 
@@ -395,6 +417,16 @@ export default function GamePage() {
                 {artifact.pantheon.toUpperCase()} | +{artifact.tokenRewardUnits}{" "}
                 {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"}
               </div>
+              {typeof artifact.utilityPointsAfterEvent === "number" && (
+                <div>
+                  Utility: {artifact.utilityPointsAfterEvent.toLocaleString()} pts
+                  {artifact.utilityTokenBonusUnits
+                    ? ` | ${artifact.utilityTokenBonusUnits} projected ${
+                        activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"
+                      }`
+                    : ""}
+                </div>
+              )}
             </div>
           ))}
 
@@ -446,7 +478,7 @@ export default function GamePage() {
             <div>Move: W/S or ↑/↓</div>
             <div>Turn: A/D or ←/→</div>
             <div>Use/Interact: E, ENTER, or SPACE</div>
-            <div className="text-emerald-200">Mobile: hold a movement button 1s or swipe up/down to step, then tap Use</div>
+            <div className="text-emerald-200">Mobile: move close to relics to auto-pickup, then tap Use at runes/portal</div>
           </div>
         </div>
 
@@ -456,8 +488,8 @@ export default function GamePage() {
             <div className="max-w-xl rounded-xl border border-emerald-300/40 bg-black/75 px-4 py-3 text-xs sm:text-sm text-emerald-100 backdrop-blur">
               <div className="font-bold text-emerald-300">Quick Start</div>
               <div>1) Move with W/S and turn with A/D.</div>
-              <div>2) Center crosshair on glowing node or relic.</div>
-              <div>3) Press E (or tap Use) to interact.</div>
+              <div>2) Move close to relics to auto-pickup.</div>
+              <div>3) Center crosshair on glowing runes and press E (or tap Use).</div>
             </div>
           </div>
         )}
@@ -589,13 +621,13 @@ export default function GamePage() {
                       <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">
                         E / ENTER / SPACE
                       </span>
-                      <span>Use/interact with relics and puzzle nodes</span>
+                      <span>Use/interact with puzzle nodes and portals (relics auto-pickup nearby)</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">
                         MOBILE
                       </span>
-                      <span>Hold a direction button ~1 second (or swipe up/down) then tap Use near the crosshair target</span>
+                      <span>Hold a direction button ~1 second (or swipe up/down), move close to relics, then tap Use at rune targets</span>
                     </div>
                   </div>
                 </div>
@@ -605,10 +637,12 @@ export default function GamePage() {
                     ✨ Tips
                   </h3>
                   <ul className="space-y-2 text-sm sm:text-base list-disc list-inside">
+                    <li>Relics auto-pickup when you move close enough.</li>
                     <li>Stay near the center crosshair before pressing Use.</li>
                     <li>Purple/red gate nodes block corridors until activated.</li>
                     <li>Pressure plates activate when you stand directly on them.</li>
                     <li>Relics boost energy and queue token claim events.</li>
+                    <li>Utility points grow from movement, puzzle solves, and relic pickups.</li>
                     <li>Portal unlocks after relic and pedestal requirements are met.</li>
                     <li>Connect your wallet to mint NFT skins with rewards</li>
                   </ul>
@@ -699,6 +733,14 @@ export default function GamePage() {
                     <div className="text-white font-bold">{combo}x</div>
                     <div className="text-xs text-gray-400">Combo</div>
                   </div>
+                  <div className="col-span-2 bg-emerald-500/20 rounded-lg p-3">
+                    <div className="text-2xl mb-1">🪙</div>
+                    <div className="text-white font-bold">
+                      {utilityPoints.toLocaleString()} pts | {projectedUtilityUnits}{" "}
+                      {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"} projected
+                    </div>
+                    <div className="text-xs text-gray-400">Web5 Utility Pipeline</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -782,10 +824,10 @@ export default function GamePage() {
             </div>
             <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-gray-200">
               <div className="rounded-md border border-white/15 bg-black/40 p-2">
-                Desktop: W/S move, A/D turn, E/Space to interact with nodes and relics.
+                Desktop: W/S move, A/D turn, E/Space for runes/portal. Relics auto-pickup when close.
               </div>
               <div className="rounded-md border border-white/15 bg-black/40 p-2">
-                Mobile: hold Forward/Back/Turn for ~1 second or swipe up/down, then tap Use near a target.
+                Mobile: hold Forward/Back/Turn for ~1 second or swipe up/down, move near relics, then tap Use at rune targets.
               </div>
             </div>
           </div>
@@ -847,13 +889,13 @@ export default function GamePage() {
                       <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">
                         E / ENTER / SPACE
                       </span>
-                      <span>Use/interact with relics and puzzle nodes</span>
+                      <span>Use/interact with puzzle nodes and portals (relics auto-pickup nearby)</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono bg-gray-800 px-3 py-1 rounded text-purple-400 font-bold text-sm sm:text-base">
                         MOBILE
                       </span>
-                      <span>Hold a direction button ~1 second (or swipe up/down) and tap Use near the crosshair target</span>
+                      <span>Hold a direction button ~1 second (or swipe up/down), move close to relics, then tap Use at rune targets</span>
                     </div>
                   </div>
                 </div>
@@ -863,10 +905,12 @@ export default function GamePage() {
                     ✨ Tips
                   </h3>
                   <ul className="space-y-2 text-sm sm:text-base list-disc list-inside">
+                    <li>Relics auto-pickup when you move close enough.</li>
                     <li>Stay near the center crosshair before pressing Use.</li>
                     <li>Purple/red gate nodes block corridors until activated.</li>
                     <li>Pressure plates activate when you stand directly on them.</li>
                     <li>Relics boost energy and queue token claim events.</li>
+                    <li>Utility points grow from movement, puzzle solves, and relic pickups.</li>
                     <li>Portal unlocks after relic and pedestal requirements are met.</li>
                     <li>Connect your wallet to mint NFT skins with rewards</li>
                     <li>Use the pause button anytime to take a break</li>

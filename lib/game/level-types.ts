@@ -95,6 +95,9 @@ export interface ArtifactCollectionEvent {
   playerScore: number;
   combo: number;
   tokenRewardUnits: number;
+  utilityPointsDelta?: number;
+  utilityPointsAfterEvent?: number;
+  utilityTokenBonusUnits?: number;
   claimEndpoint: string;
   web5Collection: string;
   collectedAt: string;
