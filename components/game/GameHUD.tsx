@@ -9,6 +9,9 @@ interface GameHUDProps {
   score: number;
   combo: number;
   walletConnected: boolean;
+  utilityPoints?: number;
+  projectedTokenUnits?: number;
+  tokenSymbol?: string;
   activePowerUps?: Array<{ type: string; timeLeft: number }>;
 }
 
@@ -24,10 +27,36 @@ const POWER_UP_META: Record<
   double: { label: "Double", icon: "✨", borderColor: "#ff8800" },
 };
 
-export function GameHUD({ energy, cloversCollected, score, combo, walletConnected, activePowerUps = [] }: GameHUDProps) {
+const UTILITY_POINTS_PER_TOKEN_UNIT = 25;
+
+export function GameHUD({
+  energy,
+  cloversCollected,
+  score,
+  combo,
+  walletConnected,
+  utilityPoints,
+  projectedTokenUnits,
+  tokenSymbol = "THX",
+  activePowerUps = [],
+}: GameHUDProps) {
   const energyPercentage = Math.min((energy / 100) * 100, 100);
   const portalUnlocked = energy >= 100;
   const relicsLabel = cloversCollected === 1 ? "1 relic" : `${cloversCollected} relics`;
+  const hasUtilityPipeline =
+    typeof utilityPoints === "number" && typeof projectedTokenUnits === "number";
+  const utilityRemainder = hasUtilityPipeline
+    ? ((utilityPoints % UTILITY_POINTS_PER_TOKEN_UNIT) + UTILITY_POINTS_PER_TOKEN_UNIT) %
+      UTILITY_POINTS_PER_TOKEN_UNIT
+    : 0;
+  const pointsToNextToken = hasUtilityPipeline
+    ? utilityRemainder === 0
+      ? UTILITY_POINTS_PER_TOKEN_UNIT
+      : UTILITY_POINTS_PER_TOKEN_UNIT - utilityRemainder
+    : 0;
+  const utilityProgressPercent = hasUtilityPipeline
+    ? Math.max(0, Math.min((utilityRemainder / UTILITY_POINTS_PER_TOKEN_UNIT) * 100, 100))
+    : 0;
   const [showEnergyPulse, setShowEnergyPulse] = useState(false);
   const [showCloverPulse, setShowCloverPulse] = useState(false);
   const [lastEnergy, setLastEnergy] = useState(energy);
@@ -108,6 +137,34 @@ export function GameHUD({ energy, cloversCollected, score, combo, walletConnecte
               )}
             </div>
           </div>
+
+          {hasUtilityPipeline && (
+            <div className="bg-black/90 backdrop-blur-sm border border-emerald-500/40 rounded-lg p-3 sm:p-4 w-full sm:min-w-[280px]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-white font-bold text-sm sm:text-base">Utility Pipeline</div>
+                  <div className="text-emerald-300 text-xs sm:text-sm">
+                    {utilityPoints.toLocaleString()} pts
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-white font-bold text-sm sm:text-base">
+                    {projectedTokenUnits.toLocaleString()} {tokenSymbol}
+                  </div>
+                  <div className="text-emerald-300 text-[11px] sm:text-xs">Projected reward units</div>
+                </div>
+              </div>
+              <div className="mt-2 h-2.5 rounded-full bg-emerald-950/60 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-400 via-cyan-300 to-emerald-400 transition-all duration-300"
+                  style={{ width: `${utilityProgressPercent}%` }}
+                />
+              </div>
+              <div className="mt-1 text-[11px] sm:text-xs text-emerald-200/90">
+                {pointsToNextToken} utility pts until +1 {tokenSymbol}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Progress Indicator */}

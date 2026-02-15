@@ -44,6 +44,7 @@ function createSessionId() {
 }
 
 const LEADERBOARD_STORAGE_KEY = "hyperborea_leaderboard_v1";
+const UTILITY_POINTS_PER_TOKEN_UNIT = 25;
 
 function sortLeaderboard(entries: LeaderboardEntry[]) {
   entries.sort((a, b) => {
@@ -95,6 +96,23 @@ export default function GamePage() {
     return provider === "google" || provider === "facebook" ? provider : "guest";
   }, [session]);
   const oauthIdentity = session?.user?.email ?? session?.user?.name ?? undefined;
+  const utilityRemainder = useMemo(
+    () =>
+      ((utilityPoints % UTILITY_POINTS_PER_TOKEN_UNIT) + UTILITY_POINTS_PER_TOKEN_UNIT) %
+      UTILITY_POINTS_PER_TOKEN_UNIT,
+    [utilityPoints],
+  );
+  const utilityProgressPercent = useMemo(
+    () => (utilityRemainder / UTILITY_POINTS_PER_TOKEN_UNIT) * 100,
+    [utilityRemainder],
+  );
+  const pointsToNextToken = useMemo(
+    () =>
+      utilityRemainder === 0
+        ? UTILITY_POINTS_PER_TOKEN_UNIT
+        : UTILITY_POINTS_PER_TOKEN_UNIT - utilityRemainder,
+    [utilityRemainder],
+  );
 
   // Check localStorage after mount to avoid SSR/hydration issues
   useEffect(() => {
@@ -561,7 +579,53 @@ export default function GamePage() {
           combo={combo}
           activePowerUps={activePowerUps}
           walletConnected={walletConnected}
+          utilityPoints={utilityPoints}
+          projectedTokenUnits={projectedUtilityUnits}
+          tokenSymbol={activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"}
         />
+
+        {/* Central score ribbon for instant readability on all devices */}
+        <div className="absolute top-4 left-1/2 z-20 w-[min(95vw,860px)] -translate-x-1/2 px-2 pointer-events-none">
+          <div className="rounded-xl border border-cyan-400/30 bg-black/70 px-3 py-2 backdrop-blur-md">
+            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 sm:text-sm">
+              <div className="rounded border border-cyan-500/30 bg-black/45 px-2 py-1 text-cyan-100">
+                <div className="text-[10px] uppercase tracking-wide text-cyan-300/90">Score</div>
+                <div className="font-bold">{score.toLocaleString()}</div>
+              </div>
+              <div className="rounded border border-emerald-500/30 bg-black/45 px-2 py-1 text-emerald-100">
+                <div className="text-[10px] uppercase tracking-wide text-emerald-300/90">Utility</div>
+                <div className="font-bold">
+                  {utilityPoints.toLocaleString()} pts | {projectedUtilityUnits}{" "}
+                  {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"}
+                </div>
+              </div>
+              <div className="rounded border border-yellow-500/30 bg-black/45 px-2 py-1 text-yellow-100">
+                <div className="text-[10px] uppercase tracking-wide text-yellow-300/90">Combo</div>
+                <div className="font-bold">{combo}x</div>
+              </div>
+              <div className="rounded border border-fuchsia-500/30 bg-black/45 px-2 py-1 text-fuchsia-100">
+                <div className="text-[10px] uppercase tracking-wide text-fuchsia-300/90">Run Progress</div>
+                <div className="font-bold">
+                  {scoreSnapshot
+                    ? `${scoreSnapshot.relicsCollected} relics | ${scoreSnapshot.runesActivated} runes`
+                    : `${cloversCollected} relics`}
+                </div>
+              </div>
+            </div>
+            <div className="mt-2">
+              <div className="h-2 overflow-hidden rounded-full bg-emerald-950/60">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-400 via-cyan-300 to-emerald-400 transition-all duration-300"
+                  style={{ width: `${Math.max(0, Math.min(utilityProgressPercent, 100))}%` }}
+                />
+              </div>
+              <div className="mt-1 text-[11px] text-emerald-200/90">
+                {pointsToNextToken} utility pts to next projected{" "}
+                {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"} reward unit
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* NFT Minting Panel - Hidden on mobile */}
         <div className="hidden lg:block">
@@ -725,6 +789,7 @@ export default function GamePage() {
             <div>Move: W/S or ↑/↓</div>
             <div>Turn: A/D or ←/→</div>
             <div>Use/Interact: E, ENTER, or SPACE</div>
+            <div className="text-cyan-200">If keyboard stalls, click the game view to re-focus.</div>
             <div className="text-emerald-200">Mobile: move close to relics to auto-pickup, then tap Use at runes/portal</div>
           </div>
         </div>
@@ -761,6 +826,54 @@ export default function GamePage() {
               {interactionHint}
             </div>
           )}
+        </div>
+
+        {/* Desktop fallback controls: helps when keyboard focus is lost */}
+        <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 hidden -translate-x-1/2 sm:flex">
+          <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-white/20 bg-black/70 p-2 backdrop-blur-md">
+            <button
+              type="button"
+              {...getHoldButtonHandlers("turn_left")}
+              aria-label="Turn left"
+              className="theme-cta theme-cta--secondary theme-cta--compact px-3 py-2 text-xs font-semibold"
+            >
+              Turn L
+            </button>
+            <button
+              type="button"
+              {...getHoldButtonHandlers("forward")}
+              aria-label="Move forward"
+              className="theme-cta theme-cta--loud theme-cta--compact px-3 py-2 text-xs font-semibold"
+            >
+              Forward
+            </button>
+            <button
+              type="button"
+              {...getHoldButtonHandlers("backward")}
+              aria-label="Move backward"
+              className="theme-cta theme-cta--muted theme-cta--compact px-3 py-2 text-xs font-semibold"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              {...getHoldButtonHandlers("turn_right")}
+              aria-label="Turn right"
+              className="theme-cta theme-cta--secondary theme-cta--compact px-3 py-2 text-xs font-semibold"
+            >
+              Turn R
+            </button>
+            <button
+              type="button"
+              aria-label="Use or interact"
+              onClick={() => emitControlAction("use", true)}
+              className={`theme-cta theme-cta--compact px-3 py-2 text-xs font-semibold ${
+                isInteractionReady ? "theme-cta--loud animate-pulse" : "theme-cta--secondary"
+              }`}
+            >
+              Use
+            </button>
+          </div>
         </div>
 
         {/* Mobile touch buttons: explicit first-person controls */}

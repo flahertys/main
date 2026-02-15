@@ -149,6 +149,21 @@ export function HyperboreaGame({
     currentMount.style.touchAction = "none";
     currentMount.style.overscrollBehavior = "none";
     currentMount.style.backgroundColor = "#0a1020";
+    currentMount.style.outline = "none";
+    currentMount.tabIndex = 0;
+    currentMount.setAttribute("role", "application");
+    currentMount.setAttribute("aria-label", "Hyperborea interactive game viewport");
+
+    const focusViewport = () => {
+      if (document.activeElement === currentMount) {
+        return;
+      }
+      try {
+        currentMount.focus({ preventScroll: true });
+      } catch {
+        currentMount.focus();
+      }
+    };
 
     const scene = new THREE.Scene();
     const fogColor = new THREE.Color(activeLevel.theme.fogColor || 0x0a0520);
@@ -1072,6 +1087,10 @@ export function HyperboreaGame({
       }
     };
 
+    const handleViewportPointerDown = () => {
+      focusViewport();
+    };
+
     const resizeObserver =
       typeof ResizeObserver !== "undefined"
         ? new ResizeObserver(() => {
@@ -1086,10 +1105,14 @@ export function HyperboreaGame({
     window.addEventListener("blur", handleWindowBlur);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("hyperborea-control", handleExternalControl as EventListener);
+    currentMount.addEventListener("pointerdown", handleViewportPointerDown);
     currentMount.addEventListener("touchstart", handleTouchStart, { passive: false });
     currentMount.addEventListener("touchmove", handleTouchMove, { passive: false });
     currentMount.addEventListener("touchend", handleTouchEnd, { passive: true });
-    window.requestAnimationFrame(handleResize);
+    window.requestAnimationFrame(() => {
+      handleResize();
+      focusViewport();
+    });
 
     const stepSimulation = (dt: number) => {
       const nowMs = performance.now();
@@ -1270,6 +1293,7 @@ export function HyperboreaGame({
       window.removeEventListener("blur", handleWindowBlur);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("hyperborea-control", handleExternalControl as EventListener);
+      currentMount.removeEventListener("pointerdown", handleViewportPointerDown);
       currentMount.removeEventListener("touchstart", handleTouchStart);
       currentMount.removeEventListener("touchmove", handleTouchMove);
       currentMount.removeEventListener("touchend", handleTouchEnd);
