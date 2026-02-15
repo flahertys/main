@@ -17,8 +17,6 @@ import {
   Gem,
   Guitar,
   HandCoins,
-  House,
-  Info,
   MessageSquare,
   MonitorSmartphone,
   Wrench,
@@ -33,65 +31,167 @@ export const metadata: Metadata = {
     "Professional matrix-themed Web3 platform with Solana trading, NFT mint utilities, repair bookings, guitar lessons, and digital services.",
 };
 
-const menuCards = [
+const intentLanes = [
   {
-    href: "/",
-    title: "Home",
-    description: "Return to mission control for TradeHax AI.",
-    icon: House,
-  },
-  {
-    href: "/crypto-project",
-    title: "Crypto Project",
-    description: "Devnet mint flow, wallet onboarding, and NFT access.",
-    icon: Gem,
-  },
-  {
-    href: "/schedule",
-    title: "Schedule",
-    description: "Book repair, lessons, and consulting sessions fast.",
-    icon: CalendarClock,
-  },
-  {
-    href: "/pricing",
-    title: "Pricing",
-    description: "Clear tiers for service retainers and subscriptions.",
-    icon: CreditCard,
-  },
-  {
-    href: "/about",
-    title: "About",
-    description: "Legacy, customer trust, and execution standards.",
-    icon: Info,
-  },
-  {
-    href: "/services",
-    title: "Services",
-    description: "Repair, music instruction, and digital Web3 builds.",
+    title: "Need Service Now",
+    detail:
+      "Phone/computer repair, optimization, and urgent troubleshooting with rapid intake.",
+    href: bookingLinks.techSupport,
+    external: true,
+    conversionId: "book_repair_quote",
+    surface: "home:intent_lane",
+    cta: "Start Tech Support Intake",
     icon: Wrench,
+  },
+  {
+    title: "Need a Build Partner",
+    detail:
+      "Website creation, app development, blockchain/crypto systems, and AI automation delivery.",
+    href: bookingLinks.webDevConsult,
+    external: true,
+    conversionId: "book_web3_consult",
+    surface: "home:intent_lane",
+    cta: "Book Build Consultation",
+    icon: MonitorSmartphone,
+  },
+  {
+    title: "Music and Lesson Portal",
+    detail:
+      "Private guitar lessons, platform growth, and scholarship/reward infrastructure.",
+    href: "/music",
+    external: false,
+    conversionId: "open_music",
+    surface: "home:intent_lane",
+    cta: "Open Music Portal",
+    icon: Guitar,
+  },
+  {
+    title: "Trading and Token Ecosystem",
+    detail:
+      "Market callouts, crypto project updates, and tokenized utility pipeline in active development.",
+    href: "/crypto-project",
+    external: false,
+    conversionId: "open_crypto_project",
+    surface: "home:intent_lane",
+    cta: "Review Crypto Project",
+    icon: CircuitBoard,
+  },
+] as const;
+
+const offerPillars = [
+  {
+    title: "Digital Services Studio",
+    summary:
+      "Ship production websites, apps, and automation systems with clear scope and execution checkpoints.",
+    highlights: [
+      "Website creation and redesign",
+      "App/web platform development",
+      "Blockchain and crypto integrations",
+      "Business automation + AI workflows",
+    ],
+    cta: "Book a Build Call",
+    href: bookingLinks.webDevConsult,
+    external: true,
+    conversionId: "book_web3_consult",
+    surface: "home:offer_pillar",
+    icon: MonitorSmartphone,
+  },
+  {
+    title: "Device Repair + Optimization",
+    summary:
+      "Repair and tune phones/computers for performance, reliability, and secure day-to-day usage.",
+    highlights: [
+      "Cell phone + computer diagnostics",
+      "Performance tuning and cleanup",
+      "Hardware/software troubleshooting",
+      "Customization and workflow setup",
+    ],
+    cta: "Get Repair Intake",
+    href: bookingLinks.techSupport,
+    external: true,
+    conversionId: "book_repair_quote",
+    surface: "home:offer_pillar",
+    icon: Wrench,
+  },
+  {
+    title: "Music Portal and Education",
+    summary:
+      "Build skill progression through guitar lessons while expanding a rewards-backed music platform.",
+    highlights: [
+      "Remote/private guitar instruction",
+      "Student progression tracks",
+      "Scholarship and rewards roadmap",
+      "Portal-based learning ecosystem",
+    ],
+    cta: "Open Music Portal",
+    href: "/music",
+    external: false,
+    conversionId: "open_music",
+    surface: "home:offer_pillar",
+    icon: Guitar,
+  },
+  {
+    title: "Trading + Token Pipeline",
+    summary:
+      "Publish strategy discussions and structure token utility rails for future managed participation models.",
+    highlights: [
+      "Trading callouts and discussion tracks",
+      "Tokenized utility architecture",
+      "Liquidity/reward design direction",
+      "Web3 integration with service portals",
+    ],
+    cta: "Review Crypto Roadmap",
+    href: "/crypto-project",
+    external: false,
+    conversionId: "open_crypto_project",
+    surface: "home:offer_pillar",
+    icon: HandCoins,
   },
 ] as const;
 
 const pipeline = [
   {
-    title: "Signal Intake",
+    title: "Choose Your Lane",
     detail:
-      "Capture market, client, and service requests into one operating lane.",
+      "Visitors self-select: service now, build project, music portal, or crypto path.",
   },
   {
-    title: "AI + Human Review",
+    title: "Qualification",
     detail:
-      "Blend automation with operator checks before execution for reliability.",
+      "Fast intake forms, text contact, and scheduled consult calls route qualified leads.",
   },
   {
-    title: "Execution Layer",
+    title: "Service Delivery",
     detail:
-      "Run trading actions, booking flows, and delivery tasks with auditable status.",
+      "Deliver repair, development, and lesson work with transparent checkpoints and scope.",
   },
   {
-    title: "Revenue Loop",
+    title: "Retention and Upsell",
     detail:
-      "Monetize through mint upgrades, bookings, subscriptions, and referrals.",
+      "Move customers into subscriptions, portal offerings, upgrades, and partner funnels.",
+  },
+] as const;
+
+const browseMatrix = [
+  {
+    href: "/services",
+    label: "Service Catalog",
+    detail: "See full list of digital, repair, and optimization services.",
+  },
+  {
+    href: "/portfolio",
+    label: "Portfolio",
+    detail: "Review projects, outcomes, and delivery quality.",
+  },
+  {
+    href: "/game",
+    label: "Hyperborea Experience",
+    detail: "Explore the game layer tied to rewards, identity, and engagement.",
+  },
+  {
+    href: "/about",
+    label: "About + Trust",
+    detail: "Understand background, operations, and long-term mission.",
   },
 ] as const;
 
@@ -119,18 +219,19 @@ export default function Home() {
                   TECH RUNES | SOLANA PIPELINE | DIGITAL WORKSHOP
                 </p>
                 <h1 className="theme-title text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4">
-                  Expert Repairs, Guitar Lessons, and{" "}
-                  <span className="theme-title-accent">Web3 Services</span>
+                  Digital Services, Repair, Music Portals, and{" "}
+                  <span className="theme-title-accent">Web3 Development</span>
                 </h1>
                 <p className="theme-subtitle text-sm sm:text-base mb-6">
-                  Serving Greater Philadelphia and remote clients with a
-                  professional matrix-style platform for booking, trading, and
-                  Solana-native project execution.
+                  We help customers ship websites/apps, solve device problems,
+                  train in music, and follow our crypto/token roadmap. Choose a
+                  lane below to book fast, learn more, or browse the matrix.
                 </p>
                 <div className="flex flex-wrap gap-2.5">
                   <span className="theme-badge">2h Response Goal</span>
                   <span className="theme-badge">25+ Years Experience</span>
                   <span className="theme-badge">Remote-First Workflow</span>
+                  <span className="theme-badge">Built for Browsers + Buyers</span>
                 </div>
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -171,28 +272,81 @@ export default function Home() {
         </section>
 
         <section className="max-w-7xl mx-auto mb-10 sm:mb-14">
+          <div className="theme-panel p-6 sm:p-8">
+            <span className="theme-kicker mb-3">Start Here</span>
+            <h2 className="theme-title text-2xl sm:text-3xl font-bold mb-3">
+              What Are You Here For Today?
+            </h2>
+            <p className="theme-subtitle text-sm sm:text-base mb-6">
+              Pick the path that matches your intent. Each route is optimized
+              for clear next steps and fast conversion.
+            </p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {intentLanes.map(
+                ({
+                  title,
+                  detail,
+                  href,
+                  external,
+                  conversionId,
+                  surface,
+                  cta,
+                  icon: Icon,
+                }) => (
+                  <article key={title} className="theme-grid-card">
+                    <div className="inline-flex w-10 h-10 items-center justify-center rounded-lg border border-[#00ff41]/40 bg-[#06130c] text-[#7cf5ad]">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold">{title}</h3>
+                    <p>{detail}</p>
+                    <TrackedCtaLink
+                      href={href}
+                      external={external}
+                      conversionId={conversionId}
+                      surface={surface}
+                      className="theme-cta theme-cta--compact theme-cta--loud mt-1 self-start"
+                    >
+                      {cta}
+                      <ArrowRight className="w-4 h-4" />
+                    </TrackedCtaLink>
+                  </article>
+                ),
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="max-w-7xl mx-auto mb-10 sm:mb-14">
           <ActionRail surface="home" />
         </section>
 
         <section className="max-w-7xl mx-auto mb-10 sm:mb-14">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {menuCards.map(({ href, title, description, icon: Icon }) => (
-              <Link key={href} href={href} className="theme-grid-card">
-                <span className="inline-flex w-11 h-11 items-center justify-center rounded-xl border border-[#00ff41]/40 bg-[#06130c] text-[#8cf8b4]">
-                  <Icon className="w-5 h-5" />
-                </span>
-                <h2 className="text-lg font-semibold">{title}</h2>
-                <p>{description}</p>
-              </Link>
-            ))}
+          <div className="theme-panel p-6 sm:p-8">
+            <span className="theme-kicker mb-3">Browse Mode</span>
+            <h2 className="theme-title text-2xl sm:text-3xl font-bold mb-3">
+              New Here? Explore Without Committing
+            </h2>
+            <p className="theme-subtitle text-sm sm:text-base mb-6">
+              These routes keep users inside the ecosystem while they learn
+              what we offer before booking.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {browseMatrix.map(({ href, label, detail }) => (
+                <Link key={href} href={href} className="theme-grid-card">
+                  <h3 className="text-lg font-semibold">{label}</h3>
+                  <p>{detail}</p>
+                  <span className="theme-chip self-start">Open {label}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 
         <section className="max-w-7xl mx-auto mb-10 sm:mb-14">
           <div className="theme-panel p-6 sm:p-8">
-            <span className="theme-kicker mb-3">Automation Pipeline</span>
+            <span className="theme-kicker mb-3">Customer Pipeline</span>
             <h2 className="theme-title text-2xl sm:text-3xl font-bold mb-6">
-              Keep New Features, Organized as One Pipeline
+              Structure Built for Clarity, Trust, and Conversions
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {pipeline.map((step, index) => (
@@ -205,6 +359,25 @@ export default function Home() {
                 </article>
               ))}
             </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <TrackedCtaLink
+                href="/schedule"
+                conversionId="open_schedule"
+                surface="home:pipeline"
+                className="theme-cta theme-cta--loud px-5 py-3"
+              >
+                Start with a Booking
+              </TrackedCtaLink>
+              <TrackedCtaLink
+                href={businessProfile.contactLinks.text}
+                conversionId="contact_text"
+                surface="home:pipeline"
+                external
+                className="theme-cta theme-cta--secondary px-5 py-3"
+              >
+                Text Questions First
+              </TrackedCtaLink>
+            </div>
           </div>
         </section>
 
@@ -212,58 +385,90 @@ export default function Home() {
           <div className="theme-panel p-6 sm:p-8">
             <span className="theme-kicker mb-3">Core Services</span>
             <h2 className="theme-title text-2xl sm:text-3xl font-bold mb-6">
-              Real-World Work + Solana Digital Execution
+              What You Can Buy From TradeHax AI Right Now
             </h2>
-            <div className="grid gap-5 md:grid-cols-3">
+            <div className="grid gap-5 md:grid-cols-2">
+              {offerPillars.map(
+                ({ title, summary, highlights, cta, href, external, conversionId, surface, icon: Icon }) => (
+                  <article key={title} className="theme-grid-card">
+                    <div className="inline-flex w-10 h-10 items-center justify-center rounded-lg border border-[#00ff41]/40 bg-[#06130c] text-[#7cf5ad]">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold">{title}</h3>
+                    <p>{summary}</p>
+                    <ul className="space-y-1 text-sm text-[#c8d8e1]">
+                      {highlights.map((item) => (
+                        <li key={item} className="flex items-start gap-2">
+                          <span className="text-[#8fffb6] mt-0.5">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <TrackedCtaLink
+                      href={href}
+                      external={external}
+                      conversionId={conversionId}
+                      surface={surface}
+                      className="theme-cta theme-cta--compact theme-cta--loud mt-1 self-start"
+                    >
+                      {cta}
+                    </TrackedCtaLink>
+                  </article>
+                ),
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="max-w-7xl mx-auto mb-10 sm:mb-14">
+          <div className="theme-panel p-6 sm:p-8">
+            <span className="theme-kicker mb-3">Trading and Token Direction</span>
+            <h2 className="theme-title text-2xl sm:text-3xl font-bold mb-3">
+              Building a Legal Utility-Driven Participation Model
+            </h2>
+            <p className="theme-subtitle text-sm sm:text-base mb-5">
+              We are structuring a tokenized ecosystem that supports trading
+              infrastructure, music rewards, and service-layer utility. Visitors
+              can follow the roadmap now and join qualified updates as the model
+              matures.
+            </p>
+            <div className="grid gap-4 md:grid-cols-2">
               <article className="theme-grid-card">
-                <div className="inline-flex w-10 h-10 items-center justify-center rounded-lg border border-[#00ff41]/40 bg-[#06130c] text-[#7cf5ad]">
-                  <Wrench className="w-5 h-5" />
-                </div>
-                <h3 className="text-lg font-semibold">Phone and Device Repair</h3>
-                <p>Fast diagnostics, remote triage, and local repair scheduling.</p>
+                <h3 className="text-lg font-semibold">Roadmap + Discussion Access</h3>
+                <p>
+                  Track market callouts, architecture updates, and release notes
+                  tied to the crypto project pipeline.
+                </p>
                 <TrackedCtaLink
-                  href={bookingLinks.techSupport}
-                  conversionId="book_repair_quote"
-                  surface="home:service_card"
+                  href="/crypto-project"
+                  conversionId="open_crypto_project"
+                  surface="home:trading_direction"
+                  className="theme-cta theme-cta--compact theme-cta--secondary mt-1 self-start"
+                >
+                  Open Crypto Project
+                </TrackedCtaLink>
+              </article>
+              <article className="theme-grid-card">
+                <h3 className="text-lg font-semibold">Strategy Call Intake</h3>
+                <p>
+                  Schedule a call to discuss service-based entry points, build
+                  requirements, and how your use case fits the roadmap.
+                </p>
+                <TrackedCtaLink
+                  href={bookingLinks.tradingConsult}
+                  conversionId="book_trading_consult"
+                  surface="home:trading_direction"
                   external
                   className="theme-cta theme-cta--compact theme-cta--loud mt-1 self-start"
                 >
-                  Request a Repair Quote
-                </TrackedCtaLink>
-              </article>
-              <article className="theme-grid-card">
-                <div className="inline-flex w-10 h-10 items-center justify-center rounded-lg border border-[#00ff41]/40 bg-[#06130c] text-[#7cf5ad]">
-                  <Guitar className="w-5 h-5" />
-                </div>
-                <h3 className="text-lg font-semibold">Remote Guitar Lessons</h3>
-                <p>Structured lesson tracks with live sessions and progress plans.</p>
-                <TrackedCtaLink
-                  href={bookingLinks.guitarLessons}
-                  conversionId="book_guitar_lesson"
-                  surface="home:service_card"
-                  external
-                  className="theme-cta theme-cta--compact theme-cta--secondary mt-1 self-start"
-                >
-                  Reserve a Lesson Slot
-                </TrackedCtaLink>
-              </article>
-              <article className="theme-grid-card">
-                <div className="inline-flex w-10 h-10 items-center justify-center rounded-lg border border-[#00ff41]/40 bg-[#06130c] text-[#7cf5ad]">
-                  <MonitorSmartphone className="w-5 h-5" />
-                </div>
-                <h3 className="text-lg font-semibold">Digital and Web3 Services</h3>
-                <p>AI trading builds, Solana app work, and automation implementation.</p>
-                <TrackedCtaLink
-                  href={bookingLinks.webDevConsult}
-                  conversionId="book_web3_consult"
-                  surface="home:service_card"
-                  external
-                  className="theme-cta theme-cta--compact theme-cta--muted mt-1 self-start"
-                >
-                  Start a Build Consultation
+                  Book Trading Discussion
                 </TrackedCtaLink>
               </article>
             </div>
+            <p className="mt-5 text-xs text-[#9fb6c5]">
+              Educational and informational only. TradeHax AI does not provide
+              individualized investment advice.
+            </p>
           </div>
         </section>
 

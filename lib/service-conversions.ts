@@ -6,6 +6,7 @@ export type ServiceConversionId =
   | "open_crypto_project"
   | "open_dashboard"
   | "open_game"
+  | "open_music"
   | "open_portfolio"
   | "book_repair_quote"
   | "book_guitar_lesson"
@@ -67,6 +68,12 @@ export const SERVICE_CONVERSION_EVENTS: Record<ServiceConversionId, ConversionMe
     label: "game_route",
     value: 1,
     stage: "awareness",
+  },
+  open_music: {
+    action: "open_music",
+    label: "music_route",
+    value: 2,
+    stage: "consideration",
   },
   open_portfolio: {
     action: "open_portfolio",
