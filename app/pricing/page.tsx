@@ -5,9 +5,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Pricing - TradeHax AI",
+  title: "Pricing and Plans | TradeHax AI Services",
   description:
-    "Service and subscription pricing for repairs, lessons, and Web3 development with clear monetization tiers.",
+    "Transparent pricing for tech repair, guitar lessons, and digital/Web3 development support for local and remote clients.",
+  keywords: [
+    "service pricing tradehax ai",
+    "web development pricing",
+    "guitar lesson pricing",
+    "tech repair pricing philadelphia",
+    "web3 consulting rates",
+  ],
 };
 
 type Plan = {
@@ -50,10 +57,10 @@ const plans: Plan[] = [
     name: "Web3 Builder",
     price: "0.25 SOL",
     cadence: "monthly equivalent",
-    description: "For teams deploying NFT utilities, trading tools, and AI automations.",
+    description: "For teams building NFT utilities, token features, and automation workflows.",
     features: [
       "Architecture advisory and sprint planning",
-      "Smart workflow and monetization guidance",
+      "Technical workflow and roadmap guidance",
       "Crypto project support channel",
     ],
     cta: "/crypto-project",
@@ -68,11 +75,11 @@ export default function PricingPage() {
         <section className="theme-panel p-6 sm:p-8 mb-8">
           <span className="theme-kicker mb-3">Transparent Pricing</span>
           <h1 className="theme-title text-3xl sm:text-4xl font-bold mb-4">
-            Revenue-Ready Tiers for Services and Web3 Operations
+            Clear Plans for Services and Ongoing Support
           </h1>
           <p className="theme-subtitle">
-            Use these plans as the base monetization structure while payment
-            gateways and Solana Pay checkout flows are finalized.
+            Choose the option that matches your goals. We can scope custom
+            packages for larger projects.
           </p>
         </section>
 
@@ -117,11 +124,10 @@ export default function PricingPage() {
         </section>
 
         <section className="theme-panel p-6 sm:p-8">
-          <h2 className="theme-title text-2xl font-bold mb-4">Payment Pipeline</h2>
+          <h2 className="theme-title text-2xl font-bold mb-4">Payment Options</h2>
           <p className="theme-subtitle">
-            Stripe, Solana Pay, and booking pipeline hooks can be enabled in
-            phased rollout while preserving this pricing UI and conversion
-            layout.
+            Card and crypto checkout options can be enabled per plan while
+            keeping this pricing structure and booking flow consistent.
           </p>
         </section>
       </main>

@@ -7,22 +7,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Michael S. Flaherty - Full-Stack Developer & Web3 Architect",
+  title: "Portfolio | TradeHax AI Service and Product Work",
   description:
-    "Full-Stack Developer with expertise in Web3, blockchain trading systems, and modern web applications. Hire for freelance projects and consulting.",
+    "Portfolio featuring websites, web apps, Web3 features, and platform projects built by TradeHax AI.",
   keywords: [
-    "developer",
-    "full-stack",
-    "Web3",
-    "blockchain",
-    "trading systems",
-    "React",
-    "Next.js",
+    "tradehax ai portfolio",
+    "web developer portfolio",
+    "web3 project portfolio",
+    "nextjs developer",
+    "digital service projects",
   ],
   openGraph: {
-    title: "Michael S. Flaherty - Developer Portfolio",
+    title: "TradeHax AI Portfolio",
     description:
-      "Full-stack developer specializing in Web3, automated trading platforms, and scalable web applications.",
+      "Project portfolio covering web development, Web3 features, and service-platform execution.",
     url: "https://tradehaxai.tech/portfolio",
     type: "website",
     images: [
@@ -37,9 +35,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Michael S. Flaherty - Developer Portfolio",
+    title: "TradeHax AI Portfolio",
     description:
-      "Full-stack developer & Web3 architect. Available for projects and consulting.",
+      "Browse web development, Web3, and product implementation projects.",
     images: ["/og-portfolio.svg"],
   },
 };
@@ -56,7 +54,7 @@ export default function PortfolioPage() {
             Michael S. Flaherty
           </h1>
           <p className="text-xl text-gray-300 mb-6">
-            Full-Stack Developer | Web3 Architect | Trading Systems Expert
+            Full-Stack Developer | Web3 Builder | Service Platform Founder
           </p>
 
           <div className="flex flex-wrap justify-center gap-4 mb-8">
@@ -95,10 +93,9 @@ export default function PortfolioPage() {
               and AI.
             </span>
             <span className="block">
-              My recent work includes developing TradeHax AI, an advanced
-              automated trading platform powered by Solana blockchain, featuring
-              real-time trading capabilities, wallet integration, and
-              sophisticated analytics dashboards.
+              My recent work includes building TradeHax AI, a service-focused
+              platform combining web development, support operations, music
+              education, and practical Web3 tooling.
             </span>
           </p>
         </section>
@@ -169,7 +166,7 @@ export default function PortfolioPage() {
           <div className="space-y-6">
             <ProjectCard
               title="TradeHax AI"
-              description="Advanced automated trading platform powered by Solana blockchain. Features real-time trading, wallet integration, AI-driven insights, and comprehensive analytics dashboards."
+              description="Service platform combining web development offerings, wallet tooling, booking funnels, and analytics-ready customer flows."
               technologies={[
                 "Next.js",
                 "Solana",
@@ -181,7 +178,7 @@ export default function PortfolioPage() {
             />
             <ProjectCard
               title="Hyperborea Game"
-              description="Browser-based gaming platform with NFT integration and in-game monetization. Features progressive difficulty, leaderboards, and blockchain-based achievements."
+              description="Browser-based puzzle game with leaderboard scoring, OAuth identity options, and wallet-connected reward architecture."
               technologies={[
                 "HTML5 Canvas",
                 "TypeScript",

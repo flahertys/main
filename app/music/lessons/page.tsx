@@ -9,10 +9,18 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Book Guitar Lessons | TradeHax AI Music',
-  description: 'Professional guitar instruction for all skill levels. Book your remote lesson today with experienced musicians.',
+  title: 'Book Online Guitar Lessons | TradeHax AI',
+  description:
+    'Book remote one-on-one guitar lessons for beginner to advanced players, serving Greater Philadelphia and remote students.',
+  keywords: [
+    'online guitar lessons',
+    'guitar lessons philadelphia',
+    'remote guitar teacher',
+    'beginner guitar lessons',
+    'advanced guitar coaching',
+  ],
   openGraph: {
-    title: 'Book Guitar Lessons | TradeHax AI Music',
+    title: 'Book Online Guitar Lessons | TradeHax AI',
     description: 'Professional guitar instruction for all skill levels.',
     type: 'website',
   },
@@ -30,7 +38,7 @@ export default function LessonsPage() {
           className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Music Portal
+          Back to Music Services
         </Link>
 
         {/* Hero Section */}
@@ -39,7 +47,7 @@ export default function LessonsPage() {
             Book Your Guitar Lesson
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Choose your package, schedule a time, and start your musical journey with expert instruction.
+            Choose your package, schedule a time, and build skills with structured expert instruction.
           </p>
         </div>
 
@@ -122,7 +130,7 @@ export default function LessonsPage() {
                 'Songwriting guidance',
                 'Studio production',
                 'Industry insights',
-                '24/7 support',
+                'Priority support',
               ]}
             />
           </div>

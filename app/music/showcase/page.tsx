@@ -8,10 +8,17 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Artist Showcase Platform | TradeHax AI Music',
-  description: 'Musicians can showcase their talent, upload songs and videos, gain followers, and receive tips via Solana wallet integration.',
+  title: 'Artist Showcase Platform | TradeHax AI',
+  description:
+    'Showcase music, build an audience, and follow launch updates for wallet-connected artist features.',
+  keywords: [
+    'artist showcase platform',
+    'music creator platform',
+    'solana music tips',
+    'tradehax music community',
+  ],
   openGraph: {
-    title: 'Artist Showcase Platform | TradeHax AI Music',
+    title: 'Artist Showcase Platform | TradeHax AI',
     description: 'Showcase your music and grow your audience.',
     type: 'website',
   },
@@ -29,7 +36,7 @@ export default function ShowcasePage() {
           className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Music Portal
+          Back to Music Services
         </Link>
 
         {/* Hero Section */}
@@ -44,7 +51,7 @@ export default function ShowcasePage() {
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             Upload your songs, gain followers, and receive tips directly to your Solana wallet.
-            Join our growing community of talented musicians.
+            Join our waitlist to get launch updates and early access.
           </p>
         </div>
 

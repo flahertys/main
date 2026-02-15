@@ -12,8 +12,8 @@ export function ActionRail({ surface, className = "" }: ActionRailProps) {
   return (
     <section className={`theme-panel p-4 sm:p-5 ${className}`.trim()}>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <span className="theme-kicker">Pipeline Shortcuts</span>
-        <span className="theme-chip">Book | Mint | Subscribe | Contact</span>
+        <span className="theme-kicker">Quick Actions</span>
+        <span className="theme-chip">Book | Explore | Pricing | Contact</span>
       </div>
       <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
         <TrackedCtaLink
@@ -55,7 +55,7 @@ export function ActionRail({ surface, className = "" }: ActionRailProps) {
         </TrackedCtaLink>
       </div>
       <p className="mt-3 text-xs text-[#b4c7d6]">
-        Fast lane: schedule support, open mint path, compare plans, or text for quick help.
+        Start with the action you need most: schedule a service, review options, or contact us directly.
       </p>
       <p className="mt-1 text-[11px] text-[#9cb3c1]">
         Prefer email?{" "}

@@ -103,10 +103,10 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
 
         <section className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-8 text-center mb-12">
           <h2 className="text-2xl font-bold text-white mb-4">
-            Get More Trading Insights
+            Get More Updates
           </h2>
           <p className="text-gray-300 mb-6">
-            Subscribe to our newsletter for weekly market analysis.
+            Subscribe for new articles on digital services, Web3, and platform updates.
           </p>
           <EmailCapture />
         </section>

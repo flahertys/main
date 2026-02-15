@@ -31,8 +31,8 @@ export function ShamrockFooter() {
               </span>
             </div>
             <p className="text-[#9cadcc] text-sm leading-relaxed mb-5">
-              Matrix-style Web3 platform for trading operations, repair
-              services, guitar lessons, and digital project execution.
+              Professional digital services, device support, music lessons,
+              and Web3 consulting for clients in Greater Philadelphia and remote.
             </p>
             <div className="flex gap-2.5">
               <TrackedCtaLink
@@ -209,7 +209,7 @@ export function ShamrockFooter() {
             &copy; {currentYear} TradeHax AI. All rights reserved.
           </p>
           <p className="text-xs text-[#7f8fac]">
-            Built on Next.js and Solana with a matrix-green execution theme.
+            Built for fast booking, clear service selection, and measurable outcomes.
           </p>
         </div>
       </div>

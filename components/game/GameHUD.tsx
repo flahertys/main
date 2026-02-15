@@ -54,18 +54,18 @@ export function GameHUD({
   const energyPercentage = Math.min((energy / 100) * 100, 100);
   const portalUnlocked = energy >= 100;
   const relicsLabel = cloversCollected === 1 ? "1 relic" : `${cloversCollected} relics`;
-  const hasUtilityPipeline =
+  const hasUtilityRewards =
     typeof utilityPoints === "number" && typeof projectedTokenUnits === "number";
-  const utilityRemainder = hasUtilityPipeline
+  const utilityRemainder = hasUtilityRewards
     ? ((utilityPoints % UTILITY_POINTS_PER_TOKEN_UNIT) + UTILITY_POINTS_PER_TOKEN_UNIT) %
       UTILITY_POINTS_PER_TOKEN_UNIT
     : 0;
-  const pointsToNextToken = hasUtilityPipeline
+  const pointsToNextToken = hasUtilityRewards
     ? utilityRemainder === 0
       ? UTILITY_POINTS_PER_TOKEN_UNIT
       : UTILITY_POINTS_PER_TOKEN_UNIT - utilityRemainder
     : 0;
-  const utilityProgressPercent = hasUtilityPipeline
+  const utilityProgressPercent = hasUtilityRewards
     ? Math.max(0, Math.min((utilityRemainder / UTILITY_POINTS_PER_TOKEN_UNIT) * 100, 100))
     : 0;
   const [showEnergyPulse, setShowEnergyPulse] = useState(false);
@@ -117,7 +117,7 @@ export function GameHUD({
             {portalUnlocked && (
               <div className="mt-2 text-center">
                 <span className="text-cyan-400 text-xs sm:text-sm font-bold animate-pulse">
-                  🌀 PORTAL UNLOCKED!
+                  🌀 EXIT GATE OPEN
                 </span>
               </div>
             )}
@@ -149,11 +149,11 @@ export function GameHUD({
             </div>
           </div>
 
-          {hasUtilityPipeline && (
+          {hasUtilityRewards && (
             <div className="bg-black/90 backdrop-blur-sm border border-emerald-500/40 rounded-lg p-3 sm:p-4 w-full sm:min-w-[280px]">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-white font-bold text-sm sm:text-base">Utility Pipeline</div>
+                  <div className="text-white font-bold text-sm sm:text-base">Utility Rewards</div>
                   <div className="text-emerald-300 text-xs sm:text-sm">
                     {utilityPoints.toLocaleString()} pts
                   </div>
@@ -203,7 +203,7 @@ export function GameHUD({
             <div className="flex items-center gap-2">
               <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
               <div className="text-blue-300 text-xs sm:text-sm">
-                <span className="font-bold">Objective:</span> Solve gates, recover relics, and charge energy to stabilize the portal.
+                <span className="font-bold">Objective:</span> Solve gates, recover relics, and charge energy to unlock the exit gate.
               </div>
             </div>
           </div>

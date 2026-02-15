@@ -5,9 +5,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "About - TradeHax AI",
+  title: "About TradeHax AI | Greater Philadelphia Digital Services",
   description:
-    "TradeHax AI combines Web3 execution with real-world service delivery through a professional operating pipeline.",
+    "Learn about TradeHax AI, serving Greater Philadelphia and remote clients with web development, tech support, music lessons, and practical Web3 solutions.",
+  keywords: [
+    "about tradehax ai",
+    "web development philadelphia",
+    "tech support south jersey",
+    "online guitar lessons",
+    "web3 consulting",
+  ],
 };
 
 const pillars = [
@@ -32,7 +39,7 @@ const pillars = [
   {
     title: "Community-Centered Growth",
     detail:
-      "The platform bridges practical local services with scalable global digital opportunities.",
+      "We support local clients in Greater Philadelphia while serving remote clients nationwide.",
     icon: Users,
   },
 ] as const;
@@ -50,7 +57,7 @@ const testimonials = [
   },
   {
     quote:
-      "Our Web3 roadmap went from vague to executable with a real monetization pipeline.",
+      "Our Web3 roadmap went from unclear to actionable with clear milestones and accountability.",
     author: "Digital Services Client",
   },
 ] as const;
@@ -63,12 +70,11 @@ export default function AboutPage() {
         <section className="theme-panel p-6 sm:p-8 mb-8">
           <span className="theme-kicker mb-3">About TradeHax AI</span>
           <h1 className="theme-title text-3xl sm:text-4xl font-bold mb-4">
-            Professional Execution Across Web3 and Service Operations
+            Trusted Service Delivery Across Digital, Technical, and Web3 Work
           </h1>
           <p className="theme-subtitle mb-6">
-            TradeHax AI is built to deliver clear outcomes: practical services,
-            scalable digital systems, and a consistent quality bar across the
-            full pipeline.
+            TradeHax AI is built around clear communication, quality execution,
+            and measurable outcomes for every client engagement.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link

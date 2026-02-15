@@ -19,12 +19,14 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title:
-    "Music & Arts Platform - Remote Guitar Lessons & Artist Showcase | TradeHax AI",
+    "Online Guitar Lessons and Artist Platform | TradeHax AI",
   description:
-    "Learn guitar online with professional instructors. Showcase your music, earn tips, and join the L2 token revolution for music education.",
+    "Book remote guitar lessons, explore artist features, and follow music education roadmap updates from TradeHax AI.",
   keywords: [
     "guitar lessons",
     "online music teacher",
+    "guitar lessons philadelphia",
+    "online guitar lessons south jersey",
     "music education",
     "artist showcase",
     "blockchain music",
@@ -49,7 +51,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Music & Arts Platform - TradeHax AI",
     description:
-      "Learn guitar, showcase your music, earn tips on the blockchain",
+      "Learn guitar, showcase music, and follow scholarship roadmap updates.",
     images: ["/og-music.svg"],
   },
 };
@@ -79,8 +81,7 @@ export default function MusicPage() {
 
           <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
             Professional remote guitar lessons, artist showcase platform, and
-            revolutionary music education scholarships powered by blockchain
-            technology.
+            a scholarship-focused roadmap for accessible music education.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -310,11 +311,11 @@ export default function MusicPage() {
             </div>
 
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              L2 Utility Token
+              L2 Utility Token Roadmap
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Revolutionary blockchain-powered music education scholarships and
-              community governance.
+              Follow planned updates for music education rewards, scholarships,
+              and community-supported funding mechanics.
             </p>
           </div>
 
@@ -405,14 +406,13 @@ export default function MusicPage() {
             >
               <TrendingUp className="w-12 h-12 text-green-400 mb-4" />
               <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-green-400 transition-colors">
-                Fund Your Music Career
+                Explore Analytics Tools
               </h3>
               <p className="text-gray-300 mb-4">
-                Learn smart trading strategies to support your musical
-                ambitions.
+                Review dashboard tools and platform analytics features.
               </p>
               <span className="inline-flex items-center gap-2 text-green-400 font-semibold">
-                Explore Trading
+                Open Dashboard
                 <ArrowRight className="w-5 h-5" />
               </span>
             </Link>

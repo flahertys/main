@@ -4,7 +4,7 @@ import GamePageClient from "./GamePageClient";
 export const metadata: Metadata = {
   title: "Hyperborea - 3D Browser Game | TradeHax AI",
   description:
-    "Play Hyperborea, an epic Escher-inspired 3D browser game with NFT rewards and blockchain integration. No download required.",
+    "Play Hyperborea, an Escher-inspired 3D browser game with puzzle progression, leaderboard scoring, and optional wallet-linked rewards.",
   keywords: [
     "browser game",
     "3D game",
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Hyperborea - 3D Browser Game",
     description:
-      "Join 10,000+ players in Hyperborea. Collect clovers, earn power-ups, and mint NFT rewards.",
+      "Explore puzzle levels, collect relics, and track your score on the Hyperborea leaderboard.",
     url: "https://tradehaxai.tech/game",
     type: "website",
     images: [
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Hyperborea - 3D Browser Game",
     description:
-      "Play Hyperborea on tradehaxai.tech - Free 3D game with NFT rewards",
+      "Play Hyperborea on tradehaxai.tech: puzzle gameplay, leaderboard scoring, and optional wallet rewards.",
     images: ["/og-game.svg"],
   },
 };

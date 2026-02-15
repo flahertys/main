@@ -13,9 +13,9 @@ import {
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Crypto Project - TradeHax AI",
+  title: "Crypto and Web3 Project | TradeHax AI",
   description:
-    "Explore TradeHax AI crypto utilities: Solana wallet onboarding, devnet NFT mint path, and upgrade-ready monetization hooks.",
+    "Explore TradeHax AI Web3 progress, including wallet onboarding, NFT utility planning, and product roadmap updates.",
 };
 
 const features = [
@@ -26,12 +26,12 @@ const features = [
   },
   {
     title: "Free Entry Mint",
-    text: "Onboard users with free entry mint access tied to game and service funnels.",
+    text: "Offer low-friction mint access connected to game participation and customer onboarding.",
     icon: Gem,
   },
   {
-    title: "Upgrade Pipeline",
-    text: "Connect premium mint tiers to subscriptions, perks, and exclusive analytics.",
+    title: "Premium Upgrade Path",
+    text: "Connect premium mint tiers to subscriptions, perks, and future feature access.",
     icon: BadgeDollarSign,
   },
   {
@@ -49,12 +49,11 @@ export default function CryptoProjectPage() {
         <section className="theme-panel p-6 sm:p-8 mb-8">
           <span className="theme-kicker mb-3">Solana Project Hub</span>
           <h1 className="theme-title text-3xl sm:text-4xl font-bold mb-4">
-            Hyperborea NFT + Trading Utility Stack
+            Hyperborea NFT and Utility Roadmap
           </h1>
           <p className="theme-subtitle mb-6">
-            This module keeps your new Web3 features while fitting your matrix
-            site direction: clean wallet onboarding, mint entry, and premium
-            upgrade lanes.
+            This section provides clear updates on wallet onboarding, NFT entry
+            points, and premium utility planning tied to the broader platform.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <div className="min-h-10">
@@ -94,7 +93,7 @@ export default function CryptoProjectPage() {
 
         <section className="theme-panel p-6 sm:p-8">
           <h2 className="theme-title text-2xl font-bold mb-4">
-            Implementation Notes
+            Project Notes
           </h2>
           <ul className="space-y-3 text-sm sm:text-base text-[#c4d2e9]">
             <li>
@@ -102,12 +101,12 @@ export default function CryptoProjectPage() {
               validation.
             </li>
             <li>
-              Route wallet-connected users into schedule and subscription offers
-              based on on-chain state.
+              Route wallet-connected users into relevant service and subscription offers
+              when features are live.
             </li>
             <li>
-              Track conversions from game sessions, mint actions, and booking
-              submissions for pipeline optimization.
+              Track engagement from game sessions, mint actions, and booking
+              submissions for ongoing optimization.
             </li>
           </ul>
         </section>

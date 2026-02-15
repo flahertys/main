@@ -8,9 +8,16 @@ import { CalendarCheck2, Clock3, Link2, MessageSquare, MonitorCog, Phone } from 
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Schedule - TradeHax AI",
+  title: "Book a Service | TradeHax AI | Philadelphia and Remote Support",
   description:
-    "Book repairs, lessons, and consulting through TradeHax AI scheduling pipelines.",
+    "Book repair, development, and lesson services with clear scheduling options for Greater Philadelphia, South Jersey, and remote support.",
+  keywords: [
+    "book tech support philadelphia",
+    "book guitar lessons online",
+    "web development consultation",
+    "south jersey computer support",
+    "tradehax ai scheduling",
+  ],
 };
 
 const bookingOptions = [
@@ -28,7 +35,7 @@ const bookingOptions = [
   },
   {
     title: "Web3 Consulting",
-    detail: "Architecture planning, pipeline setup, and Solana integrations.",
+    detail: "Architecture planning, implementation guidance, and Solana integrations.",
     href: bookingLinks.webDevConsult,
     conversionId: "book_web3_consult" as ServiceConversionId,
   },
@@ -40,12 +47,12 @@ export default function SchedulePage() {
       <ShamrockHeader />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <section className="theme-panel p-6 sm:p-8 mb-8">
-          <span className="theme-kicker mb-3">Scheduling Pipeline</span>
+          <span className="theme-kicker mb-3">Service Booking</span>
           <h1 className="theme-title text-3xl sm:text-4xl font-bold mb-4">
-            Book Services in the Matrix Operations Flow
+            Book a Service in Minutes
           </h1>
           <p className="theme-subtitle">
-            Use the direct booking lanes below. This page is optimized for both
+            Choose a booking option below. This page is optimized for both
             desktop and mobile scheduling.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
@@ -67,7 +74,7 @@ export default function SchedulePage() {
               className="theme-cta theme-cta--muted px-5 py-3"
             >
               <Phone className="w-4 h-4" />
-              Call 24/7 Urgent
+              Call for Urgent Support
             </TrackedCtaLink>
           </div>
           <p className="mt-3 text-xs text-[#9ca9c5]">
@@ -96,8 +103,8 @@ export default function SchedulePage() {
         </section>
 
         <section className="theme-panel p-5 sm:p-6 mb-8">
-          <h2 className="theme-title text-2xl font-bold mb-4">
-            Embedded Calendar View
+            <h2 className="theme-title text-2xl font-bold mb-4">
+            Calendar View
           </h2>
           <div className="rounded-xl overflow-hidden border border-[#5f769f]/45 bg-[#040a13]">
             <iframe
@@ -126,7 +133,7 @@ export default function SchedulePage() {
               Open Google Meet / Booking
             </TrackedCtaLink>
             <span className="text-xs text-[#9ca9c5]">
-              Calendar and Meet links are environment-configurable for GSuite.
+              Calendar and Meet links are configurable for your Google Workspace setup.
             </span>
           </div>
         </section>

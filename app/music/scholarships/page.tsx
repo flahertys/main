@@ -8,10 +8,17 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Music Education Scholarships | TradeHax AI',
-  description: 'Blockchain-powered music education scholarships. Apply for funding, vote on recipients, and support the next generation of musicians.',
+  description:
+    'Follow the TradeHax AI music scholarship roadmap, including funding structure, governance planning, and launch updates.',
+  keywords: [
+    'music scholarships',
+    'music education funding',
+    'community scholarship program',
+    'tradehax music roadmap',
+  ],
   openGraph: {
     title: 'Music Education Scholarships | TradeHax AI',
-    description: 'Blockchain-powered music education scholarships coming soon.',
+    description: 'Music education scholarship roadmap and launch updates.',
     type: 'website',
   },
 };
@@ -28,7 +35,7 @@ export default function ScholarshipsPage() {
           className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Music Portal
+          Back to Music Services
         </Link>
 
         {/* Coming Soon Banner */}
@@ -200,7 +207,7 @@ export default function ScholarshipsPage() {
           </h2>
           <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
             Be the first to know when scholarship applications open and receive early access
-            to the token presale.
+            to roadmap and launch updates.
           </p>
           <EmailCapture />
         </section>

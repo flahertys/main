@@ -7,9 +7,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Blog - TradeHax AI | Crypto Trading Insights & Web3 Guides",
+  title: "Blog | Business, Web3, and Service Insights | TradeHax AI",
   description:
-    "Expert insights on cryptocurrency trading, Web3 development, Solana blockchain, and automated trading strategies.",
+    "Practical articles on digital services, Web3 development, trading systems, and security best practices.",
   keywords: [
     "crypto trading",
     "web3",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Blog - TradeHax AI",
     description:
-      "Expert insights on cryptocurrency trading, Web3 development, and automated trading strategies.",
+      "Practical insights on digital services, Web3 development, and platform strategy.",
     url: "https://tradehaxai.tech/blog",
     type: "website",
     images: [
@@ -37,9 +37,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Blog - Trading Insights & Web3 Guides",
+    title: "Blog - Business and Web3 Insights",
     description:
-      "Read expert articles on crypto trading, Solana, DeFi, and Web3 development.",
+      "Read practical guides on services, Web3, and secure digital operations.",
     images: ["/og-blog.svg"],
   },
 };
@@ -110,11 +110,11 @@ export default function BlogPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#00FF41] to-[#39FF14] text-transparent bg-clip-text mb-4">
-            Trading Insights & Web3 Guides
+            Business, Web3, and Service Guides
           </h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            Expert articles on cryptocurrency trading, blockchain technology,
-            and automated trading strategies.
+            Practical articles for clients and builders focused on digital
+            growth, Web3 implementation, and secure execution.
           </p>
         </div>
 

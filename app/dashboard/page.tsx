@@ -16,9 +16,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Trading Dashboard - Monitor & Analyze | TradeHax AI",
+  title: "Dashboard | TradeHax AI",
   description:
-    "Real-time trading dashboard with analytics, performance tracking, and strategy management for automated Web3 trading.",
+    "Interactive dashboard preview for analytics, wallet tools, and strategy workflows inside the TradeHax AI platform.",
   keywords: [
     "trading dashboard",
     "analytics",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Trading Dashboard - TradeHax AI",
     description:
-      "Monitor your trades, analyze performance, and manage strategies in real-time.",
+      "Preview analytics, wallet tools, and strategy workflows.",
     url: "https://tradehaxai.tech/dashboard",
     type: "website",
     images: [
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Trading Dashboard - TradeHax AI",
-    description: "Real-time analytics and strategy management dashboard.",
+    description: "Interactive analytics and workflow dashboard preview.",
     images: ["/og-dashboard.svg"],
   },
 };
@@ -59,10 +59,10 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#00FF41] to-[#39FF14] text-transparent bg-clip-text mb-2">
-            Welcome to TradeHax AI Dashboard
+            TradeHax AI Dashboard
           </h1>
           <p className="text-gray-400">
-            Monitor your trading performance and manage your strategies
+            Review analytics and test key platform workflows in one place.
           </p>
         </div>
 
@@ -102,11 +102,10 @@ export default function DashboardPage() {
           <div className="lg:col-span-2">
             <div className="mb-4">
               <h2 className="text-2xl font-bold text-white mb-2">
-                Demo Trading Counter
+                Demo Counter
               </h2>
               <p className="text-gray-400 text-sm">
-                Interact with the Solana blockchain to test trading
-                functionality
+                Interact with Solana-connected features in a safe preview mode.
               </p>
             </div>
 
@@ -162,8 +161,8 @@ export default function DashboardPage() {
             <div className="mt-6 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
               <h3 className="text-white font-semibold mb-2">Getting Started</h3>
               <p className="text-sm text-gray-400 mb-3">
-                Connect your wallet to start trading on the Solana blockchain.
-                Use the demo counter above to test blockchain interactions.
+                Connect your wallet and test core interactions before moving to
+                service or project onboarding.
               </p>
               <Link
                 href="/"

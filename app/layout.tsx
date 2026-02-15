@@ -6,6 +6,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { IntroVideoWrapper } from "@/components/IntroVideoWrapper";
 import { HeaderBannerAd } from "@/components/monetization/AdSenseBlock";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { businessProfile } from "@/lib/business-profile";
 import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import { Cinzel, Montserrat, Orbitron } from "next/font/google";
@@ -45,22 +46,23 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "TradeHax AI - Web3 Trading, Repairs, Lessons, and Digital Services",
+  title: "TradeHax AI | Web Development, Tech Repair, Music Lessons, and Web3 Services",
   description:
-    "TradeHax AI blends Solana-powered Web3 trading with real-world services: device repair, guitar lessons, and digital build services in one professional platform.",
+    "TradeHax AI helps clients in Greater Philadelphia and beyond with website development, app builds, device repair, online guitar lessons, and practical Web3 solutions.",
   keywords: [
-    "Web3 trading",
-    "Solana",
-    "automated trading",
-    "DeFi",
-    "blockchain",
-    "crypto trading",
-    "AI trading platform",
+    "web development philadelphia",
+    "app development services",
+    "computer repair philadelphia",
+    "cell phone repair south jersey",
+    "online guitar lessons",
+    "solana development services",
+    "blockchain consulting",
+    "website design for small business",
     "device repair",
     "guitar lessons",
     "digital services",
-    "NFT mint",
     "Philadelphia",
+    "Greater Philadelphia",
   ],
   authors: [{ name: "TradeHax AI" }],
   creator: "TradeHax AI",
@@ -70,9 +72,9 @@ export const metadata: Metadata = {
     canonical: "https://tradehaxai.tech",
   },
   openGraph: {
-    title: "TradeHax AI - Matrix Web3 and Service Platform",
+    title: "TradeHax AI | Digital Services, Repair, Music Lessons, and Web3",
     description:
-      "A professional Web3 platform connecting automated trading, NFT experiences, and remote-first service offerings.",
+      "Customer-first services for websites, apps, device repair, music lessons, and Web3 consulting for local and remote clients.",
     url: "https://tradehaxai.tech",
     siteName: "TradeHax AI",
     locale: "en_US",
@@ -82,16 +84,16 @@ export const metadata: Metadata = {
         url: "/og-home.svg",
         width: 1200,
         height: 630,
-        alt: "TradeHax AI - Automated Web3 Trading Platform",
+        alt: "TradeHax AI services for web development, repair, music, and Web3",
         type: "image/svg+xml",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "TradeHax AI - Matrix Web3 and Service Platform",
+    title: "TradeHax AI | Professional Digital and Local Service Support",
     description:
-      "Automated Web3 trading, NFT experiences, and premium digital services on Solana.",
+      "Book web development, repair, lessons, and Web3 services with a clear service path and fast response.",
     images: ["/og-home.svg"],
     creator: "@tradehaxai",
     site: "@tradehaxai",
@@ -121,25 +123,61 @@ export default function RootLayout({
   const safeGaMeasurementId =
     gaMeasurementId && /^G-[A-Z0-9]+$/.test(gaMeasurementId) ? gaMeasurementId : null;
 
+  const sameAs = [
+    businessProfile.socialLinks.x,
+    businessProfile.socialLinks.youtube,
+    businessProfile.socialLinks.github,
+    businessProfile.socialLinks.facebook,
+    businessProfile.socialLinks.instagram,
+  ].filter(Boolean);
+
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
-    name: "TradeHax AI",
-    description:
-      "Web3 trading platform and service ecosystem powered by Solana",
-    url: "https://tradehaxai.tech",
-    applicationCategory: "FinanceApplication",
-    operatingSystem: "Any",
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
-    },
-    author: {
-      "@type": "Organization",
-      name: "TradeHax AI",
-      url: "https://tradehaxai.tech",
-    },
+    "@graph": [
+      {
+        "@type": ["LocalBusiness", "ProfessionalService"],
+        "@id": "https://tradehaxai.tech/#business",
+        name: "TradeHax AI",
+        url: "https://tradehaxai.tech",
+        telephone: businessProfile.contactPhoneE164,
+        email: businessProfile.contactEmail,
+        description:
+          "Website development, app development, tech repair, guitar lessons, and Web3 consulting for local and remote clients.",
+        areaServed: [
+          { "@type": "AdministrativeArea", name: "Greater Philadelphia" },
+          { "@type": "AdministrativeArea", name: "South Jersey" },
+          { "@type": "Place", name: "Remote Services" },
+        ],
+        serviceType: [
+          "Website Development",
+          "Application Development",
+          "Computer and Device Repair",
+          "Online Guitar Lessons",
+          "Blockchain and Web3 Consulting",
+        ],
+        contactPoint: [
+          {
+            "@type": "ContactPoint",
+            telephone: businessProfile.contactPhoneE164,
+            contactType: "customer support",
+            areaServed: "US",
+            availableLanguage: "en",
+          },
+        ],
+        sameAs,
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://tradehaxai.tech/#website",
+        name: "TradeHax AI",
+        url: "https://tradehaxai.tech",
+        potentialAction: {
+          "@type": "SearchAction",
+          target: "https://tradehaxai.tech/services?q={search_term_string}",
+          "query-input": "required name=search_term_string",
+        },
+      },
+    ],
   };
 
   return (

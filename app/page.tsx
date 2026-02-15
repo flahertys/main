@@ -26,9 +26,10 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "TradeHax AI - Matrix Web3 Platform",
+  title:
+    "TradeHax AI | Web Development, Tech Repair, and Music Lessons in Greater Philadelphia",
   description:
-    "Professional matrix-themed Web3 platform with Solana trading, NFT mint utilities, repair bookings, guitar lessons, and digital services.",
+    "Book trusted digital services including website and app development, device repair, guitar lessons, and practical Web3 support for Greater Philadelphia and remote clients.",
 };
 
 const intentLanes = [
@@ -55,20 +56,20 @@ const intentLanes = [
     icon: MonitorSmartphone,
   },
   {
-    title: "Music and Lesson Portal",
+    title: "Music Lessons and Artist Growth",
     detail:
       "Private guitar lessons, platform growth, and scholarship/reward infrastructure.",
     href: "/music",
     external: false,
     conversionId: "open_music",
     surface: "home:intent_lane",
-    cta: "Open Music Portal",
+    cta: "Explore Music Services",
     icon: Guitar,
   },
   {
-    title: "Trading and Token Ecosystem",
+    title: "Trading Research and Token Roadmap",
     detail:
-      "Market callouts, crypto project updates, and tokenized utility pipeline in active development.",
+      "Follow market discussions, project updates, and utility-token roadmap progress.",
     href: "/crypto-project",
     external: false,
     conversionId: "open_crypto_project",
@@ -114,16 +115,16 @@ const offerPillars = [
     icon: Wrench,
   },
   {
-    title: "Music Portal and Education",
+    title: "Music Lessons and Artist Development",
     summary:
       "Build skill progression through guitar lessons while expanding a rewards-backed music platform.",
     highlights: [
       "Remote/private guitar instruction",
       "Student progression tracks",
       "Scholarship and rewards roadmap",
-      "Portal-based learning ecosystem",
+      "Structured learning and artist-growth ecosystem",
     ],
-    cta: "Open Music Portal",
+    cta: "Explore Music Services",
     href: "/music",
     external: false,
     conversionId: "open_music",
@@ -131,14 +132,14 @@ const offerPillars = [
     icon: Guitar,
   },
   {
-    title: "Trading + Token Pipeline",
+    title: "Trading Research + Token Roadmap",
     summary:
-      "Publish strategy discussions and structure token utility rails for future managed participation models.",
+      "Track strategy discussions and token utility planning as the project evolves.",
     highlights: [
       "Trading callouts and discussion tracks",
       "Tokenized utility architecture",
       "Liquidity/reward design direction",
-      "Web3 integration with service portals",
+      "Web3 integration across services and rewards",
     ],
     cta: "Review Crypto Roadmap",
     href: "/crypto-project",
@@ -149,11 +150,11 @@ const offerPillars = [
   },
 ] as const;
 
-const pipeline = [
+const journeySteps = [
   {
     title: "Choose Your Lane",
     detail:
-      "Visitors self-select: service now, build project, music portal, or crypto path.",
+      "Visitors self-select: service now, build project, music services, or crypto roadmap.",
   },
   {
     title: "Qualification",
@@ -168,11 +169,11 @@ const pipeline = [
   {
     title: "Retention and Upsell",
     detail:
-      "Move customers into subscriptions, portal offerings, upgrades, and partner funnels.",
+      "Offer ongoing support plans, education, and advanced service packages.",
   },
 ] as const;
 
-const browseMatrix = [
+const exploreLinks = [
   {
     href: "/services",
     label: "Service Catalog",
@@ -197,7 +198,7 @@ const browseMatrix = [
 
 const galleryItems = [
   { src: "/reference-hyperborea-thumb.jpg", caption: "Hyperborea Original Visual" },
-  { src: "/og-home.svg", caption: "Main Platform Portal" },
+  { src: "/og-home.svg", caption: "Main Platform Home" },
   { src: "/og-game.svg", caption: "Escher Maze Game Interface" },
   { src: "/og-dashboard.svg", caption: "Trading Dashboard Surface" },
   { src: "/og-services.svg", caption: "Service Booking Presentation" },
@@ -213,25 +214,25 @@ export default function Home() {
         <section className="max-w-7xl mx-auto mb-10 sm:mb-14">
           <div className="theme-panel p-6 sm:p-8 md:p-10">
             <div className="max-w-4xl">
-              <span className="theme-kicker mb-4">TradeHax Matrix Core</span>
+              <span className="theme-kicker mb-4">TradeHax Service Studio</span>
               <div className="theme-hero-sign p-5 sm:p-7 md:p-8">
                 <p className="theme-rune text-xs sm:text-sm mb-3">
-                  TECH RUNES | SOLANA PIPELINE | DIGITAL WORKSHOP
+                  WEB DEVELOPMENT | REPAIR | MUSIC | WEB3
                 </p>
                 <h1 className="theme-title text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4">
-                  Digital Services, Repair, Music Portals, and{" "}
+                  Digital Services, Repair, Music Services, and{" "}
                   <span className="theme-title-accent">Web3 Development</span>
                 </h1>
                 <p className="theme-subtitle text-sm sm:text-base mb-6">
-                  We help customers ship websites/apps, solve device problems,
-                  train in music, and follow our crypto/token roadmap. Choose a
-                  lane below to book fast, learn more, or browse the matrix.
+                  We help customers launch websites and apps, fix device issues,
+                  improve music skills, and explore practical Web3 projects.
+                  Choose a lane below to book quickly or learn more.
                 </p>
                 <div className="flex flex-wrap gap-2.5">
                   <span className="theme-badge">2h Response Goal</span>
                   <span className="theme-badge">25+ Years Experience</span>
-                  <span className="theme-badge">Remote-First Workflow</span>
-                  <span className="theme-badge">Built for Browsers + Buyers</span>
+                  <span className="theme-badge">Local + Remote Support</span>
+                  <span className="theme-badge">Clear Scope and Pricing</span>
                 </div>
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -279,7 +280,7 @@ export default function Home() {
             </h2>
             <p className="theme-subtitle text-sm sm:text-base mb-6">
               Pick the path that matches your intent. Each route is optimized
-              for clear next steps and fast conversion.
+              for clear next steps and fast booking.
             </p>
             <div className="grid gap-4 md:grid-cols-2">
               {intentLanes.map(
@@ -324,14 +325,13 @@ export default function Home() {
           <div className="theme-panel p-6 sm:p-8">
             <span className="theme-kicker mb-3">Browse Mode</span>
             <h2 className="theme-title text-2xl sm:text-3xl font-bold mb-3">
-              New Here? Explore Without Committing
+              New Here? Explore First
             </h2>
             <p className="theme-subtitle text-sm sm:text-base mb-6">
-              These routes keep users inside the ecosystem while they learn
-              what we offer before booking.
+              Review our services, past work, and platform features before you decide.
             </p>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {browseMatrix.map(({ href, label, detail }) => (
+              {exploreLinks.map(({ href, label, detail }) => (
                 <Link key={href} href={href} className="theme-grid-card">
                   <h3 className="text-lg font-semibold">{label}</h3>
                   <p>{detail}</p>
@@ -344,12 +344,12 @@ export default function Home() {
 
         <section className="max-w-7xl mx-auto mb-10 sm:mb-14">
           <div className="theme-panel p-6 sm:p-8">
-            <span className="theme-kicker mb-3">Customer Pipeline</span>
+            <span className="theme-kicker mb-3">Customer Journey</span>
             <h2 className="theme-title text-2xl sm:text-3xl font-bold mb-6">
-              Structure Built for Clarity, Trust, and Conversions
+              Built for Clarity, Trust, and Results
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {pipeline.map((step, index) => (
+              {journeySteps.map((step, index) => (
                 <article key={step.title} className="theme-grid-card">
                   <span className="text-[#73fba8] text-xs tracking-widest font-semibold">
                     STEP 0{index + 1}
@@ -363,7 +363,7 @@ export default function Home() {
               <TrackedCtaLink
                 href="/schedule"
                 conversionId="open_schedule"
-                surface="home:pipeline"
+                surface="home:journey"
                 className="theme-cta theme-cta--loud px-5 py-3"
               >
                 Start with a Booking
@@ -371,7 +371,7 @@ export default function Home() {
               <TrackedCtaLink
                 href={businessProfile.contactLinks.text}
                 conversionId="contact_text"
-                surface="home:pipeline"
+                surface="home:journey"
                 external
                 className="theme-cta theme-cta--secondary px-5 py-3"
               >
@@ -424,20 +424,18 @@ export default function Home() {
           <div className="theme-panel p-6 sm:p-8">
             <span className="theme-kicker mb-3">Trading and Token Direction</span>
             <h2 className="theme-title text-2xl sm:text-3xl font-bold mb-3">
-              Building a Legal Utility-Driven Participation Model
+              Trading Research and Token Utility Direction
             </h2>
             <p className="theme-subtitle text-sm sm:text-base mb-5">
-              We are structuring a tokenized ecosystem that supports trading
-              infrastructure, music rewards, and service-layer utility. Visitors
-              can follow the roadmap now and join qualified updates as the model
-              matures.
+              We are building a utility-focused token model tied to education,
+              platform access, and service features. Follow roadmap updates and
+              request project discussions as milestones are released.
             </p>
             <div className="grid gap-4 md:grid-cols-2">
               <article className="theme-grid-card">
                 <h3 className="text-lg font-semibold">Roadmap + Discussion Access</h3>
                 <p>
-                  Track market callouts, architecture updates, and release notes
-                  tied to the crypto project pipeline.
+                  Track architecture updates, product releases, and project milestones.
                 </p>
                 <TrackedCtaLink
                   href="/crypto-project"
@@ -451,8 +449,8 @@ export default function Home() {
               <article className="theme-grid-card">
                 <h3 className="text-lg font-semibold">Strategy Call Intake</h3>
                 <p>
-                  Schedule a call to discuss service-based entry points, build
-                  requirements, and how your use case fits the roadmap.
+                  Schedule a call to discuss your use case, legal-safe scope,
+                  and where your needs fit in the roadmap.
                 </p>
                 <TrackedCtaLink
                   href={bookingLinks.tradingConsult}
@@ -477,7 +475,7 @@ export default function Home() {
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
               <div>
                 <span className="theme-kicker mb-2">Visual Archive</span>
-                <h2 className="theme-title text-2xl font-bold">Legacy Gallery Stream</h2>
+                <h2 className="theme-title text-2xl font-bold">Project and Brand Highlights</h2>
               </div>
               <span className="theme-chip">Scroll Horizontally</span>
             </div>
@@ -504,15 +502,15 @@ export default function Home() {
 
         <section className="max-w-7xl mx-auto mb-10 sm:mb-14">
           <div className="theme-panel p-6 sm:p-8">
-            <span className="theme-kicker mb-3">Income Generation</span>
+            <span className="theme-kicker mb-3">Ways to Work With Us</span>
             <h2 className="theme-title text-2xl sm:text-3xl font-bold mb-6">
-              Monetization Lanes Built Into the Platform
+              Services, Products, and Membership Options
             </h2>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <article className="theme-grid-card">
                 <HandCoins className="w-5 h-5 text-[#77f9a7]" />
                 <h3 className="font-semibold">Bookings</h3>
-                <p>Paid repair, lessons, and consulting appointments.</p>
+                <p>Book paid repair, lessons, and consulting appointments.</p>
                 <TrackedCtaLink
                   href="/schedule"
                   conversionId="open_schedule"
@@ -525,7 +523,7 @@ export default function Home() {
               <article className="theme-grid-card">
                 <Gem className="w-5 h-5 text-[#77f9a7]" />
                 <h3 className="font-semibold">NFT Mints</h3>
-                <p>Free entry mints with premium upgrade utilities.</p>
+                <p>Access project-linked mints with optional premium upgrades.</p>
                 <TrackedCtaLink
                   href="/crypto-project"
                   conversionId="open_crypto_project"
@@ -550,8 +548,8 @@ export default function Home() {
               </article>
               <article className="theme-grid-card">
                 <Gamepad2 className="w-5 h-5 text-[#77f9a7]" />
-                <h3 className="font-semibold">Cross-Upsells</h3>
-                <p>Game, dashboard, and service ecosystem conversion flow.</p>
+                <h3 className="font-semibold">Platform Experience</h3>
+                <p>Explore the game and dashboard as part of the full customer experience.</p>
                 <TrackedCtaLink
                   href="/dashboard"
                   conversionId="open_dashboard"
@@ -564,7 +562,7 @@ export default function Home() {
               <article className="theme-grid-card">
                 <CircuitBoard className="w-5 h-5 text-[#77f9a7]" />
                 <h3 className="font-semibold">Affiliate Tools</h3>
-                <p>Keep users in-funnel, then route out through tracked referral links.</p>
+                <p>Use trusted partner tools with tracked referral links.</p>
                 <TrackedCtaLink
                   href="/#recommended-tools"
                   conversionId="open_affiliate_tools"

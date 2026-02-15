@@ -25,10 +25,16 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title:
-    "Professional Services - Web3 Development & Trading Consulting | TradeHax AI",
+    "Services | Web Development, Tech Repair, and Digital Support | TradeHax AI",
   description:
-    "Expert Web3 development, blockchain consulting, and automated trading system implementation. Custom solutions for your business needs.",
+    "Professional services including website development, app builds, device support, social media marketing, and Web3 consulting for Greater Philadelphia and remote clients.",
   keywords: [
+    "web development philadelphia",
+    "app development philadelphia",
+    "computer repair near philadelphia",
+    "tech support south jersey",
+    "website design south jersey",
+    "social media marketing services",
     "web3 development",
     "blockchain consulting",
     "trading systems",
@@ -36,8 +42,9 @@ export const metadata: Metadata = {
     "DApp development",
   ],
   openGraph: {
-    title: "Professional Services - TradeHax AI",
-    description: "Expert Web3 development and trading consulting services.",
+    title: "TradeHax AI Services | Web, Repair, Marketing, and Web3",
+    description:
+      "Explore web development, repair, marketing, and Web3 services with clear booking paths.",
     url: "https://tradehaxai.tech/services",
     type: "website",
     images: [
@@ -52,9 +59,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Professional Services - TradeHax AI",
+    title: "TradeHax AI Services",
     description:
-      "Web3 development, blockchain consulting, and trading system services.",
+      "Website development, repair support, marketing, and Web3 services.",
     images: ["/og-services.svg"],
   },
 };
@@ -73,7 +80,7 @@ export default function ServicesPage() {
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             Complete technology solutions from Web3 development to hardware
             repair, social media marketing, and automated trading systems built
-            by experienced developers.
+            for businesses and individuals in Greater Philadelphia and remote.
           </p>
         </div>
 
@@ -107,7 +114,7 @@ export default function ServicesPage() {
 
           <ServiceCard
             icon={<LineChart className="w-10 h-10" />}
-            title="Trading System Development & Community"
+            title="Trading System Development"
             description="Automated trading bots, algorithmic strategies, real-time market analysis, and exclusive livestream trading sessions."
             features={[
               "Custom trading algorithms",
@@ -302,8 +309,8 @@ export default function ServicesPage() {
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <Benefit
-              title="Proven Expertise"
-              description="Successfully delivered 50+ Web3 and trading projects"
+              title="Cross-Domain Expertise"
+              description="Digital services, repair support, education, and Web3 consulting in one team"
             />
             <Benefit
               title="Fast Delivery"

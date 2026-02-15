@@ -694,7 +694,7 @@ export default function GamePage() {
                 {activeLevel.artifacts.length}
               </div>
               <div className="text-emerald-100/70">
-                L2/Web5 queue: {activeLevel.tokenConfig.l2TokenSymbol} on {activeLevel.tokenConfig.l2Network}
+                Rewards network: {activeLevel.tokenConfig.l2TokenSymbol} on {activeLevel.tokenConfig.l2Network}
               </div>
               <div className="text-emerald-100">
                 Score: {score.toLocaleString()} | Combo: {combo}x
@@ -780,7 +780,7 @@ export default function GamePage() {
         {/* OAuth + Web5 Controls */}
         <div className="absolute top-4 left-4 sm:left-auto sm:right-[22rem] z-20 pointer-events-auto">
           <div className="theme-floating-panel theme-floating-panel--success px-3 py-2 text-xs text-emerald-100 space-y-2 min-w-[220px]">
-            <div className="font-semibold text-emerald-300">Identity + Web5</div>
+            <div className="font-semibold text-emerald-300">Leaderboard Profile</div>
             <input
               value={playerAlias}
               onChange={(event) => setPlayerAlias(event.target.value.slice(0, 32))}
@@ -820,7 +820,7 @@ export default function GamePage() {
               )}
             </div>
             <div className="text-[11px] text-emerald-200/80">
-              Wallet-linked score submissions mark Web5 utility readiness.
+              Wallet-linked score submissions can unlock utility rewards when enabled.
             </div>
             <WalletButton />
           </div>
@@ -834,7 +834,7 @@ export default function GamePage() {
             <div>Turn: A/D or ←/→</div>
             <div>Use/Interact: E, ENTER, or SPACE</div>
             <div className="text-cyan-200">If keyboard stalls, click the game view to re-focus.</div>
-            <div className="text-emerald-200">Mobile: move close to relics to auto-pickup, then tap Use at runes/portal</div>
+            <div className="text-emerald-200">Mobile: move close to relics to auto-pickup, then tap Use at rune gates/exit gate</div>
           </div>
         </div>
 
@@ -979,7 +979,7 @@ export default function GamePage() {
                   <div className="text-lg font-bold text-emerald-300">Run Complete</div>
                   <div className="text-sm text-emerald-100/80">
                     Final score submitted to leaderboard
-                    {walletAddress ? ` | Web5 wallet: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : ""}
+                    {walletAddress ? ` | Wallet: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : ""}
                   </div>
                 </div>
                 <button
@@ -1081,7 +1081,7 @@ export default function GamePage() {
                   </h3>
                   <p className="text-sm sm:text-base">
                     Explore the fortress, solve shrine puzzles, and recover
-                    Norse/Celtic relics to unlock the portal.
+                    Norse/Celtic relics to unlock the exit gate.
                   </p>
                 </div>
 
@@ -1112,7 +1112,7 @@ export default function GamePage() {
                       <span className="font-mono rounded border border-[#5aa581]/45 bg-[#0b2219]/80 px-3 py-1 text-[#95ffc5] font-bold text-sm sm:text-base">
                         E / ENTER / SPACE
                       </span>
-                      <span>Use/interact with puzzle nodes and portals (relics auto-pickup nearby)</span>
+                      <span>Use/interact with puzzle nodes and gates (relics auto-pickup nearby)</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono rounded border border-[#5aa581]/45 bg-[#0b2219]/80 px-3 py-1 text-[#95ffc5] font-bold text-sm sm:text-base">
@@ -1134,7 +1134,7 @@ export default function GamePage() {
                     <li>Pressure plates activate when you stand directly on them.</li>
                     <li>Relics boost energy and queue token claim events.</li>
                     <li>Utility points grow from movement, puzzle solves, and relic pickups.</li>
-                    <li>Portal unlocks after relic and pedestal requirements are met.</li>
+                    <li>The exit gate unlocks after relic and pedestal requirements are met.</li>
                     <li>Connect your wallet to mint NFT skins with rewards</li>
                   </ul>
                 </div>
@@ -1230,7 +1230,7 @@ export default function GamePage() {
                       {utilityPoints.toLocaleString()} pts | {projectedUtilityUnits}{" "}
                       {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"} projected
                     </div>
-                    <div className="text-xs text-[#9eb4c2]">Web5 Utility Pipeline</div>
+                    <div className="text-xs text-[#9eb4c2]">Web5 Utility Rewards</div>
                   </div>
                 </div>
               </div>
@@ -1302,7 +1302,7 @@ export default function GamePage() {
               <div>
                 <div className="text-cyan-300 font-bold">Leaderboard Identity</div>
                 <div className="text-xs text-gray-300">
-                  Sign in with OAuth or play as guest. Optional wallet connection adds Web5 utility context.
+                  Sign in with OAuth or play as guest. Optional wallet connection can enable wallet-based rewards.
                 </div>
               </div>
               <WalletButton />
@@ -1378,7 +1378,7 @@ export default function GamePage() {
             </div>
             <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-[#d5e7f3]">
               <div className="theme-floating-panel theme-floating-panel--info p-2">
-                Desktop: W/S move, A/D turn, E/Space for runes/portal. Relics auto-pickup when close.
+                Desktop: W/S move, A/D turn, E/Space for runes/exit gate. Relics auto-pickup when close.
               </div>
               <div className="theme-floating-panel theme-floating-panel--info p-2">
                 Mobile: hold Forward/Back/Turn for ~1 second or swipe up/down, move near relics, then tap Use at rune targets.
@@ -1412,7 +1412,7 @@ export default function GamePage() {
                   <p className="text-sm sm:text-base">
                     Navigate the Escher-inspired impossible maze and collect
                     relic artifacts while solving shrine gates and pedestal logic.
-                    Activate the final portal path to complete the level.
+                    Activate the final exit gate to complete the level.
                   </p>
                 </div>
 
@@ -1443,7 +1443,7 @@ export default function GamePage() {
                       <span className="font-mono rounded border border-[#5aa581]/45 bg-[#0b2219]/80 px-3 py-1 text-[#95ffc5] font-bold text-sm sm:text-base">
                         E / ENTER / SPACE
                       </span>
-                      <span>Use/interact with puzzle nodes and portals (relics auto-pickup nearby)</span>
+                      <span>Use/interact with puzzle nodes and gates (relics auto-pickup nearby)</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono rounded border border-[#5aa581]/45 bg-[#0b2219]/80 px-3 py-1 text-[#95ffc5] font-bold text-sm sm:text-base">
@@ -1465,7 +1465,7 @@ export default function GamePage() {
                     <li>Pressure plates activate when you stand directly on them.</li>
                     <li>Relics boost energy and queue token claim events.</li>
                     <li>Utility points grow from movement, puzzle solves, and relic pickups.</li>
-                    <li>Portal unlocks after relic and pedestal requirements are met.</li>
+                    <li>The exit gate unlocks after relic and pedestal requirements are met.</li>
                     <li>Connect your wallet to mint NFT skins with rewards</li>
                     <li>Use the pause button anytime to take a break</li>
                   </ul>
@@ -1510,8 +1510,8 @@ export default function GamePage() {
             </h2>
             <p className="theme-subtitle mb-6 max-w-lg mx-auto">
               Explore a first-person mythic fortress, solve Zelda-style lock and
-              pedestal puzzles, recover pantheon relics, and unlock the astral
-              portal.
+              pedestal puzzles, recover pantheon relics, and open the final
+              astral gate.
             </p>
             <button
               onClick={handlePlayClick}
