@@ -43,6 +43,8 @@ Do **not** open public GitHub issues for security vulnerabilities.
 - ✅ No hardcoded credentials
 - ✅ CORS properly configured
 - ✅ HTTPS only in production
+- ✅ Production auth now fails closed without strong `NEXTAUTH_SECRET`
+- ✅ API payload bounds checks added for leaderboard + claim endpoints
 
 ### Dependencies
 - ✅ Automated npm audit checks
@@ -55,6 +57,9 @@ Do **not** open public GitHub issues for security vulnerabilities.
 - ✅ Proper HTTP status codes
 - ✅ Error messages don't expose internals
 - ✅ Wallet validation on all endpoints
+- ✅ Per-IP in-memory rate limiting on game APIs
+- ✅ Trusted-origin enforcement for mutating game APIs
+- ✅ Strict JSON content-type enforcement on mutating game APIs
 
 ### Data
 - ⚠️ Optional MongoDB for task history
@@ -113,8 +118,8 @@ See `SECURITY_AUDIT_REPORT_2025.md` for full details.
 - [ ] Environment variables set in Vercel Dashboard
 - [ ] SHAMROCK_MINT verified correct
 - [ ] AUTHORITY_SECRET stored securely
-- [ ] Rate limiting implemented
-- [ ] CORS configured to trusted origins
+- [x] Rate limiting implemented (game APIs)
+- [x] CORS/origin controls configured to trusted origins (game APIs)
 - [ ] Request logging enabled
 - [ ] Incident response plan documented
 - [ ] npm audit resolved (frontend: 0 vulns)
@@ -157,7 +162,7 @@ See `SECURITY_AUDIT_REPORT_2025.md` for full details.
 ### Q1 2026
 - [ ] Monitor @metaplex-foundation/js for updates
 - [ ] Evaluate alternative NFT minting libraries
-- [ ] Implement API rate limiting
+- [x] Implement API rate limiting
 - [ ] Add request signing verification
 
 ### Q2 2026
@@ -192,5 +197,5 @@ See `SECURITY_AUDIT_REPORT_2025.md` for full details.
 
 ---
 
-**Last Updated:** December 29, 2025  
-**Next Review:** January 29, 2026
+**Last Updated:** February 15, 2026  
+**Next Review:** March 15, 2026

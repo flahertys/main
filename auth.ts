@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import FacebookProvider from "next-auth/providers/facebook";
 import GoogleProvider from "next-auth/providers/google";
+import crypto from "node:crypto";
 
 const providers: NextAuthOptions["providers"] = [
   CredentialsProvider({
@@ -41,7 +42,21 @@ if (process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET) {
 
 export const authOptions: NextAuthOptions = {
   providers,
-  secret: process.env.NEXTAUTH_SECRET ?? process.env.JWT_SECRET ?? "tradehax-change-this-secret",
+  secret: (() => {
+    const configuredSecret = process.env.NEXTAUTH_SECRET ?? process.env.JWT_SECRET;
+    if (configuredSecret && configuredSecret.length >= 32) {
+      return configuredSecret;
+    }
+    const isProductionRuntime =
+      process.env.NODE_ENV === "production" &&
+      process.env.NEXT_PHASE !== "phase-production-build";
+    if (isProductionRuntime) {
+      throw new Error(
+        "Missing NEXTAUTH_SECRET/JWT_SECRET with minimum 32 chars in production.",
+      );
+    }
+    return crypto.randomBytes(32).toString("hex");
+  })(),
   session: {
     strategy: "jwt",
   },

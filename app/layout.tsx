@@ -117,6 +117,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
+  const safeGaMeasurementId =
+    gaMeasurementId && /^G-[A-Z0-9]+$/.test(gaMeasurementId) ? gaMeasurementId : null;
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
@@ -151,10 +155,10 @@ export default function RootLayout({
       >
         {/* Header ad for quick monetization; only renders when NEXT_PUBLIC_ADSENSE_ID set */}
         <HeaderBannerAd />
-        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+        {safeGaMeasurementId && (
           <>
             <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
+              src={`https://www.googletagmanager.com/gtag/js?id=${safeGaMeasurementId}`}
               strategy="afterInteractive"
             />
             <Script id="google-analytics" strategy="afterInteractive">
@@ -162,7 +166,7 @@ export default function RootLayout({
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
-                gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}', {
+                gtag('config', '${safeGaMeasurementId}', {
                   page_path: window.location.pathname,
                 });
               `}

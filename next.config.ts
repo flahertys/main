@@ -7,8 +7,8 @@ const nextConfig: NextConfig = {
   // Dynamic routes (OAuth, leaderboard APIs, claim queue) require server output.
   ...(useStaticExport && { output: "export" }),
 
-  // Development optimizations - More permissive
-  reactStrictMode: false,
+  // Keep runtime checks active in development and production.
+  reactStrictMode: true,
 
   // Image optimization configuration
   images: {
@@ -25,17 +25,13 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "*.vercel.app",
-      },
-      {
-        protocol: "https",
-        hostname: "**",
+        hostname: "**.vercel.app",
       },
     ],
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60,
-    dangerouslyAllowSVG: true,
-    contentDispositionType: "inline",
+    dangerouslyAllowSVG: false,
+    contentDispositionType: "attachment",
   },
 
   // Experimental features - Enable ALL
@@ -57,7 +53,40 @@ const nextConfig: NextConfig = {
   compress: true,
 
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
+  },
+
+  async headers() {
+    if (useStaticExport) {
+      return [];
+    }
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains; preload",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), usb=()",
+          },
+        ],
+      },
+    ];
   },
 
   // Webpack configuration - Maximum permissiveness
