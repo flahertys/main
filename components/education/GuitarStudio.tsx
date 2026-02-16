@@ -47,19 +47,27 @@ export const GuitarStudio = () => {
               </div>
             </div>
             
-            {/* Telemetry Board */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-6 bg-zinc-950 border border-white/5 rounded-2xl">
-                <p className="text-[10px] text-zinc-600 font-mono uppercase mb-2 tracking-widest">Active_Students</p>
-                <p className="text-2xl font-black text-white italic">0x42_SECURED</p>
+            {/* Telemetry Board & Quick Links */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-6 bg-zinc-950 border border-white/5 rounded-2xl">
+                  <p className="text-[10px] text-zinc-600 font-mono uppercase mb-2 tracking-widest">Active_Students</p>
+                  <p className="text-2xl font-black text-white italic">0x42_SECURED</p>
+                </div>
+                <div className="p-6 bg-zinc-950 border border-white/5 rounded-2xl">
+                  <p className="text-[10px] text-zinc-600 font-mono uppercase mb-2 tracking-widest">Latency_Rating</p>
+                  <p className="text-2xl font-black text-cyan-500 italic">LOW_FILTER</p>
+                </div>
+                <div className="p-6 bg-zinc-950 border border-white/5 rounded-2xl">
+                  <p className="text-[10px] text-zinc-600 font-mono uppercase mb-2 tracking-widest">Audio_Spec</p>
+                  <p className="text-2xl font-black text-white italic">48KHZ_SYNC</p>
+                </div>
               </div>
-              <div className="p-6 bg-zinc-950 border border-white/5 rounded-2xl">
-                <p className="text-[10px] text-zinc-600 font-mono uppercase mb-2 tracking-widest">Latency_Rating</p>
-                <p className="text-2xl font-black text-cyan-500 italic">LOW_FILTER</p>
-              </div>
-              <div className="p-6 bg-zinc-950 border border-white/5 rounded-2xl">
-                <p className="text-[10px] text-zinc-600 font-mono uppercase mb-2 tracking-widest">Audio_Spec</p>
-                <p className="text-2xl font-black text-white italic">48KHZ_SYNC</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <a href="https://calendar.google.com/calendar/embed?src=40882fe82e5e28335d1c2cd7682e70419af64178afd29e3f81395fb43a7c253d%40group.calendar.google.com&ctz=America%2FNew_York" className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-cyan-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Schedule_Meet</a>
+                <a href="https://calendar.google.com/calendar/embed?src=40882fe82e5e28335d1c2cd7682e70419af64178afd29e3f81395fb43a7c253d%40group.calendar.google.com&ctz=America%2FNew_York" className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-purple-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Reserve_Zoom</a>
+                <a href="https://calendar.google.com/calendar/embed?src=40882fe82e5e28335d1c2cd7682e70419af64178afd29e3f81395fb43a7c253d%40group.calendar.google.com&ctz=America%2FNew_York" className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-blue-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Sync_Teams</a>
               </div>
             </div>
           </div>
@@ -88,8 +96,8 @@ export const GuitarStudio = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <a href="#" className="flex-1 py-3 bg-white text-black text-[10px] font-black rounded-xl text-center hover:bg-cyan-500 hover:text-white transition-all">ZOOM_LINK</a>
-                  <a href="#" className="flex-1 py-3 border border-zinc-800 text-zinc-400 text-[10px] font-black rounded-xl text-center hover:bg-zinc-800 hover:text-white transition-all uppercase">Meet</a>
+                  <a href="https://calendar.google.com/calendar/embed?src=40882fe82e5e28335d1c2cd7682e70419af64178afd29e3f81395fb43a7c253d%40group.calendar.google.com&ctz=America%2FNew_York" className="flex-1 py-3 bg-white text-black text-[10px] font-black rounded-xl text-center hover:bg-cyan-500 hover:text-white transition-all">BOOK_SESSION</a>
+                  <a href="https://calendar.google.com/calendar/embed?src=40882fe82e5e28335d1c2cd7682e70419af64178afd29e3f81395fb43a7c253d%40group.calendar.google.com&ctz=America%2FNew_York" className="flex-1 py-3 border border-zinc-800 text-zinc-400 text-[10px] font-black rounded-xl text-center hover:bg-zinc-800 hover:text-white transition-all uppercase">Calendar</a>
                 </div>
               </div>
             </div>

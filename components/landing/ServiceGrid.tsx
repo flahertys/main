@@ -59,6 +59,27 @@ export const ServiceGrid = () => {
               <div className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-black flex items-center justify-center text-xs">◎</div>
             </div>
           </div>
+
+          {/* Music/Studio - New Card */}
+          <div className="md:col-span-6 lg:col-span-12 row-span-1 group relative overflow-hidden rounded-3xl bg-cyan-500/5 border border-cyan-500/20 px-10 py-8 hover:border-cyan-500 transition-all cursor-pointer flex items-center justify-between" onClick={() => window.location.href = '/music'}>
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <span className="text-xs font-mono text-cyan-500 uppercase tracking-widest">Elite_Skill_Acquisition</span>
+                <span className="w-1 h-1 rounded-full bg-cyan-500 animate-pulse" />
+              </div>
+              <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter">Neural_Studio // Guitar_Lessons</h4>
+              <p className="text-zinc-500 text-sm">Direct instruction from Michael S. Flaherty. 25+ years of session mastery.</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex flex-col items-end mr-4">
+                <span className="text-[10px] font-mono text-zinc-600 uppercase">Status</span>
+                <span className="text-xs font-bold text-cyan-500 uppercase italic">Active_Slots</span>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-white text-black flex items-center justify-center text-xl shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                🎸
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Michael S. Flaherty | Guitar Instructor & Musician",
     description: "25+ years of experience. Rock, Blues, Jazz, Metal. Professional lessons online or in-person.",
-    url: "https://tradehax.com/about",
+    url: "https://tradehax.net/about",
     siteName: "TradeHax Music",
     images: [
       {
@@ -50,8 +50,10 @@ export default function RootLayout({
               </div>
               <div className="hidden md:flex gap-8 text-xs font-bold tracking-widest text-zinc-400">
                 <a href="/about" className="hover:text-white transition-colors uppercase">About</a>
+                <a href="/music" className="hover:text-white transition-colors uppercase">Music</a>
                 <a href="/tokenomics" className="hover:text-white transition-colors uppercase">Tokenomics</a>
                 <a href="/game" className="hover:text-white transition-colors uppercase">Games</a>
+                <a href="https://calendar.google.com/calendar/embed?src=40882fe82e5e28335d1c2cd7682e70419af64178afd29e3f81395fb43a7c253d%40group.calendar.google.com&ctz=America%2FNew_York" className="text-cyan-500 hover:text-white transition-colors uppercase">Lessons</a>
                 <a href="#" className="hover:text-white transition-colors uppercase">Staking</a>
               </div>
               <div className="hidden md:block">
@@ -77,9 +79,9 @@ export default function RootLayout({
             <div>
               <h4 className="text-xs font-bold text-white mb-4 uppercase tracking-widest">Platform</h4>
               <ul className="text-zinc-500 text-sm space-y-2">
+                <li><a href="https://calendar.google.com/calendar/embed?src=40882fe82e5e28335d1c2cd7682e70419af64178afd29e3f81395fb43a7c253d%40group.calendar.google.com&ctz=America%2FNew_York" className="hover:text-white transition-colors">Book Lessons</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">API Reference</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Status</a></li>
               </ul>
             </div>
             <div>

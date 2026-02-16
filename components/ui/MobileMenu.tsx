@@ -8,10 +8,11 @@ export const MobileMenu = () => {
   const toggleMenu = () => setIsOpen(!isOpen);
 
   const navLinks = [
-    { name: "Analytics", href: "#" },
+    { name: "About", href: "/about" },
+    { name: "Music", href: "/music" },
     { name: "Tokenomics", href: "/tokenomics" },
     { name: "Games", href: "/game" },
-    { name: "Staking", href: "#" },
+    { name: "Lessons", href: "https://calendar.google.com/calendar/embed?src=40882fe82e5e28335d1c2cd7682e70419af64178afd29e3f81395fb43a7c253d%40group.calendar.google.com&ctz=America%2FNew_York" },
   ];
 
   return (
