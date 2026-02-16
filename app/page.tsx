@@ -3,6 +3,7 @@ import { Roadmap } from '@/components/landing/Roadmap';
 import { NeuralConsole } from '@/components/ui/NeuralConsole';
 import { GuitarStudio } from '@/components/education/GuitarStudio';
 import { LiveActivity } from '@/components/ui/LiveActivity';
+import { GlitchText } from '@/components/ui/GlitchText';
 import Link from 'next/link';
 
 export default function Home() {
@@ -13,7 +14,7 @@ export default function Home() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
         
         <h1 className="text-7xl md:text-9xl font-black text-white tracking-tighter mb-6 italic uppercase">
-          TRADE<span className="text-cyan-500">HAX</span>
+          <GlitchText text="TRADEHAX" />
         </h1>
         <p className="text-zinc-500 max-w-xl text-lg mb-10 font-medium leading-relaxed">
           The cross-chain intersection of institutional-grade AI, decentralized gaming, and elite skill acquisition.

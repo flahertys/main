@@ -7,6 +7,8 @@ import { MobileMenu } from "@/components/ui/MobileMenu";
 import { WalletProvider } from "@/lib/wallet-provider";
 import { ConnectWalletBtn } from "@/components/ui/ConnectWalletBtn";
 import { PageTransition } from "@/components/ui/PageTransition";
+import { CyberCursor } from "@/components/ui/CyberCursor";
+import { GlitchText } from "@/components/ui/GlitchText";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,12 +40,13 @@ export default function RootLayout({
   return (
     <html lang="en" class="dark">
       <body className={`${inter.className} bg-black antialiased`}>
+        <CyberCursor />
         <WalletProvider>
           <nav className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-xl border-b border-white/5">
             <MarketTicker />
             <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-              <div className="text-xl font-black tracking-tighter">
-                TRADE<span className="text-cyan-500">HAX</span>
+              <div className="text-xl font-black tracking-tighter cursor-none">
+                <GlitchText text="TRADEHAX" />
               </div>
               <div className="hidden md:flex gap-8 text-xs font-bold tracking-widest text-zinc-400">
                 <a href="/about" className="hover:text-white transition-colors uppercase">About</a>
