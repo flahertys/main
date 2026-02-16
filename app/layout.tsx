@@ -6,6 +6,7 @@ import { MarketTicker } from "@/components/ui/MarketTicker";
 import { MobileMenu } from "@/components/ui/MobileMenu";
 import { WalletProvider } from "@/lib/wallet-provider";
 import { ConnectWalletBtn } from "@/components/ui/ConnectWalletBtn";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -57,7 +58,9 @@ export default function RootLayout({
             </div>
           </nav>
           <div className="bg-cyber-grid pt-28">
-            {children}
+            <PageTransition>
+              {children}
+            </PageTransition>
           </div>
         </WalletProvider>
         <footer className="py-20 border-t border-white/5 bg-black">
