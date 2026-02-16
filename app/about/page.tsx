@@ -79,7 +79,8 @@ export default function AboutPage() {
 
           {/* Column 2: Booking & Meta */}
           <div className="lg:col-span-5 space-y-8">
-            <div className="p-8 bg-zinc-900/40 border border-cyan-500/20 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden group shadow-2xl">
+            <div className="p-8 glass-panel rounded-[2.5rem] relative overflow-hidden group shadow-2xl neon-border-hover transition-all">
+              <div className="scanline" />
               <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent" />
               <div className="relative z-10">
                 <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-6">Neural_Session_Booking</h3>

@@ -33,10 +33,11 @@ export const GuitarStudio = () => {
           
           {/* Main Visual: YouTube Console */}
           <div className="lg:col-span-8 space-y-6">
-            <div className="relative p-1 bg-zinc-900/50 rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
-              <div className="aspect-video rounded-[2.2rem] overflow-hidden bg-black relative group">
+            <div className="relative p-1 glass-panel rounded-[2.5rem] overflow-hidden shadow-2xl group">
+              <div className="scanline" />
+              <div className="aspect-video rounded-[2.2rem] overflow-hidden bg-black relative">
                 <iframe 
-                  className="w-full h-full relative z-10"
+                  className="w-full h-full relative z-10 opacity-90 group-hover:opacity-100 transition-opacity"
                   src="https://www.youtube.com/embed?listType=user_uploads&list=tradehax" 
                   title="TradeHax Masterclass"
                   frameBorder="0"

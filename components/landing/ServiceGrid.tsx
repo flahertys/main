@@ -14,7 +14,8 @@ export const ServiceGrid = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 auto-rows-[200px]">
           {/* Main AI Card - Large */}
-          <div className="md:col-span-6 lg:col-span-8 row-span-2 group relative overflow-hidden rounded-3xl bg-zinc-900/40 border border-white/5 p-10 hover:border-cyan-500/50 transition-all cursor-pointer">
+          <div className="md:col-span-6 lg:col-span-8 row-span-2 group relative overflow-hidden rounded-3xl glass-panel p-10 neon-border-hover transition-all cursor-pointer">
+            <div className="scanline" />
             <div className="absolute top-0 right-0 p-8 text-6xl opacity-20 group-hover:opacity-40 transition-opacity">🤖</div>
             <div className="relative z-10 h-full flex flex-col justify-end">
               <h4 className="text-3xl font-bold text-white mb-4">Predictive_AI</h4>

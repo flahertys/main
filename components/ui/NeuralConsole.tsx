@@ -53,7 +53,8 @@ export const NeuralConsole = () => {
             </div>
           </div>
 
-          <div className="bg-zinc-950 border border-white/5 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.05)]">
+          <div className="bg-zinc-950 glass-panel rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.05)] relative">
+            <div className="scanline" />
             {/* Terminal Header */}
             <div className="bg-zinc-900/50 px-6 py-3 border-b border-white/5 flex justify-between items-center">
               <div className="flex gap-1.5">
