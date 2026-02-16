@@ -1,7 +1,6 @@
 import { ServiceGrid } from '@/components/landing/ServiceGrid';
 import { Roadmap } from '@/components/landing/Roadmap';
 import { NeuralConsole } from '@/components/ui/NeuralConsole';
-import { GuitarStudio } from '@/components/education/GuitarStudio';
 import { LiveActivity } from '@/components/ui/LiveActivity';
 import { GlitchText } from '@/components/ui/GlitchText';
 import Link from 'next/link';
@@ -20,9 +19,9 @@ export default function Home() {
           The cross-chain intersection of institutional-grade AI, decentralized gaming, and elite skill acquisition.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 relative z-10">
-          <Link href="/about">
+          <Link href="/music">
             <button className="px-10 py-5 bg-white text-black font-black rounded-full hover:bg-cyan-500 hover:text-white transition-all transform hover:scale-105">
-              MEET_INSTRUCTOR
+              GUITAR_STUDIO
             </button>
           </Link>
           <Link href="/game">
@@ -37,9 +36,6 @@ export default function Home() {
 
       {/* Service Grid Section */}
       <ServiceGrid />
-
-      {/* Neural Studio (Guitar Section) */}
-      <GuitarStudio />
 
       <NeuralConsole />
 
