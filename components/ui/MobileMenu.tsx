@@ -38,35 +38,47 @@ export const MobileMenu = () => {
       )}
 
       {/* Drawer */}
-      <div className={`fixed top-0 right-0 w-[80%] h-full bg-zinc-950 border-l border-white/5 z-[70] transform transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="p-8 h-full flex flex-col">
+      <div className={`fixed top-0 right-0 w-[85%] h-full glass-panel z-[70] transform transition-transform duration-700 cubic-bezier(0.16, 1, 0.3, 1) ${isOpen ? 'translate-x-0 shadow-[-20px_0_50px_rgba(6,182,212,0.1)]' : 'translate-x-full'}`}>
+        <div className="absolute inset-0 scanline opacity-20" />
+        <div className="p-8 h-full flex flex-col relative z-10">
           <div className="flex justify-between items-center mb-16">
-            <span className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest">System_Access</span>
-            <button onClick={toggleMenu} className="text-zinc-500 hover:text-white transition-colors">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+              <span className="text-[10px] font-mono text-cyan-500 uppercase tracking-[0.4em]">Neural_Link_Active</span>
+            </div>
+            <button onClick={toggleMenu} className="text-zinc-500 hover:text-white transition-colors font-mono text-[10px] tracking-widest border border-white/10 px-3 py-1 rounded-full bg-white/5">
               [ CLOSE ]
             </button>
           </div>
 
-          <nav className="flex flex-col gap-8">
+          <nav className="flex flex-col gap-6">
             {navLinks.map((link, i) => (
               <Link 
                 key={i} 
                 href={link.href} 
                 onClick={toggleMenu}
-                className="text-4xl font-black text-white tracking-tighter hover:text-cyan-500 transition-colors uppercase italic"
+                className="group relative"
               >
-                {link.name}
+                <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-0 h-px bg-cyan-500 group-hover:w-8 transition-all duration-500" />
+                <span className="text-5xl font-black text-white tracking-tighter hover:text-cyan-500 transition-all uppercase italic pl-4 block transform hover:translate-x-4">
+                  {link.name}
+                </span>
               </Link>
             ))}
           </nav>
 
-          <div className="mt-auto">
-            <button className="w-full py-5 bg-white text-black font-black rounded-full mb-8">
-              CONNECT_WALLET
-            </button>
-            <div className="flex justify-between text-[10px] font-mono text-zinc-600">
-              <span>V_4.0.2</span>
-              <span>SECURED_SSL</span>
+          <div className="mt-auto space-y-8">
+            <div className="p-6 bg-cyan-500/5 border border-cyan-500/10 rounded-2xl relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              <button className="w-full py-5 bg-white text-black font-black rounded-xl uppercase italic tracking-tighter hover:bg-cyan-500 hover:text-white transition-all shadow-xl">
+                CONNECT_WALLET
+              </button>
+            </div>
+            <div className="flex justify-between items-center text-[9px] font-mono text-zinc-600 px-2 tracking-[0.2em]">
+              <span className="flex items-center gap-2">
+                <span className="w-1 h-1 rounded-full bg-zinc-800" /> V_4.0.2_STABLE
+              </span>
+              <span className="opacity-50 italic">ENCRYPTED_SESSION</span>
             </div>
           </div>
         </div>
