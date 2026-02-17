@@ -39,6 +39,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type ControlAction = "forward" | "backward" | "turn_left" | "turn_right" | "use";
 
+const stripSensitiveLeaderboardFields = (entry: LeaderboardEntry): LeaderboardEntry => {
+  const { oauthProvider, oauthUserId, ...rest } = entry;
+  return {
+    ...(rest as LeaderboardEntry),
+    oauthProvider: undefined,
+    oauthUserId: undefined,
+  };
+};
+
 function createSessionId() {
   return `session-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -536,7 +545,8 @@ export default function GamePage() {
         const merged = Array.isArray(parsed) ? [...parsed, entry] : [entry];
         sortLeaderboard(merged);
         const top = merged.slice(0, 50);
-        window.localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(top));
+        const publicTop = top.map(stripSensitiveLeaderboardFields);
+        window.localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(publicTop));
         setLeaderboardEntries(top.slice(0, 10));
       };
 
@@ -555,9 +565,11 @@ export default function GamePage() {
             if (payload.ok && Array.isArray(payload.entries)) {
               setLeaderboardEntries(payload.entries);
               if (typeof window !== "undefined") {
+                const topEntries = payload.entries.slice(0, 50);
+                const publicTopEntries = topEntries.map(stripSensitiveLeaderboardFields);
                 window.localStorage.setItem(
                   LEADERBOARD_STORAGE_KEY,
-                  JSON.stringify(payload.entries.slice(0, 50)),
+                  JSON.stringify(publicTopEntries),
                 );
               }
               return;
