@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Game - TradeHax</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/enhancements.css">
+    <link rel="stylesheet" href="../assets/extended-theme.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%);
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+        }
+        .game-container {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00b4d8;
+            box-shadow: 0 0 20px rgba(0, 180, 216, 0.3);
+        }
+        .score-display {
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #00b4d8;
+            color: #90e0ef;
+            font-family: 'Courier New', monospace;
+        }
+        .control-panel {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #333;
+        }
+        .memory-button {
+            background: linear-gradient(135deg, #1b263b 0%, #415a77 100%);
+            border: 2px solid #00b4d8;
+            color: #90e0ef;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 5px #00b4d8;
+            transition: all 0.3s ease;
+        }
+        .memory-button:hover {
+            background: linear-gradient(135deg, #00b4d8 0%, #90e0ef 100%);
+            color: #1b263b;
+            box-shadow: 0 0 15px rgba(0, 180, 216, 0.5);
+        }
+        .memory-card {
+            background: linear-gradient(135deg, #1b263b 0%, #415a77 100%);
+            border: 2px solid #00b4d8;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .memory-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(0, 180, 216, 0.4);
+        }
+        .memory-card.flipped {
+            background: linear-gradient(135deg, #00b4d8 0%, #90e0ef 100%);
+            color: #1b263b;
+            transform: scale(1.05);
+        }
+        .memory-card.matched {
+            background: linear-gradient(135deg, #06d6a0 0%, #52b788 100%);
+            border-color: #06d6a0;
+            color: #1b263b;
+            cursor: default;
+        }
+        .memory-text {
+            font-family: 'Courier New', monospace;
+            color: #90e0ef;
+            text-shadow: 0 0 10px #00b4d8;
+        }
+    </style>
+</head>
+<body class="text-cyan-300">
+    <div class="container mx-auto px-4 py-8">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-4 memory-text">🧠 MEMORY CHALLENGE</h1>
+            <p class="text-xl text-gray-300 mb-4">Test your memory with this classic card matching game • Earn Clover Coins</p>
+            <a href="../" class="inline-block bg-gray-800 hover:bg-gray-700 text-white px-6 py-2 rounded border border-cyan-500 transition-colors">← Back to Home</a>
+        </div>
+
+        <!-- Web3 Wallet & Rewards -->
+        <div id="wallet-container" class="mb-8"></div>
+
+        <div class="max-w-4xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Game Area -->
+                <div class="lg:col-span-2">
+                    <div class="game-container rounded-lg p-6">
+                        <div class="text-center mb-4">
+                            <h2 class="text-2xl font-bold memory-text">MEMORY GRID</h2>
+                        </div>
+                        <div class="flex justify-center">
+                            <div id="memoryBoard" class="grid grid-cols-4 gap-4 w-96"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="control-panel rounded-lg p-6">
+                    <h3 class="text-xl font-bold mb-4 memory-text">GAME STATS</h3>
+
+                    <div class="space-y-4 mb-6">
+                        <div class="score-display p-3 rounded">
+                            <div class="text-sm opacity-75">MOVES</div>
+                            <div id="moves" class="text-2xl font-bold">000</div>
+                        </div>
+
+                        <div class="score-display p-3 rounded">
+                            <div class="text-sm opacity-75">MATCHES</div>
+                            <div id="matches" class="text-2xl font-bold">0/8</div>
+                        </div>
+
+                        <div class="score-display p-3 rounded">
+                            <div class="text-sm opacity-75">TIME</div>
+                            <div id="time" class="text-2xl font-bold">00:00</div>
+                        </div>
+
+                        <div class="score-display p-3 rounded">
+                            <div class="text-sm opacity-75">BEST TIME</div>
+                            <div id="bestTime" class="text-2xl font-bold">--:--</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <button id="startBtn" onclick="startMemory()" class="memory-button w-full py-3 px-4 rounded font-bold">
+                            START GAME
+                        </button>
+                        <button onclick="resetGame()" class="memory-button w-full py-3 px-4 rounded font-bold">
+                            RESET
+                        </button>
+                    </div>
+
+                    <div class="mt-6 text-sm text-gray-400">
+                        <h4 class="font-bold mb-2 memory-text">HOW TO PLAY:</h4>
+                        <div class="space-y-1">
+                            <div>• Click cards to flip them</div>
+                            <div>• Match pairs of emojis</div>
+                            <div>• Complete in fewest moves</div>
+                            <div>• Beat your best time!</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-xs text-gray-400">
+                        <h4 class="font-bold mb-2 memory-text text-cyan-400">REWARDS:</h4>
+                        <div class="space-y-1">
+                            <div>• Match pair: +2 coins</div>
+                            <div>• Win game: +20 coins</div>
+                            <div>• Under 30s: +30 coins</div>
+                            <div>• Under 20 moves: +50 coins</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Solana Web3.js -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="web3-rewards.js"></script>
+
+    <script>
+        // Initialize Web3 Rewards
+        const rewardsSystem = new Web3RewardsSystem('memory');
+        rewardsSystem.initWalletUI('wallet-container');
+
+        // Enhanced Memory Game with timer and scoring
+        class MemoryGame {
+            constructor() {
+                this.board = document.getElementById('memoryBoard');
+                this.movesElement = document.getElementById('moves');
+                this.matchesElement = document.getElementById('matches');
+                this.timeElement = document.getElementById('time');
+                this.bestTimeElement = document.getElementById('bestTime');
+
+                this.cards = [];
+                this.flippedCards = [];
+                this.matchedPairs = 0;
+                this.moves = 0;
+                this.time = 0;
+                this.timer = null;
+                this.gameRunning = false;
+                this.bestTime = localStorage.getItem('memoryBestTime');
+
+                this.emojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'];
+                this.updateBestTimeDisplay();
+            }
+
+            updateBestTimeDisplay() {
+                if (this.bestTime) {
+                    const minutes = Math.floor(this.bestTime / 60);
+                    const seconds = this.bestTime % 60;
+                    this.bestTimeElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                } else {
+                    this.bestTimeElement.textContent = '--:--';
+                }
+            }
+
+            createBoard() {
+                this.board.innerHTML = '';
+                const gameEmojis = [...this.emojis, ...this.emojis];
+                this.shuffleArray(gameEmojis);
+
+                gameEmojis.forEach((emoji, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'memory-card w-20 h-20 rounded-lg flex items-center justify-center text-3xl font-bold transition-all duration-300';
+                    card.dataset.emoji = emoji;
+                    card.dataset.index = index;
+                    card.addEventListener('click', () => this.flipCard(card));
+                    this.board.appendChild(card);
+                    this.cards.push(card);
+                });
+            }
+
+            shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            flipCard(card) {
+                if (!this.gameRunning || this.flippedCards.length >= 2 || card.classList.contains('flipped') || card.classList.contains('matched')) {
+                    return;
+                }
+
+                card.textContent = card.dataset.emoji;
+                card.classList.add('flipped');
+                this.flippedCards.push(card);
+
+                if (this.flippedCards.length === 2) {
+                    this.moves++;
+                    this.updateDisplay();
+
+                    setTimeout(() => this.checkMatch(), 1000);
+                }
+            }
+
+            checkMatch() {
+                const [card1, card2] = this.flippedCards;
+
+                if (card1.dataset.emoji === card2.dataset.emoji) {
+                    card1.classList.add('matched');
+                    card2.classList.add('matched');
+                    this.matchedPairs++;
+                    
+                    // Award coins for match
+                    rewardsSystem.awardCoins(2, 'Match!');
+
+                    if (this.matchedPairs === 8) {
+                        this.gameWon();
+                    }
+                } else {
+                    card1.textContent = '';
+                    card2.textContent = '';
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                }
+
+                this.flippedCards = [];
+                this.updateDisplay();
+            }
+
+            gameWon() {
+                this.gameRunning = false;
+                clearInterval(this.timer);
+
+                const isNewBest = !this.bestTime || this.time < this.bestTime;
+                if (isNewBest) {
+                    this.bestTime = this.time;
+                    localStorage.setItem('memoryBestTime', this.bestTime);
+                    this.updateBestTimeDisplay();
+                }
+
+                // Award coins for completion and achievements
+                rewardsSystem.awardCoins(20, 'Game Complete!');
+                
+                if (this.time < 30) {
+                    rewardsSystem.awardCoins(30, '⚡ Speed Demon!');
+                }
+                
+                if (this.moves < 20) {
+                    rewardsSystem.awardCoins(50, '🧠 Perfect Memory!');
+                }
+
+                const minutes = Math.floor(this.time / 60);
+                const seconds = this.time % 60;
+                const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                setTimeout(() => {
+                    alert(`${isNewBest ? 'New Best Time! ' : ''}Congratulations!\nTime: ${timeString}\nMoves: ${this.moves}`);
+                }, 500);
+            }
+
+            updateDisplay() {
+                this.movesElement.textContent = this.moves.toString().padStart(3, '0');
+                this.matchesElement.textContent = `${this.matchedPairs}/8`;
+
+                const minutes = Math.floor(this.time / 60);
+                const seconds = this.time % 60;
+                this.timeElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            startTimer() {
+                this.timer = setInterval(() => {
+                    this.time++;
+                    this.updateDisplay();
+                }, 1000);
+            }
+
+            start() {
+                if (this.gameRunning) return;
+
+                this.reset();
+                this.gameRunning = true;
+                this.startTimer();
+                document.getElementById('startBtn').textContent = 'RESTART';
+            }
+
+            reset() {
+                this.gameRunning = false;
+                clearInterval(this.timer);
+                this.flippedCards = [];
+                this.matchedPairs = 0;
+                this.moves = 0;
+                this.time = 0;
+                this.createBoard();
+                this.updateDisplay();
+                document.getElementById('startBtn').textContent = 'START GAME';
+            }
+        }
+
+        const game = new MemoryGame();
+        game.createBoard();
+
+        function startMemory() {
+            rewardsSystem.resetSessionCoins();
+            game.start();
+        }
+
+        function resetGame() {
+            game.reset();
+        }
+    </script>
+    <script src="../theme-extensions.js"></script>
+</body>
+</html>

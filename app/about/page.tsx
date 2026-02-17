@@ -1,96 +1,124 @@
-"use client";
-import React from 'react';
-import Link from 'next/link';
-import { DiscoveryPortal } from '@/components/education/DiscoveryPortal';
+import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
+import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
+import { BadgeCheck, Shield, Users, Workflow } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "About TradeHax AI | Greater Philadelphia Digital Services",
+  description:
+    "Learn about TradeHax AI, serving Greater Philadelphia and remote clients with web development, tech support, music lessons, and practical Web3 solutions.",
+  keywords: [
+    "about tradehax ai",
+    "web development philadelphia",
+    "tech support south jersey",
+    "online guitar lessons",
+    "web3 consulting",
+  ],
+};
+
+const pillars = [
+  {
+    title: "Operational Discipline",
+    detail:
+      "Every workflow is structured from intake to delivery to keep quality and speed consistent.",
+    icon: Workflow,
+  },
+  {
+    title: "Security and Reliability",
+    detail:
+      "Web3 and service actions prioritize strong controls, clear validation, and safe defaults.",
+    icon: Shield,
+  },
+  {
+    title: "Client Transparency",
+    detail:
+      "Pricing, scope, and timelines are communicated clearly with no hidden process steps.",
+    icon: BadgeCheck,
+  },
+  {
+    title: "Community-Centered Growth",
+    detail:
+      "We support local clients in Greater Philadelphia while serving remote clients nationwide.",
+    icon: Users,
+  },
+] as const;
+
+const testimonials = [
+  {
+    quote:
+      "Fast communication and structured delivery. The process felt professional from day one.",
+    author: "Repair Client",
+  },
+  {
+    quote:
+      "Lessons are organized and easy to follow. Progress tracking made a big difference.",
+    author: "Guitar Student",
+  },
+  {
+    quote:
+      "Our Web3 roadmap went from unclear to actionable with clear milestones and accountability.",
+    author: "Digital Services Client",
+  },
+] as const;
 
 export default function AboutPage() {
-  const influences = [
-    "System of a Down", "Phish", "Jimi Hendrix", "Sublime", 
-    "Steely Dan", "Avenged Sevenfold", "Pink Floyd", "Yes"
-  ];
-
-  const specialties = [
-    { name: "Blues", desc: "Classic bends, soulful phrasing, and authentic vibe" },
-    { name: "Rock", desc: "Classic to alternative and hard rock riffs" },
-    { name: "R&B / Funk", desc: "Smooth grooves, chord voicings, and pocket playing" },
-    { name: "Reggae", desc: "Off-beat rhythms, skanking, and island flavor" },
-    { name: "Jazz", desc: "Improvisation, chord-melody, standards, and theory" },
-    { name: "Metal", desc: "Shred techniques, sweep picking, and heavy riffing" }
-  ];
-
   return (
-    <main className="min-h-screen bg-black py-24 px-6 relative overflow-hidden">
-      {/* Background Cyber-Aesthetic */}
-      <div className="absolute top-0 left-0 w-full h-full bg-cyber-grid opacity-20 pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/5 rounded-full blur-[150px] pointer-events-none" />
-
-      <div className="container mx-auto max-w-5xl relative z-10">
-        <Link href="/" className="text-zinc-500 hover:text-white font-mono mb-12 inline-block transition-colors">
-          &lt; RETURN_TO_SYSTEM
-        </Link>
-
-        {/* Hero: Identity Block */}
-        <header className="mb-24">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="h-px w-12 bg-cyan-500" />
-            <span className="text-[10px] font-mono text-cyan-500 uppercase tracking-[0.5em]">System_Architect_Profile</span>
-          </div>
-          <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter uppercase italic leading-none mb-8">
-            MICHAEL S.<br/><span className="text-cyan-500">FLAHERTY</span>
+    <div className="min-h-screen">
+      <ShamrockHeader />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+        <section className="theme-panel p-6 sm:p-8 mb-8">
+          <span className="theme-kicker mb-3">About TradeHax AI</span>
+          <h1 className="theme-title text-3xl sm:text-4xl font-bold mb-4">
+            Trusted Service Delivery Across Digital, Technical, and Web3 Work
           </h1>
-          <p className="text-zinc-400 text-xl md:text-2xl max-w-3xl leading-relaxed italic font-light">
-            "Great guitar playing isn't about sticking to one box—it's about blending raw emotion, technical precision, and creative exploration."
+          <p className="theme-subtitle mb-6">
+            TradeHax AI is built around clear communication, quality execution,
+            and measurable outcomes for every client engagement.
           </p>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
-          {/* Column 1: The Bio */}
-          <div className="lg:col-span-7 space-y-12">
-            <section>
-              <h2 className="text-xs font-mono text-zinc-500 uppercase tracking-widest mb-6">01_Background</h2>
-              <div className="text-zinc-400 space-y-6 leading-relaxed">
-                <p>
-                  Welcome to <span className="text-white font-bold italic">TradeHax Music</span> – where passion for the guitar meets personalized, results-driven instruction.
-                </p>
-                <p>
-                  I'm Michael S. Flaherty, a lifelong guitarist with over 25 years of playing, performing, and teaching experience. My musical foundation was shaped by some of the most innovative and genre-defying artists in history.
-                </p>
-                <div className="flex flex-wrap gap-2 pt-4">
-                  {influences.map((inf, i) => (
-                    <span key={i} className="px-3 py-1 bg-zinc-900 border border-white/5 text-zinc-500 text-[10px] font-mono rounded-full hover:border-cyan-500/50 hover:text-white transition-all">
-                      {inf}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-xs font-mono text-zinc-500 uppercase tracking-widest mb-6">02_Specializations</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {specialties.map((spec, i) => (
-                  <div key={i} className="p-6 bg-zinc-900/30 border border-white/5 rounded-2xl hover:bg-zinc-800/50 transition-all group">
-                    <h4 className="text-cyan-500 font-bold mb-1 group-hover:text-white transition-colors uppercase italic">{spec.name}</h4>
-                    <p className="text-zinc-500 text-xs leading-relaxed">{spec.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/services"
+              className="theme-cta theme-cta--loud px-5 py-3"
+            >
+              View Services
+            </Link>
+            <Link
+              href="/schedule"
+              className="theme-cta theme-cta--secondary px-5 py-3"
+            >
+              Book a Session
+            </Link>
           </div>
+        </section>
 
-          {/* Column 2: Discovery Portal */}
-          <div className="lg:col-span-5">
-            <DiscoveryPortal />
-            
-            <div className="p-8 bg-zinc-950 border border-white/5 rounded-[2.5rem] mt-8">
-              <h4 className="text-xs font-mono text-zinc-500 uppercase tracking-widest mb-4 italic">Neural_Philosophy</h4>
-              <p className="text-zinc-400 text-sm leading-relaxed italic">
-                "At TradeHax, music instruction is part of a bigger picture: helping people build skills, express themselves, and level up in whatever they pursue."
-              </p>
-            </div>
+        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          {pillars.map(({ title, detail, icon: Icon }) => (
+            <article key={title} className="theme-grid-card">
+              <Icon className="w-5 h-5 text-[#77f9a8]" />
+              <h2 className="text-lg font-semibold">{title}</h2>
+              <p>{detail}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className="theme-panel p-6 sm:p-8">
+          <h2 className="theme-title text-2xl font-bold mb-6">
+            Client Feedback Highlights
+          </h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            {testimonials.map((item) => (
+              <blockquote key={item.author} className="theme-grid-card">
+                <p className="text-sm sm:text-base text-[#d1dcf1]">&quot;{item.quote}&quot;</p>
+                <footer className="text-[#9bffc0] text-sm font-semibold mt-2">
+                  {item.author}
+                </footer>
+              </blockquote>
+            ))}
           </div>
-        </div>
-      </div>
-    </main>
+        </section>
+      </main>
+      <ShamrockFooter />
+    </div>
   );
 }

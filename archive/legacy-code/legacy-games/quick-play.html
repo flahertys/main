@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Play | TradeHax ROM Emulator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            background: linear-gradient(135deg, #00ff88, #00ffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .games-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .game-card {
+            background: #0f1419;
+            border: 2px solid #00ff88;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4);
+            border-color: #00ffff;
+        }
+
+        .game-card:active {
+            transform: translateY(-2px);
+        }
+
+        .game-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 10px rgba(0, 255, 136, 0.5));
+        }
+
+        .game-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .game-system {
+            color: #00ffff;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .game-desc {
+            color: #888;
+            font-size: 0.85em;
+            line-height: 1.4;
+            margin-bottom: 20px;
+        }
+
+        .play-btn {
+            background: linear-gradient(135deg, #00ff88, #00ffff);
+            color: #0f1419;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.6);
+        }
+
+        .upload-card {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 255, 255, 0.1));
+            border: 2px dashed #00ff88;
+        }
+
+        .upload-card:hover {
+            border-color: #00ffff;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 255, 255, 0.15));
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ff88;
+            text-decoration: none;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #00ffff;
+            transform: translateX(-5px);
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .games-container {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .back-link {
+                position: static;
+                margin-bottom: 20px;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            color: #00ff88;
+            font-size: 1.2em;
+            margin-top: 50px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 255, 136, 0.3);
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <a href="hub.html" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Hub
+    </a>
+
+    <div class="header">
+        <h1>🎮 Quick Play</h1>
+        <p>Click a game to start playing instantly</p>
+    </div>
+
+    <div class="games-container">
+        <!-- Super Mario Bros -->
+        <div class="game-card" onclick="window.location.href='mario-test.html'">
+            <div class="status-badge">✓ READY</div>
+            <div class="game-icon">🍄</div>
+            <div class="game-title">Super Mario Bros</div>
+            <div class="game-system">Nintendo (NES) • 1985</div>
+            <div class="game-desc">
+                Classic platformer adventure. Jump, run, and rescue Princess Peach from Bowser's castle!
+            </div>
+            <button class="play-btn">
+                <i class="fas fa-play"></i> Play Now
+            </button>
+        </div>
+
+        <!-- The Legend of Zelda -->
+        <div class="game-card" onclick="window.location.href='zelda-test.html'">
+            <div class="status-badge">✓ READY</div>
+            <div class="game-icon">⚔️</div>
+            <div class="game-title">The Legend of Zelda</div>
+            <div class="game-system">Nintendo (NES) • 1986</div>
+            <div class="game-desc">
+                Epic action-adventure in Hyrule. Explore dungeons, solve puzzles, and save Princess Zelda!
+            </div>
+            <button class="play-btn">
+                <i class="fas fa-play"></i> Play Now
+            </button>
+        </div>
+
+        <!-- Upload Custom ROM -->
+        <div class="game-card upload-card" onclick="openUploader()">
+            <div class="game-icon">📤</div>
+            <div class="game-title">Upload Your ROM</div>
+            <div class="game-system">NES • SNES • Genesis • GB • GBA</div>
+            <div class="game-desc">
+                Have your own ROM files? Upload and play them instantly in your browser!
+            </div>
+            <button class="play-btn">
+                <i class="fas fa-upload"></i> Upload ROM
+            </button>
+        </div>
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <p>Loading emulator...</p>
+    </div>
+
+    <script>
+        function playGame(name, system, romPath) {
+            console.log('🎮 Starting:', name);
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.querySelector('.games-container').style.opacity = '0.3';
+            
+            // Store game data
+            sessionStorage.setItem('quickPlay', JSON.stringify({
+                name: name,
+                system: system,
+                romPath: romPath,
+                timestamp: Date.now()
+            }));
+            
+            // Redirect to play.html
+            setTimeout(() => {
+                window.location.href = 'play.html';
+            }, 300);
+        }
+
+        function openUploader() {
+            console.log('📤 Opening uploader');
+            window.location.href = 'play.html';
+        }
+    </script>
+</body>
+</html>

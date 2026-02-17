@@ -1,0 +1,23 @@
+#!/bin/sh
+# Sample pre-commit hook: generate image variants and stage them before commit
+set -e
+echo "[pre-commit] Running image generation (png->webp, responsive, placeholders)"
+
+if command -v npm >/dev/null 2>&1; then
+  npm run generate:all
+else
+  # Fallback to running Python scripts directly
+  if command -v python >/dev/null 2>&1; then
+    python tools/png_to_webp.py || true
+    python tools/generate_responsive.py || true
+    python tools/generate_placeholders.py || true
+  else
+    echo "No npm or python found; skipping generation"
+  fi
+fi
+
+# Stage generated image files so they are included in the commit
+git add resume-images/*.webp resume-images/*-480.webp resume-images/*-800.webp resume-images/*-1200.webp resume-images/*-40.webp || true
+
+echo "[pre-commit] Done. Proceeding with commit."
+exit 0

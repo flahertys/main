@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games - TradeHax</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #00ff88;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #00ff88;
+        }
+
+        .game-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .game-card {
+            background: rgba(0, 255, 136, 0.1);
+            border: 3px solid #00ff88;
+            border-radius: 15px;
+            padding: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: #00ff88;
+            display: block;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.5);
+            background: rgba(0, 255, 136, 0.2);
+        }
+
+        .game-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .game-title {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .test-list {
+            text-align: left;
+            margin-top: 20px;
+            line-height: 2;
+        }
+
+        a {
+            color: #00ffff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 TradeHax Games</h1>
+        <p style="font-size: 1.2em;">Choose your game:</p>
+
+        <div class="game-links">
+            <a href="quick-play.html" class="game-card">
+                <div class="game-icon">🚀</div>
+                <div class="game-title">Quick Play</div>
+                <div style="font-size: 0.9em; margin-top: 10px; color: #888;">
+                    Mario, Zelda & More
+                </div>
+            </a>
+
+            <a href="play.html" class="game-card">
+                <div class="game-icon">🕹️</div>
+                <div class="game-title">Emulator</div>
+                <div style="font-size: 0.9em; margin-top: 10px; color: #888;">
+                    Full Emulator Interface
+                </div>
+            </a>
+
+            <a href="snake-demo.html" class="game-card">
+                <div class="game-icon">🐍</div>
+                <div class="game-title">Snake Demo</div>
+                <div style="font-size: 0.9em; margin-top: 10px; color: #888;">
+                    Working Test Game
+                </div>
+            </a>
+
+            <a href="hub.html" class="game-card">
+                <div class="game-icon">🏠</div>
+                <div class="game-title">Hub</div>
+                <div style="font-size: 0.9em; margin-top: 10px; color: #888;">
+                    Main Dashboard
+                </div>
+            </a>
+        </div>
+
+        <div class="status">
+            <h3>📋 Available Games:</h3>
+            <div class="test-list">
+                <div>✅ <a href="quick-play.html">quick-play.html</a> - Instant game selection</div>
+                <div>✅ <a href="play.html">play.html</a> - EmulatorJS player</div>
+                <div>✅ <a href="snake-demo.html">snake-demo.html</a> - Working demo</div>
+                <div>✅ <a href="featured-roms.html">featured-roms.html</a> - ROM library</div>
+                <div>✅ <a href="hub.html">hub.html</a> - Game hub</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; color: #888;">
+            <p>Domain: <strong style="color: #00ffff;">tradehax.net</strong></p>
+            <p>Path: <strong style="color: #00ffff;">/games/</strong></p>
+            <p>Last updated: <strong id="timestamp"></strong></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        console.log('🎮 Games index loaded');
+        console.log('Available pages:');
+        console.log('- quick-play.html (NEW)');
+        console.log('- play.html (FIXED)');
+        console.log('- snake-demo.html');
+        console.log('- hub.html');
+    </script>
+</body>
+</html>

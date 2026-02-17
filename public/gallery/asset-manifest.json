@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "generatedOn": "2026-02-14",
+  "description": "Gallery stream asset map aligned to legacy TradeHax visuals and Hyperborea direction.",
+  "items": [
+    {
+      "id": "gallery-legacy-home",
+      "path": "/gallery/legacy-home.png",
+      "status": "required",
+      "usedBy": ["app/page.tsx"],
+      "caption": "Legacy Home Grid Portal",
+      "spec": "1280x720 PNG"
+    },
+    {
+      "id": "gallery-legacy-services",
+      "path": "/gallery/legacy-services.png",
+      "status": "required",
+      "usedBy": ["app/page.tsx"],
+      "caption": "Legacy Service Catalog",
+      "spec": "1280x720 PNG"
+    },
+    {
+      "id": "gallery-legacy-game",
+      "path": "/gallery/legacy-game.png",
+      "status": "required",
+      "usedBy": ["app/page.tsx", "app/game/page.tsx"],
+      "caption": "Legacy Hyperborea Game Surface",
+      "spec": "1280x720 PNG"
+    },
+    {
+      "id": "gallery-astral-maze-01",
+      "path": "/gallery/astral-maze-01.png",
+      "status": "required",
+      "usedBy": ["app/page.tsx", "app/crypto-project/page.tsx"],
+      "caption": "Escher-Style Astral Maze Frame",
+      "spec": "1280x720 PNG"
+    },
+    {
+      "id": "gallery-astral-maze-02",
+      "path": "/gallery/astral-maze-02.png",
+      "status": "required",
+      "usedBy": ["app/page.tsx", "app/crypto-project/page.tsx"],
+      "caption": "Rune Corridor Puzzle Frame",
+      "spec": "1280x720 PNG"
+    },
+    {
+      "id": "gallery-reference-thumb",
+      "path": "/reference-hyperborea-thumb.jpg",
+      "status": "present",
+      "usedBy": ["app/page.tsx"],
+      "caption": "Current repo reference thumbnail",
+      "spec": "existing image"
+    }
+  ]
+}

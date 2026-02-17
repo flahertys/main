@@ -1,0 +1,204 @@
+{
+  "id": "level-002-tutorial-astral-gate",
+  "name": "Astral Gate Initiation",
+  "seed": 2402,
+  "difficulty": "initiate",
+  "size": {
+    "width": 13,
+    "height": 13
+  },
+  "start": {
+    "x": 1,
+    "y": 1
+  },
+  "exit": {
+    "x": 8,
+    "y": 11
+  },
+  "layout": [
+    "#############",
+    "#.....#.....#",
+    "#.###.#.###.#",
+    "#.#...#...#.#",
+    "#.#.#####.#.#",
+    "#.#.......#.#",
+    "#.#####.###.#",
+    "#.....#...#.#",
+    "###.#.###.#.#",
+    "#...#.....#.#",
+    "#.#######.#.#",
+    "#.........#.#",
+    "#############"
+  ],
+  "objective": "Learn core controls, solve the first rune gate chain, recover relics from both pantheons, and open the astral portal.",
+  "puzzleNodes": [
+    {
+      "id": "key-initiate-rune",
+      "kind": "key",
+      "position": {
+        "x": 4,
+        "y": 1
+      },
+      "label": "Initiate Rune Key",
+      "controls": [
+        "lock-outer-ring"
+      ],
+      "hint": "Start here: collect this key to unlock your first gate."
+    },
+    {
+      "id": "lock-outer-ring",
+      "kind": "lock",
+      "position": {
+        "x": 7,
+        "y": 1
+      },
+      "label": "Outer Ring Lock",
+      "requires": [
+        "key-initiate-rune"
+      ],
+      "hint": "Use the rune key to open the right corridor."
+    },
+    {
+      "id": "switch-starline",
+      "kind": "switch",
+      "position": {
+        "x": 9,
+        "y": 3
+      },
+      "label": "Starline Switch",
+      "controls": [
+        "rune-gate-initiate"
+      ],
+      "hint": "Flip the switch before stepping onto the echo plate."
+    },
+    {
+      "id": "plate-echo-trial",
+      "kind": "pressure_plate",
+      "position": {
+        "x": 5,
+        "y": 5
+      },
+      "label": "Echo Trial Plate",
+      "controls": [
+        "rune-gate-initiate"
+      ],
+      "hint": "Stand on the plate to complete the gate power loop."
+    },
+    {
+      "id": "rune-gate-initiate",
+      "kind": "rune_gate",
+      "position": {
+        "x": 9,
+        "y": 7
+      },
+      "label": "Initiate Rune Gate",
+      "requires": [
+        "switch-starline",
+        "plate-echo-trial"
+      ],
+      "hint": "Switch plus plate unlocks the inner relic lane."
+    },
+    {
+      "id": "pedestal-dual-oath",
+      "kind": "artifact_pedestal",
+      "position": {
+        "x": 2,
+        "y": 11
+      },
+      "label": "Dual Oath Pedestal",
+      "requires": [
+        "artifact-odin-sigil",
+        "artifact-brigid-lamp"
+      ],
+      "hint": "Offer one Norse and one Celtic relic to stabilize the portal."
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "artifact-odin-sigil",
+      "name": "Odin Sigil Shard",
+      "pantheon": "norse",
+      "rarity": "rare",
+      "position": {
+        "x": 11,
+        "y": 1
+      },
+      "puzzleRequirementIds": [],
+      "tokenRewardUnits": 45,
+      "lore": "A tactical rune fragment tied to sight and strategy."
+    },
+    {
+      "id": "artifact-brigid-lamp",
+      "name": "Brigid Ember Lamp",
+      "pantheon": "celtic",
+      "rarity": "epic",
+      "position": {
+        "x": 3,
+        "y": 7
+      },
+      "puzzleRequirementIds": [
+        "lock-outer-ring"
+      ],
+      "tokenRewardUnits": 75,
+      "lore": "A flame relic used to reveal safe routes in ritual halls."
+    },
+    {
+      "id": "artifact-thor-coil",
+      "name": "Thor Coil Core",
+      "pantheon": "norse",
+      "rarity": "mythic",
+      "position": {
+        "x": 9,
+        "y": 9
+      },
+      "puzzleRequirementIds": [
+        "rune-gate-initiate"
+      ],
+      "tokenRewardUnits": 120,
+      "lore": "A charged relic storing controlled storm-energy runes."
+    },
+    {
+      "id": "artifact-cern-root",
+      "name": "Cernunnos Root Seal",
+      "pantheon": "celtic",
+      "rarity": "epic",
+      "position": {
+        "x": 7,
+        "y": 11
+      },
+      "puzzleRequirementIds": [
+        "pedestal-dual-oath"
+      ],
+      "tokenRewardUnits": 75,
+      "lore": "A forest seal that completes the initiation rite."
+    }
+  ],
+  "spawnProfile": {
+    "baseSpeed": 0.16,
+    "spawnInterval": 20,
+    "obstacleBias": {
+      "icespike": 0.4,
+      "frostwall": 0.35,
+      "lowbarrier": 0.25
+    },
+    "artifactMilestones": [
+      90,
+      220,
+      420,
+      660
+    ]
+  },
+  "tokenConfig": {
+    "enabled": true,
+    "claimEndpoint": "/api/game/claim-artifact",
+    "web5Collection": "hyperborea/relic-claims",
+    "l2TokenSymbol": "THX",
+    "l2Network": "staging"
+  },
+  "theme": {
+    "style": "wolfenstein-mystic",
+    "ambiance": "tutorial-astral-vault",
+    "accentColor": "#00ffaa",
+    "fogColor": "#0a0520"
+  }
+}

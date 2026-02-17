@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "generatedOn": "2026-02-14",
+  "description": "Brand asset slot map for TradeHax AI mystical matrix redesign.",
+  "slots": [
+    {
+      "id": "hero_banner_desktop",
+      "path": "/brand/banner-desktop.png",
+      "status": "required",
+      "usedBy": ["app/page.tsx"],
+      "spec": "1920x900 PNG"
+    },
+    {
+      "id": "hero_banner_mobile",
+      "path": "/brand/banner-mobile.png",
+      "status": "required",
+      "usedBy": ["app/page.tsx"],
+      "spec": "1080x1440 PNG"
+    },
+    {
+      "id": "rune_overlay",
+      "path": "/brand/rune-overlay.svg",
+      "status": "required",
+      "usedBy": ["app/globals.css", "components/shamrock/ShamrockHeader.tsx"],
+      "spec": "transparent SVG"
+    },
+    {
+      "id": "shamrock_glow_mark",
+      "path": "/brand/shamrock-glow-mark.png",
+      "status": "required",
+      "usedBy": ["components/shamrock/ShamrockHeader.tsx", "components/shamrock/ShamrockFooter.tsx"],
+      "spec": "512x512 PNG"
+    },
+    {
+      "id": "legacy_reference_thumb",
+      "path": "/reference-hyperborea-thumb.jpg",
+      "status": "present",
+      "usedBy": ["app/page.tsx"],
+      "spec": "existing reference image"
+    }
+  ]
+}

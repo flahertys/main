@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains; preload" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), usb=(), magnetometer=(), gyroscope=(), accelerometer()" />
+    <title>Games Arcade - TradeHax</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" integrity="sha512-wnea99uKIC3TJF7v4eKk4Y+lMz2Mklv18+r4na2Gn1abDRPPOeef95xTzdwGD9e6zXJBteMIhZ1+68QC5byJZw==" crossorigin="anonymous">
+    <style>
+        :root {
+            --clover-green: #34d399;
+            --dark-green: #10b981;
+            --celtic-gold: #f59e0b;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            font-family: 'Arial', sans-serif;
+            color: #d9ffdb;
+        }
+
+        .celtic-border {
+            border: 3px solid var(--celtic-gold);
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+        }
+
+        .clover-glow {
+            text-shadow: 0 0 10px var(--clover-green), 0 0 20px var(--clover-green);
+        }
+
+        .game-card {
+            background: linear-gradient(135deg, var(--dark-green) 0%, var(--clover-green) 100%);
+            border: 2px solid var(--celtic-gold);
+            color: white;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(52, 211, 153, 0.4);
+        }
+
+        .game-card.rom {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+        }
+
+        .game-card.quick {
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+        }
+
+        .game-icon {
+            font-size: 2.5rem;
+        }
+
+        .game-title {
+            font-size: 1.1rem;
+        }
+
+        .game-desc {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .coin-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--celtic-gold);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(52, 211, 153, 0.3);
+            border-top: 4px solid var(--clover-green);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-link {
+            color: var(--clover-green);
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--celtic-gold);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+    <!-- Navigation -->
+    <div class="nav-links">
+        <a href="../index.html" class="nav-link">← Back to Home</a>
+        <a href="convert.html" class="nav-link">Convert Coins ↗</a>
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-5xl font-bold clover-glow mb-4">🎮 Games Arcade 🍀</h1>
+        <p class="text-xl text-gray-300">Choose a game and start playing instantly!</p>
+    </div>
+
+    <!-- Unified Wallet Panel -->
+    <div class="max-w-5xl mx-auto mb-6">
+        <div id="wallet-container"></div>
+    </div>
+
+    <!-- Game Categories -->
+    <div class="max-w-6xl mx-auto mb-6">
+        <div class="flex flex-wrap justify-center gap-4">
+            <button class="category-btn active px-6 py-2 rounded-lg font-bold" data-category="all">All Games</button>
+            <button class="category-btn px-6 py-2 rounded-lg font-bold" data-category="roms">ROM Games</button>
+            <button class="category-btn px-6 py-2 rounded-lg font-bold" data-category="quick">Quick Play</button>
+        </div>
+    </div>
+
+    <!-- Games Grid -->
+    <div class="max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+
+            <!-- ROM Games -->
+            <div class="game-card rom" data-category="roms" onclick="playROMGame('Super_mario_brothers.nes', 'nes')">
+                <div class="game-icon">🍄</div>
+                <div class="game-title">Super Mario Bros</div>
+                <div class="game-desc">Classic NES platformer</div>
+            </div>
+
+            <div class="game-card rom" data-category="roms" onclick="playROMGame('zelda.nes', 'nes')">
+                <div class="game-icon">⚔️</div>
+                <div class="game-title">Legend of Zelda</div>
+                <div class="game-desc">Epic NES adventure</div>
+            </div>
+
+            <div class="game-card rom" data-category="roms" onclick="playROMGame('tetris.gb', 'gb')">
+                <div class="game-icon">🧩</div>
+                <div class="game-title">Tetris</div>
+                <div class="game-desc">Puzzle classic on Game Boy</div>
+            </div>
+
+            <div class="game-card rom" data-category="roms" onclick="playROMGame('pokemon_red.gb', 'gb')">
+                <div class="game-icon">⚡</div>
+                <div class="game-title">Pokemon Red</div>
+                <div class="game-desc">Catch 'em all!</div>
+            </div>
+
+            <!-- Upload ROM -->
+            <div class="game-card rom" data-category="roms" onclick="openROMUpload()">
+                <div class="game-icon">📤</div>
+                <div class="game-title">Upload ROM</div>
+                <div class="game-desc">Play your own games</div>
+            </div>
+
+            <!-- Quick Play Games -->
+            <div class="game-card quick" data-category="quick" onclick="playQuickGame('snake')">
+                <div class="game-icon">🐍</div>
+                <div class="game-title">Snake</div>
+                <div class="game-desc">Classic arcade action</div>
+            </div>
+
+            <div class="game-card quick" data-category="quick" onclick="playQuickGame('tetris')">
+                <div class="game-icon">🧩</div>
+                <div class="game-title">Tetris</div>
+                <div class="game-desc">Block puzzle classic</div>
+            </div>
+
+            <div class="game-card quick" data-category="quick" onclick="playQuickGame('memory')">
+                <div class="game-icon">🧠</div>
+                <div class="game-title">Memory</div>
+                <div class="game-desc">Test your memory</div>
+            </div>
+
+            <div class="game-card quick" data-category="quick" onclick="playQuickGame('spades')">
+                <div class="game-icon">♠️</div>
+                <div class="game-title">Spades</div>
+                <div class="game-desc">Card game classic</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p class="text-clover-green text-xl">Loading game...</p>
+    </div>
+
+    <!-- Web3 Rewards Integration -->
+    <script src="web3-rewards.js"></script>
+
+    <!-- Play Timer System -->
+    <script src="play-timer.js"></script>
+
+    <!-- Play Timer Integration -->
+    <script src="play-timer-integration.js"></script>
+
+    <!-- Clover Goals Integration -->
+    <script src="clover-goals.js"></script>
+
+    <!-- Main Games Script -->
+    <script>
+        let web3Rewards = null;
+        let cloverGoals = null;
+
+        // Initialize systems
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Web3RewardsSystem
+            web3Rewards = new Web3RewardsSystem('games');
+            web3Rewards.initWalletUI('wallet-container');
+
+            // Initialize Clover Goals System
+            if (typeof CloverGoalsSystem !== 'undefined') {
+                cloverGoals = new CloverGoalsSystem();
+                window.addEventListener('walletConnected', () => {
+                    console.log('✅ Clover Goals System initialized');
+                });
+            }
+
+            // Setup play timer integration
+            if (typeof PlayTimerIntegration !== 'undefined') {
+                window.playTimerIntegration = new PlayTimerIntegration(web3Rewards);
+                console.log('✅ PlayTimerIntegration ready - 15 min daily free tier active');
+            }
+
+            // Category filtering
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const category = btn.getAttribute('data-category');
+
+                    // Update active button
+                    document.querySelectorAll('.category-btn').forEach(b => {
+                        b.classList.remove('active');
+                        b.style.background = 'rgba(52, 211, 153, 0.2)';
+                    });
+                    btn.classList.add('active');
+                    btn.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
+
+                    // Filter games
+                    document.querySelectorAll('.game-card').forEach(card => {
+                        if (category === 'all' || card.getAttribute('data-category') === category) {
+                            card.style.display = 'flex';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            });
+        });
+
+        // Show loading overlay
+        function showLoadingOverlay() {
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        }
+
+        // Hide loading overlay
+        function hideLoadingOverlay() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        // Play ROM game in popup
+        function playROMGame(romFile, system) {
+            console.log(`🎮 Loading ROM: ${romFile} (${system})`);
+
+            showLoadingOverlay();
+
+            // Open game in new window/tab
+            const gameUrl = `retro.html?popup=true&rom=${encodeURIComponent(romFile)}&system=${system}`;
+            const gameWindow = window.open(gameUrl, '_blank', 'width=900,height=700,scrollbars=no,resizable=yes');
+
+            if (!gameWindow) {
+                hideLoadingOverlay();
+                alert('Popup blocked! Please allow popups for this site and try again.');
+                return;
+            }
+
+            // Check if popup was blocked
+            setTimeout(() => {
+                try {
+                    if (gameWindow.closed) {
+                        hideLoadingOverlay();
+                        alert('Game window was closed. Please try again.');
+                        return;
+                    }
+                } catch (e) {
+                    // Cross-origin error, assume popup is working
+                }
+                hideLoadingOverlay();
+            }, 2000);
+        }
+
+        // Play quick game in popup
+        function playQuickGame(gameId) {
+            console.log(`🎮 Loading quick game: ${gameId}`);
+
+            showLoadingOverlay();
+
+            // Open game in new window/tab
+            const gameUrl = `quick-play.html?popup=true&game=${gameId}`;
+            const gameWindow = window.open(gameUrl, '_blank', 'width=900,height=700,scrollbars=no,resizable=yes');
+
+            if (!gameWindow) {
+                hideLoadingOverlay();
+                alert('Popup blocked! Please allow popups for this site and try again.');
+                return;
+            }
+
+            // Hide loading after 2 seconds
+            setTimeout(() => {
+                hideLoadingOverlay();
+            }, 2000);
+        }
+
+        // Open ROM upload
+        function openROMUpload() {
+            const gameUrl = `retro.html?popup=true`;
+            const gameWindow = window.open(gameUrl, '_blank', 'width=900,height=700,scrollbars=no,resizable=yes');
+
+            if (!gameWindow) {
+                alert('Popup blocked! Please allow popups for this site.');
+            }
+        }
+    </script>
+</body>
+</html>

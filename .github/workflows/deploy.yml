@@ -1,0 +1,52 @@
+name: Auto Commit & Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - main     # Deploy on push to main
+  pull_request:
+    types: [closed]
+    branches:
+      - main     # Deploy on PR merge into main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'    # Use your project's version
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Build Next.js app
+      - name: Build
+        run: npm run build
+
+      # Auto-commit any modified files (such as generated assets)
+      - name: Auto Commit
+        run: |
+          git config --global user.email "bot@example.com"
+          git config --global user.name "Deploy Bot"
+          git add .
+          git diff --cached --quiet || git commit -m "chore: auto-commit updates before deploy"
+          git push || echo "No changes to push"
+
+      # Deploy to Vercel
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: .    # Default: root directory

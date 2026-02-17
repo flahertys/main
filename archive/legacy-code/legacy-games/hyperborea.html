@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hyperborea Quest: Wormhole Awakening</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%);
+      color: #e0f2fe;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 1;
+    }
+    #loading-screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15,23,41,0.98);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: opacity 1s;
+    }
+    #loading-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-progress {
+      width: 0;
+      height: 12px;
+      background: linear-gradient(90deg, #00FF41 0%, #9945ff 100%);
+      border-radius: 6px;
+      margin-top: 24px;
+      transition: width 0.3s;
+    }
+    #hud {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      background: rgba(15,23,41,0.85);
+      border-radius: 12px;
+      padding: 18px 28px;
+      box-shadow: 0 0 24px #00FF41;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #hud span {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #00FF41;
+      text-shadow: 0 0 8px #00FF41;
+    }
+    #wallet-address {
+      font-size: 0.95rem;
+      color: #9945ff;
+      background: #222;
+      border-radius: 8px;
+      padding: 4px 12px;
+      margin-top: 8px;
+      display: none;
+    }
+    .success-message {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #00FF41;
+      color: #222;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: bold;
+      z-index: 100;
+      box-shadow: 0 0 12px #00FF41;
+    }
+    .hud-flash {
+      animation: flash 0.35s;
+    }
+    @keyframes flash {
+      0% { background: #00FF41; color: #222; }
+      100% { background: none; color: #00FF41; }
+    }
+    #puzzle-overlay, #wormhole-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      transition: opacity 0.5s;
+    }
+    #puzzle-overlay.hidden, #wormhole-overlay.hidden {
+      display: none;
+    }
+    .puzzle-box {
+      background: #222;
+      border-radius: 12px;
+      padding: 32px 48px;
+      box-shadow: 0 0 24px #9945ff;
+      color: #fff;
+      text-align: center;
+    }
+    .puzzle-input {
+      margin-top: 18px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid #00FF41;
+      font-size: 1.1rem;
+      background: #111;
+      color: #00FF41;
+    }
+    .puzzle-btn {
+      margin: 12px 8px 0 8px;
+      padding: 10px 24px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #00FF41 0%, #9945ff 100%);
+      color: #222;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 8px #00FF41;
+      transition: background 0.3s;
+    }
+    .puzzle-btn:hover {
+      background: linear-gradient(90deg, #9945ff 0%, #00FF41 100%);
+      color: #fff;
+    }
+    #connect-wallet {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      z-index: 5;
+      background: linear-gradient(90deg, #00FF41 0%, #9945ff 100%);
+      color: #222;
+      font-weight: bold;
+      border-radius: 8px;
+      padding: 12px 28px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 12px #00FF41;
+      font-size: 1.1rem;
+      transition: background 0.3s;
+    }
+    #connect-wallet.secondary {
+      background: #9945ff;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="loading-screen">
+    <h1 class="text-4xl font-bold text-[#00FF41] mb-4">Hyperborea Quest</h1>
+    <p class="text-lg text-gray-300 mb-2">Preparing game assets...</p>
+    <div class="loading-progress"></div>
+  </div>
+  <div id="hud">
+    <span>Dimension: <span id="dimension-display">1</span></span>
+    <span>Energy: <span id="energy-display">0</span></span>
+    <span>Clovers: <span id="clovers-display">0</span></span>
+    <div id="wallet-address" class="hidden"></div>
+  </div>
+  <button id="connect-wallet">Connect Wallet</button>
+  <div id="puzzle-overlay" class="hidden">
+    <div class="puzzle-box">
+      <div id="puzzle-text" class="mb-4 text-lg"></div>
+      <input id="puzzle-input" class="puzzle-input" type="text" placeholder="Your answer..." />
+      <div class="flex justify-center mt-4">
+        <button id="submit-puzzle" class="puzzle-btn">Submit</button>
+        <button id="close-puzzle" class="puzzle-btn">Close</button>
+      </div>
+    </div>
+  </div>
+  <div id="wormhole-overlay" class="hidden">
+    <div class="puzzle-box">
+      <h2 class="text-2xl font-bold mb-4 text-[#9945ff]">Wormhole Portal Activated!</h2>
+      <p class="mb-4">Step through to the next dimension and unlock new rewards.</p>
+      <div class="flex justify-center mt-4">
+        <button id="summon-portal" class="puzzle-btn">Enter Portal</button>
+        <button id="cancel-portal" class="puzzle-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

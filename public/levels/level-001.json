@@ -1,0 +1,238 @@
+{
+  "id": "level-001",
+  "name": "Temple of the Twin Pantheons",
+  "seed": 1337,
+  "difficulty": "initiate",
+  "size": {
+    "width": 15,
+    "height": 15
+  },
+  "start": {
+    "x": 1,
+    "y": 1
+  },
+  "exit": {
+    "x": 13,
+    "y": 13
+  },
+  "layout": [
+    "###############",
+    "#.....#.......#",
+    "###.#.#.#####.#",
+    "#...#.#...#...#",
+    "#.###.###.#.###",
+    "#.#...#...#...#",
+    "#.#.###.#####.#",
+    "#.#...#.....#.#",
+    "#.###.#####.#.#",
+    "#...#...#...#.#",
+    "#.#.###.#.###.#",
+    "#.#.....#...#.#",
+    "#.#########.#.#",
+    "#...........#.#",
+    "###############"
+  ],
+  "objective": "Recover relics from Norse and Celtic shrines, solve gate puzzles, and open the final astral exit.",
+  "puzzleNodes": [
+    {
+      "id": "key-bronze-rune",
+      "kind": "key",
+      "position": {
+        "x": 5,
+        "y": 1
+      },
+      "label": "Bronze Rune Key",
+      "controls": [
+        "lock-wolf-gate"
+      ],
+      "hint": "Retrieve the rune key before advancing into the inner halls."
+    },
+    {
+      "id": "lock-wolf-gate",
+      "kind": "lock",
+      "position": {
+        "x": 7,
+        "y": 3
+      },
+      "label": "Wolf Gate",
+      "requires": [
+        "key-bronze-rune"
+      ],
+      "hint": "The gate opens only when the bronze rune key has been recovered."
+    },
+    {
+      "id": "switch-sunstone",
+      "kind": "switch",
+      "position": {
+        "x": 9,
+        "y": 7
+      },
+      "label": "Sunstone Switch",
+      "controls": [
+        "rune-gate-astral"
+      ],
+      "hint": "Flip this switch to charge the nearby rune circuit."
+    },
+    {
+      "id": "plate-echo",
+      "kind": "pressure_plate",
+      "position": {
+        "x": 3,
+        "y": 11
+      },
+      "label": "Echo Plate",
+      "controls": [
+        "rune-gate-astral"
+      ],
+      "hint": "Stand on the plate after using the switch to maintain gate power."
+    },
+    {
+      "id": "rune-gate-astral",
+      "kind": "rune_gate",
+      "position": {
+        "x": 11,
+        "y": 9
+      },
+      "label": "Astral Rune Gate",
+      "requires": [
+        "switch-sunstone",
+        "plate-echo"
+      ],
+      "hint": "The gate responds to correct switch and plate sequencing."
+    },
+    {
+      "id": "pedestal-twin-pantheon",
+      "kind": "artifact_pedestal",
+      "position": {
+        "x": 1,
+        "y": 13
+      },
+      "label": "Twin Pantheon Pedestal",
+      "requires": [
+        "artifact-gungnir-shard",
+        "artifact-dagda-torc"
+      ],
+      "hint": "Offer one Norse relic and one Celtic relic to unlock deeper chambers."
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "artifact-gungnir-shard",
+      "name": "Gungnir Shard",
+      "pantheon": "norse",
+      "rarity": "rare",
+      "position": {
+        "x": 13,
+        "y": 1
+      },
+      "puzzleRequirementIds": [],
+      "tokenRewardUnits": 45,
+      "lore": "A spear fragment still resonating with Odin's strategic will."
+    },
+    {
+      "id": "artifact-dagda-torc",
+      "name": "Torc of Dagda",
+      "pantheon": "celtic",
+      "rarity": "epic",
+      "position": {
+        "x": 3,
+        "y": 5
+      },
+      "puzzleRequirementIds": [
+        "lock-wolf-gate"
+      ],
+      "tokenRewardUnits": 75,
+      "lore": "A gilded torc tied to feast magic and ancient gateway rites."
+    },
+    {
+      "id": "artifact-mjolnir-core",
+      "name": "Mjolnir Spark Core",
+      "pantheon": "norse",
+      "rarity": "mythic",
+      "position": {
+        "x": 9,
+        "y": 3
+      },
+      "puzzleRequirementIds": [
+        "rune-gate-astral"
+      ],
+      "tokenRewardUnits": 120,
+      "lore": "Crackling runic core harvested from a storm-forged hammer sigil."
+    },
+    {
+      "id": "artifact-brigid-glyph",
+      "name": "Brigid Ember Glyph",
+      "pantheon": "celtic",
+      "rarity": "rare",
+      "position": {
+        "x": 11,
+        "y": 7
+      },
+      "puzzleRequirementIds": [
+        "switch-sunstone"
+      ],
+      "tokenRewardUnits": 45,
+      "lore": "An ember-inscribed glyph revealing hidden runes and false walls."
+    },
+    {
+      "id": "artifact-freyja-tear",
+      "name": "Freyja Amber Tear",
+      "pantheon": "norse",
+      "rarity": "epic",
+      "position": {
+        "x": 5,
+        "y": 11
+      },
+      "puzzleRequirementIds": [
+        "plate-echo"
+      ],
+      "tokenRewardUnits": 75,
+      "lore": "An amber relic that empowers shield charms and combo precision."
+    },
+    {
+      "id": "artifact-cernunnos-rune",
+      "name": "Cernunnos Antler Rune",
+      "pantheon": "celtic",
+      "rarity": "mythic",
+      "position": {
+        "x": 13,
+        "y": 13
+      },
+      "puzzleRequirementIds": [
+        "pedestal-twin-pantheon"
+      ],
+      "tokenRewardUnits": 120,
+      "lore": "A sovereign forest rune said to complete the twin-pantheon seal."
+    }
+  ],
+  "spawnProfile": {
+    "baseSpeed": 0.18,
+    "spawnInterval": 18,
+    "obstacleBias": {
+      "icespike": 0.42,
+      "frostwall": 0.33,
+      "lowbarrier": 0.25
+    },
+    "artifactMilestones": [
+      120,
+      300,
+      480,
+      680,
+      900,
+      1140
+    ]
+  },
+  "tokenConfig": {
+    "enabled": true,
+    "claimEndpoint": "/api/game/claim-artifact",
+    "web5Collection": "hyperborea/relic-claims",
+    "l2TokenSymbol": "THX",
+    "l2Network": "staging"
+  },
+  "theme": {
+    "style": "wolfenstein-mystic",
+    "ambiance": "nordic-celtic-dungeon",
+    "accentColor": "#00ffaa",
+    "fogColor": "#0a0520"
+  }
+}

@@ -1,42 +1,43 @@
-import { HaxRunnerGame } from '@/components/game/HaxRunnerGame';
-import { GameContainer } from '@/components/game/GameContainer';
-import { HaxHub } from '@/components/game/HaxHub';
-import Link from 'next/link';
+import type { Metadata } from "next";
+import GamePageClient from "./GamePageClient";
+
+export const metadata: Metadata = {
+  title: "Hyperborea - 3D Browser Game | TradeHax AI",
+  description:
+    "Play Hyperborea, an Escher-inspired 3D browser game with puzzle progression, leaderboard scoring, and optional wallet-linked rewards.",
+  keywords: [
+    "browser game",
+    "3D game",
+    "Hyperborea",
+    "NFT game",
+    "free game",
+    "blockchain game",
+  ],
+  openGraph: {
+    title: "Hyperborea - 3D Browser Game",
+    description:
+      "Explore puzzle levels, collect relics, and track your score on the Hyperborea leaderboard.",
+    url: "https://tradehaxai.tech/game",
+    type: "website",
+    images: [
+      {
+        url: "/og-game.svg",
+        width: 1200,
+        height: 630,
+        alt: "Hyperborea Game",
+        type: "image/svg+xml",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Hyperborea - 3D Browser Game",
+    description:
+      "Play Hyperborea on tradehaxai.tech: puzzle gameplay, leaderboard scoring, and optional wallet rewards.",
+    images: ["/og-game.svg"],
+  },
+};
 
 export default function GamePage() {
-  return (
-    <main className="min-h-screen bg-black py-20 px-6">
-      <div className="container mx-auto">
-        <Link href="/" className="text-zinc-500 hover:text-white font-mono mb-8 inline-block transition-colors">
-          &lt; RETURN_TO_DASHBOARD
-        </Link>
-        
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-white mb-2 tracking-tighter uppercase">HAX_RUNNER</h1>
-          <p className="text-zinc-400 font-mono text-sm">STATUS: ENCRYPTED_BETA // REWARD: CUSTOM_TOKEN_POOL</p>
-        </div>
-
-        <div className="w-full max-w-5xl mx-auto aspect-video bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl shadow-cyan-500/10 flex items-center justify-center">
-          <HaxRunnerGame />
-        </div>
-
-        <HaxHub />
-        
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="p-6 bg-zinc-900 rounded-2xl border border-zinc-800">
-            <h4 className="text-cyan-500 font-mono text-xs mb-2 uppercase">How to Play</h4>
-            <p className="text-zinc-400 text-sm">Navigate the grid with arrow keys. Collect purple data packets. Avoid high-latency zones.</p>
-          </div>
-          <div className="p-6 bg-zinc-900 rounded-2xl border border-zinc-800">
-            <h4 className="text-cyan-500 font-mono text-xs mb-2 uppercase">Rewards</h4>
-            <p className="text-zinc-400 text-sm">Top players earn whitelist spots for the upcoming $HAX token launch and multi-chain airdrops.</p>
-          </div>
-          <div className="p-6 bg-zinc-900 rounded-2xl border border-zinc-800">
-            <h4 className="text-cyan-500 font-mono text-xs mb-2 uppercase">Multi-Chain</h4>
-            <p className="text-zinc-400 text-sm">Integrated across major EVM chains and Solana. Your rewards, your choice of network.</p>
-          </div>
-        </div>
-      </div>
-    </main>
-  );
+  return <GamePageClient />;
 }

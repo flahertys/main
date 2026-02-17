@@ -1,0 +1,51 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a2e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00FF41;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#39FF14;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- Grid pattern -->
+  <defs>
+    <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
+      <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#00FF41" stroke-width="0.5" opacity="0.1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)" />
+  
+  <!-- Accent blocks -->
+  <rect x="0" y="0" width="10" height="630" fill="#00FF41" opacity="0.3"/>
+  <rect x="1190" y="0" width="10" height="630" fill="#00FF41" opacity="0.3"/>
+  
+  <!-- Main content -->
+  <text x="600" y="180" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="url(#textGradient)" text-anchor="middle">
+    TradeHax AI
+  </text>
+  
+  <text x="600" y="260" font-family="Arial, sans-serif" font-size="42" font-weight="600" fill="#e0e0e0" text-anchor="middle">
+    Automated Web3 Trading
+  </text>
+  
+  <text x="600" y="320" font-family="Arial, sans-serif" font-size="24" fill="#b0b0b0" text-anchor="middle">
+    Trade Smarter with AI + Solana Blockchain
+  </text>
+  
+  <!-- Bottom tagline -->
+  <text x="600" y="580" font-family="Arial, sans-serif" font-size="18" fill="#00FF41" text-anchor="middle">
+    Join 10,000+ Traders | Start Trading Free Today
+  </text>
+  
+  <!-- Decorative elements -->
+  <circle cx="100" cy="100" r="30" fill="none" stroke="#00FF41" stroke-width="2" opacity="0.5"/>
+  <circle cx="100" cy="100" r="20" fill="none" stroke="#39FF14" stroke-width="1" opacity="0.3"/>
+  
+  <circle cx="1100" cy="530" r="30" fill="none" stroke="#00FF41" stroke-width="2" opacity="0.5"/>
+  <circle cx="1100" cy="530" r="20" fill="none" stroke="#39FF14" stroke-width="1" opacity="0.3"/>
+</svg>

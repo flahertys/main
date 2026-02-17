@@ -1,0 +1,35 @@
+body{font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 16px;color:#111}
+header{margin-bottom:24px}
+nav a{color:#0366d6;text-decoration:none}
+footer{margin-top:36px;color:#666;font-size:90%}
+
+/* Responsive download link handling */
+.download-small{display:none}
+.header-download{display:inline-block}
+
+@media (max-width:600px){
+	.download-small{display:inline-block;background:#0366d6;color:#fff;padding:6px 8px;border-radius:6px;font-size:85%;text-decoration:none}
+	.header-download{display:none}
+}
+
+/* Floating sticky download button */
+.floating-download{
+	position:fixed;
+	right:20px;
+	bottom:20px;
+	background:#0366d6;
+	color:#fff;
+	padding:12px 14px;
+	border-radius:999px;
+	box-shadow:0 6px 18px rgba(3,102,214,0.2);
+	z-index:1000;
+	display:flex;
+	gap:8px;
+	align-items:center;
+	text-decoration:none;
+	font-weight:600;
+}
+
+@media (min-width:601px){
+	.floating-download{display:none}
+}
