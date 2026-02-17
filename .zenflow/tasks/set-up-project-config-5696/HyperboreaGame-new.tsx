@@ -356,11 +356,9 @@ export function HyperboreaGame({
     };
 
     // CONTROLS
-    const keys: { [key: string]: boolean } = {};
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isDead) return;
-      keys[e.key.toLowerCase()] = true;
 
       // Lane switching
       if ((e.key === "ArrowLeft" || e.key === "a") && currentLane > 0) {
@@ -371,7 +369,11 @@ export function HyperboreaGame({
       }
 
       // Jump
-      if ((e.key === "ArrowUp" || e.key === "w" || e.key === " ") && !isJumping && !isSliding) {
+      if (
+        (e.key === "ArrowUp" || e.key === "w" || e.key === " ") &&
+        !isJumping &&
+        !isSliding
+      ) {
         isJumping = true;
         jumpVelocity = 0.3;
       }
@@ -383,8 +385,8 @@ export function HyperboreaGame({
       }
     };
 
-    const handleKeyUp = (e: KeyboardEvent) => {
-      keys[e.key.toLowerCase()] = false;
+    const handleKeyUp = (_e: KeyboardEvent) => {
+      // No-op for now; kept for potential future use and to match event listener wiring
     };
 
     window.addEventListener("keydown", handleKeyDown);
