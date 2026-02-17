@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import GamePageClient from "./GamePageClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Hyperborea - 3D Browser Game | TradeHax AI",
   description:
