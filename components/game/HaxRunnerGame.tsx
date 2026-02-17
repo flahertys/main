@@ -20,7 +20,7 @@ export const HaxRunnerGame = () => {
   const [speed, setSpeed] = useState(INITIAL_SPEED);
   const [terminalLogs, setTerminalLogs] = useState<string[]>(["INITIALIZING_KERNEL..."]);
   
-  const gameLoopRef = useRef<NodeJS.Timeout>();
+  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
 
   const addLog = (msg: string) => {
     setTerminalLogs(prev => [msg, ...prev].slice(0, 5));
