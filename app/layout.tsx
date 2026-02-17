@@ -88,6 +88,8 @@ export default function RootLayout({
   const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
   const safeGaMeasurementId =
     gaMeasurementId && /^G-[A-Z0-9]+$/.test(gaMeasurementId) ? gaMeasurementId : null;
+  const cashAppTag = "$IrishLivesMatter";
+  const cashAppLink = `https://cash.app/${encodeURIComponent(cashAppTag)}`;
 
   return (
     <html lang="en" className="dark">
@@ -152,6 +154,25 @@ export default function RootLayout({
                 <p className="text-zinc-500 text-sm max-w-xs leading-relaxed">
                   The future of automated trading and decentralized gaming on Solana.
                 </p>
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <a
+                    href={businessProfile.contactLinks.email}
+                    className="inline-flex items-center rounded-full border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-xs font-bold tracking-wide text-cyan-300 transition-colors hover:bg-cyan-500/20 hover:text-cyan-200"
+                  >
+                    Email: {businessProfile.contactEmail}
+                  </a>
+                  <a
+                    href={cashAppLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-bold tracking-wide text-emerald-300 transition-colors hover:bg-emerald-500/20 hover:text-emerald-200"
+                  >
+                    Donate via Cash App
+                  </a>
+                  <span className="text-[11px] font-mono text-emerald-300">
+                    Cash App: {cashAppTag}
+                  </span>
+                </div>
               </div>
               <div>
                 <h4 className="text-xs font-bold text-white mb-4 uppercase tracking-widest">Platform</h4>
@@ -159,6 +180,7 @@ export default function RootLayout({
                   <li><a href="/services" className="hover:text-white transition-colors">Services</a></li>
                   <li><a href="/portfolio" className="hover:text-white transition-colors">Portfolio</a></li>
                   <li><a href="https://calendar.google.com/calendar/embed?src=40882fe82e5e28335d1c2cd7682e70419af64178afd29e3f81395fb43a7c253d%40group.calendar.google.com&ctz=America%2FNew_York" className="hover:text-white transition-colors">Book Lessons</a></li>
+                  <li><a href={businessProfile.contactLinks.email} className="hover:text-white transition-colors">{businessProfile.contactEmail}</a></li>
                 </ul>
               </div>
               <div>
