@@ -1,0 +1,286 @@
+import { EmailCapture } from "@/components/EmailCapture";
+import { AdSenseBlock } from "@/components/monetization/AdSenseBlock";
+import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
+import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
+import { Award, Briefcase, Code, Mail } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Portfolio | TradeHax AI Service and Product Work",
+  description:
+    "Portfolio featuring websites, web apps, Web3 features, and platform projects built by TradeHax AI.",
+  keywords: [
+    "tradehax ai portfolio",
+    "web developer portfolio",
+    "web3 project portfolio",
+    "nextjs developer",
+    "digital service projects",
+  ],
+  openGraph: {
+    title: "TradeHax AI Portfolio",
+    description:
+      "Project portfolio covering web development, Web3 features, and service-platform execution.",
+    url: "https://tradehaxai.tech/portfolio",
+    type: "website",
+    images: [
+      {
+        url: "/og-portfolio.svg",
+        width: 1200,
+        height: 630,
+        alt: "Portfolio - Michael S. Flaherty",
+        type: "image/svg+xml",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TradeHax AI Portfolio",
+    description:
+      "Browse web development, Web3, and product implementation projects.",
+    images: ["/og-portfolio.svg"],
+  },
+};
+
+export default function PortfolioPage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
+      <ShamrockHeader />
+
+      <main className="portfolio-container py-12">
+        {/* Header Section */}
+        <div className="text-center mb-12 animate-fade-in">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 text-transparent bg-clip-text mb-4">
+            Michael S. Flaherty
+          </h1>
+          <p className="text-xl text-gray-300 mb-6">
+            Full-Stack Developer | Web3 Builder | Service Platform Founder
+          </p>
+
+          <div className="flex flex-wrap justify-center gap-4 mb-8">
+            <Link
+              href="#contact"
+              className="theme-cta theme-cta--loud px-6 py-3 text-lg"
+            >
+              <Mail className="w-5 h-5" />
+              Hire Me
+            </Link>
+          </div>
+        </div>
+
+        {/* Ad Placement */}
+        <div className="mb-12">
+          <AdSenseBlock
+            adSlot="portfolio-top"
+            adFormat="horizontal"
+            className="max-w-3xl mx-auto"
+          />
+        </div>
+
+        {/* About Section */}
+        <section className="bg-gray-900/50 border border-gray-800 rounded-xl p-8 mb-12 animate-slide-up">
+          <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+            <Briefcase className="w-8 h-8 text-[#0366d6]" />
+            About Me
+          </h2>
+          <p className="text-gray-300 space-y-4">
+            <span className="block">
+              I&apos;m a passionate full-stack developer with expertise in
+              building scalable Web3 applications, automated trading systems,
+              and modern web platforms. With a strong foundation in both
+              frontend and backend technologies, I specialize in creating
+              high-performance applications that leverage blockchain technology
+              and AI.
+            </span>
+            <span className="block">
+              My recent work includes building TradeHax AI, a service-focused
+              platform combining web development, support operations, music
+              education, and practical Web3 tooling.
+            </span>
+          </p>
+        </section>
+
+        {/* Skills Section */}
+        <section className="bg-gray-900/50 border border-gray-800 rounded-xl p-8 mb-12">
+          <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+            <Code className="w-8 h-8 text-[#0366d6]" />
+            Technical Skills
+          </h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <SkillCategory
+              title="Frontend"
+              skills={[
+                "React",
+                "Next.js",
+                "TypeScript",
+                "Tailwind CSS",
+                "shadcn/ui",
+              ]}
+            />
+            <SkillCategory
+              title="Backend"
+              skills={[
+                "Node.js",
+                "Python",
+                "REST APIs",
+                "GraphQL",
+                "WebSockets",
+              ]}
+            />
+            <SkillCategory
+              title="Web3 & Blockchain"
+              skills={[
+                "Solana",
+                "Anchor",
+                "Web3.js",
+                "Wallet Adapters",
+                "Smart Contracts",
+              ]}
+            />
+            <SkillCategory
+              title="Databases"
+              skills={["PostgreSQL", "MongoDB", "Redis", "Prisma ORM"]}
+            />
+            <SkillCategory
+              title="DevOps & Tools"
+              skills={["Git", "Docker", "Vercel", "CI/CD", "GitHub Actions"]}
+            />
+            <SkillCategory
+              title="Trading & Finance"
+              skills={[
+                "Algorithmic Trading",
+                "Market Analysis",
+                "Risk Management",
+                "DeFi",
+              ]}
+            />
+          </div>
+        </section>
+
+        {/* Projects Section */}
+        <section className="bg-gray-900/50 border border-gray-800 rounded-xl p-8 mb-12">
+          <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+            <Award className="w-8 h-8 text-[#0366d6]" />
+            Featured Projects
+          </h2>
+          <div className="space-y-6">
+            <ProjectCard
+              title="TradeHax AI"
+              description="Service platform combining web development offerings, wallet tooling, booking funnels, and analytics-ready customer flows."
+              technologies={[
+                "Next.js",
+                "Solana",
+                "TypeScript",
+                "Tailwind CSS",
+                "Anchor",
+              ]}
+              link="https://tradehaxai.tech"
+            />
+            <ProjectCard
+              title="Hyperborea Game"
+              description="Browser-based puzzle game with leaderboard scoring, OAuth identity options, and wallet-connected reward architecture."
+              technologies={[
+                "HTML5 Canvas",
+                "TypeScript",
+                "Web3",
+                "Solana NFTs",
+              ]}
+              link="/game"
+            />
+            <ProjectCard
+              title="Web3 Portfolio Site"
+              description="Modern portfolio website showcasing full-stack development skills with integrated monetization strategies including AdSense, email marketing, and affiliate programs."
+              technologies={[
+                "Next.js 15",
+                "React 19",
+                "Tailwind CSS v4",
+                "TypeScript",
+              ]}
+              link="/"
+            />
+          </div>
+        </section>
+
+        {/* Contact CTA Section */}
+        <section
+          id="contact"
+          className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-8 text-center mb-12"
+        >
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Let&apos;s Work Together
+          </h2>
+          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+            I&apos;m available for freelance projects, consulting, and full-time
+            opportunities. Let&apos;s discuss how I can help bring your ideas to
+            life.
+          </p>
+          <EmailCapture />
+        </section>
+
+        {/* Ad Placement */}
+        <div className="mb-8">
+          <AdSenseBlock
+            adSlot="portfolio-bottom"
+            adFormat="horizontal"
+            className="max-w-3xl mx-auto"
+          />
+        </div>
+      </main>
+
+      <ShamrockFooter />
+    </div>
+  );
+}
+
+function SkillCategory({ title, skills }: { title: string; skills: string[] }) {
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-white mb-3">{title}</h3>
+      <ul className="space-y-2">
+        {skills.map((skill) => (
+          <li key={skill} className="text-gray-400 flex items-center gap-2">
+            <span className="w-2 h-2 bg-[#0366d6] rounded-full" />
+            {skill}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ProjectCard({
+  title,
+  description,
+  technologies,
+  link,
+}: {
+  title: string;
+  description: string;
+  technologies: string[];
+  link: string;
+}) {
+  return (
+    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6 hover:border-[#0366d6]/50 transition-all">
+      <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
+      <p className="text-gray-400 mb-4">{description}</p>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {technologies.map((tech) => (
+          <span
+            key={tech}
+            className="px-3 py-1 bg-[#0366d6]/20 text-[#0366d6] rounded-full text-sm"
+          >
+            {tech}
+          </span>
+        ))}
+      </div>
+      <a
+        href={link}
+        target={link.startsWith("http") ? "_blank" : undefined}
+        rel={link.startsWith("http") ? "noopener noreferrer" : undefined}
+        className="shamrock-link font-semibold"
+      >
+        View Project →
+      </a>
+    </div>
+  );
+}

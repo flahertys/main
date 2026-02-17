@@ -1,0 +1,62 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a0a1a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient5" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0366d6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#58a6ff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <rect width="1200" height="630" fill="url(#bgGradient5)"/>
+  
+  <!-- Code brackets -->
+  <text x="100" y="200" font-family="monospace" font-size="80" fill="#0366d6" opacity="0.2">
+    &lt;/&gt;
+  </text>
+  <text x="1000" y="500" font-family="monospace" font-size="80" fill="#0366d6" opacity="0.2">
+    { }
+  </text>
+  
+  <!-- Main content -->
+  <text x="600" y="120" font-family="Arial, sans-serif" font-size="56" font-weight="bold" fill="#e0e0e0" text-anchor="middle">
+    Michael S. Flaherty
+  </text>
+  
+  <text x="600" y="190" font-family="Arial, sans-serif" font-size="40" font-weight="600" fill="url(#textGradient5)" text-anchor="middle">
+    Full-Stack Developer & Web3 Architect
+  </text>
+  
+  <!-- Skills section -->
+  <text x="600" y="290" font-family="Arial, sans-serif" font-size="20" fill="#b0b0b0" text-anchor="middle">
+    React • Next.js • TypeScript • Tailwind • Solana • Web3
+  </text>
+  
+  <!-- Stats -->
+  <g>
+    <rect x="250" y="350" width="200" height="100" fill="#0366d6" opacity="0.1" rx="8"/>
+    <text x="350" y="385" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#58a6ff" text-anchor="middle">
+      10+ Projects
+    </text>
+    <text x="350" y="420" font-family="Arial, sans-serif" font-size="14" fill="#b0b0b0" text-anchor="middle">
+      Built & Deployed
+    </text>
+  </g>
+  
+  <g>
+    <rect x="750" y="350" width="200" height="100" fill="#0366d6" opacity="0.1" rx="8"/>
+    <text x="850" y="385" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#58a6ff" text-anchor="middle">
+      5+ Years
+    </text>
+    <text x="850" y="420" font-family="Arial, sans-serif" font-size="14" fill="#b0b0b0" text-anchor="middle">
+      Experience
+    </text>
+  </g>
+  
+  <!-- CTA -->
+  <text x="600" y="580" font-family="Arial, sans-serif" font-size="18" fill="#58a6ff" text-anchor="middle" font-weight="bold">
+    View Full Portfolio & Hire Today
+  </text>
+</svg>

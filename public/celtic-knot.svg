@@ -1,0 +1,12 @@
+<!-- Simple Celtic knot SVG for heritage theme; scalable and lightweight -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#00a14b" />
+      <stop offset="1" stop-color="#006f2b" />
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="98" stroke="url(#g)" stroke-width="4" fill="black"/>
+  <path d="M50 100 C50 60,150 60,150 100 C150 140,50 140,50 100 Z" stroke="url(#g)" stroke-width="6" fill="none" stroke-linejoin="round"/>
+  <path d="M75 70 C95 90,105 90,125 70" stroke="url(#g)" stroke-width="6" fill="none" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,41 @@
+name: Build & Deployment Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Clean workspace
+        run: npm run clean
+
+      - name: Run vercel config checks
+        run: bash ./scripts/check-vercel-config.sh
+
+      - name: Run DNS config checks
+        run: bash ./scripts/check-dns-config.sh
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: .next/**

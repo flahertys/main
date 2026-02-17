@@ -1,0 +1,22 @@
+{
+  "name": "Hyperborea Quest: Wormhole Awakening",
+  "short_name": "Hyperborea",
+  "description": "A browser-based adventure game with blockchain integration.",
+  "start_url": "/hyperborea.html",
+  "display": "standalone",
+  "background_color": "#0d1b2a",
+  "theme_color": "#1b263b",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

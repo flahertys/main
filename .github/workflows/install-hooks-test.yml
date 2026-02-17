@@ -1,0 +1,54 @@
+name: Install Hooks Smoke Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Make scripts executable
+        run: |
+          chmod +x ./scripts/install-hooks.sh || true
+      - name: Run Node wrapper
+        run: |
+          node ./scripts/install-hooks.js
+      - name: Verify hooksPath
+        run: |
+          CURRENT=$(git config --local --get core.hooksPath || true)
+          echo "core.hooksPath=$CURRENT"
+          if [ "$CURRENT" != ".githooks" ]; then
+            echo "core.hooksPath not set to .githooks"
+            exit 1
+          fi
+
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Run PowerShell installer (or Node wrapper)
+        shell: pwsh
+        run: |
+          if (Test-Path -Path ./scripts/install-hooks.ps1) {
+            pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scripts\install-hooks.ps1
+          } else {
+            node .\scripts\install-hooks.js
+          }
+      - name: Verify hooksPath
+        shell: pwsh
+        run: |
+          $current = git config --local --get core.hooksPath
+          Write-Host "core.hooksPath=$current"
+          if ($current -ne '.githooks') { throw "core.hooksPath not set to .githooks" }
