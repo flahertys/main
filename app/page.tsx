@@ -1,3 +1,5 @@
+"use client";
+
 import { ServiceGrid } from '@/components/landing/ServiceGrid';
 import { Roadmap } from '@/components/landing/Roadmap';
 import { NeuralConsole } from '@/components/ui/NeuralConsole';
