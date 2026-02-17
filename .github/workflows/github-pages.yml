@@ -1,6 +1,8 @@
 name: Deploy to GitHub Pages
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -31,6 +33,14 @@ jobs:
           NEXT_PUBLIC_SOLANA_NETWORK: mainnet-beta
           NEXT_PUBLIC_SOLANA_RPC: https://api.mainnet-beta.solana.com
 
+      - name: Verify build output
+        run: |
+          echo "✓ Build completed successfully"
+          echo "Output directory contents:"
+          ls -la ./out/ | head -20
+          echo ""
+          echo "Total files: $(find ./out -type f | wc -l)"
+
       - name: Add CNAME file
         run: echo "tradehaxai.tech" > ./out/CNAME
 
@@ -45,3 +55,11 @@ jobs:
           publish_branch: gh-pages
           force_orphan: false
           cname: tradehaxai.tech
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Deploy workflow completed"
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: main → gh-pages"
+          echo "Commit: ${{ github.sha }}"
+          echo "URL: https://tradehaxai.tech"
