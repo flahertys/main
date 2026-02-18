@@ -1,94 +1,59 @@
 {
-    // Copilot & AI Features - Maximum Permissions
-    "chat.agent.maxRequests": 100,
-    "chat.useAgentSkills": true,
-    "inlineChat.enableV2": true,
-    "chat.useNestedAgentsMdFiles": true,
-    "github.copilot.enable": {
-        "*": true,
-        "yaml": true,
-        "plaintext": true,
-        "markdown": true
-    },
-    "github.copilot.advanced": {},
-    
-    // Python Testing
-    "python.testing.unittestArgs": [
-        "-v",
-        "-s",
-        ".",
-        "-p",
-        "*test.py"
-    ],
-    "python.testing.pytestEnabled": false,
-    "python.testing.unittestEnabled": true,
-    
-    // TypeScript/JavaScript - Permissive Settings
-    "typescript.suggest.autoImports": true,
-    "javascript.suggest.autoImports": true,
-    "typescript.updateImportsOnFileMove.enabled": "always",
-    "javascript.updateImportsOnFileMove.enabled": "always",
-    "typescript.preferences.importModuleSpecifier": "non-relative",
-    "javascript.preferences.importModuleSpecifier": "non-relative",
-    
-    // Editor - Maximum Automation
-    "editor.formatOnSave": true,
-    "editor.formatOnPaste": true,
-    "editor.codeActionsOnSave": {
-        "source.fixAll": "always",
-        "source.organizeImports": "always"
-    },
-    "editor.quickSuggestions": {
-        "other": "on",
-        "comments": "on",
-        "strings": "on"
-    },
-    
-    // Files - Auto Save & Permissions
-    "files.autoSave": "afterDelay",
-    "files.autoSaveDelay": 1000,
-    "files.watcherExclude": {},
-    
-    // Git - Permissive Settings
-    "git.autoStash": true,
-    "git.autofetch": true,
-    "git.confirmSync": false,
-    "git.enableCommitSigning": false,
-    "git.allowForcePush": true,
-    "git.alwaysSignOff": false,
-    "git.ignoreRebaseWarning": true,
-    "git.confirmNoVerifyCommit": false,
-    
-    // Extensions - Enable All
-    "extensions.autoUpdate": true,
-    "extensions.autoCheckUpdates": true,
-    "extensions.ignoreRecommendations": false,
-    
-    // Security - Maximum Permissiveness
-    "security.workspace.trust.enabled": false,
-    "security.workspace.trust.untrustedFiles": "open",
-    "security.workspace.trust.startupPrompt": "never",
-    "security.workspace.trust.banner": "never",
-    "security.workspace.trust.emptyWindow": false,
-    
-    // Terminal - Full Permissions
-    "terminal.integrated.allowChords": true,
-    "terminal.integrated.allowMnemonics": true,
-    "terminal.integrated.confirmOnExit": "never",
-    "terminal.integrated.confirmOnKill": "never",
-    
-    // Debugging
-    "debug.allowBreakpointsEverywhere": true,
-    "debug.inlineValues": "on",
-    "debug.showBreakpointsInOverviewRuler": true,
-    
-    // Next.js Specific
-    "eslint.enable": true,
-    "eslint.autoFixOnSave": true,
-    "eslint.validate": [
-        "javascript",
-        "javascriptreact",
-        "typescript",
-        "typescriptreact"
-    ]
+  "chat.agent.maxRequests": 100,
+  "chat.useAgentSkills": true,
+  "chat.useNestedAgentsMdFiles": true,
+  "inlineChat.enableV2": true,
+  "github.copilot.enable": {
+    "*": true,
+    "yaml": true,
+    "plaintext": true,
+    "markdown": true
+  },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "files.autoSave": "onFocusChange",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/out": true,
+    "**/.nx": true,
+    "**/tsconfig.tsbuildinfo": true
+  },
+  "search.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/package-lock.json": true,
+    "**/*.jsonl": true
+  },
+  "files.watcherExclude": {
+    "**/.git/**": true,
+    "**/.next/**": true,
+    "**/node_modules/**": true
+  },
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.autoRepositoryDetection": "openEditors",
+  "git.openRepositoryInParentFolders": "never",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.confirmOnExit": "never",
+  "terminal.integrated.confirmOnKill": "never",
+  "debug.inlineValues": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "eslint.enable": true,
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.workingDirectories": [
+    {
+      "mode": "auto"
+    }
+  ]
 }

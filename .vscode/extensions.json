@@ -1,38 +1,18 @@
 {
-    "recommendations": [
-        // Essential Extensions
-        "github.copilot",
-        "github.copilot-chat",
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        // TypeScript & JavaScript
-        "ms-vscode.vscode-typescript-next",
-        "usernamehw.errorlens",
-        // React & Next.js
-        "dsznajder.es7-react-js-snippets",
-        "nrwl.angular-console",
-        // Tailwind CSS
-        "bradlc.vscode-tailwindcss",
-        // Git & Version Control
-        "eamodio.gitlens",
-        "donjayamanne.githistory",
-        "mhutchie.git-graph",
-        // Productivity
-        "christian-kohler.path-intellisense",
-        "christian-kohler.npm-intellisense",
-        "formulahendry.auto-rename-tag",
-        "formulahendry.auto-close-tag",
-        "streetsidesoftware.code-spell-checker",
-        // Solana Development
-        "solana-labs.wallet-adapter",
-        // Markdown & Documentation
-        "yzhang.markdown-all-in-one",
-        "bierner.markdown-preview-github-styles",
-        // Debugging & Testing
-        "ms-vscode.js-debug",
-        // Themes (Optional)
-        "github.github-vscode-theme",
-        "vscjava.vscode-maven"
-    ],
-    "unwantedRecommendations": []
+  "recommendations": [
+    "github.copilot",
+    "github.copilot-chat",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-typescript-next",
+    "ms-vscode.vscode-github-actions",
+    "eamodio.gitlens",
+    "usernamehw.errorlens",
+    "streetsidesoftware.code-spell-checker"
+  ],
+  "unwantedRecommendations": [
+    "nrwl.angular-console",
+    "vscjava.vscode-maven"
+  ]
 }

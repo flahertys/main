@@ -1,29 +1,40 @@
-{ 
-  \"folders\": [ 
-    { 
-      \"path\": \".\", 
-      \"name\": \"TradeHax AI\" 
-    } 
-  ], 
-  \"settings\": { 
-    \"files.exclude\": { 
-      \"**/.git\": true, 
-      \"**/.next\": true, 
-      \"**/node_modules\": true, 
-      \"**/.nx\": true 
-    }, 
-    \"search.exclude\": { 
-      \"**/.next\": true, 
-      \"**/node_modules\": true, 
-      \"**/package-lock.json\": true 
-    } 
-  }, 
-  \"extensions\": { 
-    \"recommendations\": [ 
-      \"github.copilot\", 
-      \"dbaeumer.vscode-eslint\", 
-      \"bradlc.vscode-tailwindcss\", 
-      \"ms-vscode.vscode-typescript-next\" 
-    ] 
-  } 
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "TradeHax Main"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/.next": true,
+      "**/node_modules": true,
+      "**/out": true,
+      "**/.nx": true
+    },
+    "search.exclude": {
+      "**/.next": true,
+      "**/node_modules": true,
+      "**/package-lock.json": true,
+      "**/*.jsonl": true
+    },
+    "files.watcherExclude": {
+      "**/.git/**": true,
+      "**/.next/**": true,
+      "**/node_modules/**": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "github.copilot",
+      "github.copilot-chat",
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "ms-vscode.vscode-typescript-next",
+      "ms-vscode.vscode-github-actions",
+      "eamodio.gitlens"
+    ]
+  }
 }

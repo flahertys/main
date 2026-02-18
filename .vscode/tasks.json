@@ -1,31 +1,75 @@
-{ 
-    \"version\": \"2.0.0\", 
-    \"tasks\": [ 
-        { 
-            \"label\": \"dev\", 
-            \"type\": \"npm\", 
-            \"script\": \"dev\", 
-            \"problemMatcher\": [], 
-            \"detail\": \"Start Next.js dev server\" 
-        }, 
-        { 
-            \"label\": \"build\", 
-            \"type\": \"npm\", 
-            \"script\": \"build\", 
-            \"group\": {\"kind\": \"build\", \"isDefault\": true}, 
-            \"problemMatcher\": [\"$tsc\"] 
-        }, 
-        { 
-            \"label\": \"lint\", 
-            \"type\": \"npm\", 
-            \"script\": \"lint\", 
-            \"problemMatcher\": [\"$eslint-stylish\"] 
-        }, 
-        { 
-            \"label\": \"type-check\", 
-            \"type\": \"npm\", 
-            \"script\": \"type-check\", 
-            \"problemMatcher\": [\"$tsc\"] 
-        } 
-    ] 
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "TradeHax: Dev Server",
+      "type": "npm",
+      "script": "dev",
+      "problemMatcher": [],
+      "detail": "Run Next.js dev server for tradehax.net"
+    },
+    {
+      "label": "TradeHax: Lint",
+      "type": "npm",
+      "script": "lint",
+      "problemMatcher": []
+    },
+    {
+      "label": "TradeHax: Type Check",
+      "type": "npm",
+      "script": "type-check",
+      "problemMatcher": [
+        "$tsc"
+      ]
+    },
+    {
+      "label": "TradeHax: Local Pipeline",
+      "type": "npm",
+      "script": "pipeline:local",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "TradeHax: Deploy Preflight",
+      "type": "npm",
+      "script": "pipeline:deploy-checks",
+      "problemMatcher": []
+    },
+    {
+      "label": "TradeHax: Install Git Hooks",
+      "type": "npm",
+      "script": "hooks:install",
+      "problemMatcher": []
+    },
+    {
+      "label": "TradeHax: Repo Status",
+      "type": "npm",
+      "script": "repo:status",
+      "problemMatcher": []
+    },
+    {
+      "label": "TradeHax: Sync Mirror",
+      "type": "npm",
+      "script": "repo:sync-mirror",
+      "problemMatcher": []
+    },
+    {
+      "label": "TradeHax: Extension Build",
+      "type": "npm",
+      "path": ".vscode-extension",
+      "script": "esbuild",
+      "problemMatcher": []
+    },
+    {
+      "label": "TradeHax: Extension Watch",
+      "type": "npm",
+      "path": ".vscode-extension",
+      "script": "esbuild-watch",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
 }

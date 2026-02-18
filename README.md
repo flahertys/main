@@ -385,6 +385,8 @@ Contributions are welcome! Please follow these steps:
 
 ## 📝 Additional Documentation
 
+- [IDE_AUTOMATION_WORKFLOW.md](./IDE_AUTOMATION_WORKFLOW.md) - Local IDE + pipeline contract for AI-assisted development
+- [LOCAL_REPO_WORKFLOW.md](./LOCAL_REPO_WORKFLOW.md) - Canonical and mirror clone workflow for local development
 - [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Complete deployment guide
 - [DOMAIN_SETUP_GUIDE.md](./DOMAIN_SETUP_GUIDE.md) - DNS and domain setup
 - [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) - API integration guide
