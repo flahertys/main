@@ -26,6 +26,8 @@ type ChatRequestBody = {
   };
 };
 
+type ResponseStyle = "concise" | "coach" | "operator";
+
 const COMMAND_PREFIXES = [
   "HELP",
   "COMMANDS",
@@ -152,6 +154,24 @@ function buildPromptFromConversation(args: {
       : buildTradeHaxSystemPrompt();
 
   const lines = [`System:\n${resolvedSystemPrompt}`];
+
+  const responseStyle =
+    args.context && typeof args.context === "object" && !Array.isArray(args.context)
+      ? ((args.context as Record<string, unknown>).responseStyle as ResponseStyle | undefined)
+      : undefined;
+
+  if (responseStyle === "concise") {
+    lines.push("Style directive:\nRespond in concise bullets. Keep under 120 words unless user asks for detail.");
+  } else if (responseStyle === "operator") {
+    lines.push(
+      "Style directive:\nRespond with an operator checklist: objective, steps, risks, and explicit next action.",
+    );
+  } else if (responseStyle === "coach") {
+    lines.push(
+      "Style directive:\nRespond in coaching tone with clear reasoning, then end with one actionable next step.",
+    );
+  }
+
   if (contextText) {
     lines.push(`Context:\n${contextText}`);
   }

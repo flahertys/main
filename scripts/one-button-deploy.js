@@ -14,18 +14,10 @@ const strictSocialCheck = args.has("--strict-social-check");
 const npmExecPath = process.env.npm_execpath;
 const nodeExecPath = process.execPath;
 const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
-const npxCmd = process.platform === "win32" ? "npx.cmd" : "npx";
 
 function run(label, command, commandArgs) {
   process.stdout.write(`\n==> ${label}\n`);
-  const result =
-    process.platform === "win32"
-      ? spawnSync(
-          "cmd.exe",
-          ["/d", "/s", "/c", toWindowsCommand(command, commandArgs)],
-          { stdio: "inherit" },
-        )
-      : spawnSync(command, commandArgs, { stdio: "inherit" });
+  const result = spawnSync(command, commandArgs, { stdio: "inherit" });
   if (result.error) {
     process.stderr.write(`${result.error.message}\n`);
     process.exit(1);
@@ -33,18 +25,6 @@ function run(label, command, commandArgs) {
   if (result.status !== 0) {
     process.exit(result.status || 1);
   }
-}
-
-function quoteWindowsArg(value) {
-  const str = String(value ?? "");
-  if (!/[\s"]/g.test(str)) {
-    return str;
-  }
-  return `"${str.replace(/"/g, '\\"')}"`;
-}
-
-function toWindowsCommand(command, commandArgs) {
-  return [command, ...(commandArgs || []).map(quoteWindowsArg)].join(" ");
 }
 
 function runNpm(label, npmArgs) {
@@ -56,7 +36,7 @@ function runNpm(label, npmArgs) {
 }
 
 function runDeploy() {
-  const deployArgs = ["--yes", "vercel@latest"];
+  const deployArgs = ["exec", "--yes", "vercel@latest", "--"];
   if (isProd) {
     deployArgs.push("--prod");
   }
@@ -67,9 +47,18 @@ function runDeploy() {
     deployArgs.push("--token", token);
   }
 
+  if (npmExecPath) {
+    run(
+      isProd ? "Deploy to Vercel production" : "Deploy to Vercel preview",
+      nodeExecPath,
+      [npmExecPath, ...deployArgs],
+    );
+    return;
+  }
+
   run(
     isProd ? "Deploy to Vercel production" : "Deploy to Vercel preview",
-    npxCmd,
+    npmCmd,
     deployArgs,
   );
 }

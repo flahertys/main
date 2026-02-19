@@ -15,7 +15,11 @@ type PipelineMemory = {
   objective: string;
   selectedStep: number;
   mode: ChatMode;
+  responseStyle: ResponseStyle;
+  autoFallback: boolean;
 };
+
+type ResponseStyle = "concise" | "coach" | "operator";
 
 const PIPELINE_MEMORY_KEY = "tradehax-ai-pipeline-memory-v1";
 
@@ -76,6 +80,8 @@ export function HFChatComponent() {
   const [selectedStep, setSelectedStep] = useState(0);
   const [objective, setObjective] = useState("");
   const [autoAdvanceMessage, setAutoAdvanceMessage] = useState("");
+  const [responseStyle, setResponseStyle] = useState<ResponseStyle>("coach");
+  const [autoFallback, setAutoFallback] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,6 +101,12 @@ export function HFChatComponent() {
       if (parsed.mode === "navigator" || parsed.mode === "custom" || parsed.mode === "chat") {
         setMode(parsed.mode);
       }
+      if (parsed.responseStyle === "concise" || parsed.responseStyle === "coach" || parsed.responseStyle === "operator") {
+        setResponseStyle(parsed.responseStyle);
+      }
+      if (typeof parsed.autoFallback === "boolean") {
+        setAutoFallback(parsed.autoFallback);
+      }
     } catch {
       // Ignore malformed memory payloads
     }
@@ -107,9 +119,11 @@ export function HFChatComponent() {
       objective: objective.trim().slice(0, 200),
       selectedStep,
       mode,
+      responseStyle,
+      autoFallback,
     };
     window.localStorage.setItem(PIPELINE_MEMORY_KEY, JSON.stringify(memory));
-  }, [objective, selectedStep, mode]);
+  }, [objective, selectedStep, mode, responseStyle, autoFallback]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -155,6 +169,7 @@ export function HFChatComponent() {
               context: {
                 pipelineStep: PIPELINE_STEPS[selectedStep]?.title,
                 objective: objectiveForRequest,
+                responseStyle,
               },
             }
           : mode === "custom"
@@ -165,6 +180,7 @@ export function HFChatComponent() {
                   pipelineStep: PIPELINE_STEPS[selectedStep]?.title,
                   path: routeContext,
                   objective: objectiveForRequest,
+                  responseStyle,
                 },
               }
             : {
@@ -172,18 +188,43 @@ export function HFChatComponent() {
                 currentPath: routeContext,
                 sessionId: `session-${Date.now()}`,
                 objective: objectiveForRequest,
+                responseStyle,
               };
 
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const callEndpoint = async (targetEndpoint: string, targetPayload: unknown) => {
+        const response = await fetch(targetEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(targetPayload),
+        });
 
-      const data = await response.json().catch(() => ({}));
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data?.error || data?.message || `API error: ${response.statusText}`);
+        }
+        return data;
+      };
 
-      if (!response.ok) {
-        throw new Error(data?.error || data?.message || `API error: ${response.statusText}`);
+      let data: any;
+      try {
+        data = await callEndpoint(endpoint, payload);
+      } catch (primaryError) {
+        if (!autoFallback || mode === "chat") {
+          throw primaryError;
+        }
+
+        data = await callEndpoint("/api/ai/chat", {
+          message: trimmedInput,
+          messages: messages.map((m) => ({ role: m.role, content: m.content })).concat([
+            { role: "user", content: trimmedInput },
+          ]),
+          context: {
+            pipelineStep: PIPELINE_STEPS[selectedStep]?.title,
+            objective: objectiveForRequest,
+            responseStyle,
+            fallbackFromMode: mode,
+          },
+        });
       }
 
       if (!data.ok) {
@@ -228,7 +269,7 @@ export function HFChatComponent() {
     } finally {
       setLoading(false);
     }
-  }, [input, messages, mode, objective, selectedStep]);
+  }, [input, messages, mode, objective, selectedStep, responseStyle, autoFallback]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -314,6 +355,33 @@ export function HFChatComponent() {
               </button>
             );
           })}
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-2">
+          <div className="rounded border border-emerald-500/20 bg-black/30 p-2">
+            <label htmlFor="response-style" className="block text-[11px] font-semibold text-emerald-100/80 mb-1">
+              Response style
+            </label>
+            <select
+              id="response-style"
+              value={responseStyle}
+              onChange={(e) => setResponseStyle((e.target.value as ResponseStyle) || "coach")}
+              className="w-full rounded border border-emerald-500/30 bg-black/40 px-2 py-1 text-xs text-emerald-100 outline-none"
+            >
+              <option value="concise">Concise</option>
+              <option value="coach">Coach</option>
+              <option value="operator">Operator</option>
+            </select>
+          </div>
+          <label className="rounded border border-emerald-500/20 bg-black/30 p-2 flex items-center gap-2 text-xs text-emerald-100/85">
+            <input
+              type="checkbox"
+              checked={autoFallback}
+              onChange={(e) => setAutoFallback(e.target.checked)}
+              className="accent-emerald-400"
+            />
+            Auto-fallback to General Chat on endpoint failure
+          </label>
         </div>
       </div>
 

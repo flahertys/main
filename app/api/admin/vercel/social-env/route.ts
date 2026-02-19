@@ -20,9 +20,10 @@ type RequestBody = {
   variables?: VariableInput[];
   deployAfterSync?: boolean;
   deployTarget?: "production" | "preview";
+  validateHook?: boolean;
+  pingHook?: boolean;
 };
 
-const ALLOWED_TARGETS: TargetEnv[] = ["production", "preview", "development"];
 const DEFAULT_TARGETS: TargetEnv[] = ["production", "preview", "development"];
 const KEY_PATTERN = /^[A-Z0-9_]{2,128}$/;
 
@@ -77,6 +78,14 @@ function vercelEnvUrl(projectId: string, teamId?: string) {
   return url.toString();
 }
 
+function resolveDeployHook(target: "production" | "preview") {
+  const sharedHook = process.env.TRADEHAX_VERCEL_DEPLOY_HOOK_URL?.trim() || "";
+  const prodHook = process.env.TRADEHAX_VERCEL_DEPLOY_HOOK_URL_PRODUCTION?.trim() || "";
+  const previewHook = process.env.TRADEHAX_VERCEL_DEPLOY_HOOK_URL_PREVIEW?.trim() || "";
+
+  return target === "preview" ? previewHook || sharedHook : prodHook || sharedHook;
+}
+
 export async function POST(request: NextRequest) {
   const originBlock = enforceTrustedOrigin(request);
   if (originBlock) {
@@ -123,6 +132,135 @@ export async function POST(request: NextRequest) {
     const rawVariables = Array.isArray(body.variables) ? body.variables : [];
     const deployAfterSync = Boolean(body.deployAfterSync);
     const deployTarget = body.deployTarget === "preview" ? "preview" : "production";
+    const validateHook = Boolean(body.validateHook);
+    const pingHook = Boolean(body.pingHook);
+
+    if (validateHook) {
+      const hookUrl = resolveDeployHook(deployTarget);
+      if (!hookUrl) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "No deploy hook configured. Set TRADEHAX_VERCEL_DEPLOY_HOOK_URL (or target-specific hook vars).",
+          },
+          {
+            status: 400,
+            headers: rateLimit.headers,
+          },
+        );
+      }
+
+      try {
+        const parsed = new URL(hookUrl);
+        if (!(parsed.protocol === "https:" || parsed.protocol === "http:")) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error: "Deploy hook URL must be http or https.",
+            },
+            {
+              status: 400,
+              headers: rateLimit.headers,
+            },
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Deploy hook URL is not a valid URL.",
+          },
+          {
+            status: 400,
+            headers: rateLimit.headers,
+          },
+        );
+      }
+
+      if (!pingHook) {
+        return NextResponse.json(
+          {
+            ok: true,
+            validated: true,
+            target: deployTarget,
+            pinged: false,
+            message: "Deploy hook URL is configured and well-formed.",
+          },
+          {
+            headers: rateLimit.headers,
+          },
+        );
+      }
+
+      try {
+        const pingResponse = await fetch(hookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            source: "social-provider-wizard",
+            action: "validate-hook-ping",
+            target: deployTarget,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+
+        if (!pingResponse.ok) {
+          let message = "Deploy hook ping failed.";
+          try {
+            const payload = (await pingResponse.json()) as { error?: string; message?: string };
+            message = payload?.error || payload?.message || message;
+          } catch {
+            // ignore parse issues
+          }
+
+          return NextResponse.json(
+            {
+              ok: false,
+              validated: true,
+              pinged: true,
+              target: deployTarget,
+              status: pingResponse.status,
+              error: message,
+            },
+            {
+              status: 502,
+              headers: rateLimit.headers,
+            },
+          );
+        }
+
+        return NextResponse.json(
+          {
+            ok: true,
+            validated: true,
+            pinged: true,
+            target: deployTarget,
+            status: pingResponse.status,
+            message: "Deploy hook ping succeeded.",
+          },
+          {
+            headers: rateLimit.headers,
+          },
+        );
+      } catch (pingError) {
+        return NextResponse.json(
+          {
+            ok: false,
+            validated: true,
+            pinged: true,
+            target: deployTarget,
+            error: pingError instanceof Error ? pingError.message : "Unexpected hook ping failure.",
+          },
+          {
+            status: 502,
+            headers: rateLimit.headers,
+          },
+        );
+      }
+    }
 
     if (rawVariables.length === 0) {
       return NextResponse.json(
@@ -200,10 +338,7 @@ export async function POST(request: NextRequest) {
           message: "Skipped deploy trigger because some env variable syncs failed.",
         };
       } else {
-        const sharedHook = process.env.TRADEHAX_VERCEL_DEPLOY_HOOK_URL?.trim() || "";
-        const prodHook = process.env.TRADEHAX_VERCEL_DEPLOY_HOOK_URL_PRODUCTION?.trim() || "";
-        const previewHook = process.env.TRADEHAX_VERCEL_DEPLOY_HOOK_URL_PREVIEW?.trim() || "";
-        const hookUrl = deployTarget === "preview" ? previewHook || sharedHook : prodHook || sharedHook;
+        const hookUrl = resolveDeployHook(deployTarget);
 
         if (!hookUrl) {
           deployResult = {

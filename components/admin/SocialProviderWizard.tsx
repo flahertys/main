@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Copy, Download, ExternalLink, RefreshCcw, UploadCloud } from "lucide-react";
+import { CheckCircle2, Copy, Download, ExternalLink, RefreshCcw, ShieldCheck, UploadCloud } from "lucide-react";
 import { useMemo, useState } from "react";
 
 type SocialProvider = {
@@ -76,6 +76,7 @@ export function SocialProviderWizard() {
   const [adminKey, setAdminKey] = useState("");
   const [superuserCode, setSuperuserCode] = useState("");
   const [isPushing, setIsPushing] = useState(false);
+  const [isValidatingHook, setIsValidatingHook] = useState(false);
   const [deployAfterSync, setDeployAfterSync] = useState(false);
   const [deployTarget, setDeployTarget] = useState<"production" | "preview">("production");
 
@@ -242,6 +243,43 @@ export function SocialProviderWizard() {
       setStatus(error instanceof Error ? error.message : "Push to Vercel failed.");
     } finally {
       setIsPushing(false);
+    }
+  }
+
+  async function validateHook(pingHook: boolean) {
+    setIsValidatingHook(true);
+    setStatus("");
+
+    try {
+      const response = await fetch("/api/admin/vercel/social-env", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(adminKey.trim() ? { "x-tradehax-admin-key": adminKey.trim() } : {}),
+          ...(superuserCode.trim() ? { "x-tradehax-superuser-code": superuserCode.trim() } : {}),
+        },
+        body: JSON.stringify({
+          validateHook: true,
+          pingHook,
+          deployTarget,
+        }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || data.message || `Hook validation failed (${response.status})`);
+      }
+
+      setStatus(data.message || (pingHook ? "Deploy hook ping succeeded." : "Deploy hook URL is valid."));
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Deploy hook validation failed.");
+    } finally {
+      setIsValidatingHook(false);
     }
   }
 
@@ -416,6 +454,15 @@ export function SocialProviderWizard() {
           <Button onClick={pushToVercel} disabled={isPushing}>
             <UploadCloud className="size-4" /> {isPushing ? "Pushing to Vercel..." : "Push to Vercel"}
           </Button>
+
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => validateHook(false)} disabled={isValidatingHook}>
+              <ShieldCheck className="size-4" /> {isValidatingHook ? "Validating..." : "Validate Hook URL"}
+            </Button>
+            <Button variant="outline" onClick={() => validateHook(true)} disabled={isValidatingHook}>
+              <ShieldCheck className="size-4" /> {isValidatingHook ? "Pinging..." : "Ping Hook"}
+            </Button>
+          </div>
         </div>
 
         {status && (
