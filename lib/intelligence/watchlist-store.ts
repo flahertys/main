@@ -8,6 +8,7 @@ import {
   upsertPersistedWatchlistItem,
 } from "@/lib/intelligence/persistence";
 import { getIntelligenceSnapshot } from "@/lib/intelligence/provider";
+import { recordAlertScanMetric } from "@/lib/intelligence/metrics";
 import {
   IntelligenceAlert,
   IntelligenceStorageStatus,
@@ -371,6 +372,10 @@ export async function evaluateWatchlistAlerts(userId: string): Promise<EvaluateA
   if (newAlerts.length > 0) {
     await insertPersistedAlerts(newAlerts);
   }
+
+  recordAlertScanMetric({
+    generated: newAlerts.length,
+  });
 
   return {
     generatedAt: timestamp,

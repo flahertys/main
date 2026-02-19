@@ -96,6 +96,71 @@ export type IntelligenceStorageStatus = {
   lastError?: string;
 };
 
+export type IntelligenceLiveEventType =
+  | "flow"
+  | "dark_pool"
+  | "news"
+  | "status"
+  | "heartbeat";
+
+export type IntelligenceLiveEvent = {
+  seq: number;
+  type: IntelligenceLiveEventType;
+  symbol?: string;
+  summary: string;
+  timestamp: string;
+  source: "websocket" | "system";
+};
+
+export type IntelligenceLiveStatus = {
+  enabled: boolean;
+  started: boolean;
+  connected: boolean;
+  provider: "websocket" | "disabled";
+  urlConfigured: boolean;
+  reconnectCount: number;
+  receivedEvents: number;
+  droppedEvents: number;
+  lastConnectedAt?: string;
+  lastMessageAt?: string;
+  lastError?: string;
+  generatedAt: string;
+};
+
+export type IntelligenceSlaMetrics = {
+  generatedAt: string;
+  windowMinutes: number;
+  provider: {
+    requests: number;
+    successRatePct: number;
+    errorRatePct: number;
+    avgLatencyMs: number;
+    modeBreakdown: {
+      live: number;
+      simulated: number;
+    };
+    lastError?: string;
+  };
+  alerts: {
+    scans: number;
+    generated: number;
+    dispatchBatches: number;
+    deliverySuccessRatePct: number;
+    dropRatePct: number;
+    avgDispatchLatencyMs: number;
+    attemptedDeliveries: number;
+    delivered: number;
+  };
+  live: {
+    events: number;
+    messages: number;
+    connections: number;
+    disconnects: number;
+    errors: number;
+    lastMessageAt?: string;
+  };
+};
+
 export type WatchlistAssetType = "equity" | "crypto";
 
 export type WatchlistItem = {

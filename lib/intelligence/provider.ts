@@ -15,6 +15,12 @@ import {
   IntelligenceProviderStatus,
   PoliticalTrade,
 } from "@/lib/intelligence/types";
+import {
+  applyLiveOverlay,
+  ensureLiveIngestion,
+  getLiveIngestionStatus,
+} from "@/lib/intelligence/live-ingestion";
+import { recordProviderMetric } from "@/lib/intelligence/metrics";
 import { resolveVendorAdapter } from "@/lib/intelligence/vendor-adapters";
 
 type IntelligenceSnapshot = {
@@ -242,8 +248,16 @@ async function toVendorSnapshot() {
   const vendor = resolveVendorName();
   const simulatedBase = toVendorSimulatedSnapshot(vendor);
   const adapter = resolveVendorAdapter(vendor);
+  const startedAtMs = Date.now();
 
   if (!adapter) {
+    recordProviderMetric({
+      vendor,
+      mode: "simulated",
+      ok: false,
+      latencyMs: Date.now() - startedAtMs,
+      error: `No direct adapter available for vendor '${vendor}'.`,
+    });
     return {
       ...simulatedBase,
       status: {
@@ -262,6 +276,12 @@ async function toVendorSnapshot() {
     });
 
     if (!adapterResult) {
+      recordProviderMetric({
+        vendor,
+        mode: "simulated",
+        ok: true,
+        latencyMs: Date.now() - startedAtMs,
+      });
       return simulatedBase;
     }
 
@@ -292,27 +312,103 @@ async function toVendorSnapshot() {
       cacheTtlMs: resolveCacheTtlMs(),
     };
 
+    recordProviderMetric({
+      vendor,
+      mode: liveMode ? "live" : "simulated",
+      ok: true,
+      latencyMs: Date.now() - startedAtMs,
+    });
+
     return mergedSnapshot;
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Vendor adapter failure.";
+    recordProviderMetric({
+      vendor,
+      mode: "simulated",
+      ok: false,
+      latencyMs: Date.now() - startedAtMs,
+      error: message,
+    });
     return {
       ...simulatedBase,
       status: {
         ...simulatedBase.status,
-        lastError: error instanceof Error ? error.message : "Vendor adapter failure.",
+        lastError: message,
       },
     };
   }
 }
 
 export async function getIntelligenceSnapshot(): Promise<IntelligenceSnapshot> {
+  ensureLiveIngestion();
   const source = resolveProviderSource();
   const cacheKey = buildCacheKey();
   const cached = getCachedSnapshot(cacheKey);
-  if (cached) {
-    return cached;
+  const liveStatus = getLiveIngestionStatus();
+
+  if (cached && cached.status.generatedAt) {
+    const overlay = applyLiveOverlay({
+      flowTape: cached.flowTape,
+      darkPoolTape: cached.darkPoolTape,
+      news: cached.news,
+    });
+    return {
+      ...cached,
+      flowTape: overlay.flowTape,
+      darkPoolTape: overlay.darkPoolTape,
+      news: overlay.news,
+      overview: buildOverview({
+        flowTape: overlay.flowTape,
+        darkPoolTape: overlay.darkPoolTape,
+        cryptoTape: cached.cryptoTape,
+        news: overlay.news,
+      }),
+      status: {
+        ...cached.status,
+        detail: [cached.status.detail, `ws:${liveStatus.connected ? "connected" : "idle"}`]
+          .filter(Boolean)
+          .join(" | "),
+      },
+    };
   }
 
-  const snapshot = source === "vendor" ? await toVendorSnapshot() : toMockSnapshot();
+  const baseSnapshot = source === "vendor" ? await toVendorSnapshot() : toMockSnapshot();
+  if (source === "mock") {
+    recordProviderMetric({
+      vendor: "mock",
+      mode: "simulated",
+      ok: true,
+      latencyMs: 1,
+    });
+  }
+
+  const overlay = applyLiveOverlay({
+    flowTape: baseSnapshot.flowTape,
+    darkPoolTape: baseSnapshot.darkPoolTape,
+    news: baseSnapshot.news,
+  });
+  const snapshot: IntelligenceSnapshot = {
+    ...baseSnapshot,
+    flowTape: overlay.flowTape,
+    darkPoolTape: overlay.darkPoolTape,
+    news: overlay.news,
+    overview: buildOverview({
+      flowTape: overlay.flowTape,
+      darkPoolTape: overlay.darkPoolTape,
+      cryptoTape: baseSnapshot.cryptoTape,
+      news: overlay.news,
+    }),
+    status: {
+      ...baseSnapshot.status,
+      detail: [
+        baseSnapshot.status.detail,
+        `ws:${liveStatus.connected ? "connected" : "idle"}`,
+        `overlay_events:${overlay.overlayInfo.recentEvents}`,
+      ]
+        .filter(Boolean)
+        .join(" | "),
+    },
+  };
   setCachedSnapshot(cacheKey, snapshot);
   return snapshot;
 }

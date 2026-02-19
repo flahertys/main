@@ -1,4 +1,5 @@
 import { IntelligenceAlert } from "@/lib/intelligence/types";
+import { recordAlertDispatchMetric } from "@/lib/intelligence/metrics";
 import { SubscriptionTier } from "@/lib/monetization/types";
 
 type StrategyProfile = "options_flow" | "dark_pool" | "crypto_flow" | "catalyst_news";
@@ -210,11 +211,18 @@ export async function dispatchAlertsToDiscord(input: {
   tier: SubscriptionTier;
   alerts: IntelligenceAlert[];
 }): Promise<IntelligenceDiscordDispatchResult> {
+  const startedAtMs = Date.now();
   const deliveredAt = new Date().toISOString();
   const route = resolveDiscordRouteForTier(input.tier);
   const defaultThreadId = process.env.TRADEHAX_DISCORD_DEFAULT_THREAD_ID || undefined;
 
   if (!route) {
+    recordAlertDispatchMetric({
+      ok: false,
+      latencyMs: Date.now() - startedAtMs,
+      attempted: input.alerts.length,
+      delivered: 0,
+    });
     return {
       ok: false,
       route: {
@@ -232,6 +240,12 @@ export async function dispatchAlertsToDiscord(input: {
   }
 
   if (input.alerts.length === 0) {
+    recordAlertDispatchMetric({
+      ok: true,
+      latencyMs: Date.now() - startedAtMs,
+      attempted: 0,
+      delivered: 0,
+    });
     return {
       ok: true,
       route: {
@@ -282,6 +296,12 @@ export async function dispatchAlertsToDiscord(input: {
   }
 
   const success = groupResults.every((item) => item.ok);
+  recordAlertDispatchMetric({
+    ok: success,
+    latencyMs: Date.now() - startedAtMs,
+    attempted: input.alerts.length,
+    delivered: deliveredCount,
+  });
   return {
     ok: success,
     route: {

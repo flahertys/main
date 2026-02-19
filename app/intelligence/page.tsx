@@ -5,7 +5,16 @@ import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { formatCompactUsd } from "@/lib/intelligence/format";
 import { getIntelligenceSnapshot } from "@/lib/intelligence/provider";
-import { BarChart3, BellRing, Bot, BookOpen, CandlestickChart, Newspaper, Radar } from "lucide-react";
+import {
+  ActivitySquare,
+  BarChart3,
+  BellRing,
+  Bot,
+  BookOpen,
+  CandlestickChart,
+  Newspaper,
+  Radar,
+} from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -31,6 +40,7 @@ export default async function IntelligenceHubPage() {
             { label: "Dark Pool", href: "/intelligence/dark-pool" },
             { label: "Crypto Flow", href: "/intelligence/crypto-flow" },
             { label: "Watchlists", href: "/intelligence/watchlist" },
+            { label: "Ops Metrics", href: "/intelligence/ops" },
             { label: "Content Studio", href: "/intelligence/content" },
           ]}
         >
@@ -109,6 +119,12 @@ export default async function IntelligenceHubPage() {
               description="Create symbol watchlists, detect triggers, and route alerts to tier-based Discord channels."
               href="/intelligence/watchlist"
               icon={<BellRing className="w-5 h-5" />}
+            />
+            <IntelligenceRouteCard
+              title="Ops Metrics"
+              description="Track live ingestion health, provider latency, and alert delivery SLA performance."
+              href="/intelligence/ops"
+              icon={<ActivitySquare className="w-5 h-5" />}
             />
           </section>
         </IntelligencePageShell>

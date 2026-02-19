@@ -18,6 +18,9 @@ Last Updated: 2026-02-19
 - [x] Checkpoint 12: Durable watchlist/alerts storage adapter added (Supabase + memory fallback)
 - [x] Checkpoint 13: Discord thread routing by strategy/risk integrated
 - [x] Checkpoint 14: Phase 3 QA, CI pass, commit/push, deployment verification
+- [x] Checkpoint 15: Live WebSocket ingestion scaffold integrated (overlay + stream APIs)
+- [x] Checkpoint 16: Alert SLA metrics engine + Ops dashboard integrated
+- [ ] Checkpoint 17: Phase 4 QA, CI pass, commit/push, deployment verification
 
 ## Progress Notes
 
@@ -175,6 +178,38 @@ Last Updated: 2026-02-19
   - Provider endpoint responding with mode metadata (`simulated` until vendor keys/endpoints are configured).
 - Status: Phase 3 complete.
 
+### 2026-02-19 - Phase 4 Checkpoint 15 Complete
+- Added live ingestion subsystem:
+  - `lib/intelligence/live-ingestion.ts`
+- Added optional WebSocket ingestion controls:
+  - `TRADEHAX_INTELLIGENCE_WS_ENABLED`
+  - `TRADEHAX_INTELLIGENCE_WS_URL`
+  - `TRADEHAX_INTELLIGENCE_WS_PROTOCOL`
+  - `TRADEHAX_INTELLIGENCE_WS_RECONNECT_MS`
+- Added live APIs:
+  - `/api/intelligence/live/status`
+  - `/api/intelligence/live/stream` (SSE)
+- Integrated live overlay application into provider snapshots.
+
+### 2026-02-19 - Phase 4 Checkpoint 16 Complete
+- Added SLA metrics engine:
+  - `lib/intelligence/metrics.ts`
+- Instrumented:
+  - provider request quality/latency
+  - alert generation counts
+  - Discord dispatch drop/delivery performance
+  - live ingestion connection/message/error signals
+- Added metrics API:
+  - `/api/intelligence/metrics`
+- Added operations UI:
+  - `components/intelligence/IntelligenceOpsPanel.tsx`
+  - `app/intelligence/ops/page.tsx`
+- Added hub navigation entry:
+  - `/intelligence/ops`
+- Wired Discord application metadata into env templates:
+  - Application ID: `1450053974018494515`
+  - Public Key: `af33c2c6795e6ea3616748fc160bde9096844f2fc78cdde07035cf35633c4267`
+
 ## Active TODO
 
 - [x] Add API endpoints with secure origin/rate limits.
@@ -189,9 +224,11 @@ Last Updated: 2026-02-19
 - [x] Wire direct vendor HTTP adapters (Unusual Whales/Polygon/Bloomberg proxy).
 - [x] Add durable watchlist + alerts persistence adapter.
 - [x] Add Discord thread routing by strategy/risk profile.
+- [x] Add live ingestion subsystem and stream/status APIs.
+- [x] Add SLA metrics engine and operations dashboard route.
 - [x] Update `.env.example` and `.env.vercel.production.template` for Phase 3 config.
-- [x] Run `npm run pipeline:ci`.
-- [x] Commit and push.
+- [ ] Run `npm run pipeline:ci`.
+- [ ] Commit and push.
 
 ## Post-Phase TODO
 
@@ -202,5 +239,5 @@ Last Updated: 2026-02-19
 - [x] Wire direct vendor HTTP adapters for specific providers (Unusual Whales, Polygon, Bloomberg).
 - [x] Add persistent database storage for watchlists/alerts (Supabase/Postgres) for cross-deploy durability.
 - [x] Add Discord thread routing by strategy type and risk profile.
-- [ ] Add live WebSocket ingestion for intraday flow updates.
-- [ ] Add alert SLA metrics panel (delivery latency, drop rate, provider error rate).
+- [x] Add live WebSocket ingestion for intraday flow updates.
+- [x] Add alert SLA metrics panel (delivery latency, drop rate, provider error rate).
