@@ -2,7 +2,7 @@
 
 import { ServiceGrid } from '@/components/landing/ServiceGrid';
 import { Roadmap } from '@/components/landing/Roadmap';
-import { NeuralConsole } from '@/components/ui/NeuralConsole';
+import { AINeuralHub } from '@/components/landing/AINeuralHub';
 import { LiveActivity } from '@/components/ui/LiveActivity';
 import { GlitchText } from '@/components/ui/GlitchText';
 import { WalletButton } from "@/components/counter/WalletButton";
@@ -138,7 +138,7 @@ export default function Home() {
       {/* Service Grid Section */}
       <ServiceGrid />
 
-      <NeuralConsole />
+      <AINeuralHub />
 
       <Roadmap />
 

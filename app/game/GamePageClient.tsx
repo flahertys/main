@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 type ControlAction = "forward" | "backward" | "turn_left" | "turn_right" | "use";
 
@@ -613,9 +614,31 @@ export default function GamePage() {
 
   if (isPlaying) {
     return (
-      <div className="fixed inset-0 w-screen h-screen bg-black overflow-hidden">
+      <div className="fixed inset-0 w-screen h-screen bg-black overflow-hidden select-none touch-none">
+        {/* Initialization Overlay */}
+        <AnimatePresence>
+          {levelLoadState === "loading" && (
+            <motion.div 
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[100] bg-[#0a1020] flex flex-col items-center justify-center"
+            >
+              <div className="relative mb-8">
+                <div className="w-24 h-24 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+                <Zap className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-cyan-500 animate-pulse" />
+              </div>
+              <h2 className="text-2xl font-black text-white italic uppercase tracking-[0.3em] mb-2">Neural Syncing</h2>
+              <p className="text-cyan-500/60 font-mono text-[10px] uppercase animate-pulse">Building_Hyperborean_Geometry_0x{sessionId.slice(-4)}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Cinematic Overlays */}
+        <div className="absolute inset-0 z-30 pointer-events-none overflow-hidden opacity-30">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
+          <div className="absolute inset-0 bg-[repeating-linear-gradient(rgba(18,16,16,0)_0,rgba(18,16,16,0.1)_50%,rgba(18,16,16,0)_100%)] bg-[length:100%_2px]" />
+        </div>
         {/* Game Canvas */}
-        <div className="w-full h-full">
+        <div className="w-full h-full relative z-0">
           <HyperboreaGame
             key={gameSession}
             onEnergyChange={setEnergy}
@@ -650,9 +673,9 @@ export default function GamePage() {
         />
 
         {/* Central score ribbon for instant readability on all devices */}
-        <div className="absolute top-4 left-1/2 z-20 w-[min(95vw,860px)] -translate-x-1/2 px-2 pointer-events-none">
-          <div className="theme-floating-panel theme-floating-panel--info px-3 py-2">
-            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-6 sm:text-sm">
+        <div className="absolute top-2 sm:top-4 left-1/2 z-20 w-[min(98vw,860px)] -translate-x-1/2 px-1 sm:px-2 pointer-events-none">
+          <div className="theme-floating-panel theme-floating-panel--info px-2 py-1.5 sm:px-3 sm:py-2 bg-black/40 backdrop-blur-sm">
+            <div className="grid grid-cols-3 gap-1 text-[9px] sm:grid-cols-6 sm:text-sm">
               <div className="rounded border border-cyan-500/30 bg-black/45 px-2 py-1 text-cyan-100">
                 <div className="text-[10px] uppercase tracking-wide text-cyan-300/90">Score</div>
                 <div className="font-bold">{score.toLocaleString()}</div>
@@ -950,17 +973,17 @@ export default function GamePage() {
         </div>
 
         {/* Mobile touch controls: ergonomic layout */}
-        <div className="absolute bottom-6 inset-x-0 z-20 flex justify-between items-end px-6 pb-[max(env(safe-area-inset-bottom),0.5rem)] sm:hidden pointer-events-none">
+        <div className="absolute bottom-4 inset-x-0 z-20 flex justify-between items-end px-4 pb-[max(env(safe-area-inset-bottom),0.5rem)] sm:hidden pointer-events-none">
           {/* Movement Cluster (D-pad style) */}
-          <div className="pointer-events-auto grid grid-cols-3 gap-1.5 p-2 bg-black/30 backdrop-blur-[2px] rounded-2xl border border-white/5 shadow-2xl">
+          <div className="pointer-events-auto grid grid-cols-3 gap-1 p-1.5 bg-black/20 backdrop-blur-[1px] rounded-2xl border border-white/5 shadow-2xl opacity-60 active:opacity-100 transition-opacity">
             <div />
             <button
               type="button"
               {...getHoldButtonHandlers("forward")}
               aria-label="Move forward"
-              className="theme-cta theme-cta--loud w-14 h-14 flex items-center justify-center rounded-xl bg-emerald-500/40 border-emerald-400/30 active:scale-90 transition-transform [touch-action:manipulation]"
+              className="theme-cta theme-cta--loud w-12 h-12 flex items-center justify-center rounded-xl bg-emerald-500/30 border-emerald-400/20 active:scale-90 transition-transform [touch-action:manipulation]"
             >
-              <span className="text-xl">↑</span>
+              <span className="text-lg">↑</span>
             </button>
             <div />
             
@@ -968,37 +991,37 @@ export default function GamePage() {
               type="button"
               {...getHoldButtonHandlers("turn_left")}
               aria-label="Turn left"
-              className="theme-cta theme-cta--secondary w-14 h-14 flex items-center justify-center rounded-xl bg-white/10 border-white/10 active:scale-90 transition-transform [touch-action:manipulation]"
+              className="theme-cta theme-cta--secondary w-12 h-12 flex items-center justify-center rounded-xl bg-white/5 border-white/5 active:scale-90 transition-transform [touch-action:manipulation]"
             >
-              <span className="text-xl">←</span>
+              <span className="text-lg">←</span>
             </button>
             <button
               type="button"
               {...getHoldButtonHandlers("backward")}
               aria-label="Move backward"
-              className="theme-cta theme-cta--muted w-14 h-14 flex items-center justify-center rounded-xl bg-white/10 border-white/10 active:scale-90 transition-transform [touch-action:manipulation]"
+              className="theme-cta theme-cta--muted w-12 h-12 flex items-center justify-center rounded-xl bg-white/5 border-white/5 active:scale-90 transition-transform [touch-action:manipulation]"
             >
-              <span className="text-xl">↓</span>
+              <span className="text-lg">↓</span>
             </button>
             <button
               type="button"
               {...getHoldButtonHandlers("turn_right")}
               aria-label="Turn right"
-              className="theme-cta theme-cta--secondary w-14 h-14 flex items-center justify-center rounded-xl bg-white/10 border-white/10 active:scale-90 transition-transform [touch-action:manipulation]"
+              className="theme-cta theme-cta--secondary w-12 h-12 flex items-center justify-center rounded-xl bg-white/5 border-white/5 active:scale-90 transition-transform [touch-action:manipulation]"
             >
-              <span className="text-xl">→</span>
+              <span className="text-lg">→</span>
             </button>
           </div>
 
           {/* Action Button */}
-          <div className="pointer-events-auto">
+          <div className="pointer-events-auto opacity-60 active:opacity-100 transition-opacity">
             <button
               type="button"
               aria-label="Use or interact"
               onClick={() => emitControlAction("use", true)}
-              className={`w-24 h-24 rounded-full flex items-center justify-center text-sm font-black uppercase tracking-widest shadow-2xl transition-all [touch-action:manipulation] ${
+              className={`w-20 h-20 rounded-full flex items-center justify-center text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all [touch-action:manipulation] ${
                 isInteractionReady 
-                  ? "bg-emerald-500 text-white border-4 border-emerald-300 animate-pulse scale-110 shadow-[0_0_30px_rgba(16,185,129,0.6)]" 
+                  ? "bg-emerald-500 text-white border-4 border-emerald-300 animate-pulse scale-110 shadow-[0_0_20px_rgba(16,185,129,0.5)]" 
                   : "bg-white/10 text-white/50 border-2 border-white/10 active:scale-95"
               }`}
             >
