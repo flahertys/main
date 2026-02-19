@@ -1,3 +1,4 @@
+import { resolveServerConsent } from "@/lib/ai/consent-server";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { getLLMClient } from "@/lib/ai/hf-server";
 import { interpretNavigationIntent } from "@/lib/ai/site-intent";
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     const intent = interpretNavigationIntent(message);
+    const userId = sanitizePlainText(String(body.userId || body.sessionId || "anonymous"), 128).toLowerCase() || "anonymous";
     const siteMapContext = buildSiteMapContext(14);
 
     const prompt = [
@@ -114,7 +116,7 @@ export async function POST(request: NextRequest) {
         timestamp: new Date().toISOString(),
         category: "BEHAVIOR",
         source: "ai_navigator",
-        userId: body.userId || body.sessionId || "anonymous",
+        userId,
         prompt: message,
         response,
         metadata: {
@@ -123,10 +125,7 @@ export async function POST(request: NextRequest) {
           intent: intent.intent,
           suggestions: intent.suggestions.length,
         },
-        consent: {
-          analytics: body.consent?.analytics !== false,
-          training: body.consent?.training === true,
-        },
+        consent: await resolveServerConsent(userId, body.consent),
       });
     } catch (error) {
       console.warn("navigator ingestion skipped", error);

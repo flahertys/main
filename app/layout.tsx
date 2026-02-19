@@ -5,6 +5,7 @@ import Script from "next/script";
 import { Toaster } from "sonner";
 import "./globals.css";
 
+import { ConsentCenter } from "@/components/ai/ConsentCenter";
 import { SiteNavigatorWidget } from "@/components/ai/SiteNavigatorWidget";
 import { SolanaProvider } from "@/components/counter/provider/Solana";
 import { AuthProvider } from "@/components/providers/AuthProvider";
@@ -163,6 +164,7 @@ export default function RootLayout({
                   {children}
                 </PageTransition>
               </div>
+              <ConsentCenter />
               <SiteNavigatorWidget />
             </WalletProvider>
           </SolanaProvider>

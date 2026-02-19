@@ -1,3 +1,4 @@
+import { AdminBehaviorDashboard } from "@/components/ai/AdminBehaviorDashboard";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata = createPageMetadata({
@@ -57,6 +58,8 @@ export default function AIBehaviorAdminPage() {
             </li>
           </ul>
         </section>
+
+        <AdminBehaviorDashboard />
       </main>
     </div>
   );

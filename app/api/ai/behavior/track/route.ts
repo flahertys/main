@@ -1,3 +1,4 @@
+import { resolveServerConsent } from "@/lib/ai/consent-server";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { enforceRateLimit, enforceTrustedOrigin, sanitizePlainText } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
     const eventName = sanitizePlainText(String(body.event || ""), 120);
     const prompt = sanitizePlainText(String(body.prompt || eventName || "event"), 1000);
     const response = sanitizePlainText(String(body.response || "tracked"), 1000);
+    const userId = sanitizePlainText(String(body.userId || "anonymous"), 128).toLowerCase() || "anonymous";
 
     if (!eventName) {
       return NextResponse.json(
@@ -53,17 +55,14 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
       category: "BEHAVIOR",
       source: body.source || "system",
-      userId: body.userId || "anonymous",
+      userId,
       prompt,
       response,
       metadata: {
         event: eventName,
         ...body.metadata,
       },
-      consent: {
-        analytics: body.consent?.analytics !== false,
-        training: body.consent?.training === true,
-      },
+      consent: await resolveServerConsent(userId, body.consent),
     });
 
     return NextResponse.json(

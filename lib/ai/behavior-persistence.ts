@@ -5,7 +5,9 @@ type BehaviorStorageMode = "memory" | "supabase";
 type SupabaseConfig = {
   baseUrl: string;
   serviceKey: string;
-  table: string;
+  behaviorTable: string;
+  consentTable: string;
+  exportTable: string;
 };
 
 type PersistedBehaviorRow = {
@@ -21,6 +23,25 @@ type PersistedBehaviorRow = {
   response: string;
   metadata: Record<string, unknown>;
   training_eligible: boolean;
+};
+
+export type PersistedConsentRow = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  user_key: string;
+  analytics_consent: boolean;
+  training_consent: boolean;
+  metadata: Record<string, unknown>;
+};
+
+export type PersistedTrainingExportRow = {
+  id: string;
+  created_at: string;
+  source: string;
+  rows: number;
+  payload_jsonl: string;
+  metadata: Record<string, unknown>;
 };
 
 function resolveStorageMode(): BehaviorStorageMode {
@@ -46,7 +67,9 @@ function getSupabaseConfig(): SupabaseConfig | null {
   return {
     baseUrl: baseUrl.replace(/\/$/, ""),
     serviceKey,
-    table: String(process.env.TRADEHAX_SUPABASE_AI_BEHAVIOR_TABLE || "ai_behavior_events").trim(),
+    behaviorTable: String(process.env.TRADEHAX_SUPABASE_AI_BEHAVIOR_TABLE || "ai_behavior_events").trim(),
+    consentTable: String(process.env.TRADEHAX_SUPABASE_AI_CONSENT_TABLE || "ai_user_consent").trim(),
+    exportTable: String(process.env.TRADEHAX_SUPABASE_AI_EXPORT_TABLE || "ai_training_exports").trim(),
   };
 }
 
@@ -142,7 +165,7 @@ export async function persistBehaviorRecord(record: IngestedInteractionRecord) {
   const row = toPersistedRow(record);
   await requestJson<unknown>(
     config.supabase,
-    `${config.supabase.table}?on_conflict=id`,
+    `${config.supabase.behaviorTable}?on_conflict=id`,
     {
       method: "POST",
       headers: {
@@ -168,7 +191,7 @@ export async function listPersistedBehaviorRecords(input?: {
   }
 
   const limit = Math.min(1000, Math.max(1, Math.floor(input?.limit || 200)));
-  let query = `${config.supabase.table}?select=*&order=created_at.desc&limit=${limit}`;
+  let query = `${config.supabase.behaviorTable}?select=*&order=created_at.desc&limit=${limit}`;
   if (input?.userKey) {
     query += `&user_key=${encodeEq(input.userKey)}`;
   }
@@ -188,7 +211,127 @@ export async function getBehaviorPersistenceStatus() {
     mode: config.mode,
     configured: Boolean(config.supabase),
     shouldUseSupabase: config.shouldUseSupabase,
-    table: config.supabase?.table || "memory_store_only",
+    behaviorTable: config.supabase?.behaviorTable || "memory_store_only",
+    consentTable: config.supabase?.consentTable || "memory_store_only",
+    exportTable: config.supabase?.exportTable || "memory_store_only",
     generatedAt: new Date().toISOString(),
+  };
+}
+
+export async function persistUserConsent(input: {
+  userKey: string;
+  analyticsConsent: boolean;
+  trainingConsent: boolean;
+  metadata?: Record<string, unknown>;
+}) {
+  const config = getConfig();
+  if (!config.shouldUseSupabase || !config.supabase) {
+    return {
+      persisted: false,
+      mode: "memory" as const,
+      reason: "supabase_not_configured",
+    };
+  }
+
+  const now = new Date().toISOString();
+  const row: PersistedConsentRow = {
+    id: `cons_${input.userKey}`,
+    created_at: now,
+    updated_at: now,
+    user_key: input.userKey,
+    analytics_consent: input.analyticsConsent,
+    training_consent: input.trainingConsent,
+    metadata: input.metadata || {},
+  };
+
+  await requestJson<unknown>(
+    config.supabase,
+    `${config.supabase.consentTable}?on_conflict=id`,
+    {
+      method: "POST",
+      headers: {
+        Prefer: "resolution=merge-duplicates,return=minimal",
+      },
+      body: JSON.stringify([row]),
+    },
+  );
+
+  return {
+    persisted: true,
+    mode: "supabase" as const,
+  };
+}
+
+export async function getPersistedUserConsent(userKey: string) {
+  const config = getConfig();
+  if (!config.shouldUseSupabase || !config.supabase) {
+    return null as PersistedConsentRow | null;
+  }
+
+  const rows = await requestJson<PersistedConsentRow[]>(
+    config.supabase,
+    `${config.supabase.consentTable}?user_key=${encodeEq(userKey)}&limit=1`,
+    { method: "GET" },
+  );
+
+  return Array.isArray(rows) && rows[0] ? rows[0] : null;
+}
+
+export async function listPersistedConsentRecords(limit = 200) {
+  const config = getConfig();
+  if (!config.shouldUseSupabase || !config.supabase) {
+    return [] as PersistedConsentRow[];
+  }
+
+  const bounded = Math.min(1000, Math.max(1, Math.floor(limit)));
+  const rows = await requestJson<PersistedConsentRow[]>(
+    config.supabase,
+    `${config.supabase.consentTable}?select=*&order=updated_at.desc&limit=${bounded}`,
+    { method: "GET" },
+  );
+
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function persistTrainingExport(input: {
+  source: string;
+  rows: number;
+  payloadJsonl: string;
+  metadata?: Record<string, unknown>;
+}) {
+  const config = getConfig();
+  if (!config.shouldUseSupabase || !config.supabase) {
+    return {
+      persisted: false,
+      mode: "memory" as const,
+      reason: "supabase_not_configured",
+    };
+  }
+
+  const row: PersistedTrainingExportRow = {
+    id: `exp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    created_at: new Date().toISOString(),
+    source: input.source,
+    rows: Math.max(0, Math.floor(input.rows)),
+    payload_jsonl: input.payloadJsonl,
+    metadata: input.metadata || {},
+  };
+
+  await requestJson<unknown>(
+    config.supabase,
+    `${config.supabase.exportTable}?on_conflict=id`,
+    {
+      method: "POST",
+      headers: {
+        Prefer: "resolution=merge-duplicates,return=minimal",
+      },
+      body: JSON.stringify([row]),
+    },
+  );
+
+  return {
+    persisted: true,
+    mode: "supabase" as const,
+    id: row.id,
   };
 }

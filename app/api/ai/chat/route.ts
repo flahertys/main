@@ -1,12 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { processNeuralCommand, NeuralQuery } from "@/lib/ai/kernel";
+import { resolveServerConsent } from "@/lib/ai/consent-server";
 import { checkCredits, deductCredits } from "@/lib/ai/credit-system";
+import { buildTradeHaxSystemPrompt } from "@/lib/ai/custom-llm/system-prompt";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { getLLMClient } from "@/lib/ai/hf-server";
-import { buildTradeHaxSystemPrompt } from "@/lib/ai/custom-llm/system-prompt";
+import { NeuralQuery, processNeuralCommand } from "@/lib/ai/kernel";
+import { formatRetrievalContext, retrieveRelevantContext } from "@/lib/ai/retriever";
 import { canConsumeFeature, consumeFeatureUsage, tierSupportsNeuralMode } from "@/lib/monetization/engine";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
 import { enforceRateLimit, enforceTrustedOrigin, sanitizePlainText } from "@/lib/security";
+import { NextRequest, NextResponse } from "next/server";
 
 type NeuralTier = "STANDARD" | "UNCENSORED" | "OVERCLOCK" | "HFT_SIGNAL" | "GUITAR_LESSON";
 type ChatRole = "user" | "assistant";
@@ -18,6 +20,10 @@ type ChatRequestBody = {
   context?: unknown;
   userId?: string;
   systemPrompt?: string;
+  consent?: {
+    analytics?: boolean;
+    training?: boolean;
+  };
 };
 
 const COMMAND_PREFIXES = [
@@ -100,6 +106,30 @@ function serializeContext(context: unknown) {
   return "";
 }
 
+function mergeContext(baseContext: unknown, retrievalContext: string) {
+  if (!retrievalContext) {
+    return baseContext;
+  }
+
+  if (baseContext && typeof baseContext === "object" && !Array.isArray(baseContext)) {
+    return {
+      ...(baseContext as Record<string, unknown>),
+      retrieved_context: retrievalContext,
+    };
+  }
+
+  if (typeof baseContext === "string" && baseContext.trim().length > 0) {
+    return {
+      provided_context: baseContext,
+      retrieved_context: retrievalContext,
+    };
+  }
+
+  return {
+    retrieved_context: retrievalContext,
+  };
+}
+
 function isCommandLike(input: string) {
   const upper = input.trim().toUpperCase();
   if (!upper) {
@@ -178,6 +208,10 @@ export async function POST(req: NextRequest) {
 
     const userId = await resolveRequestUserId(req, body.userId);
     const neuralTier = parseNeuralTier(body.tier);
+    const retrievalChunks = retrieveRelevantContext(inputMessage, 5);
+    const retrievalContext = formatRetrievalContext(retrievalChunks);
+    const mergedContext = mergeContext(body.context, retrievalContext);
+    const consent = await resolveServerConsent(userId, body.consent);
 
     if (!tierSupportsNeuralMode(userId, neuralTier)) {
       return NextResponse.json(
@@ -216,7 +250,7 @@ export async function POST(req: NextRequest) {
     const query: NeuralQuery = {
       text: inputMessage,
       tier: neuralTier as any,
-      context: body.context as NeuralQuery["context"],
+      context: mergedContext as NeuralQuery["context"],
     };
 
     const commandLike = isCommandLike(inputMessage);
@@ -235,7 +269,7 @@ export async function POST(req: NextRequest) {
         const prompt = buildPromptFromConversation({
           inputMessage,
           messages: normalizedMessages,
-          context: body.context,
+          context: mergedContext,
           systemPrompt: body.systemPrompt,
         });
         const hfResponse = await client.generate(prompt);
@@ -267,11 +301,10 @@ export async function POST(req: NextRequest) {
           tier: neuralTier,
           command_like: commandLike,
           used_hf: shouldTryHf,
+          retrieved_chunks: retrievalChunks.length,
+          retrieved_sources: retrievalChunks.map((chunk) => chunk.path).slice(0, 6).join(","),
         },
-        consent: {
-          analytics: true,
-          training: false,
-        },
+        consent,
       });
     } catch (ingestionError) {
       console.warn("AI chat ingestion skipped:", ingestionError);
@@ -286,7 +319,7 @@ export async function POST(req: NextRequest) {
     // Simulated latency for realism
     await new Promise(resolve => setTimeout(resolve, 800));
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       ok: true,
       response,
       message: {
@@ -303,10 +336,10 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("Neural API Error:", error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       ok: false,
-      error: "NEURAL_LINK_FAILURE", 
-      details: error.message 
+      error: "NEURAL_LINK_FAILURE",
+      details: error.message
     }, { status: 500 });
   }
 }

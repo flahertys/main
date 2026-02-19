@@ -33,6 +33,34 @@ create index if not exists idx_ai_behavior_events_route
 create index if not exists idx_ai_behavior_events_metadata_gin
   on public.ai_behavior_events using gin (metadata);
 
+create table if not exists public.ai_user_consent (
+  id text primary key,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  user_key text not null,
+  analytics_consent boolean not null default true,
+  training_consent boolean not null default false,
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create index if not exists idx_ai_user_consent_user_key
+  on public.ai_user_consent (user_key);
+
+create index if not exists idx_ai_user_consent_updated_at
+  on public.ai_user_consent (updated_at desc);
+
+create table if not exists public.ai_training_exports (
+  id text primary key,
+  created_at timestamptz not null default now(),
+  source text not null,
+  rows integer not null default 0,
+  payload_jsonl text not null,
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create index if not exists idx_ai_training_exports_created_at
+  on public.ai_training_exports (created_at desc);
+
 create materialized view if not exists public.ai_user_behavior_profiles as
 select
   user_key,
@@ -50,6 +78,8 @@ create unique index if not exists idx_ai_user_behavior_profiles_user_key
 
 -- Recommended row level security setup
 alter table public.ai_behavior_events enable row level security;
+alter table public.ai_user_consent enable row level security;
+alter table public.ai_training_exports enable row level security;
 
 do $$
 begin
@@ -62,6 +92,42 @@ begin
   ) then
     create policy service_role_full_access_ai_behavior_events
       on public.ai_behavior_events
+      for all
+      using (auth.role() = 'service_role')
+      with check (auth.role() = 'service_role');
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'ai_user_consent'
+      and policyname = 'service_role_full_access_ai_user_consent'
+  ) then
+    create policy service_role_full_access_ai_user_consent
+      on public.ai_user_consent
+      for all
+      using (auth.role() = 'service_role')
+      with check (auth.role() = 'service_role');
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'ai_training_exports'
+      and policyname = 'service_role_full_access_ai_training_exports'
+  ) then
+    create policy service_role_full_access_ai_training_exports
+      on public.ai_training_exports
       for all
       using (auth.role() = 'service_role')
       with check (auth.role() = 'service_role');

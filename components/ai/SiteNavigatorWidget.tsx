@@ -1,9 +1,10 @@
 "use client";
 
+import { clientConsentKeys } from "@/components/ai/ConsentCenter";
 import { MessageCircle, Send, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Suggestion = {
   path: string;
@@ -17,6 +18,12 @@ type ChatMessage = {
   role: "assistant" | "user";
   content: string;
   suggestions?: Suggestion[];
+};
+
+type ConsentState = {
+  userId: string;
+  analytics: boolean;
+  training: boolean;
 };
 
 function createSessionId() {
@@ -36,6 +43,11 @@ export function SiteNavigatorWidget() {
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState("");
   const [sessionId] = useState(createSessionId);
+  const [consent, setConsent] = useState<ConsentState>({
+    userId: sessionId,
+    analytics: true,
+    training: false,
+  });
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
@@ -47,6 +59,46 @@ export function SiteNavigatorWidget() {
 
   const canSend = useMemo(() => input.trim().length > 0 && !loading, [input, loading]);
 
+  useEffect(() => {
+    const loadConsent = () => {
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      try {
+        const raw = window.localStorage.getItem(clientConsentKeys.storage);
+        if (!raw) {
+          return;
+        }
+
+        const parsed = JSON.parse(raw) as Partial<ConsentState>;
+        setConsent((prev) => ({
+          userId: typeof parsed.userId === "string" && parsed.userId ? parsed.userId : prev.userId,
+          analytics: parsed.analytics !== false,
+          training: parsed.training === true,
+        }));
+      } catch {
+        // keep defaults
+      }
+    };
+
+    const onUpdate = (event: Event) => {
+      const custom = event as CustomEvent<ConsentState>;
+      if (!custom.detail) return;
+      setConsent({
+        userId: custom.detail.userId || sessionId,
+        analytics: custom.detail.analytics !== false,
+        training: custom.detail.training === true,
+      });
+    };
+
+    loadConsent();
+    window.addEventListener(clientConsentKeys.event, onUpdate as EventListener);
+    return () => {
+      window.removeEventListener(clientConsentKeys.event, onUpdate as EventListener);
+    };
+  }, [sessionId]);
+
   const trackEvent = async (eventName: string, metadata?: Record<string, unknown>) => {
     try {
       await fetch("/api/ai/behavior/track", {
@@ -57,14 +109,14 @@ export function SiteNavigatorWidget() {
         body: JSON.stringify({
           event: eventName,
           source: "ai_navigator",
-          userId: sessionId,
+          userId: consent.userId || sessionId,
           metadata: {
             path: pathname,
             ...metadata,
           },
           consent: {
-            analytics: true,
-            training: false,
+            analytics: consent.analytics !== false,
+            training: consent.training === true,
           },
         }),
       });
@@ -99,10 +151,11 @@ export function SiteNavigatorWidget() {
         body: JSON.stringify({
           message,
           sessionId,
+          userId: consent.userId || sessionId,
           currentPath: pathname,
           consent: {
-            analytics: true,
-            training: false,
+            analytics: consent.analytics !== false,
+            training: consent.training === true,
           },
         }),
       });
