@@ -122,6 +122,7 @@ export function HyperboreaGame({
 }: HyperboreaGameProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const minimapRef = useRef<HTMLCanvasElement>(null);
+  const flashRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(isPaused);
 
   useEffect(() => {
@@ -459,6 +460,7 @@ export function HyperboreaGame({
     let targetCameraTilt = 0;
     let currentCameraTilt = 0;
     let cameraShake = 0;
+    let screenFlash = 0;
     let cameraShakeDir = new THREE.Vector3();
 
     let energy = 25;
@@ -810,6 +812,12 @@ export function HyperboreaGame({
       coinsCollected += 1;
       relicsCollected = collectedArtifactIds.size;
       emitRelics();
+
+      if (instance.data.rarity === "epic" || instance.data.rarity === "mythic") {
+        screenFlash = 0.8;
+      } else {
+        screenFlash = 0.3;
+      }
 
       // Use the scoring engine for accumulation logic
       const yieldData = calculateUtilityYield({
@@ -1316,6 +1324,12 @@ export function HyperboreaGame({
 
       currentCameraTilt += (targetCameraTilt - currentCameraTilt) * 0.1;
       cameraShake = Math.max(0, cameraShake - dt * 0.5);
+      screenFlash = Math.max(0, screenFlash - dt * 2.0);
+
+      // Dynamic FOV based on speed
+      const targetFov = 78 + (forward ? 8 : 0) + (combo >= 5 ? 5 : 0);
+      camera.fov += (targetFov - camera.fov) * 0.08;
+      camera.updateProjectionMatrix();
 
     const moveSpeed = missionComplete ? 0 : (isMobile ? 6.8 : 4.2) * (combo >= 5 ? 1.5 : 1.0);
     if (combo >= 5 && simulationFrame % 30 === 0) {
@@ -1477,6 +1491,9 @@ export function HyperboreaGame({
       }
 
       drawMinimap();
+      if (flashRef.current) {
+        flashRef.current.style.opacity = screenFlash.toString();
+      }
       renderer.render(scene, camera);
     };
 
@@ -1570,6 +1587,12 @@ export function HyperboreaGame({
       
       {/* Scanline Effect */}
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.15)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] bg-[length:100%_3px,3px_100%] z-[1] opacity-40" />
+
+      {/* Item Collection Flash */}
+      <div 
+        ref={flashRef}
+        className="absolute inset-0 pointer-events-none bg-white z-[10] opacity-0" 
+      />
 
       {/* Neural Minimap Overlay */}
       <div className="absolute bottom-6 right-6 w-40 h-40 sm:w-48 sm:h-48 rounded-2xl overflow-hidden border border-cyan-500/30 bg-black/80 backdrop-blur-md shadow-[0_0_30px_rgba(6,182,212,0.2)] pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-80">

@@ -12,11 +12,13 @@ import {
   Send,
   Plus,
   TrendingUp,
-  Cpu
+  Cpu,
+  Coins
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletButton } from "@/components/counter/WalletButton";
+import { HAX_TOKEN_CONFIG } from "@/lib/trading/hax-token";
 
 type HubTab = "CHAT" | "IMAGE_GEN" | "MARKET";
 
@@ -26,8 +28,9 @@ interface Message {
 }
 
 const FREE_USAGE_LIMIT = 3;
-const PAYMENT_AMOUNT = 0.05; // SOL
-const TREASURY_WALLET = "6v6iK8kS1DqXhP9P8s7W6zX5B9Q4p7L3k2j1i0h9g8f7"; // Example
+const PAYMENT_AMOUNT_SOL = 0.05; 
+const PAYMENT_AMOUNT_HAX = 100;
+const TREASURY_WALLET = "6v6iK8kS1DqXhP9P8s7W6zX5B9Q4p7L3k2j1i0h9g8f7";
 
 const NeuralBackground = () => (
   <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
@@ -240,35 +243,50 @@ export const AINeuralHub = () => {
                     </div>
                     <h3 className="text-3xl font-black text-white mb-4 italic uppercase tracking-tighter">Neural Limit Reached</h3>
                     <p className="text-zinc-400 max-w-sm mb-10 text-sm leading-relaxed">
-                      Your 3 free neural sessions have been consumed. To continue accessing uncensored AI models and real-time market pickers, settle a micro-transaction of <span className="text-cyan-400 font-bold">{PAYMENT_AMOUNT} SOL</span>.
+                      Your 3 free neural sessions have been consumed. To continue accessing uncensored AI models and real-time market pickers, settle a micro-transaction of <span className="text-cyan-400 font-bold">{PAYMENT_AMOUNT_HAX} $HAX</span> or <span className="text-cyan-400 font-bold">{PAYMENT_AMOUNT_SOL} SOL</span>.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+                    <div className="flex flex-col gap-4 w-full max-w-md">
                       {!connected ? (
                         <div className="flex-1 flex justify-center">
                           <WalletButton />
                         </div>
                       ) : (
-                        <button 
-                          onClick={handlePayment}
-                          disabled={isPaying}
-                          className="flex-1 px-8 py-4 bg-cyan-500 text-black font-black rounded-2xl text-xs hover:bg-white hover:scale-[1.02] transition-all uppercase italic flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(6,182,212,0.3)] disabled:opacity-50"
-                        >
-                          {isPaying ? (
-                            <>
-                              <RotateCw className="w-4 h-4 animate-spin" />
-                              Verifying_On_Chain...
-                            </>
-                          ) : (
-                            <>
-                              <Zap className="w-4 h-4" />
-                              Settle_{PAYMENT_AMOUNT}_SOL
-                            </>
-                          )}
-                        </button>
+                        <>
+                          <button 
+                            onClick={handlePayment}
+                            disabled={isPaying}
+                            className="w-full px-8 py-4 bg-cyan-500 text-black font-black rounded-2xl text-xs hover:bg-white hover:scale-[1.02] transition-all uppercase italic flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(6,182,212,0.3)] disabled:opacity-50"
+                          >
+                            {isPaying ? (
+                              <>
+                                <RotateCw className="w-4 h-4 animate-spin" />
+                                Verifying_On_Chain...
+                              </>
+                            ) : (
+                              <>
+                                <Coins className="w-4 h-4" />
+                                Pay_{PAYMENT_AMOUNT_HAX}_$HAX
+                              </>
+                            )}
+                          </button>
+                          <button 
+                            onClick={handlePayment}
+                            disabled={isPaying}
+                            className="w-full px-8 py-4 bg-zinc-900 border border-white/10 text-white font-black rounded-2xl text-xs hover:border-cyan-500/50 transition-all uppercase italic flex items-center justify-center gap-2"
+                          >
+                            <Zap className="w-4 h-4" />
+                            Alternative:_{PAYMENT_AMOUNT_SOL}_SOL
+                          </button>
+                        </>
                       )}
-                      <button className="flex-1 px-8 py-4 bg-zinc-900 border border-white/10 text-white font-black rounded-2xl text-xs hover:border-cyan-500/50 transition-all uppercase italic">
-                        Enterprise_Plan
-                      </button>
+                      <a 
+                        href={`https://jup.ag/swap/SOL-${HAX_TOKEN_CONFIG.SYMBOL}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full px-8 py-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-black rounded-2xl text-[10px] hover:bg-emerald-500/20 transition-all uppercase italic text-center"
+                      >
+                        Buy_$HAX_on_DEX
+                      </a>
                     </div>
                     <p className="mt-8 text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Secure_SSL_Encrypted_Handshake</p>
                   </div>
