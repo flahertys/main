@@ -1,15 +1,15 @@
 "use client";
 
 import { generateDefaultLevel001 } from "@/lib/game/level-generator";
-import { calculateUtilityYield } from "@/lib/game/scoring-engine";
 import type {
-  ArtifactCollectionEvent,
-  GameRunSummary,
-  GameScoreSnapshot,
-  HyperboreaLevelDefinition,
-  LevelArtifact,
-  LevelPuzzleNode,
+    ArtifactCollectionEvent,
+    GameRunSummary,
+    GameScoreSnapshot,
+    HyperboreaLevelDefinition,
+    LevelArtifact,
+    LevelPuzzleNode,
 } from "@/lib/game/level-types";
+import { calculateUtilityYield } from "@/lib/game/scoring-engine";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
@@ -24,6 +24,7 @@ interface HyperboreaGameProps {
   onArtifactCollected?: (event: ArtifactCollectionEvent) => void;
   onStatusChange?: (message: string) => void;
   onInteractionHintChange?: (hint: string | null, actionable: boolean) => void;
+  onRuntimeError?: (message: string) => void;
   levelDefinition?: HyperboreaLevelDefinition | null;
   sessionId?: string;
   isPaused?: boolean;
@@ -116,6 +117,7 @@ export function HyperboreaGame({
   onArtifactCollected,
   onStatusChange,
   onInteractionHintChange,
+  onRuntimeError,
   levelDefinition,
   sessionId = "session-local",
   isPaused = false,
@@ -141,6 +143,7 @@ export function HyperboreaGame({
 
     let isMounted = true;
     let animationFrameId = 0;
+    let runtimeCrashed = false;
 
     const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     const isSmallViewport = window.matchMedia("(max-width: 900px)").matches;
@@ -404,12 +407,12 @@ export function HyperboreaGame({
       light.position.set(world.x, 1.1, world.z);
       scene.add(light);
 
-      artifactInstances.push({ 
-        data: artifact, 
-        mesh, 
+      artifactInstances.push({
+        data: artifact,
+        mesh,
         collected: false,
         // @ts-ignore - injecting light reference for cleanup
-        light 
+        light
       });
     }
 
@@ -630,7 +633,7 @@ export function HyperboreaGame({
       // Use a more robust check by sampling more points around the player
       const collisionRadius = PLAYER_RADIUS * 1.1; // Slight buffer
       const samples = 8;
-      
+
       // Center check
       const centerGrid = worldToGrid(worldX, worldZ);
       if (isWallCell(centerGrid.x, centerGrid.y) || blockedCells.has(cellKey(centerGrid.x, centerGrid.y))) return false;
@@ -653,7 +656,7 @@ export function HyperboreaGame({
 
       const stepDx = Math.sin(playerYaw) * direction * distance;
       const stepDz = Math.cos(playerYaw) * direction * distance;
-      
+
       // Try full move first
       if (canOccupy(playerX + stepDx, playerZ + stepDz)) {
         playerX += stepDx;
@@ -668,14 +671,14 @@ export function HyperboreaGame({
         emitStructuredScore();
         return true;
       }
-      
+
       // Try sliding along X
       if (canOccupy(playerX + stepDx, playerZ)) {
         playerX += stepDx;
         bobTimer += 0.45;
         return true;
       }
-      
+
       // Try sliding along Z
       if (canOccupy(playerX, playerZ + stepDz)) {
         playerZ += stepDz;
@@ -981,13 +984,13 @@ export function HyperboreaGame({
     const autoCollectNearbyArtifacts = () => {
       if (missionComplete) return;
       const magnetRange = autoPickupDistance * (combo >= 10 ? 2.5 : 1.0);
-      
+
       for (const artifact of artifactInstances) {
         if (artifact.collected) continue;
         const dx = artifact.mesh.position.x - playerX;
         const dz = artifact.mesh.position.z - playerZ;
         const distance = Math.hypot(dx, dz);
-        
+
         if (distance <= magnetRange) {
           // Visual magnet effect: move mesh toward player
           if (distance > 0.5) {
@@ -995,7 +998,7 @@ export function HyperboreaGame({
             artifact.mesh.position.x -= dx * lerpFactor;
             artifact.mesh.position.z -= dz * lerpFactor;
           }
-          
+
           if (distance <= 0.8 || (distance <= autoPickupDistance)) {
             collectArtifact(artifact);
           }
@@ -1122,10 +1125,18 @@ export function HyperboreaGame({
       touchGestureBackward = false;
     };
 
+    const allowedActions: ControlAction[] = [
+      "forward",
+      "backward",
+      "turn_left",
+      "turn_right",
+      "use",
+    ];
+
     const handleExternalControl = (event: Event) => {
       const detail = (event as CustomEvent<ExternalControlDetail>).detail;
       const action = detail?.action;
-      if (!action) return;
+      if (!action || !allowedActions.includes(action)) return;
 
       if (typeof detail.pressed === "boolean") {
         applyControlHold(action, detail.pressed);
@@ -1139,13 +1150,21 @@ export function HyperboreaGame({
 
     const handleResize = () => {
       if (!isMounted) return;
-      viewportWidth = Math.max(currentMount.clientWidth || window.innerWidth, 1);
-      viewportHeight = Math.max(currentMount.clientHeight || window.innerHeight, 1);
+      const vvWidth = window.visualViewport?.width;
+      const vvHeight = window.visualViewport?.height;
+      viewportWidth = Math.max(currentMount.clientWidth || vvWidth || window.innerWidth, 1);
+      viewportHeight = Math.max(currentMount.clientHeight || vvHeight || window.innerHeight, 1);
       currentDpr = Math.min(window.devicePixelRatio || 1, maxDpr);
       camera.aspect = viewportWidth / viewportHeight;
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(currentDpr);
       renderer.setSize(viewportWidth, viewportHeight);
+    };
+
+    const handleOrientationChange = () => {
+      window.setTimeout(() => {
+        handleResize();
+      }, 120);
     };
 
     const handleWindowBlur = () => {
@@ -1173,9 +1192,12 @@ export function HyperboreaGame({
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleOrientationChange);
     window.addEventListener("blur", handleWindowBlur);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("hyperborea-control", handleExternalControl as EventListener);
+    window.visualViewport?.addEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("scroll", handleResize);
     currentMount.addEventListener("pointerdown", handleViewportPointerDown);
     currentMount.addEventListener("touchstart", handleTouchStart, { passive: false });
     currentMount.addEventListener("touchmove", handleTouchMove, { passive: false });
@@ -1259,7 +1281,7 @@ export function HyperboreaGame({
       // Draw Player
       const playerGridX = (playerX / CELL_SIZE) + gridWidth / 2 - 0.5;
       const playerGridY = (playerZ / CELL_SIZE) + gridHeight / 2 - 0.5;
-      
+
       const px = offsetX + playerGridX * scale + scale / 2;
       const py = offsetY + playerGridY * scale + scale / 2;
 
@@ -1276,13 +1298,13 @@ export function HyperboreaGame({
       ctx.lineTo(-scale * 0.35, scale * 0.4);
       ctx.closePath();
       ctx.fill();
-      
+
       // Player Glow
       ctx.shadowBlur = 15;
       ctx.shadowColor = "#00ffff";
       ctx.strokeStyle = "rgba(0, 255, 255, 0.8)";
       ctx.stroke();
-      
+
       ctx.restore();
     };
 
@@ -1405,25 +1427,25 @@ export function HyperboreaGame({
 
       const bobAmplitude = movedDistance > 0.0002 ? 0.04 : 0.015;
       const bobOffset = Math.sin(bobTimer) * bobAmplitude;
-      
+
       const shakeOffset = cameraShakeDir.clone().multiplyScalar(cameraShake);
       camera.position.set(
-        playerX + shakeOffset.x, 
-        EYE_HEIGHT + bobOffset + shakeOffset.y, 
+        playerX + shakeOffset.x,
+        EYE_HEIGHT + bobOffset + shakeOffset.y,
         playerZ + shakeOffset.z
       );
-      
+
       const lookX = playerX + Math.sin(playerYaw);
       const lookZ = playerZ + Math.cos(playerYaw);
       camera.lookAt(lookX, EYE_HEIGHT + bobOffset * 0.45, lookZ);
       camera.rotation.z = currentCameraTilt;
-      
+
       playerLight.position.set(playerX, EYE_HEIGHT, playerZ);
       const nearest = missionComplete ? null : getNearestInteractionCandidate();
       const hasInteraction = Boolean(nearest);
 
       if (hasInteraction) {
-        playerLight.color.set(0x00ffaa); 
+        playerLight.color.set(0x00ffaa);
         playerLight.intensity = (isMobile ? 1.2 : 0.95) + Math.sin(nowMs * 0.01) * 0.15;
       } else {
         playerLight.color.set(0xffffff);
@@ -1456,45 +1478,59 @@ export function HyperboreaGame({
     };
 
     const animate = () => {
-      if (!isMounted) return;
+      if (!isMounted || runtimeCrashed) return;
       animationFrameId = window.requestAnimationFrame(animate);
 
-      const deltaSeconds = Math.min(simulationClock.getDelta(), 0.05);
-      simulationAccumulator += deltaSeconds;
-      performanceCheckTimer += deltaSeconds;
-      performanceFrameCounter += 1;
-      performanceTimeAccumulator += deltaSeconds;
+      try {
 
-      if (performanceCheckTimer >= 2 && performanceFrameCounter > 0 && performanceTimeAccumulator > 0) {
-        const fps = performanceFrameCounter / performanceTimeAccumulator;
-        const downscaleThreshold = isMobile ? 48 : 45;
-        const upscaleThreshold = isMobile ? 58 : 58;
-        if (fps < downscaleThreshold && currentDpr > minDpr) {
-          currentDpr = Math.max(minDpr, currentDpr - (isMobile ? 0.2 : 0.25));
-          renderer.setPixelRatio(currentDpr);
-          renderer.setSize(viewportWidth, viewportHeight);
-        } else if (fps > upscaleThreshold && currentDpr < maxDpr) {
-          currentDpr = Math.min(maxDpr, currentDpr + (isMobile ? 0.15 : 0.25));
-          renderer.setPixelRatio(currentDpr);
-          renderer.setSize(viewportWidth, viewportHeight);
+        const deltaSeconds = Math.min(simulationClock.getDelta(), 0.05);
+        simulationAccumulator += deltaSeconds;
+        performanceCheckTimer += deltaSeconds;
+        performanceFrameCounter += 1;
+        performanceTimeAccumulator += deltaSeconds;
+
+        if (performanceCheckTimer >= 2 && performanceFrameCounter > 0 && performanceTimeAccumulator > 0) {
+          const fps = performanceFrameCounter / performanceTimeAccumulator;
+          const downscaleThreshold = isMobile ? 48 : 45;
+          const upscaleThreshold = isMobile ? 58 : 58;
+          if (fps < downscaleThreshold && currentDpr > minDpr) {
+            currentDpr = Math.max(minDpr, currentDpr - (isMobile ? 0.2 : 0.25));
+            renderer.setPixelRatio(currentDpr);
+            renderer.setSize(viewportWidth, viewportHeight);
+          } else if (fps > upscaleThreshold && currentDpr < maxDpr) {
+            currentDpr = Math.min(maxDpr, currentDpr + (isMobile ? 0.15 : 0.25));
+            renderer.setPixelRatio(currentDpr);
+            renderer.setSize(viewportWidth, viewportHeight);
+          }
+          performanceCheckTimer = 0;
+          performanceFrameCounter = 0;
+          performanceTimeAccumulator = 0;
         }
-        performanceCheckTimer = 0;
-        performanceFrameCounter = 0;
-        performanceTimeAccumulator = 0;
-      }
 
-      let subSteps = 0;
-      while (simulationAccumulator >= fixedStepSeconds && subSteps < maxSubSteps) {
-        stepSimulation(fixedStepSeconds);
-        simulationAccumulator -= fixedStepSeconds;
-        subSteps++;
-      }
+        let subSteps = 0;
+        while (simulationAccumulator >= fixedStepSeconds && subSteps < maxSubSteps) {
+          stepSimulation(fixedStepSeconds);
+          simulationAccumulator -= fixedStepSeconds;
+          subSteps++;
+        }
 
-      drawMinimap();
-      if (flashRef.current) {
-        flashRef.current.style.opacity = screenFlash.toString();
+        drawMinimap();
+        if (flashRef.current) {
+          flashRef.current.style.opacity = screenFlash.toString();
+        }
+        renderer.render(scene, camera);
+      } catch (error) {
+        runtimeCrashed = true;
+        window.cancelAnimationFrame(animationFrameId);
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Unexpected rendering error";
+        onStatusChange?.(`Game paused due to runtime error: ${errorMessage}`);
+        onRuntimeError?.(
+          `The renderer encountered an error (${errorMessage}). This can happen on some mobile browsers after orientation or memory pressure.`,
+        );
       }
-      renderer.render(scene, camera);
     };
 
     updateEnergy(energy);
@@ -1522,9 +1558,12 @@ export function HyperboreaGame({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleOrientationChange);
       window.removeEventListener("blur", handleWindowBlur);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("hyperborea-control", handleExternalControl as EventListener);
+      window.visualViewport?.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("scroll", handleResize);
       currentMount.removeEventListener("pointerdown", handleViewportPointerDown);
       currentMount.removeEventListener("touchstart", handleTouchStart);
       currentMount.removeEventListener("touchmove", handleTouchMove);
@@ -1584,18 +1623,18 @@ export function HyperboreaGame({
 
       {/* Cinematic Vignette */}
       <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_120px_rgba(0,0,0,0.85)] z-[1]" />
-      
+
       {/* Scanline Effect */}
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.15)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] bg-[length:100%_3px,3px_100%] z-[1] opacity-40" />
 
       {/* Item Collection Flash */}
-      <div 
+      <div
         ref={flashRef}
-        className="absolute inset-0 pointer-events-none bg-white z-[10] opacity-0" 
+        className="absolute inset-0 pointer-events-none bg-white z-[10] opacity-0"
       />
 
       {/* Neural Minimap Overlay */}
-      <div className="absolute bottom-6 right-6 w-40 h-40 sm:w-48 sm:h-48 rounded-2xl overflow-hidden border border-cyan-500/30 bg-black/80 backdrop-blur-md shadow-[0_0_30px_rgba(6,182,212,0.2)] pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-80">
+      <div className="absolute bottom-6 right-6 w-36 h-36 sm:w-48 sm:h-48 rounded-2xl overflow-hidden border border-cyan-500/30 bg-black/80 backdrop-blur-md shadow-[0_0_30px_rgba(6,182,212,0.2)] pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-80 max-[680px]:hidden">
         <div className="absolute top-2 left-3 z-10 flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
           <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest">Neural_Map</span>
