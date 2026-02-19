@@ -1,3 +1,4 @@
+import { persistBehaviorRecord } from "@/lib/ai/behavior-persistence";
 import { sanitizePlainText } from "@/lib/security";
 
 export type InteractionCategory =
@@ -5,6 +6,7 @@ export type InteractionCategory =
   | "HFT"
   | "MARKET"
   | "BEHAVIOR"
+  | "NAVIGATION"
   | "INTELLIGENCE"
   | "DISCORD"
   | "IMAGE";
@@ -14,7 +16,14 @@ type InteractionConsent = {
   training?: boolean;
 };
 
-type InteractionSource = "ai_chat" | "ai_custom" | "ai_image" | "intelligence" | "discord" | "system";
+type InteractionSource =
+  | "ai_chat"
+  | "ai_custom"
+  | "ai_image"
+  | "ai_navigator"
+  | "intelligence"
+  | "discord"
+  | "system";
 
 type InteractionMetadataValue = string | number | boolean;
 
@@ -85,6 +94,7 @@ const CATEGORY_KEYS: InteractionCategory[] = [
   "HFT",
   "MARKET",
   "BEHAVIOR",
+  "NAVIGATION",
   "INTELLIGENCE",
   "DISCORD",
   "IMAGE",
@@ -142,6 +152,7 @@ function sanitizeSource(value: unknown): InteractionSource {
   if (value === "ai_chat") return "ai_chat";
   if (value === "ai_custom") return "ai_custom";
   if (value === "ai_image") return "ai_image";
+  if (value === "ai_navigator") return "ai_navigator";
   if (value === "intelligence") return "intelligence";
   if (value === "discord") return "discord";
   return "system";
@@ -353,6 +364,15 @@ export async function ingestBehavior(log: InteractionLog): Promise<IngestionResu
   store.records.push(record);
   ingestIntoProfile(record, store);
   enforceStoreLimit(store);
+
+  try {
+    await persistBehaviorRecord(record);
+  } catch (error) {
+    console.warn(
+      "Behavior persistence fallback to memory store:",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
 
   return {
     accepted: true,

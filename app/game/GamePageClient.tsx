@@ -1,25 +1,26 @@
 "use client";
 
+import { WalletButton } from "@/components/counter/WalletButton";
 import { GameAudio } from "@/components/game/GameAudio";
 import { GameHUD } from "@/components/game/GameHUD";
 import { HyperboreaGame } from "@/components/game/HyperboreaGame";
 import { NFTMintPanel } from "@/components/game/NFTMintPanel";
 import { AdSenseBlock } from "@/components/monetization/AdSenseBlock";
 import { PremiumUpgrade } from "@/components/monetization/PremiumUpgrade";
-import { WalletButton } from "@/components/counter/WalletButton";
-import { generateDefaultLevel001 } from "@/lib/game/level-generator";
-import type {
-  ArtifactCollectionEvent,
-  GameRunSummary,
-  GameScoreSnapshot,
-  HyperboreaLevelDefinition,
-} from "@/lib/game/level-types";
-import { isHyperboreaLevelDefinition } from "@/lib/game/level-types";
-import type { LeaderboardEntry, LeaderboardSubmission } from "@/lib/game/leaderboard-types";
 import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { trackEvent } from "@/lib/analytics";
+import type { LeaderboardEntry, LeaderboardSubmission } from "@/lib/game/leaderboard-types";
+import { generateDefaultLevel001 } from "@/lib/game/level-generator";
+import type {
+    ArtifactCollectionEvent,
+    GameRunSummary,
+    GameScoreSnapshot,
+    HyperboreaLevelDefinition,
+} from "@/lib/game/level-types";
+import { isHyperboreaLevelDefinition } from "@/lib/game/level-types";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
     Gamepad2,
     HelpCircle,
@@ -36,7 +37,6 @@ import {
 } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 
 type ControlAction = "forward" | "backward" | "turn_left" | "turn_right" | "use";
 
@@ -73,6 +73,7 @@ function sortLeaderboard(entries: LeaderboardEntry[]) {
 export default function GamePage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [gameRuntimeError, setGameRuntimeError] = useState<string | null>(null);
   const [gameSession, setGameSession] = useState(0);
   const [sessionId, setSessionId] = useState(createSessionId);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -146,6 +147,33 @@ export default function GamePage() {
       const played = localStorage.getItem("hyperborea_played") === "true";
       setHasPlayedBefore(played);
     }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return;
+    }
+
+    const root = document.documentElement;
+    const updateViewportVars = () => {
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+      root.style.setProperty("--hyperborea-vh", `${Math.max(viewportHeight, 1) * 0.01}px`);
+      root.style.setProperty("--hyperborea-vw", `${Math.max(viewportWidth, 1) * 0.01}px`);
+    };
+
+    updateViewportVars();
+    window.addEventListener("resize", updateViewportVars);
+    window.addEventListener("orientationchange", updateViewportVars);
+    window.visualViewport?.addEventListener("resize", updateViewportVars);
+    window.visualViewport?.addEventListener("scroll", updateViewportVars);
+
+    return () => {
+      window.removeEventListener("resize", updateViewportVars);
+      window.removeEventListener("orientationchange", updateViewportVars);
+      window.visualViewport?.removeEventListener("resize", updateViewportVars);
+      window.visualViewport?.removeEventListener("scroll", updateViewportVars);
+    };
   }, []);
 
   useEffect(() => {
@@ -425,6 +453,7 @@ export default function GamePage() {
   const handlePlayClick = () => {
     releaseAllMovementControls();
     trackEvent.gameStart();
+    setGameRuntimeError(null);
     setIsPlaying(true);
     setIsPaused(false);
     setGameSession((value) => value + 1);
@@ -614,11 +643,13 @@ export default function GamePage() {
 
   if (isPlaying) {
     return (
-      <div className="fixed inset-0 w-screen h-screen bg-black overflow-hidden select-none touch-none">
+      <div
+        className="fixed inset-0 w-screen min-h-[100svh] h-[calc(var(--hyperborea-vh,1vh)*100)] bg-black overflow-hidden select-none touch-none"
+      >
         {/* Initialization Overlay */}
         <AnimatePresence>
           {levelLoadState === "loading" && (
-            <motion.div 
+            <motion.div
               exit={{ opacity: 0 }}
               className="absolute inset-0 z-[100] bg-[#0a1020] flex flex-col items-center justify-center"
             >
@@ -654,8 +685,39 @@ export default function GamePage() {
             levelDefinition={activeLevel}
             sessionId={sessionId}
             isPaused={isPaused}
+            onRuntimeError={(message) => {
+              setGameRuntimeError(message);
+              setIsPaused(true);
+            }}
           />
         </div>
+
+        {gameRuntimeError && (
+          <div className="theme-overlay-shell absolute inset-0 z-40 flex items-center justify-center p-4 pointer-events-auto">
+            <div className="theme-panel max-w-xl w-full p-6 text-center">
+              <h2 className="text-xl font-bold text-red-300 mb-3">Rendering Error Detected</h2>
+              <p className="text-sm text-[#d7e2f3] mb-4">
+                {gameRuntimeError}
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRestart}
+                  className="theme-cta theme-cta--loud theme-cta--compact px-4 py-2"
+                >
+                  Retry Level
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExit}
+                  className="theme-cta theme-cta--muted theme-cta--compact px-4 py-2"
+                >
+                  Exit to Menu
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Game HUD Overlay */}
         <GameHUD
@@ -673,7 +735,7 @@ export default function GamePage() {
         />
 
         {/* Central score ribbon for instant readability on all devices */}
-        <div className="absolute top-2 sm:top-4 left-1/2 z-20 w-[min(98vw,860px)] -translate-x-1/2 px-1 sm:px-2 pointer-events-none">
+        <div className="absolute top-[max(0.4rem,env(safe-area-inset-top))] sm:top-4 left-1/2 z-20 w-[min(98vw,860px)] -translate-x-1/2 px-1 sm:px-2 pointer-events-none">
           <div className="theme-floating-panel theme-floating-panel--info px-2 py-1.5 sm:px-3 sm:py-2 bg-black/40 backdrop-blur-sm">
             <div className="grid grid-cols-3 gap-1 text-[9px] sm:grid-cols-6 sm:text-sm">
               <div className="rounded border border-cyan-500/30 bg-black/45 px-2 py-1 text-cyan-100">
@@ -709,12 +771,11 @@ export default function GamePage() {
               </div>
             </div>
             <div className="mt-2">
-              <div className="h-2 overflow-hidden rounded-full bg-emerald-950/60">
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-400 via-cyan-300 to-emerald-400 transition-all duration-300"
-                  style={{ width: `${Math.max(0, Math.min(utilityProgressPercent, 100))}%` }}
-                />
-              </div>
+              <progress
+                className="h-2 w-full overflow-hidden rounded-full bg-emerald-950/60 [&::-webkit-progress-bar]:bg-emerald-950/60 [&::-webkit-progress-value]:bg-gradient-to-r [&::-webkit-progress-value]:from-emerald-400 [&::-webkit-progress-value]:via-cyan-300 [&::-webkit-progress-value]:to-emerald-400 [&::-moz-progress-bar]:bg-emerald-400"
+                value={Math.max(0, Math.min(utilityProgressPercent, 100))}
+                max={100}
+              />
               <div className="mt-1 text-[11px] text-emerald-200/90">
                 {pointsToNextToken} utility pts to next projected{" "}
                 {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"} reward unit
@@ -732,12 +793,12 @@ export default function GamePage() {
         </div>
 
         {/* Audio Control */}
-        <div className="absolute bottom-4 right-4 pointer-events-auto z-20">
+        <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-4 pointer-events-auto z-20">
           <GameAudio audioUrl="/hyperborea-ambient.mp3" autoPlay />
         </div>
 
         {/* Session + Level Status */}
-        <div className="absolute top-4 right-4 z-20 hidden w-80 max-w-[calc(100vw-1.5rem)] space-y-2 pointer-events-none sm:block">
+        <div className="absolute top-[max(0.6rem,env(safe-area-inset-top))] right-4 z-20 hidden w-80 max-w-[calc(100vw-1.5rem)] space-y-2 pointer-events-none sm:block max-[900px]:hidden">
           {activeLevel && (
             <div className="theme-floating-panel theme-floating-panel--success p-3 text-xs sm:text-sm">
               <div className="font-bold text-emerald-300">{activeLevel.name}</div>
@@ -802,7 +863,7 @@ export default function GamePage() {
         </div>
 
         {/* Game Controls */}
-        <div className="absolute bottom-4 left-4 flex gap-2 pointer-events-auto z-20">
+        <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-4 flex gap-2 pointer-events-auto z-20">
           <button
             onClick={togglePause}
             className="theme-cta theme-cta--secondary theme-cta--compact px-4 py-2 backdrop-blur-sm flex items-center gap-2"
@@ -830,7 +891,7 @@ export default function GamePage() {
         </div>
 
         {/* OAuth + Web5 Controls */}
-        <div className="absolute top-4 left-4 sm:left-auto sm:right-[22rem] z-20 pointer-events-auto">
+        <div className="absolute top-[max(0.6rem,env(safe-area-inset-top))] left-4 sm:left-auto sm:right-[22rem] z-20 pointer-events-auto max-[900px]:hidden">
           <div className="theme-floating-panel theme-floating-panel--success px-3 py-2 text-xs text-emerald-100 space-y-2 min-w-[220px]">
             <div className="font-semibold text-emerald-300">Leaderboard Profile</div>
             <input
@@ -986,7 +1047,7 @@ export default function GamePage() {
               <span className="text-lg">↑</span>
             </button>
             <div />
-            
+
             <button
               type="button"
               {...getHoldButtonHandlers("turn_left")}
@@ -1020,8 +1081,8 @@ export default function GamePage() {
               aria-label="Use or interact"
               onClick={() => emitControlAction("use", true)}
               className={`w-20 h-20 rounded-full flex items-center justify-center text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all [touch-action:manipulation] ${
-                isInteractionReady 
-                  ? "bg-emerald-500 text-white border-4 border-emerald-300 animate-pulse scale-110 shadow-[0_0_20px_rgba(16,185,129,0.5)]" 
+                isInteractionReady
+                  ? "bg-emerald-500 text-white border-4 border-emerald-300 animate-pulse scale-110 shadow-[0_0_20px_rgba(16,185,129,0.5)]"
                   : "bg-white/10 text-white/50 border-2 border-white/10 active:scale-95"
               }`}
             >
@@ -1128,6 +1189,8 @@ export default function GamePage() {
                 </h2>
                 <button
                   onClick={() => setShowTutorial(false)}
+                  aria-label="Close tutorial"
+                  title="Close tutorial"
                   className="text-[#99aebb] hover:text-white transition-colors"
                 >
                   <X className="w-6 h-6" />
@@ -1458,6 +1521,8 @@ export default function GamePage() {
                 </h2>
                 <button
                   onClick={() => setShowTutorial(false)}
+                  aria-label="Close tutorial"
+                  title="Close tutorial"
                   className="text-[#9db2be] hover:text-white transition-colors"
                 >
                   <X className="w-6 h-6" />

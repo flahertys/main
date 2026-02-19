@@ -1,7 +1,7 @@
 'use client';
 
-import { Zap, Info } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Info, Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface GameHUDProps {
   energy: number;
@@ -19,17 +19,47 @@ interface GameHUDProps {
 
 const POWER_UP_META: Record<
   string,
-  { label: string; icon: string; borderColor: string }
+  { label: string; icon: string; borderClass: string }
 > = {
-  odins_shield: { label: "Odin Shield", icon: "🛡️", borderColor: "#00ddff" },
-  thors_magnet: { label: "Thor Magnet", icon: "🧲", borderColor: "#ff00ff" },
-  freyas_double: { label: "Freyja Double", icon: "✨", borderColor: "#ff8800" },
-  speed: { label: "Speed", icon: "⚡", borderColor: "#00ffff" },
-  magnet: { label: "Magnet", icon: "🧲", borderColor: "#ffff00" },
-  double: { label: "Double", icon: "✨", borderColor: "#ff8800" },
+  odins_shield: { label: "Odin Shield", icon: "🛡️", borderClass: "border-cyan-400" },
+  thors_magnet: { label: "Thor Magnet", icon: "🧲", borderClass: "border-fuchsia-400" },
+  freyas_double: { label: "Freyja Double", icon: "✨", borderClass: "border-orange-400" },
+  speed: { label: "Speed", icon: "⚡", borderClass: "border-cyan-300" },
+  magnet: { label: "Magnet", icon: "🧲", borderClass: "border-yellow-300" },
+  double: { label: "Double", icon: "✨", borderClass: "border-orange-400" },
 };
 
 const UTILITY_POINTS_PER_TOKEN_UNIT = 25;
+
+const WIDTH_CLASS_BY_STEP: Record<number, string> = {
+  0: "w-0",
+  5: "w-[5%]",
+  10: "w-[10%]",
+  15: "w-[15%]",
+  20: "w-1/5",
+  25: "w-1/4",
+  30: "w-[30%]",
+  35: "w-[35%]",
+  40: "w-2/5",
+  45: "w-[45%]",
+  50: "w-1/2",
+  55: "w-[55%]",
+  60: "w-3/5",
+  65: "w-[65%]",
+  70: "w-[70%]",
+  75: "w-3/4",
+  80: "w-4/5",
+  85: "w-[85%]",
+  90: "w-[90%]",
+  95: "w-[95%]",
+  100: "w-full",
+};
+
+function getWidthClass(percent: number) {
+  const clamped = Math.max(0, Math.min(percent, 100));
+  const step = Math.round(clamped / 5) * 5;
+  return WIDTH_CLASS_BY_STEP[step] ?? "w-0";
+}
 
 function formatElapsed(seconds: number) {
   const safeSeconds = Math.max(0, Math.floor(seconds));
@@ -68,6 +98,11 @@ export function GameHUD({
   const utilityProgressPercent = hasUtilityRewards
     ? Math.max(0, Math.min((utilityRemainder / UTILITY_POINTS_PER_TOKEN_UNIT) * 100, 100))
     : 0;
+  const energyWidthClass = getWidthClass(energyPercentage);
+  const utilityWidthClass = getWidthClass(utilityProgressPercent);
+  const objectiveWidthClass = getWidthClass(
+    typeof objectiveProgress === "number" ? Math.max(0, Math.min(objectiveProgress, 100)) : 0,
+  );
   const [showEnergyPulse, setShowEnergyPulse] = useState(false);
   const [showCloverPulse, setShowCloverPulse] = useState(false);
   const [lastEnergy, setLastEnergy] = useState(energy);
@@ -105,7 +140,7 @@ export function GameHUD({
   }, [cloversCollected]);
 
   return (
-    <div className="absolute top-0 left-0 right-0 p-1 sm:p-4 pointer-events-none z-10">
+    <div className="absolute top-[max(0.25rem,env(safe-area-inset-top))] left-0 right-0 p-1 sm:p-4 pointer-events-none z-10">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-wrap gap-1.5 mb-1 sm:mb-2">
           {/* Web5 Vault Status - Compact on mobile */}
@@ -140,8 +175,7 @@ export function GameHUD({
                   portalUnlocked
                     ? 'bg-gradient-to-r from-cyan-400 to-purple-500 animate-pulse shadow-lg shadow-cyan-500/50'
                     : 'bg-gradient-to-r from-purple-500 to-pink-500'
-                }`}
-                style={{ width: `${energyPercentage}%` }}
+                } ${energyWidthClass}`}
               />
             </div>
           </div>
@@ -184,8 +218,7 @@ export function GameHUD({
               </div>
               <div className="mt-1.5 h-1 sm:h-2 rounded-full bg-emerald-950/60 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-emerald-400 via-cyan-300 to-emerald-400 transition-all duration-300 shadow-[0_0_8px_rgba(52,211,153,0.4)]"
-                  style={{ width: `${utilityProgressPercent}%` }}
+                  className={`h-full bg-gradient-to-r from-emerald-400 via-cyan-300 to-emerald-400 transition-all duration-300 shadow-[0_0_8px_rgba(52,211,153,0.4)] ${utilityWidthClass}`}
                 />
               </div>
             </div>
@@ -202,8 +235,7 @@ export function GameHUD({
                   <>
                     <div className="h-1.5 sm:h-2 mt-1 overflow-hidden rounded-full bg-cyan-950/60">
                       <div
-                        className="h-full bg-gradient-to-r from-cyan-400 to-blue-300 transition-all duration-300"
-                        style={{ width: `${Math.max(0, Math.min(objectiveProgress, 100))}%` }}
+                        className={`h-full bg-gradient-to-r from-cyan-400 to-blue-300 transition-all duration-300 ${objectiveWidthClass}`}
                       />
                     </div>
                   </>
@@ -227,7 +259,7 @@ export function GameHUD({
         )}
 
         {/* Controls Info - Collapsible on Mobile */}
-        <div className="mt-2 sm:mt-4 bg-black/70 backdrop-blur-sm border border-gray-700 rounded-lg p-2 sm:p-3 max-w-md">
+        <div className="mt-2 sm:mt-4 bg-black/70 backdrop-blur-sm border border-gray-700 rounded-lg p-2 sm:p-3 max-w-md max-[680px]:hidden">
           <div className="text-gray-300 text-xs sm:text-sm space-y-1">
             <div className="hidden sm:flex items-center gap-2">
               <span className="text-purple-400 font-mono font-bold">W/S + A/D</span>
@@ -250,7 +282,7 @@ export function GameHUD({
 
         {/* Wallet Status */}
         {!walletConnected && (
-          <div className="mt-2 sm:mt-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-2 sm:p-3 max-w-md">
+          <div className="mt-2 sm:mt-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-2 sm:p-3 max-w-md max-[680px]:hidden">
             <div className="text-yellow-300 text-xs sm:text-sm">
               <strong>💰 Connect Wallet</strong> to unlock NFT minting and rewards!
             </div>
@@ -259,19 +291,18 @@ export function GameHUD({
 
         {/* Active Power-Ups */}
         {activePowerUps.length > 0 && (
-          <div className="mt-2 sm:mt-4 flex flex-wrap gap-2 max-w-md">
+          <div className="mt-2 sm:mt-4 flex flex-wrap gap-2 max-w-md max-[680px]:hidden">
             {activePowerUps.map((powerUp, index) => {
               const powerUpMeta = POWER_UP_META[powerUp.type] ?? {
                 label: powerUp.type,
                 icon: "✨",
-                borderColor: "#ff8800",
+                borderClass: "border-orange-400",
               };
 
               return (
                 <div
                   key={index}
-                  className="bg-black/90 backdrop-blur-sm border rounded-lg p-2 flex items-center gap-2 animate-pulse"
-                  style={{ borderColor: powerUpMeta.borderColor }}
+                  className={`bg-black/90 backdrop-blur-sm border rounded-lg p-2 flex items-center gap-2 animate-pulse ${powerUpMeta.borderClass}`}
                 >
                   <span className="text-xl">{powerUpMeta.icon}</span>
                   <div className="text-white text-xs">
