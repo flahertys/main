@@ -13,7 +13,7 @@ Last Updated: 2026-02-19
 - [x] Checkpoint 7: Provider adapter layer (mock/vendor modes) integrated
 - [x] Checkpoint 8: Watchlist + persistent alert history APIs integrated
 - [x] Checkpoint 9: Discord emitters + tier channel routing integrated
-- [ ] Checkpoint 10: Phase 2 QA, CI pass, commit/push, deployment verification
+- [x] Checkpoint 10: Phase 2 QA, CI pass, commit/push, deployment verification
 
 ## Progress Notes
 
@@ -111,6 +111,16 @@ Last Updated: 2026-02-19
   - `components/intelligence/WatchlistPanel.tsx`
 - Updated hub route cards and quick links for watchlist workflow.
 
+### 2026-02-19 - Phase 2 Build + Push Status
+- CI pipeline passed (`npm run pipeline:ci`) after Phase 2 integration.
+- Commit pushed to `origin/main`: `717a3b7`.
+- Deployment verification:
+  - `https://www.tradehax.net/intelligence/watchlist` -> `200`
+  - `https://www.tradehax.net/api/intelligence/alerts` -> `200`
+  - `https://www.tradehax.net/api/intelligence/provider` -> `200`
+  - `https://www.tradehaxai.tech/intelligence/watchlist` -> `200`
+- Status: Phase 2 complete.
+
 ## Active TODO
 
 - [x] Add API endpoints with secure origin/rate limits.
@@ -122,8 +132,8 @@ Last Updated: 2026-02-19
 - [x] Build user watchlists with alert persistence and evaluation flows.
 - [x] Add role-based Discord routing + webhook emission support.
 - [x] Add `/intelligence/watchlist` UI flow.
-- [ ] Run `npm run pipeline:ci`.
-- [ ] Commit and push.
+- [x] Run `npm run pipeline:ci`.
+- [x] Commit and push.
 
 ## Post-Phase TODO
 
