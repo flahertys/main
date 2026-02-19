@@ -9,7 +9,7 @@ Last Updated: 2026-02-19
 - [x] Checkpoint 3: API routes for flow/dark-pool/politics/crypto/news live
 - [x] Checkpoint 4: Intelligence UI routes and responsive dashboards live
 - [x] Checkpoint 5: AI copilot + YouTube/Discord content bridge live
-- [ ] Checkpoint 6: QA pass, CI pass, deployment verification
+- [x] Checkpoint 6: QA pass, CI pass, deployment verification
 
 ## Progress Notes
 
@@ -65,9 +65,11 @@ Last Updated: 2026-02-19
 
 ### 2026-02-19 - Build + Push Status
 - CI pipeline passed (`npm run pipeline:ci`) with zero lint/type errors.
-- Commit pushed to `origin/main`: `6af3869`.
-- Production check after push still returned `404` for `/intelligence` and `/api/intelligence/flow`.
-- Status: waiting for Vercel deployment to complete or manual redeploy trigger.
+- Commit pushed to `origin/main`: `358c303`.
+- Deployment verified live:
+  - `https://www.tradehax.net/intelligence` -> `200`
+  - `https://www.tradehax.net/api/intelligence/flow` -> `200`
+- Status: checkpoint complete.
 
 ## Active TODO
 
