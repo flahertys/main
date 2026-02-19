@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import crypto from "node:crypto";
+import { resolveAdminAccess } from "@/lib/admin-access";
 
 function sanitizeUserId(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 64);
@@ -24,8 +25,23 @@ function getRequestIp(request: Request) {
 
 function getAnonId(request: Request) {
   const ip = getRequestIp(request);
-  const hashed = crypto.createHash("sha256").update(ip).digest("hex").slice(0, 16);
+  const agent = request.headers.get("user-agent") ?? "unknown-agent";
+  const acceptLang = request.headers.get("accept-language") ?? "unknown-lang";
+  const seed = `${ip}|${agent}|${acceptLang}`;
+  const hashed = crypto.createHash("sha256").update(seed).digest("hex").slice(0, 16);
   return `anon_${hashed}`;
+}
+
+function shouldTrustDirectUserId(request: NextRequest) {
+  if (process.env.TRADEHAX_ALLOW_CLIENT_USER_ID_OVERRIDE === "true") {
+    return true;
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    return true;
+  }
+
+  return resolveAdminAccess(request).allowed;
 }
 
 export async function resolveRequestUserId(
@@ -37,7 +53,7 @@ export async function resolveRequestUserId(
     safeString(request.headers.get("x-tradehax-user-id")) ??
     safeString(request.headers.get("x-user-id"));
 
-  if (direct) {
+  if (direct && shouldTrustDirectUserId(request)) {
     return direct;
   }
 

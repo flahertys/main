@@ -3,16 +3,31 @@
  * Get current environment context (market data, AI system prompt, etc.)
  */
 
+import { enforceRateLimit, enforceTrustedOrigin, sanitizePlainText } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
+  const originBlock = enforceTrustedOrigin(request);
+  if (originBlock) {
+    return originBlock;
+  }
+
+  const rateLimit = enforceRateLimit(request, {
+    keyPrefix: "environment:context:get",
+    max: 60,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) {
+    return rateLimit.response;
+  }
+
   try {
-    const sessionId = request.nextUrl.searchParams.get("sessionId");
+    const sessionId = sanitizePlainText(request.nextUrl.searchParams.get("sessionId") || "", 80);
 
     if (!sessionId) {
       return NextResponse.json(
-        { error: "sessionId query parameter is required" },
-        { status: 400 },
+        { ok: false, error: "sessionId query parameter is required" },
+        { status: 400, headers: rateLimit.headers },
       );
     }
 
@@ -51,11 +66,12 @@ export async function GET(request: NextRequest) {
       ok: true,
       context,
       timestamp: new Date().toISOString(),
-    });
+    }, { headers: rateLimit.headers });
   } catch (error) {
     console.error("Context fetch error:", error);
     return NextResponse.json(
       {
+        ok: false,
         error: error instanceof Error ? error.message : "Fetch failed",
       },
       { status: 500 },

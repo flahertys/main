@@ -3,7 +3,12 @@
  * Create a new TradeHax bot
  */
 
-import { getLLMClient } from "@/lib/ai/hf-server";
+import {
+  enforceRateLimit,
+  enforceTrustedOrigin,
+  isJsonContentType,
+  sanitizePlainText,
+} from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 
 interface CreateBotRequest {
@@ -14,21 +19,65 @@ interface CreateBotRequest {
 }
 
 export async function POST(request: NextRequest) {
+  const originBlock = enforceTrustedOrigin(request);
+  if (originBlock) {
+    return originBlock;
+  }
+
+  if (!isJsonContentType(request)) {
+    return NextResponse.json({ ok: false, error: "Expected JSON body." }, { status: 415 });
+  }
+
+  const rateLimit = enforceRateLimit(request, {
+    keyPrefix: "trading:bot:create:post",
+    max: 30,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) {
+    return rateLimit.response;
+  }
+
   try {
     const body: CreateBotRequest = await request.json();
+    const name = sanitizePlainText(String(body.name ?? ""), 64);
+    const strategy = String(body.strategy ?? "");
+    const riskLevel = String(body.riskLevel ?? "");
+    const allocatedCapital =
+      typeof body.allocatedCapital === "number"
+        ? body.allocatedCapital
+        : Number.parseFloat(String(body.allocatedCapital ?? "NaN"));
 
     // Validate input
-    if (!body.name || !body.strategy || !body.riskLevel || !body.allocatedCapital) {
+    if (!name || !strategy || !riskLevel || !Number.isFinite(allocatedCapital)) {
       return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 },
+        { ok: false, error: "Missing required fields" },
+        { status: 400, headers: rateLimit.headers },
       );
     }
 
-    if (body.allocatedCapital < 0.1 || body.allocatedCapital > 1000) {
+    if (
+      strategy !== "scalping" &&
+      strategy !== "swing" &&
+      strategy !== "long-term" &&
+      strategy !== "arbitrage"
+    ) {
       return NextResponse.json(
-        { error: "Allocated capital must be between 0.1 and 1000 SOL" },
-        { status: 400 },
+        { ok: false, error: "Invalid strategy." },
+        { status: 400, headers: rateLimit.headers },
+      );
+    }
+
+    if (riskLevel !== "low" && riskLevel !== "medium" && riskLevel !== "high") {
+      return NextResponse.json(
+        { ok: false, error: "Invalid riskLevel." },
+        { status: 400, headers: rateLimit.headers },
+      );
+    }
+
+    if (allocatedCapital < 0.1 || allocatedCapital > 1000) {
+      return NextResponse.json(
+        { ok: false, error: "Allocated capital must be between 0.1 and 1000 SOL" },
+        { status: 400, headers: rateLimit.headers },
       );
     }
 
@@ -36,10 +85,10 @@ export async function POST(request: NextRequest) {
     const botId = `bot-${Date.now()}`;
     const bot = {
       id: botId,
-      name: body.name,
-      strategy: body.strategy,
-      riskLevel: body.riskLevel,
-      allocatedCapital: body.allocatedCapital,
+      name,
+      strategy,
+      riskLevel,
+      allocatedCapital,
       enabled: true,
       executedTrades: 0,
       profitLoss: 0,
@@ -53,12 +102,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       bot,
-      message: `Bot "${body.name}" created successfully`,
-    });
+      message: `Bot "${name}" created successfully`,
+    }, { headers: rateLimit.headers });
   } catch (error) {
     console.error("Bot creation error:", error);
     return NextResponse.json(
       {
+        ok: false,
         error: error instanceof Error ? error.message : "Bot creation failed",
       },
       { status: 500 },

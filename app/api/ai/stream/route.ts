@@ -4,6 +4,12 @@
  */
 
 import { getLLMClient } from "@/lib/ai/hf-server";
+import {
+  enforceRateLimit,
+  enforceTrustedOrigin,
+  isJsonContentType,
+  sanitizePlainText,
+} from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 
 interface StreamRequest {
@@ -11,11 +17,33 @@ interface StreamRequest {
 }
 
 export async function POST(request: NextRequest) {
+  const originBlock = enforceTrustedOrigin(request);
+  if (originBlock) {
+    return originBlock;
+  }
+
+  if (!isJsonContentType(request)) {
+    return NextResponse.json({ ok: false, error: "Expected JSON body." }, { status: 415 });
+  }
+
+  const rateLimit = enforceRateLimit(request, {
+    keyPrefix: "ai:stream",
+    max: 20,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) {
+    return rateLimit.response;
+  }
+
   try {
     const body: StreamRequest = await request.json();
+    const prompt = sanitizePlainText(String(body.prompt ?? ""), 4_000);
 
-    if (!body.prompt) {
-      return new Response("Prompt is required", { status: 400 });
+    if (!prompt) {
+      return NextResponse.json(
+        { ok: false, error: "Prompt is required" },
+        { status: 400, headers: rateLimit.headers },
+      );
     }
 
     const encoder = new TextEncoder();
@@ -31,7 +59,7 @@ export async function POST(request: NextRequest) {
           );
 
           // Stream text chunks
-          for await (const chunk of client.generateStream(body.prompt)) {
+          for await (const chunk of client.generateStream(prompt)) {
             const data = JSON.stringify({
               type: "token",
               text: chunk,
@@ -63,11 +91,13 @@ export async function POST(request: NextRequest) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
+        ...rateLimit.headers,
       },
     });
   } catch (error) {
     return NextResponse.json(
       {
+        ok: false,
         error: error instanceof Error ? error.message : "Stream failed",
       },
       { status: 500 },

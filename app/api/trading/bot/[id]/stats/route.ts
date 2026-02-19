@@ -3,6 +3,7 @@
  * Get bot statistics and performance
  */
 
+import { enforceRateLimit, enforceTrustedOrigin, sanitizePlainText } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 
 interface BotStats {
@@ -18,13 +19,28 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const originBlock = enforceTrustedOrigin(request);
+  if (originBlock) {
+    return originBlock;
+  }
+
+  const rateLimit = enforceRateLimit(request, {
+    keyPrefix: "trading:bot:stats:get",
+    max: 60,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.allowed) {
+    return rateLimit.response;
+  }
+
   try {
     const { id: botId } = await params;
+    const sanitizedBotId = sanitizePlainText(botId || "", 64).replace(/[^a-zA-Z0-9_-]/g, "");
 
-    if (!botId) {
+    if (!sanitizedBotId) {
       return NextResponse.json(
-        { error: "Bot ID is required" },
-        { status: 400 },
+        { ok: false, error: "Bot ID is required" },
+        { status: 400, headers: rateLimit.headers },
       );
     }
 
@@ -40,14 +56,15 @@ export async function GET(
 
     return NextResponse.json({
       ok: true,
-      botId,
+      botId: sanitizedBotId,
       stats,
       lastUpdated: new Date().toISOString(),
-    });
+    }, { headers: rateLimit.headers });
   } catch (error) {
     console.error("Stats fetch error:", error);
     return NextResponse.json(
       {
+        ok: false,
         error: error instanceof Error ? error.message : "Stats fetch failed",
       },
       { status: 500 },
