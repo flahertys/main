@@ -8,6 +8,7 @@ import "./globals.css";
 import { ConsentCenter } from "@/components/ai/ConsentCenter";
 import { SiteNavigatorWidget } from "@/components/ai/SiteNavigatorWidget";
 import { SolanaProvider } from "@/components/counter/provider/Solana";
+import { HyperboreaIntroOverlay } from "@/components/intro/HyperboreaIntroOverlay";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ConnectWalletBtn } from "@/components/ui/ConnectWalletBtn";
 import { CyberCursor } from "@/components/ui/CyberCursor";
@@ -135,6 +136,7 @@ export default function RootLayout({
       <body className={`${inter.className} bg-black antialiased`}>
         <AuthProvider>
           <CyberCursor />
+          <HyperboreaIntroOverlay />
           <SolanaProvider>
             <WalletProvider>
               <nav className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-xl border-b border-white/5">
