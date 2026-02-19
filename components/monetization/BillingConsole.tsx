@@ -24,6 +24,17 @@ type Snapshot = {
 };
 
 function defaultUserId() {
+  // Use cryptographically secure randomness for the guest identifier
+  if (typeof window !== "undefined" && window.crypto && window.crypto.getRandomValues) {
+    const bytes = new Uint8Array(8);
+    window.crypto.getRandomValues(bytes);
+    const randomPart = Array.from(bytes)
+      .map((b) => b.toString(36).padStart(2, "0"))
+      .join("")
+      .slice(0, 8);
+    return `guest_${randomPart}`;
+  }
+  // Fallback: still generate something reasonable if crypto is unavailable
   return `guest_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 

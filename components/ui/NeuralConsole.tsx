@@ -14,6 +14,20 @@ export const NeuralConsole = () => {
   const logEndRef = useRef<HTMLDivElement>(null);
   const [userId, setUserId] = useState("guest_terminal");
 
+  function generateGuestUserId() {
+    if (typeof window !== "undefined" && window.crypto && window.crypto.getRandomValues) {
+      const bytes = new Uint8Array(8);
+      window.crypto.getRandomValues(bytes);
+      const randomPart = Array.from(bytes)
+        .map((b) => b.toString(36).padStart(2, "0"))
+        .join("")
+        .slice(0, 8);
+      return `guest_${randomPart}`;
+    }
+    // Fallback: retain previous behavior if crypto is unavailable
+    return `guest_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  }
+
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
@@ -24,7 +38,7 @@ export const NeuralConsole = () => {
     const resolved =
       stored && stored.trim().length > 0
         ? stored
-        : `guest_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+        : generateGuestUserId();
     window.localStorage.setItem("tradehax_user_id", resolved);
     setUserId(resolved);
   }, []);
