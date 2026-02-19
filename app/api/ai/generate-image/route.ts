@@ -10,6 +10,7 @@ import {
   isJsonContentType,
   sanitizePlainText,
 } from "@/lib/security";
+import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { NextRequest, NextResponse } from "next/server";
 
 interface ImageRequest {
@@ -179,6 +180,30 @@ export async function POST(request: NextRequest) {
 
     const mimeType = contentType.split(";")[0] || "image/png";
     const dataUrl = `data:${mimeType};base64,${imageBuffer.toString("base64")}`;
+
+    try {
+      await ingestBehavior({
+        timestamp: new Date().toISOString(),
+        category: "IMAGE",
+        source: "ai_image",
+        prompt,
+        response: `IMAGE_GENERATED model=${model} style=${style} ${width}x${height}`,
+        metadata: {
+          route: "/api/ai/generate-image",
+          model,
+          style,
+          width,
+          height,
+          open_mode: openMode,
+        },
+        consent: {
+          analytics: true,
+          training: false,
+        },
+      });
+    } catch (ingestionError) {
+      console.warn("Image generation ingestion skipped:", ingestionError);
+    }
 
     return NextResponse.json({
       ok: true,

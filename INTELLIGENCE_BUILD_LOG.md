@@ -21,6 +21,7 @@ Last Updated: 2026-02-19
 - [x] Checkpoint 15: Live WebSocket ingestion scaffold integrated (overlay + stream APIs)
 - [x] Checkpoint 16: Alert SLA metrics engine + Ops dashboard integrated
 - [x] Checkpoint 17: Phase 4 QA, CI pass, commit/push, deployment verification
+- [x] Checkpoint 18: Consent-aware AI ingestion + admin dataset export + Discord/alerts telemetry wiring
 
 ## Progress Notes
 
@@ -224,6 +225,24 @@ Last Updated: 2026-02-19
   - Live status endpoint returns ingestion state (`enabled=false` by default until ws env vars are set).
 - Status: Phase 4 complete.
 
+### 2026-02-19 - Checkpoint 18 Complete
+- Added reusable admin access utility:
+  - `lib/admin-access.ts`
+  - Supports `TRADEHAX_ADMIN_KEY` and optional `TRADEHAX_SUPERUSER_CODE`.
+- Upgraded ingestion engine:
+  - `lib/ai/data-ingestion.ts`
+  - Added consent-aware ingestion, pseudonymous user mapping, redaction, dataset export, and bounded memory retention.
+- Added admin dataset endpoint:
+  - `/api/ai/admin/dataset`
+  - JSON summary mode + JSONL export mode (admin-gated).
+- Wired ingestion telemetry into:
+  - `/api/ai/chat`
+  - `/api/ai/custom`
+  - `/api/ai/generate-image`
+  - `lib/intelligence/discord.ts` dispatch lifecycle
+  - `/api/intelligence/alerts` evaluation workflow
+- Updated env templates with new ingestion/admin controls.
+
 ## Active TODO
 
 - [x] Add API endpoints with secure origin/rate limits.
@@ -240,6 +259,9 @@ Last Updated: 2026-02-19
 - [x] Add Discord thread routing by strategy/risk profile.
 - [x] Add live ingestion subsystem and stream/status APIs.
 - [x] Add SLA metrics engine and operations dashboard route.
+- [x] Add consent-aware AI ingestion and pseudonymous profile mapping.
+- [x] Add admin-gated dataset export endpoint.
+- [x] Wire ingestion telemetry into AI + intelligence alert/Discord flows.
 - [x] Update `.env.example` and `.env.vercel.production.template` for Phase 3 config.
 - [x] Run `npm run pipeline:ci`.
 - [x] Commit and push.

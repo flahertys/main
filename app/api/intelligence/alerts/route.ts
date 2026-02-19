@@ -2,6 +2,7 @@ import {
   dispatchAlertsToDiscord,
   resolveDiscordRouteForTier,
 } from "@/lib/intelligence/discord";
+import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import {
   evaluateWatchlistAlerts,
   getWatchlistStorageStatus,
@@ -66,6 +67,33 @@ export async function GET(request: NextRequest) {
   const evaluation = evaluate ? await evaluateWatchlistAlerts(userId) : null;
   const alerts = evaluation ? evaluation.alerts.slice(0, limit) : await listAlerts(userId, limit);
   const storage = evaluation?.storage || (await getWatchlistStorageStatus());
+
+  if (evaluation) {
+    try {
+      await ingestBehavior({
+        timestamp: new Date().toISOString(),
+        category: "INTELLIGENCE",
+        source: "intelligence",
+        userId,
+        prompt: `ALERT_EVAL_GET user=${userId}`,
+        response: `ALERT_EVAL_GET_OK newAlerts=${evaluation.newAlerts.length} total=${evaluation.alerts.length}`,
+        metadata: {
+          route: "/api/intelligence/alerts",
+          method: "GET",
+          evaluate: true,
+          tier: subscription.tier,
+          new_alerts: evaluation.newAlerts.length,
+          returned_alerts: alerts.length,
+        },
+        consent: {
+          analytics: true,
+          training: false,
+        },
+      });
+    } catch (ingestionError) {
+      console.warn("Alerts GET ingestion skipped:", ingestionError);
+    }
+  }
 
   return NextResponse.json(
     {
@@ -134,6 +162,36 @@ export async function POST(request: NextRequest) {
         dispatchResult.deliveredAt,
       );
     }
+  }
+
+  try {
+    await ingestBehavior({
+      timestamp: new Date().toISOString(),
+      category: "INTELLIGENCE",
+      source: "intelligence",
+      userId,
+      prompt: `ALERT_EVAL_POST user=${userId}`,
+      response: dispatchToDiscord
+        ? `ALERT_EVAL_POST_OK newAlerts=${newAlerts.length} dispatchOk=${Boolean(dispatchResult?.ok)} delivered=${dispatchResult?.deliveredCount || 0}`
+        : `ALERT_EVAL_POST_OK newAlerts=${newAlerts.length} dispatchSkipped=true`,
+      metadata: {
+        route: "/api/intelligence/alerts",
+        method: "POST",
+        evaluate: shouldEvaluate,
+        tier: subscription.tier,
+        new_alerts: newAlerts.length,
+        returned_alerts: alerts.length,
+        dispatch_to_discord: dispatchToDiscord,
+        dispatch_ok: dispatchResult?.ok ?? false,
+        dispatch_delivered: dispatchResult?.deliveredCount ?? 0,
+      },
+      consent: {
+        analytics: true,
+        training: false,
+      },
+    });
+  } catch (ingestionError) {
+    console.warn("Alerts POST ingestion skipped:", ingestionError);
   }
 
   return NextResponse.json(

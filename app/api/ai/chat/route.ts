@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processNeuralCommand, NeuralQuery } from "@/lib/ai/kernel";
 import { checkCredits, deductCredits } from "@/lib/ai/credit-system";
+import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { getLLMClient } from "@/lib/ai/hf-server";
 import { buildTradeHaxSystemPrompt } from "@/lib/ai/custom-llm/system-prompt";
 import { canConsumeFeature, consumeFeatureUsage, tierSupportsNeuralMode } from "@/lib/monetization/engine";
@@ -55,6 +56,12 @@ function parseNeuralTier(value: unknown): NeuralTier {
     return normalized;
   }
   return "UNCENSORED";
+}
+
+function resolveCategoryForTier(tier: NeuralTier) {
+  if (tier === "HFT_SIGNAL") return "HFT" as const;
+  if (tier === "GUITAR_LESSON") return "GUITAR" as const;
+  return "BEHAVIOR" as const;
 }
 
 function normalizeMessages(raw: unknown) {
@@ -245,6 +252,29 @@ export async function POST(req: NextRequest) {
         kernelResponse = await processNeuralCommand(query);
       }
       response = kernelResponse;
+    }
+
+    try {
+      await ingestBehavior({
+        timestamp: new Date().toISOString(),
+        category: resolveCategoryForTier(neuralTier),
+        source: "ai_chat",
+        userId,
+        prompt: inputMessage,
+        response,
+        metadata: {
+          route: "/api/ai/chat",
+          tier: neuralTier,
+          command_like: commandLike,
+          used_hf: shouldTryHf,
+        },
+        consent: {
+          analytics: true,
+          training: false,
+        },
+      });
+    } catch (ingestionError) {
+      console.warn("AI chat ingestion skipped:", ingestionError);
     }
 
     // 4. Deduct Credits

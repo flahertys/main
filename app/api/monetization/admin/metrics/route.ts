@@ -1,15 +1,7 @@
+import { requireAdminAccess } from "@/lib/admin-access";
 import { getMonetizationMetrics } from "@/lib/monetization/store";
 import { enforceRateLimit, enforceTrustedOrigin } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
-
-function hasAdminAccess(request: NextRequest) {
-  const configuredKey = process.env.TRADEHAX_ADMIN_KEY?.trim();
-  if (!configuredKey) {
-    return process.env.NODE_ENV !== "production";
-  }
-  const provided = request.headers.get("x-tradehax-admin-key")?.trim();
-  return Boolean(provided && provided === configuredKey);
-}
 
 export async function GET(request: NextRequest) {
   const originBlock = enforceTrustedOrigin(request);
@@ -26,11 +18,9 @@ export async function GET(request: NextRequest) {
     return rateLimit.response;
   }
 
-  if (!hasAdminAccess(request)) {
-    return NextResponse.json(
-      { ok: false, error: "Unauthorized." },
-      { status: 403, headers: rateLimit.headers },
-    );
+  const adminGate = requireAdminAccess(request, rateLimit.headers);
+  if (adminGate.response) {
+    return adminGate.response;
   }
 
   return NextResponse.json(

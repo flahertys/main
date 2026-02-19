@@ -1,5 +1,6 @@
 import { IntelligenceAlert } from "@/lib/intelligence/types";
 import { recordAlertDispatchMetric } from "@/lib/intelligence/metrics";
+import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { SubscriptionTier } from "@/lib/monetization/types";
 
 type StrategyProfile = "options_flow" | "dark_pool" | "crypto_flow" | "catalyst_news";
@@ -168,6 +169,48 @@ function buildDiscordMessage(input: {
   ].join("\n");
 }
 
+async function recordDiscordDispatchIngestion(input: {
+  userId: string;
+  tier: SubscriptionTier;
+  ok: boolean;
+  attempted: number;
+  delivered: number;
+  grouped: number;
+  viaFallback?: boolean;
+  webhookConfigured: boolean;
+  error?: string;
+}) {
+  try {
+    await ingestBehavior({
+      timestamp: new Date().toISOString(),
+      category: "DISCORD",
+      source: "discord",
+      userId: input.userId,
+      prompt: `DISCORD_DISPATCH tier=${input.tier} attempted=${input.attempted}`,
+      response: input.ok
+        ? `DISCORD_DISPATCH_OK delivered=${input.delivered} grouped=${input.grouped}`
+        : `DISCORD_DISPATCH_FAILED delivered=${input.delivered} grouped=${input.grouped} error=${input.error || "unknown"}`,
+      metadata: {
+        route: "/api/intelligence/alerts",
+        tier: input.tier,
+        ok: input.ok,
+        attempted: input.attempted,
+        delivered: input.delivered,
+        grouped: input.grouped,
+        webhook_configured: input.webhookConfigured,
+        via_fallback: Boolean(input.viaFallback),
+        error: input.error || "",
+      },
+      consent: {
+        analytics: true,
+        training: false,
+      },
+    });
+  } catch (ingestionError) {
+    console.warn("Discord dispatch ingestion skipped:", ingestionError);
+  }
+}
+
 async function postGroupToDiscord(input: {
   route: IntelligenceDiscordRoute;
   userId: string;
@@ -223,6 +266,16 @@ export async function dispatchAlertsToDiscord(input: {
       attempted: input.alerts.length,
       delivered: 0,
     });
+    await recordDiscordDispatchIngestion({
+      userId: input.userId,
+      tier: input.tier,
+      ok: false,
+      attempted: input.alerts.length,
+      delivered: 0,
+      grouped: 0,
+      webhookConfigured: false,
+      error: "No Discord webhook configured for this tier route.",
+    });
     return {
       ok: false,
       route: {
@@ -245,6 +298,16 @@ export async function dispatchAlertsToDiscord(input: {
       latencyMs: Date.now() - startedAtMs,
       attempted: 0,
       delivered: 0,
+    });
+    await recordDiscordDispatchIngestion({
+      userId: input.userId,
+      tier: input.tier,
+      ok: true,
+      attempted: 0,
+      delivered: 0,
+      grouped: 0,
+      webhookConfigured: true,
+      viaFallback: route.viaFallback,
     });
     return {
       ok: true,
@@ -301,6 +364,17 @@ export async function dispatchAlertsToDiscord(input: {
     latencyMs: Date.now() - startedAtMs,
     attempted: input.alerts.length,
     delivered: deliveredCount,
+  });
+  await recordDiscordDispatchIngestion({
+    userId: input.userId,
+    tier: input.tier,
+    ok: success,
+    attempted: input.alerts.length,
+    delivered: deliveredCount,
+    grouped: groupResults.length,
+    webhookConfigured: true,
+    viaFallback: route.viaFallback,
+    error: success ? undefined : "One or more alert groups failed dispatch.",
   });
   return {
     ok: success,

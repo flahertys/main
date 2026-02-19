@@ -1,5 +1,6 @@
 import { getLLMClient } from "@/lib/ai/hf-server";
 import { buildTradeHaxPrompt } from "@/lib/ai/custom-llm/system-prompt";
+import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { canConsumeFeature, consumeFeatureUsage } from "@/lib/monetization/engine";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
 import { enforceRateLimit, enforceTrustedOrigin, isJsonContentType } from "@/lib/security";
@@ -62,6 +63,27 @@ export async function POST(request: NextRequest) {
 
     const client = getLLMClient();
     const generated = await client.generate(prompt);
+
+    try {
+      await ingestBehavior({
+        timestamp: new Date().toISOString(),
+        category: "BEHAVIOR",
+        source: "ai_custom",
+        userId,
+        prompt: message,
+        response: generated.text,
+        metadata: {
+          route: "/api/ai/custom",
+          lane: body.lane ?? "general",
+        },
+        consent: {
+          analytics: true,
+          training: false,
+        },
+      });
+    } catch (ingestionError) {
+      console.warn("Custom AI ingestion skipped:", ingestionError);
+    }
 
     consumeFeatureUsage(userId, "ai_chat", 1, "api:ai:custom", {
       lane: body.lane ?? "general",

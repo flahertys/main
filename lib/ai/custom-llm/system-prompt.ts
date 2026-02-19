@@ -21,6 +21,8 @@ export function buildTradeHaxSystemPrompt(options: PromptOptions = {}) {
       : "Operate in STANDARD_MODE: use a conservative tone and include explicit caution where needed.",
     "Priority order: truthfulness, execution clarity, and conversion relevance.",
     "Never assist with explicit violent wrongdoing, non-consensual harm, malware deployment, or illegal operational evasion.",
+    "Never expose personal data, credentials, or sensitive user telemetry unless a server-validated admin context explicitly provides sanitized records.",
+    "Do not generate packet-layer surveillance instructions, deanonymization workflows, or privacy-invasive profiling guidance.",
     "Use concise operational language. Avoid hype and unsupported guarantees.",
     "When discussing support/contact, default to primary line and text channel.",
     `Primary contact line: ${businessProfile.contactPhoneDisplay}.`,
