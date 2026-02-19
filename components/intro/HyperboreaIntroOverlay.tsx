@@ -1,13 +1,16 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const INTRO_MS = 13000;
 const REDUCED_MOTION_MS = 4000;
 const IMPACT_WINDOW_MS = 2000;
+const FINAL_CTA_WINDOW_MS = 2000;
 const STORAGE_KEY = "tradehaxHyperboreaIntroSeen";
 const AUDIO_PREF_KEY = "tradehaxHyperboreaIntroSound";
+const INTRO_COMPLETE_EVENT = "tradehax:intro-complete";
 
 const OFFER_PILLARS = [
   "AI Neural Copilot + Trading Intelligence",
@@ -62,10 +65,28 @@ export function HyperboreaIntroOverlay() {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const finishedRef = useRef(false);
 
   const handleFinish = useCallback(() => {
+    if (finishedRef.current) {
+      return;
+    }
+    finishedRef.current = true;
+
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem(STORAGE_KEY, "true");
+
+      window.dispatchEvent(
+        new CustomEvent(INTRO_COMPLETE_EVENT, {
+          detail: {
+            source: "hyperborea_intro",
+            autoOpenNavigator: true,
+            prompt:
+              "I just completed the intro. Give me the best route for my goals and include AI Hub, build services, and booking options.",
+            preferredMode: "navigator",
+          },
+        }),
+      );
     }
     setVisible(false);
   }, []);
@@ -202,6 +223,9 @@ export function HyperboreaIntroOverlay() {
   }, [displayProgress]);
 
   const inImpactWindow = !reducedMotion && progress <= IMPACT_WINDOW_MS / INTRO_MS;
+  const showFinalCtaFrame = reducedMotion
+    ? progress >= 0.65
+    : progress >= (INTRO_MS - FINAL_CTA_WINDOW_MS) / INTRO_MS;
 
   const handleToggleSound = () => {
     if (typeof window === "undefined") return;
@@ -268,6 +292,42 @@ export function HyperboreaIntroOverlay() {
         <p className="mt-4 max-w-3xl text-[11px] uppercase tracking-[0.25em] text-emerald-200/80">
           Multi-Mode Live: AI Hub · Intelligence Streams · Build Studio · Music Lessons · Repair Desk · Hyperborea Game
         </p>
+
+        {showFinalCtaFrame && (
+          <div className="hyperborea-final-cta mt-5 w-full max-w-4xl rounded-2xl border border-cyan-300/35 bg-black/75 p-4 sm:p-5">
+            <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-200/75">Final Action Frame · Choose Your Path</p>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <Link
+                href="/schedule?source=intro&cta=book-lessons"
+                onClick={handleFinish}
+                className="rounded-lg border border-emerald-400/45 bg-emerald-500/20 px-3 py-2 text-xs font-bold uppercase tracking-wide text-emerald-100 transition hover:bg-emerald-500/30"
+              >
+                Book Lessons
+              </Link>
+              <Link
+                href="/services?source=intro&cta=start-build"
+                onClick={handleFinish}
+                className="rounded-lg border border-fuchsia-400/45 bg-fuchsia-500/20 px-3 py-2 text-xs font-bold uppercase tracking-wide text-fuchsia-100 transition hover:bg-fuchsia-500/30"
+              >
+                Start Build
+              </Link>
+              <Link
+                href="/ai-hub?source=intro&cta=open-ai-hub"
+                onClick={handleFinish}
+                className="rounded-lg border border-cyan-400/45 bg-cyan-500/20 px-3 py-2 text-xs font-bold uppercase tracking-wide text-cyan-100 transition hover:bg-cyan-500/30"
+              >
+                Open AI Hub
+              </Link>
+            </div>
+            <button
+              type="button"
+              onClick={handleFinish}
+              className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200/80 hover:text-cyan-100"
+            >
+              Open AI Concierge ↗
+            </button>
+          </div>
+        )}
 
         <div className="mt-8 w-full max-w-xl rounded-2xl border border-cyan-500/20 bg-black/45 p-4">
           <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-cyan-300/80">Primary Offer Stack</p>

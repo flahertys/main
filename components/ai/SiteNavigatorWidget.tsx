@@ -4,7 +4,7 @@ import { clientConsentKeys } from "@/components/ai/ConsentCenter";
 import { MessageCircle, Send, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Suggestion = {
   path: string;
@@ -37,9 +37,20 @@ const STARTER_PROMPTS = [
   "I want trading intelligence",
 ];
 
+const INTRO_COMPLETE_EVENT = "tradehax:intro-complete";
+
+type IntroCompleteDetail = {
+  source?: string;
+  autoOpenNavigator?: boolean;
+  prompt?: string;
+  preferredMode?: string;
+};
+
 export function SiteNavigatorWidget() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [priorityDock, setPriorityDock] = useState(false);
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState("");
   const [sessionId] = useState(createSessionId);
@@ -99,7 +110,7 @@ export function SiteNavigatorWidget() {
     };
   }, [sessionId]);
 
-  const trackEvent = async (eventName: string, metadata?: Record<string, unknown>) => {
+  const trackEvent = useCallback(async (eventName: string, metadata?: Record<string, unknown>) => {
     try {
       await fetch("/api/ai/behavior/track", {
         method: "POST",
@@ -123,9 +134,9 @@ export function SiteNavigatorWidget() {
     } catch {
       // Non-blocking analytics
     }
-  };
+  }, [consent.analytics, consent.training, consent.userId, pathname, sessionId]);
 
-  const sendPrompt = async (prompt: string) => {
+  const sendPrompt = useCallback(async (prompt: string) => {
     const message = prompt.trim();
     if (!message) return;
 
@@ -185,16 +196,55 @@ export function SiteNavigatorWidget() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [consent.analytics, consent.training, consent.userId, pathname, sessionId, trackEvent]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const onIntroComplete = (event: Event) => {
+      const custom = event as CustomEvent<IntroCompleteDetail>;
+      const detail = custom.detail ?? {};
+      if (detail.autoOpenNavigator === false) {
+        return;
+      }
+
+      setPriorityDock(true);
+      setOpen(true);
+
+      const introPrompt = detail.prompt?.trim();
+      if (introPrompt) {
+        setPendingPrompt(introPrompt);
+      }
+    };
+
+    window.addEventListener(INTRO_COMPLETE_EVENT, onIntroComplete as EventListener);
+    return () => {
+      window.removeEventListener(INTRO_COMPLETE_EVENT, onIntroComplete as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open || loading || !pendingPrompt) {
+      return;
+    }
+
+    const nextPrompt = pendingPrompt;
+    setPendingPrompt(null);
+    void sendPrompt(nextPrompt);
+  }, [loading, open, pendingPrompt, sendPrompt]);
 
   return (
-    <div className="fixed bottom-4 right-4 z-[80]">
+    <div className={`fixed right-4 z-[80] ${priorityDock ? "top-4" : "bottom-4"}`}>
       {open && (
-        <div className="mb-3 w-[min(92vw,380px)] overflow-hidden rounded-xl border border-cyan-500/30 bg-black/95 shadow-[0_0_24px_rgba(6,182,212,0.28)] backdrop-blur-md">
+        <div className={`${priorityDock ? "mt-3" : "mb-3"} w-[min(92vw,380px)] overflow-hidden rounded-xl border border-cyan-500/30 bg-black/95 shadow-[0_0_24px_rgba(6,182,212,0.28)] backdrop-blur-md`}>
           <div className="flex items-center justify-between border-b border-cyan-500/20 px-3 py-2">
             <div>
               <div className="text-xs font-bold uppercase tracking-wider text-cyan-300">Site Navigator</div>
-              <div className="text-[10px] text-cyan-100/70">AI guide for new users</div>
+              <div className="text-[10px] text-cyan-100/70">
+                {priorityDock ? "AI concierge funnel is active" : "AI guide for new users"}
+              </div>
             </div>
             <button
               type="button"
