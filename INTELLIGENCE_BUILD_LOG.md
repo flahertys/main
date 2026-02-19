@@ -17,7 +17,7 @@ Last Updated: 2026-02-19
 - [x] Checkpoint 11: Direct vendor adapters wired (Unusual Whales, Polygon, Bloomberg proxy)
 - [x] Checkpoint 12: Durable watchlist/alerts storage adapter added (Supabase + memory fallback)
 - [x] Checkpoint 13: Discord thread routing by strategy/risk integrated
-- [ ] Checkpoint 14: Phase 3 QA, CI pass, commit/push, deployment verification
+- [x] Checkpoint 14: Phase 3 QA, CI pass, commit/push, deployment verification
 
 ## Progress Notes
 
@@ -161,6 +161,19 @@ Last Updated: 2026-02-19
 - Added support for provided IDs in env templates:
   - Discord ID: `1421509686443905094`
   - Vercel Project ID: `prj_LDmkGrAq06c1DJcH98BeN6GYhZpW`
+
+### 2026-02-19 - Phase 3 Build + Push Status
+- CI pipeline passed (`npm run pipeline:ci`) after Phase 3 integration.
+- Commit pushed to `origin/main`: `d1825d3`.
+- Deployment verification:
+  - `https://www.tradehax.net/api/intelligence/storage` -> `200`
+  - `https://www.tradehax.net/api/intelligence/provider` -> `200`
+  - `https://www.tradehax.net/intelligence/watchlist` -> `200`
+  - `https://www.tradehaxai.tech/api/intelligence/storage` -> `200`
+- Runtime checks:
+  - Storage mode endpoint responding (`memory` fallback active by default until Supabase vars are set).
+  - Provider endpoint responding with mode metadata (`simulated` until vendor keys/endpoints are configured).
+- Status: Phase 3 complete.
 
 ## Active TODO
 
