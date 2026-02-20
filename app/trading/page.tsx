@@ -5,9 +5,9 @@ import { createPageMetadata } from "@/lib/seo";
 
 export const metadata = createPageMetadata({
   title: "TradeHax Bots - Automated Trading Dashboard",
-  description: "Manage automated trading bots on Solana with strategy controls, monitoring, and execution workflows.",
+  description: "Manage automated trading bots with clearly separated Crypto and Stock categories, plus beginner-friendly guidance and strategy controls.",
   path: "/trading",
-  keywords: ["automated trading", "solana bots", "trading dashboard", "bot strategies"],
+  keywords: ["automated trading", "crypto bots", "stock bots", "trading dashboard", "bot strategies"],
 });
 
 export default function TradingPage() {

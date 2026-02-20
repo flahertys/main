@@ -200,13 +200,8 @@
       </div>
     </div>
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(function(reg) { console.log('ServiceWorker registered:', reg); })
-          .catch(function(err) { console.log('ServiceWorker registration failed:', err); });
-      });
-    }
+    // Legacy service-worker registration intentionally disabled.
+    // Root-scoped SW caching caused stale client bundles and runtime errors.
   </script>
   <div id="game-container"></div>
   <div id="loading-screen">

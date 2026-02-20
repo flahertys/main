@@ -34,6 +34,7 @@ body {
   background: rgb(var(--background-start-rgb));
   font-feature-settings: "ss01", "ss02", "cv01", "cv02";
   cursor: none;
+  overflow-x: hidden;
 }
 
 a, button, input, [role="button"] {
@@ -98,6 +99,7 @@ a, button, input, [role="button"] {
 
 .glass-panel {
   background: rgba(9, 9, 11, 0.4);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -171,12 +173,29 @@ a, button, input, [role="button"] {
     letter-spacing: 0.01em;
     text-decoration: none;
     transition: all 0.2s;
+    box-shadow: 0 0 0 rgba(6, 182, 212, 0);
+  }
+
+  .theme-cta::before {
+    content: "";
+    position: absolute;
+    inset: -120%;
+    background: conic-gradient(from 90deg, transparent, rgba(6, 182, 212, 0.18), transparent 45%);
+    animation: dazzleCtaSweep 3.4s linear infinite;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: -1;
   }
 
   .theme-cta:hover {
     background: #ffffff;
     color: #000000;
     transform: translateY(-2px);
+    box-shadow: 0 0 24px rgba(6, 182, 212, 0.3);
+  }
+
+  .theme-cta:hover::before {
+    opacity: 1;
   }
 
   .theme-cta--loud {
@@ -204,11 +223,34 @@ a, button, input, [role="button"] {
 
   .theme-panel {
     background: rgba(9, 9, 11, 0.4);
+    -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 2rem;
     position: relative;
     overflow: hidden;
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .theme-panel::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.15), rgba(168, 85, 247, 0.12), transparent 60%);
+    opacity: 0.45;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 1px;
+  }
+
+  .theme-panel:hover {
+    transform: translateY(-3px);
+    border-color: rgba(34, 211, 238, 0.35);
+    box-shadow: 0 16px 50px rgba(6, 182, 212, 0.12);
   }
 
   .theme-kicker {
@@ -225,6 +267,8 @@ a, button, input, [role="button"] {
     letter-spacing: -0.05em;
     font-style: italic;
     text-transform: uppercase;
+    text-shadow: 0 0 34px rgba(6, 182, 212, 0.25), 0 0 70px rgba(168, 85, 247, 0.16);
+    animation: dazzleTitleBreathe 3.8s ease-in-out infinite;
   }
 
   .theme-grid-card {
@@ -241,6 +285,102 @@ a, button, input, [role="button"] {
   .theme-grid-card:hover {
     background: rgba(255, 255, 255, 0.04);
     border-color: rgba(6, 182, 212, 0.3);
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), 0 0 28px rgba(6, 182, 212, 0.15);
+  }
+}
+
+/* Global cinematic dazzle layer */
+.dazzle-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(14, 165, 233, 0.08), rgba(0, 0, 0, 0.72) 62%);
+}
+
+.dazzle-orb {
+  position: absolute;
+  width: 42vmax;
+  height: 42vmax;
+  filter: blur(64px);
+  opacity: 0.22;
+  border-radius: 999px;
+  animation: dazzleOrbFloat 20s ease-in-out infinite;
+}
+
+.dazzle-orb--cyan {
+  left: -14vmax;
+  top: -10vmax;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.8), transparent 65%);
+}
+
+.dazzle-orb--violet {
+  right: -16vmax;
+  top: 12vmax;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.8), transparent 65%);
+  animation-delay: -6s;
+}
+
+.dazzle-orb--emerald {
+  left: 26vmax;
+  bottom: -16vmax;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.72), transparent 68%);
+  animation-delay: -10s;
+}
+
+.dazzle-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(6, 182, 212, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.18;
+  transform: perspective(1200px) rotateX(68deg) translateY(22vh);
+  transform-origin: top center;
+  animation: dazzleGridDrift 14s linear infinite;
+}
+
+.dazzle-scan {
+  position: absolute;
+  inset: -20% 0;
+  background: linear-gradient(to bottom, transparent, rgba(34, 211, 238, 0.08), transparent);
+  opacity: 0.45;
+  animation: dazzleScanSweep 9s linear infinite;
+}
+
+@keyframes dazzleOrbFloat {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(4vmax, -2.5vmax, 0) scale(1.06); }
+  66% { transform: translate3d(-3vmax, 3vmax, 0) scale(0.96); }
+}
+
+@keyframes dazzleGridDrift {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 120px 0, 0 120px; }
+}
+
+@keyframes dazzleScanSweep {
+  from { transform: translateY(-55%); }
+  to { transform: translateY(55%); }
+}
+
+@keyframes dazzleTitleBreathe {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.09); }
+}
+
+@keyframes dazzleCtaSweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-title,
+  .theme-cta::before,
+  .dazzle-orb,
+  .dazzle-grid,
+  .dazzle-scan {
+    animation: none !important;
   }
 }
 

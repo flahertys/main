@@ -57,16 +57,18 @@ const NeuralBackground = () => (
       </pattern>
       <rect width="100%" height="100%" fill="url(#neural-net)" />
       <motion.circle
+        initial={{ cx: "10%", cy: "10%" }}
         animate={{
-          cx: ["10%", "90%", "10%"],
+          cx: ["10%", "90%", "10%", "10%"],
           cy: ["10%", "50%", "90%", "10%"]
         }}
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
         r="2" fill="cyan" className="blur-[2px]"
       />
       <motion.circle
+        initial={{ cx: "90%", cy: "90%" }}
         animate={{
-          cx: ["90%", "10%", "90%"],
+          cx: ["90%", "10%", "90%", "90%"],
           cy: ["90%", "50%", "10%", "90%"]
         }}
         transition={{ duration: 25, repeat: Infinity, ease: "linear" }}

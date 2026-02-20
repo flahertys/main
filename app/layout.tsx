@@ -10,12 +10,14 @@ import { SiteNavigatorWidget } from "@/components/ai/SiteNavigatorWidget";
 import { SolanaProvider } from "@/components/counter/provider/Solana";
 import { HyperboreaIntroOverlay } from "@/components/intro/HyperboreaIntroOverlay";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { CinematicFxLayer } from "@/components/ui/CinematicFxLayer";
 import { ConnectWalletBtn } from "@/components/ui/ConnectWalletBtn";
 import { CyberCursor } from "@/components/ui/CyberCursor";
 import { GlitchText } from "@/components/ui/GlitchText";
 import { MarketTicker } from "@/components/ui/MarketTicker";
 import { MobileMenu } from "@/components/ui/MobileMenu";
 import { PageTransition } from "@/components/ui/PageTransition";
+import { ServiceWorkerCleanup } from "@/components/ui/ServiceWorkerCleanup";
 import { businessProfile } from "@/lib/business-profile";
 import { getLocalBusinessJsonLd } from "@/lib/seo";
 import { siteConfig } from "@/lib/site-config";
@@ -135,6 +137,8 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} bg-black antialiased`}>
         <AuthProvider>
+          <ServiceWorkerCleanup />
+          <CinematicFxLayer />
           <CyberCursor />
           <HyperboreaIntroOverlay />
           <SolanaProvider>

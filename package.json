@@ -26,6 +26,7 @@
     "llm:prepare-dataset": "node ./scripts/prepare-custom-llm-dataset.js",
     "social:setup": "node ./scripts/setup-social-apis.js",
     "social:check": "node ./scripts/check-social-api-config.js",
+    "discord:register-commands": "node ./scripts/discord/register-commands.mjs",
     "repo:status": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/repo-status.ps1",
     "repo:sync-mirror": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-mirror-from-canonical.ps1"
   },
