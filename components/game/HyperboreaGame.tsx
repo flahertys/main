@@ -98,6 +98,7 @@ const NAVIGATION_KEYS = new Set([
   "arrowleft",
   "arrowright",
   "e",
+  "shift",
   "f",
   "enter",
   " ",
@@ -499,6 +500,9 @@ export function HyperboreaGame({
       use: false,
     };
 
+    let sprintActive = false;
+    let comboWarningShown = false;
+
     let touchRotating = false;
     let touchLastX = 0;
     let swipeStartX = 0;
@@ -588,6 +592,21 @@ export function HyperboreaGame({
       virtualControlState.use = false;
       touchGestureForward = false;
       touchGestureBackward = false;
+      sprintActive = false;
+    };
+
+    const triggerHapticFeedback = (intensity: 'light' | 'medium' | 'heavy' = 'medium') => {
+      if (!('vibrate' in navigator)) return;
+      const patterns = {
+        light: [10],
+        medium: [30],
+        heavy: [50, 30, 50]
+      };
+      try {
+        navigator.vibrate(patterns[intensity]);
+      } catch (e) {
+        // Silently fail if vibration not supported
+      }
     };
 
     const emitInteractionHint = (hint: string | null, actionable: boolean) => {
@@ -761,11 +780,13 @@ export function HyperboreaGame({
       lastProgressTimestampMs = performance.now();
       combo += 1;
       comboTimer = 240;
+      comboWarningShown = false;
       updateEnergy(energy + 8);
       emitScore(true);
       emitUtilityPoints(true);
       emitStructuredScore(true);
       emitStatus(`${instance.data.label} activated.`);
+      triggerHapticFeedback('medium');
       maybeUnlockExit();
     };
 
@@ -818,8 +839,10 @@ export function HyperboreaGame({
 
       if (instance.data.rarity === "epic" || instance.data.rarity === "mythic") {
         screenFlash = 0.8;
+        triggerHapticFeedback('heavy');
       } else {
         screenFlash = 0.3;
+        triggerHapticFeedback('medium');
       }
 
       // Use the scoring engine for accumulation logic
@@ -1348,15 +1371,26 @@ export function HyperboreaGame({
       cameraShake = Math.max(0, cameraShake - dt * 0.5);
       screenFlash = Math.max(0, screenFlash - dt * 2.0);
 
-      // Dynamic FOV based on speed
-      const targetFov = 78 + (forward ? 8 : 0) + (combo >= 5 ? 5 : 0);
-      camera.fov += (targetFov - camera.fov) * 0.08;
+      // Sprint detection
+      sprintActive = !missionComplete && (keyState["shift"] || keyState["shiftleft"] || keyState["shiftright"]);
+
+      // Dynamic FOV based on speed and sprint
+      const speedBoost = sprintActive ? 12 : (forward ? 8 : 0);
+      const targetFov = 78 + speedBoost + (combo >= 5 ? 5 : 0);
+      camera.fov += (targetFov - camera.fov) * 0.12;
       camera.updateProjectionMatrix();
 
-    const moveSpeed = missionComplete ? 0 : (isMobile ? 6.8 : 4.2) * (combo >= 5 ? 1.5 : 1.0);
-    if (combo >= 5 && simulationFrame % 30 === 0) {
-      emitStatus("OVERCLOCK_ACTIVE: Movement speed x1.5");
-    }
+      const baseSpeed = isMobile ? 6.8 : 4.2;
+      const comboMultiplier = combo >= 5 ? 1.5 : 1.0;
+      const sprintMultiplier = sprintActive && forward ? 1.8 : 1.0;
+      const moveSpeed = missionComplete ? 0 : baseSpeed * comboMultiplier * sprintMultiplier;
+
+      if (combo >= 5 && simulationFrame % 30 === 0) {
+        emitStatus("OVERCLOCK_ACTIVE: Movement speed x1.5");
+      }
+      if (sprintActive && forward && simulationFrame % 45 === 0) {
+        emitStatus("SPRINT: Hold Shift to run faster");
+      }
       const desiredDx = Math.sin(playerYaw) * moveInput * moveSpeed * dt;
       const desiredDz = Math.cos(playerYaw) * moveInput * moveSpeed * dt;
 
@@ -1394,8 +1428,20 @@ export function HyperboreaGame({
       autoCollectNearbyArtifacts();
 
       comboTimer -= 1;
+
+      // Combo warning system
+      if (comboTimer <= 60 && comboTimer > 0 && combo >= 3 && !comboWarningShown) {
+        emitStatus(`⚡ Combo fading! Collect items to maintain ${combo}x multiplier`);
+        comboWarningShown = true;
+      }
+
       if (comboTimer <= 0 && combo > 0) {
+        const oldCombo = combo;
         combo = Math.max(0, combo - 1);
+        if (oldCombo >= 5) {
+          emitStatus(`Combo dropped from ${oldCombo}x to ${combo}x`);
+        }
+        comboWarningShown = false;
         emitScore(true);
       }
 
@@ -1446,7 +1492,9 @@ export function HyperboreaGame({
 
       if (hasInteraction) {
         playerLight.color.set(0x00ffaa);
-        playerLight.intensity = (isMobile ? 1.2 : 0.95) + Math.sin(nowMs * 0.01) * 0.15;
+        const pulseSpeed = nearest?.type === 'exit' ? 0.015 : 0.01;
+        const pulseIntensity = nearest?.type === 'artifact' ? 0.25 : 0.15;
+        playerLight.intensity = (isMobile ? 1.2 : 0.95) + Math.sin(nowMs * pulseSpeed) * pulseIntensity;
       } else {
         playerLight.color.set(0xffffff);
         playerLight.intensity = (isMobile ? 0.8 : 0.6) + Math.sin(nowMs * 0.005) * 0.05;

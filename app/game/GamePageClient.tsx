@@ -955,10 +955,21 @@ export default function GamePage() {
         {showControlCoach && !isPaused && (
           <div className="absolute top-20 inset-x-0 z-20 pointer-events-none flex justify-center px-3">
             <div className="theme-floating-panel theme-floating-panel--success max-w-xl px-4 py-3 text-xs sm:text-sm text-emerald-100">
-              <div className="font-bold text-emerald-300">Quick Start</div>
-              <div>1) Move with W/S and turn with A/D.</div>
-              <div>2) Move close to relics to auto-pickup.</div>
-              <div>3) Center crosshair on glowing runes and press E (or tap Use).</div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-emerald-300">Quick Start</div>
+                  <div>1) <span className="text-cyan-300 font-semibold">W/S</span> to move, <span className="text-cyan-300 font-semibold">Shift</span> to sprint | <span className="text-cyan-300 font-semibold">A/D</span> to turn.</div>
+                  <div>2) Move close to relics to auto-pickup.</div>
+                  <div>3) Center crosshair on glowing runes and press <span className="text-cyan-300 font-semibold">E</span> (or tap Use).</div>
+                </div>
+                <button
+                  onClick={() => setShowControlCoach(false)}
+                  className="pointer-events-auto text-emerald-300/70 hover:text-emerald-100 transition-colors ml-3"
+                  aria-label="Close tips"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -966,17 +977,17 @@ export default function GamePage() {
         {/* Center crosshair + contextual interaction prompt */}
         <div className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center px-3">
           <div
-            className={`h-5 w-5 rounded-full border bg-cyan-100/10 transition-all ${
+            className={`h-5 w-5 rounded-full border bg-cyan-100/10 transition-all duration-200 ${
               isInteractionReady
-                ? "border-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.8)]"
+                ? "border-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.8)] scale-110"
                 : "border-cyan-300/70"
             }`}
           />
           {interactionHint && (
             <div
-              className={`mt-3 max-w-sm rounded-md border px-3 py-1.5 text-center text-[11px] sm:text-xs backdrop-blur ${
+              className={`mt-3 max-w-sm rounded-md border px-3 py-1.5 text-center text-[11px] sm:text-xs backdrop-blur transition-all duration-200 ${
                 isInteractionReady
-                  ? "border-emerald-300/50 bg-emerald-500/15 text-emerald-100"
+                  ? "border-emerald-300/50 bg-emerald-500/15 text-emerald-100 shadow-lg"
                   : "border-cyan-300/40 bg-black/55 text-cyan-100"
               }`}
             >
@@ -1217,7 +1228,7 @@ export default function GamePage() {
                       <span className="font-mono rounded border border-[#5aa581]/45 bg-[#0b2219]/80 px-3 py-1 text-[#95ffc5] font-bold">
                         W / ↑
                       </span>
-                      <span>Move forward</span>
+                      <span>Move forward (hold <span className="font-mono text-cyan-300">Shift</span> to sprint)</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono rounded border border-[#5aa581]/45 bg-[#0b2219]/80 px-3 py-1 text-[#95ffc5] font-bold">
@@ -1550,7 +1561,7 @@ export default function GamePage() {
                       <span className="font-mono rounded border border-[#5aa581]/45 bg-[#0b2219]/80 px-3 py-1 text-[#95ffc5] font-bold">
                         W / ↑
                       </span>
-                      <span>Move forward</span>
+                      <span>Move forward (hold <span className="font-mono text-cyan-300">Shift</span> to sprint)</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono rounded border border-[#5aa581]/45 bg-[#0b2219]/80 px-3 py-1 text-[#95ffc5] font-bold">
@@ -1599,19 +1610,19 @@ export default function GamePage() {
 
               <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
                 <button
-                  onClick={() => {
-                    setShowTutorial(false);
-                    handlePlayClick();
-                  }}
+                  onClick={() => setShowTutorial(false)}
                   className="theme-cta theme-cta--loud px-6 sm:px-8 py-3 text-base sm:text-lg"
                 >
-                  Start Playing Now!
+                  Got it! Let&apos;s Play
                 </button>
                 <button
-                  onClick={() => setShowTutorial(false)}
-                  className="theme-cta theme-cta--muted px-6 py-2"
+                  onClick={() => {
+                    setShowTutorial(false);
+                    setShowControlCoach(true);
+                  }}
+                  className="theme-cta theme-cta--secondary px-6 sm:px-8 py-3 text-base sm:text-lg"
                 >
-                  Close
+                  Show In-Game Tips
                 </button>
               </div>
             </div>
