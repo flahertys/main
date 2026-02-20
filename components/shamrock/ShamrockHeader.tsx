@@ -1,9 +1,9 @@
 'use client';
 
+import { ChevronDown, Menu, Wallet, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, ChevronDown, Wallet } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface NavItem {
   name: string;
@@ -23,6 +23,7 @@ const navigation: NavItem[] = [
     href: '/dashboard',
     submenu: [
       { name: 'Intelligence Hub', href: '/intelligence' },
+      { name: 'Investor Academy', href: '/investor-academy' },
       { name: 'Trading Dashboard', href: '/dashboard' },
       { name: 'Hyperborea Game', href: '/game' },
       { name: 'Music Platform', href: '/music' },
@@ -133,14 +134,12 @@ export function ShamrockHeader() {
                     {openDropdown === item.name && (
                       <div
                         className="absolute top-full left-0 mt-1 w-56 bg-[#05101e]/95 backdrop-blur-xl border border-[#4f678e]/45 rounded-xl shadow-2xl shadow-black/50 py-1.5 animate-slide-up-fade"
-                        role="menu"
                       >
                         {item.submenu.map((subitem) => (
                           <Link
                             key={subitem.name}
                             href={subitem.href}
                             className="block px-4 py-2.5 text-sm text-[#9cadcc] hover:text-white hover:bg-white/[0.06] transition-all duration-150 mx-1.5 rounded-lg"
-                            role="menuitem"
                           >
                             {subitem.name}
                           </Link>

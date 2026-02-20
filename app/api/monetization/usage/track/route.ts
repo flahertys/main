@@ -1,3 +1,4 @@
+import { chargeAcademyFeatureUsage } from "@/lib/investor-academy/store";
 import { canConsumeFeature, consumeFeatureUsage, getUserSnapshot } from "@/lib/monetization/engine";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
 import { UsageFeature } from "@/lib/monetization/types";
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
         : 1;
     const source = typeof body?.source === "string" ? body.source.slice(0, 64) : "manual_track";
     const userId = await resolveRequestUserId(request, body?.userId);
+    const idempotencyKey = String(request.headers.get("x-idempotency-key") || "").trim();
 
     const allowance = canConsumeFeature(userId, body.feature, units);
     if (!allowance.allowed) {
@@ -58,12 +60,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    consumeFeatureUsage(userId, body.feature, units, source);
+    const charge = await chargeAcademyFeatureUsage({
+      userId,
+      feature: body.feature,
+      units,
+      source,
+      transactionRef: idempotencyKey || undefined,
+    });
+    if (!charge.charged) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: charge.reason ?? "Unable to debit HAX wallet for feature usage.",
+          allowance,
+          economy: charge.balance,
+          snapshot: getUserSnapshot(userId),
+        },
+        { status: 402, headers: rateLimit.headers },
+      );
+    }
+
+    consumeFeatureUsage(userId, body.feature, units, source, {
+      academyLedgerId: charge.entry?.id || "",
+      academyTransactionRef: charge.entry?.transactionRef || "",
+    });
 
     return NextResponse.json(
       {
         ok: true,
         allowance,
+        economy: charge.balance,
+        charge,
         snapshot: getUserSnapshot(userId),
       },
       { headers: rateLimit.headers },
