@@ -205,46 +205,27 @@ export default function MusicPage() {
             </div>
           </div>
 
-          {/* Instructor Profiles */}
+          {/* Instructor Profile */}
           <div className="mt-12 bg-gray-900/50 border border-gray-800 rounded-xl p-8">
             <h3 className="text-2xl font-bold text-white mb-6">
-              Meet Your Instructors
+              Meet Your Instructor
             </h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="flex items-start gap-4">
-                <div className="w-20 h-20 bg-gradient-to-br from-[#FF6B35] to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
-                  JD
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold text-white mb-2">
-                    John Davis
-                  </h4>
-                  <p className="text-[#FF6B35] text-sm font-semibold mb-2">
-                    Lead Guitar Instructor
-                  </p>
-                  <p className="text-gray-400 text-sm">
-                    15+ years teaching experience. Berklee College of Music
-                    graduate. Specializes in rock, blues, and jazz techniques.
-                  </p>
-                </div>
+            <div className="flex items-start gap-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-[#00D100] to-[#00FF41] rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
+                MSF
               </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-20 h-20 bg-gradient-to-br from-[#00D100] to-[#00FF41] rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
-                  SM
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold text-white mb-2">
-                    Sarah Martinez
-                  </h4>
-                  <p className="text-[#FF6B35] text-sm font-semibold mb-2">
-                    Classical & Acoustic Specialist
-                  </p>
-                  <p className="text-gray-400 text-sm">
-                    Master&apos;s degree in Music Performance. 20+ years playing
-                    professionally. Expert in fingerstyle and classical guitar.
-                  </p>
-                </div>
+              <div>
+                <h4 className="text-xl font-bold text-white mb-2">
+                  Michael S. Flaherty
+                </h4>
+                <p className="text-[#FF6B35] text-sm font-semibold mb-2">
+                  Founder • Guitar Instructor
+                </p>
+                <p className="text-gray-400 text-sm">
+                  Playing since 1995 and teaching professionally since 1999. Every
+                  lesson is taught directly by the founder with a one-on-one,
+                  progress-focused format.
+                </p>
               </div>
             </div>
           </div>
