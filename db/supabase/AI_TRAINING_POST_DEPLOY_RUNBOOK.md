@@ -1,6 +1,7 @@
 # TradeHax AI Training Supabase Post-Deploy Runbook
 
 This runbook covers production rollout for:
+
 - `db/supabase/ai_training_phase25.sql` (schema + indexes + RLS + rollup function)
 - `db/supabase/ai_training_phase26_seed_smoke.sql` (seed + smoke validation)
 
@@ -33,6 +34,22 @@ If any script errors, stop and resolve before continuing.
 ---
 
 ## 3) Immediate verification checklist
+
+### One-command shortcut (recommended for ops)
+
+Run:
+
+1. `db/supabase/ai_training_ops_one_command_check.sql`
+
+It returns a single summary row with:
+
+- `status` (`PASS` or `FAIL`)
+- `passed_checks`
+- `total_checks`
+- `failed_checks`
+- `check_results` (JSON details per check)
+
+Use this for fast triage; if `status = FAIL`, use the detailed checklist below to pinpoint remediation.
 
 ### A) Objects exist
 
@@ -75,6 +92,7 @@ order by tablename, policyname;
 ```
 
 Expected policy names:
+
 - `service_role_full_access_ai_training_benchmarks`
 - `service_role_full_access_ai_trading_personalization_profiles`
 - `service_role_full_access_ai_trading_trade_outcomes`
@@ -100,6 +118,7 @@ where user_id = 'smoke_user_001';
 ```
 
 Expected:
+
 - benchmark rows `>= 2`
 - profile rows `= 1`
 - outcome rows `>= 2`
@@ -127,6 +146,7 @@ Use admin key headers for admin endpoints.
   - Expect profile payload for `smoke_user_001`.
 
 Optional route-level write smoke:
+
 - POST one `trade_outcome` to `/api/ai/personalization`
 - Re-query admin personalization summary and verify counters/lift update.
 
@@ -172,6 +192,7 @@ commit;
 ```
 
 After full rollback, set app env to:
+
 - `TRADEHAX_AI_TRAINING_STORAGE=memory`
 
 Then redeploy app so runtime stops attempting Supabase persistence for training tables.
