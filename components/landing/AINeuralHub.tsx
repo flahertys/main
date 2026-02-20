@@ -217,7 +217,7 @@ export const AINeuralHub = () => {
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-5xl mx-auto">
 
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
@@ -230,13 +230,13 @@ export const AINeuralHub = () => {
               </h2>
             </div>
 
-            <div className="flex flex-col items-end gap-2">
-              <div className="flex items-center gap-3 p-1 bg-zinc-900/50 rounded-full border border-white/5">
+            <div className="flex w-full md:w-auto flex-col items-stretch sm:items-end gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-3 p-1 bg-zinc-900/50 rounded-full border border-white/5">
                 {(["CHAT", "IMAGE_GEN", "MARKET"] as HubTab[]).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-6 py-2 rounded-full text-[10px] font-black tracking-widest transition-all ${
+                    className={`px-3.5 sm:px-6 py-1.5 sm:py-2 rounded-full text-[9px] sm:text-[10px] font-black tracking-[0.12em] sm:tracking-widest transition-all ${
                       activeTab === tab
                         ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]"
                         : "text-zinc-500 hover:text-white"
@@ -246,14 +246,14 @@ export const AINeuralHub = () => {
                   </button>
                 ))}
               </div>
-              <div className="w-full md:w-[300px] rounded-xl border border-cyan-500/25 bg-[rgba(10,12,16,0.88)] px-3 py-2 shadow-[0_0_18px_rgba(6,182,212,0.12)]">
-                <label className="mb-1 block text-[10px] font-mono uppercase tracking-[0.2em] text-cyan-300/85">
+              <div className="w-full max-w-[280px] sm:max-w-[300px] md:w-[300px] rounded-xl border border-cyan-500/25 bg-[rgba(10,12,16,0.88)] px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-[0_0_18px_rgba(6,182,212,0.12)]">
+                <label className="mb-1 block text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.16em] sm:tracking-[0.2em] text-cyan-300/85">
                   LLM Model
                 </label>
                 <select
                   value={selectedChatModel}
                   onChange={(event) => setSelectedChatModel(event.target.value)}
-                  className="w-full rounded-lg border border-cyan-500/35 bg-black/60 px-3 py-2 text-xs font-semibold text-zinc-100 outline-none transition-colors hover:border-cyan-400/60 focus:border-cyan-300"
+                  className="w-full rounded-lg border border-cyan-500/35 bg-black/60 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs font-semibold text-zinc-100 outline-none transition-colors hover:border-cyan-400/60 focus:border-cyan-300"
                   title="Select model for GPT_CHAT"
                 >
                   {CHAT_MODELS.map((model) => (
@@ -263,9 +263,9 @@ export const AINeuralHub = () => {
                   ))}
                 </select>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/80 border border-white/5">
+              <div className="self-end flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-zinc-900/80 border border-white/5">
                 <div className={`w-1.5 h-1.5 rounded-full ${isCharging ? 'bg-red-500' : 'bg-emerald-500'} animate-pulse`} />
-                <span className="text-[10px] font-mono text-zinc-400 uppercase">
+                <span className="text-[9px] sm:text-[10px] font-mono text-zinc-400 uppercase">
                   {isCharging ? 'CRYPTO_CHARGE_REQUIRED' : `FREE_TIER: ${FREE_USAGE_LIMIT - usageCount}/${FREE_USAGE_LIMIT} REMAINING`}
                 </span>
               </div>

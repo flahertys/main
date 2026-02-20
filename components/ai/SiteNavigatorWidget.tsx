@@ -290,7 +290,7 @@ export function SiteNavigatorWidget() {
             </div>
             <button
               type="button"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-500/85 text-white shadow-sm hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/70"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-500/85 text-white shadow-sm hover:bg-red-500 transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/70"
               aria-label="Close navigator"
               onClick={() => {
                 setOpen(false);
@@ -325,7 +325,7 @@ export function SiteNavigatorWidget() {
                             target_title: item.title,
                           });
                         }}
-                        className="rounded border border-cyan-400/30 bg-black/40 px-2 py-1 text-[10px] text-cyan-100 hover:border-cyan-300 hover:bg-cyan-500/20"
+                        className="rounded border border-cyan-400/30 bg-black/40 px-2 py-1 text-[10px] text-cyan-100 hover:border-cyan-300 hover:bg-cyan-500/20 transition-colors motion-reduce:transition-none"
                       >
                         {item.title}
                       </Link>
@@ -346,7 +346,7 @@ export function SiteNavigatorWidget() {
                 <button
                   key={prompt}
                   type="button"
-                  className="rounded border border-cyan-500/20 bg-cyan-500/5 px-2 py-1 text-[10px] text-cyan-100/80 hover:bg-cyan-500/15"
+                  className="rounded border border-cyan-500/20 bg-cyan-500/5 px-2 py-1 text-[10px] text-cyan-100/80 hover:bg-cyan-500/15 transition-colors motion-reduce:transition-none"
                   onClick={() => {
                     void sendPrompt(prompt);
                   }}
@@ -387,7 +387,7 @@ export function SiteNavigatorWidget() {
 
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/50 bg-cyan-500/25 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-cyan-100 shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:bg-cyan-500/35"
+        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/50 bg-cyan-500/25 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-cyan-100 shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:bg-cyan-500/35 transition-colors motion-reduce:transition-none"
         onClick={() => {
           const nextOpen = !open;
           setOpen(nextOpen);
