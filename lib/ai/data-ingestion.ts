@@ -1,4 +1,5 @@
 import { persistBehaviorRecord } from "@/lib/ai/behavior-persistence";
+import { exportPersonalizedTrainingJsonl } from "@/lib/ai/trading-personalization";
 import { sanitizePlainText } from "@/lib/security";
 
 export type InteractionCategory =
@@ -452,9 +453,14 @@ export function formatForFineTuning(logs: InteractionLog[]) {
 export function exportFineTuningJsonl(input?: {
   includeBootstrap?: boolean;
   maxRows?: number;
+  includePersonalized?: boolean;
+  personalizedUserId?: string;
+  maxPersonalizedRows?: number;
 }) {
   const includeBootstrap = input?.includeBootstrap !== false;
+  const includePersonalized = input?.includePersonalized !== false;
   const maxRows = Math.min(25_000, Math.max(10, Math.floor(input?.maxRows || 5_000)));
+  const maxPersonalizedRows = Math.min(10_000, Math.max(0, Math.floor(input?.maxPersonalizedRows || 800)));
 
   const records = getStore().records
     .filter((record) => record.trainingEligible)
@@ -479,7 +485,38 @@ export function exportFineTuningJsonl(input?: {
       ).filter((record): record is NonNullable<typeof record> => Boolean(record))
     : [];
 
-  const merged = [...bootstrapRecords, ...records].slice(0, maxRows);
+  const personalizedRecords = includePersonalized
+    ? exportPersonalizedTrainingJsonl({
+        userId: input?.personalizedUserId,
+        maxRows: maxPersonalizedRows,
+      })
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+          try {
+            const parsed = JSON.parse(line) as {
+              instruction?: string;
+              input?: string;
+              output?: string;
+              category?: string;
+            };
+            return buildTrainingRecord({
+              category: parsed.category || "MARKET",
+              prompt: parsed.instruction || "",
+              response: parsed.output || "",
+              metadata: {
+                context: parsed.input || "",
+              },
+            });
+          } catch {
+            return null;
+          }
+        })
+        .filter((record): record is NonNullable<typeof record> => Boolean(record))
+    : [];
+
+  const merged = [...bootstrapRecords, ...records, ...personalizedRecords].slice(0, maxRows);
   return merged.map((record) => JSON.stringify(record)).join("\n");
 }
 

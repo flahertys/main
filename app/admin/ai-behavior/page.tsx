@@ -56,6 +56,18 @@ export default function AIBehaviorAdminPage() {
             <li>
               <code className="rounded bg-black/60 px-1.5 py-0.5">TRADEHAX_SUPABASE_AI_BEHAVIOR_TABLE=ai_behavior_events</code>
             </li>
+            <li>
+              <code className="rounded bg-black/60 px-1.5 py-0.5">TRADEHAX_AI_TRAINING_STORAGE=supabase</code>
+            </li>
+            <li>
+              <code className="rounded bg-black/60 px-1.5 py-0.5">TRADEHAX_SUPABASE_AI_BENCHMARKS_TABLE=ai_training_benchmarks</code>
+            </li>
+            <li>
+              <code className="rounded bg-black/60 px-1.5 py-0.5">TRADEHAX_SUPABASE_AI_PERSONALIZATION_TABLE=ai_trading_personalization_profiles</code>
+            </li>
+            <li>
+              <code className="rounded bg-black/60 px-1.5 py-0.5">TRADEHAX_SUPABASE_AI_TRADE_OUTCOMES_TABLE=ai_trading_trade_outcomes</code>
+            </li>
           </ul>
         </section>
 

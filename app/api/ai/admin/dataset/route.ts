@@ -1,8 +1,8 @@
 import { requireAdminAccess } from "@/lib/admin-access";
 import {
-  exportFineTuningJsonl,
-  getBehaviorIngestionSummary,
-  getBehaviorProfiles,
+    exportFineTuningJsonl,
+    getBehaviorIngestionSummary,
+    getBehaviorProfiles,
 } from "@/lib/ai/data-ingestion";
 import { enforceRateLimit, enforceTrustedOrigin } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
@@ -50,6 +50,9 @@ export async function GET(request: NextRequest) {
   const maxRows = parseInteger(search.get("maxRows"), 5_000, 10, 25_000);
   const includeProfiles = parseBoolean(search.get("includeProfiles"), true);
   const includeBootstrap = parseBoolean(search.get("includeBootstrap"), true);
+  const includePersonalized = parseBoolean(search.get("includePersonalized"), true);
+  const maxPersonalizedRows = parseInteger(search.get("maxPersonalizedRows"), 800, 0, 10_000);
+  const personalizedUserId = search.get("personalizedUserId") || undefined;
   const includeDataset = parseBoolean(search.get("includeDataset"), outputFormat === "jsonl");
 
   const summary = getBehaviorIngestionSummary(windowMinutes);
@@ -57,6 +60,9 @@ export async function GET(request: NextRequest) {
   const dataset = includeDataset
     ? exportFineTuningJsonl({
         includeBootstrap,
+        includePersonalized,
+        maxPersonalizedRows,
+        personalizedUserId,
         maxRows,
       })
     : "";

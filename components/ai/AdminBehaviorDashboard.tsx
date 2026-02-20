@@ -28,6 +28,34 @@ type DashboardPayload = {
   error?: string;
 };
 
+type BenchmarkStage = {
+  id: string;
+  title: string;
+  score: number;
+  targetScore: number;
+  status: "not_started" | "in_progress" | "passing";
+};
+
+type BenchmarksPayload = {
+  ok: boolean;
+  snapshot?: {
+    overallScore?: number;
+    stages?: BenchmarkStage[];
+  };
+};
+
+type PersonalizationPayload = {
+  ok: boolean;
+  summary?: {
+    profileCount?: number;
+    totalTrades?: number;
+    winRate?: number;
+    avgPnlPercent?: number;
+    userLiftEstimate?: number;
+    topIndicators?: MetricPoint[];
+  };
+};
+
 function BarList({ title, data }: { title: string; data: MetricPoint[] }) {
   const max = useMemo(() => Math.max(1, ...data.map((item) => item.value)), [data]);
   return (
@@ -71,17 +99,42 @@ export function AdminBehaviorDashboard() {
   const [adminKey, setAdminKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
+  const [benchmarks, setBenchmarks] = useState<BenchmarksPayload | null>(null);
+  const [personalization, setPersonalization] = useState<PersonalizationPayload | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/ai/admin/behavior?includePersisted=1&recordLimit=250", {
-        headers: {
-          "x-tradehax-admin-key": adminKey,
-        },
-      });
-      const json = (await response.json()) as DashboardPayload;
-      setPayload(json);
+      const headers = {
+        "x-tradehax-admin-key": adminKey,
+      };
+
+      const [behaviorResult, benchmarkResult, personalizationResult] = await Promise.allSettled([
+        fetch("/api/ai/admin/behavior?includePersisted=1&recordLimit=250", { headers }),
+        fetch("/api/ai/admin/benchmarks", { headers }),
+        fetch("/api/ai/admin/personalization?limit=200", { headers }),
+      ]);
+
+      if (behaviorResult.status === "fulfilled") {
+        const behaviorJson = (await behaviorResult.value.json()) as DashboardPayload;
+        setPayload(behaviorJson);
+      } else {
+        setPayload({ ok: false, error: "Unable to load behavior dashboard data." });
+      }
+
+      if (benchmarkResult.status === "fulfilled") {
+        const benchmarkJson = (await benchmarkResult.value.json()) as BenchmarksPayload;
+        setBenchmarks(benchmarkJson);
+      } else {
+        setBenchmarks({ ok: false });
+      }
+
+      if (personalizationResult.status === "fulfilled") {
+        const personalizationJson = (await personalizationResult.value.json()) as PersonalizationPayload;
+        setPersonalization(personalizationJson);
+      } else {
+        setPersonalization({ ok: false });
+      }
     } catch {
       setPayload({
         ok: false,
@@ -96,6 +149,8 @@ export function AdminBehaviorDashboard() {
   const topIntents = payload?.charts?.topIntents || [];
   const routeHeatmap = payload?.charts?.routeHeatmap || [];
   const hourlyTrend = payload?.charts?.hourlyTrend || [];
+  const benchmarkStages = benchmarks?.snapshot?.stages || [];
+  const topIndicators = personalization?.summary?.topIndicators || [];
 
   return (
     <section className="rounded-xl border border-violet-500/30 bg-black/40 p-6">
@@ -162,6 +217,67 @@ export function AdminBehaviorDashboard() {
             <BarList title="Route Heatmap" data={routeHeatmap} />
             <BarList title="Hourly Trend (UTC)" data={hourlyTrend} />
           </div>
+
+          <section className="rounded-xl border border-fuchsia-500/20 bg-black/35 p-4">
+            <h3 className="text-sm font-semibold text-fuchsia-200">Training Benchmarks</h3>
+            <div className="mt-2 text-xs text-fuchsia-100/80">
+              Overall score: {Math.round((benchmarks?.snapshot?.overallScore || 0) * 100)}%
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+              {benchmarkStages.length === 0 && <p className="text-xs text-fuchsia-100/60">No benchmark stages yet.</p>}
+              {benchmarkStages.map((stage) => {
+                const progress = stage.targetScore > 0 ? Math.min(1, stage.score / stage.targetScore) : 0;
+                const progressWidthClass =
+                  progress >= 0.9
+                    ? "w-full"
+                    : progress >= 0.8
+                      ? "w-10/12"
+                      : progress >= 0.7
+                        ? "w-9/12"
+                        : progress >= 0.6
+                          ? "w-8/12"
+                          : progress >= 0.5
+                            ? "w-7/12"
+                            : progress >= 0.4
+                              ? "w-6/12"
+                              : progress >= 0.3
+                                ? "w-4/12"
+                                : progress >= 0.2
+                                  ? "w-3/12"
+                                  : progress >= 0.1
+                                    ? "w-2/12"
+                                    : "w-1/12";
+                return (
+                  <div key={stage.id} className="rounded border border-fuchsia-500/25 p-2 text-xs text-fuchsia-100">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span className="truncate">{stage.title}</span>
+                      <span className="uppercase text-[10px] text-fuchsia-200/80">{stage.status}</span>
+                    </div>
+                    <div className="h-2 rounded bg-fuchsia-500/10">
+                      <div className={`h-2 rounded bg-fuchsia-400/70 ${progressWidthClass}`} />
+                    </div>
+                    <div className="mt-1 text-[10px] text-fuchsia-200/80">
+                      {Math.round(stage.score * 100)}% / target {Math.round(stage.targetScore * 100)}%
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-amber-500/20 bg-black/35 p-4">
+            <h3 className="text-sm font-semibold text-amber-200">Personalization Lift</h3>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-amber-100 md:grid-cols-5">
+              <div className="rounded border border-amber-500/25 p-2">Profiles: {personalization?.summary?.profileCount ?? 0}</div>
+              <div className="rounded border border-amber-500/25 p-2">Trades: {personalization?.summary?.totalTrades ?? 0}</div>
+              <div className="rounded border border-amber-500/25 p-2">Win Rate: {Math.round((personalization?.summary?.winRate || 0) * 100)}%</div>
+              <div className="rounded border border-amber-500/25 p-2">Avg PnL: {(personalization?.summary?.avgPnlPercent || 0).toFixed(2)}%</div>
+              <div className="rounded border border-amber-500/25 p-2">Lift: {(personalization?.summary?.userLiftEstimate || 0).toFixed(3)}</div>
+            </div>
+            <div className="mt-3">
+              <BarList title="Top Indicators" data={topIndicators} />
+            </div>
+          </section>
         </div>
       )}
     </section>
