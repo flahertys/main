@@ -1,8 +1,15 @@
 "use client";
-import React, { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
 export const MarketTicker = () => {
   const container = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const hideTickerForGame = pathname?.startsWith('/game') ?? false;
+
+  if (hideTickerForGame) {
+    return null;
+  }
 
   useEffect(() => {
     if (container.current && !container.current.querySelector('script')) {

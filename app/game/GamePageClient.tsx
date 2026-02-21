@@ -644,7 +644,7 @@ export default function GamePage() {
   if (isPlaying) {
     return (
       <div
-        className="fixed inset-0 w-screen min-h-[100svh] h-[calc(var(--hyperborea-vh,1vh)*100)] bg-black overflow-hidden select-none touch-none"
+        className="fixed inset-0 z-[70] w-screen min-h-[100svh] h-[calc(var(--hyperborea-vh,1vh)*100)] bg-black overflow-hidden select-none touch-none"
       >
         {/* Initialization Overlay */}
         <AnimatePresence>
