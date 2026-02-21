@@ -7,7 +7,7 @@ import { LessonStudioEmbed } from '@/components/music/LessonStudioEmbed';
 import { ShamrockFooter } from '@/components/shamrock/ShamrockFooter';
 import { ShamrockHeader } from '@/components/shamrock/ShamrockHeader';
 import { createPageMetadata } from "@/lib/seo";
-import { ArrowLeft, BrainCircuit, Calendar, CheckCircle2, CreditCard, Gem, Shield, Swords, Trophy, UserRound, Video } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BrainCircuit, Calendar, CheckCircle2, CreditCard, Gem, Shield, Sparkles, Swords, TrendingUp, Trophy, UserRound, Users, Video } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -36,11 +36,11 @@ export default function LessonsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Back Link */}
         <Link
-          href="/music"
+          href="/"
           className="inline-flex items-center gap-2 text-cyan-200/70 hover:text-white mb-8 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Music Services
+          Back to Home
         </Link>
 
         {/* Hero Section */}
@@ -280,6 +280,140 @@ export default function LessonsPage() {
                 </tr>
               </tbody>
             </table>
+          </div>
+        </section>
+
+        {/* Platform Expansion (Merged from legacy music landing) */}
+        <section className="mb-16">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/35 bg-cyan-500/10 px-4 py-1 text-[11px] uppercase tracking-[0.22em] text-cyan-200 mb-4">
+              <Sparkles className="w-3.5 h-3.5" />
+              Music Platform Expansion
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Artist Showcase + Scholarship Roadmap</h2>
+            <p className="text-cyan-100/75 max-w-3xl mx-auto">
+              The original music page capabilities are now consolidated here so guitar students can access artist growth and scholarship planning without switching contexts.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Link
+              href="/music/showcase"
+              className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-8 hover:border-purple-400/60 transition-all group"
+            >
+              <Users className="w-10 h-10 text-purple-300 mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">
+                Artist Showcase
+              </h3>
+              <p className="text-gray-300 mb-4">
+                Discover featured artists, platform mechanics, and growth tools designed to expand audience reach.
+              </p>
+              <span className="inline-flex items-center gap-2 text-purple-300 font-semibold">
+                Explore Showcase
+                <ArrowRight className="w-4 h-4" />
+              </span>
+            </Link>
+
+            <Link
+              href="/music/scholarships"
+              className="bg-gradient-to-br from-emerald-900/30 to-cyan-900/30 border border-emerald-500/30 rounded-xl p-8 hover:border-emerald-400/60 transition-all group"
+            >
+              <Trophy className="w-10 h-10 text-emerald-300 mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-emerald-300 transition-colors">
+                Scholarship + Token Roadmap
+              </h3>
+              <p className="text-gray-300 mb-4">
+                Follow the education funding roadmap, governance model, and launch phases for scholarship utility.
+              </p>
+              <span className="inline-flex items-center gap-2 text-emerald-300 font-semibold">
+                View Roadmap
+                <ArrowRight className="w-4 h-4" />
+              </span>
+            </Link>
+          </div>
+        </section>
+
+        {/* Student Success Stories (Merged from legacy music landing) */}
+        <section className="mb-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Student Success Stories</h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+              <div className="flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <span key={i} className="text-[#FF6B35]">★</span>
+                ))}
+              </div>
+              <p className="text-gray-300 mb-4">
+                &quot;The lessons are structured and practical. I moved from basic chord confusion to full songs with clean timing in weeks.&quot;
+              </p>
+              <p className="text-white font-semibold">- Emily T.</p>
+            </div>
+
+            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+              <div className="flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <span key={i} className="text-[#FF6B35]">★</span>
+                ))}
+              </div>
+              <p className="text-gray-300 mb-4">
+                &quot;The AI practice plan between sessions keeps me accountable. My weekly progress is measurable and consistent.&quot;
+              </p>
+              <p className="text-white font-semibold">- Carlos M.</p>
+            </div>
+
+            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+              <div className="flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <span key={i} className="text-[#FF6B35]">★</span>
+                ))}
+              </div>
+              <p className="text-gray-300 mb-4">
+                &quot;Direct founder instruction is the difference. Every lesson has clear goals and actionable feedback.&quot;
+              </p>
+              <p className="text-white font-semibold">- Rachel K.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Cross-Promotion (Merged from legacy music landing) */}
+        <section className="mb-16">
+          <div className="grid md:grid-cols-2 gap-6">
+            <Link
+              href="/services"
+              className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-xl p-8 hover:border-blue-500/50 transition-all group"
+            >
+              <TrendingUp className="w-12 h-12 text-blue-400 mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
+                Need a Music Website?
+              </h3>
+              <p className="text-gray-300 mb-4">
+                Build your artist presence with professional web and platform support.
+              </p>
+              <span className="inline-flex items-center gap-2 text-blue-400 font-semibold">
+                Explore Services
+                <ArrowRight className="w-5 h-5" />
+              </span>
+            </Link>
+
+            <Link
+              href="/dashboard"
+              className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 border border-green-500/30 rounded-xl p-8 hover:border-green-500/50 transition-all group"
+            >
+              <TrendingUp className="w-12 h-12 text-green-400 mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-green-400 transition-colors">
+                Explore Analytics Tools
+              </h3>
+              <p className="text-gray-300 mb-4">
+                Review dashboard intelligence and performance metrics for your growth strategy.
+              </p>
+              <span className="inline-flex items-center gap-2 text-green-400 font-semibold">
+                Open Dashboard
+                <ArrowRight className="w-5 h-5" />
+              </span>
+            </Link>
           </div>
         </section>
 
