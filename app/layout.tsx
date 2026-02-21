@@ -143,7 +143,7 @@ export default function RootLayout({
           <HyperboreaIntroOverlay />
           <SolanaProvider>
             <WalletProvider>
-              <nav className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-xl border-b border-white/5">
+              <nav id="global-top-nav" className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-xl border-b border-white/5">
                 <MarketTicker />
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
                   <div className="text-xl font-black tracking-tighter cursor-none">
@@ -165,7 +165,7 @@ export default function RootLayout({
                   <MobileMenu />
                 </div>
               </nav>
-              <div className="bg-cyber-grid pt-28">
+              <div id="global-page-shell" className="bg-cyber-grid pt-28">
                 <PageTransition>
                   {children}
                 </PageTransition>

@@ -150,6 +150,25 @@ export default function GamePage() {
   }, []);
 
   useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const globalTopNav = document.getElementById("global-top-nav");
+    const globalPageShell = document.getElementById("global-page-shell");
+
+    globalTopNav?.classList.add("hidden");
+    globalPageShell?.classList.remove("pt-28");
+    globalPageShell?.classList.add("pt-0");
+
+    return () => {
+      globalTopNav?.classList.remove("hidden");
+      globalPageShell?.classList.remove("pt-0");
+      globalPageShell?.classList.add("pt-28");
+    };
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") {
       return;
     }
