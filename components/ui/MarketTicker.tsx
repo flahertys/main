@@ -41,9 +41,13 @@ export const MarketTicker = () => {
   }
 
   return (
-    <div className="w-full bg-black/80 backdrop-blur-md border-y border-white/5 overflow-hidden h-[46px]" ref={container}>
-      <div className="tradingview-widget-container">
-        <div className="tradingview-widget-container__widget"></div>
+    <div
+      className="relative z-0 w-full h-[46px] overflow-hidden border-y border-white/5 bg-black/80 backdrop-blur-md pointer-events-none select-none"
+      ref={container}
+      aria-hidden="true"
+    >
+      <div className="tradingview-widget-container pointer-events-none h-full">
+        <div className="tradingview-widget-container__widget pointer-events-none h-full"></div>
       </div>
     </div>
   );
