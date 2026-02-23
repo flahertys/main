@@ -5,6 +5,7 @@ import {
     sanitizePlainText,
 } from '@/lib/security';
 import { NextRequest, NextResponse } from 'next/server';
+import nodemailer from 'nodemailer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -36,7 +37,7 @@ type SnowRemovalLeadRecord = {
 type DeliveryResult = {
   attempted: boolean;
   delivered: boolean;
-  channel: 'none' | 'resend';
+  channel: 'none' | 'resend' | 'smtp';
   reason?: string;
 };
 
@@ -118,6 +119,80 @@ async function sendLeadNotificationByResend(lead: SnowRemovalLeadRecord) {
     attempted: true,
     delivered: true,
     channel: 'resend' as const,
+  };
+}
+
+async function sendLeadNotificationBySmtp(lead: SnowRemovalLeadRecord) {
+  const host = String(process.env.SMTP_HOST || '').trim();
+  const port = Number(String(process.env.SMTP_PORT || '').trim() || 0);
+  const user = String(process.env.SMTP_USER || '').trim();
+  const pass = String(process.env.SMTP_PASS || '').trim();
+  const secure = String(process.env.SMTP_SECURE || '').trim().toLowerCase() === 'true' || port === 465;
+
+  const fromEmail = String(process.env.SMTP_FROM || process.env.SNOW_REMOVAL_FROM_EMAIL || '').trim();
+  const toEmail = String(process.env.SMTP_TO || process.env.SNOW_REMOVAL_TO_EMAIL || '').trim();
+
+  if (!host || !port || !user || !pass || !fromEmail || !toEmail) {
+    return {
+      attempted: false,
+      delivered: false,
+      channel: 'none' as const,
+      reason: 'Missing SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, or destination email',
+    };
+  }
+
+  const lines = [
+    `New snow-removal lead received at ${lead.submittedAt}`,
+    '',
+    `Name: ${lead.name}`,
+    `Phone: ${lead.phone || '(not provided)'}`,
+    `Email: ${lead.email || '(not provided)'}`,
+    `Preferred Contact: ${lead.preferredContact}`,
+    `Address: ${lead.address || '(not provided)'}`,
+    `Square Footage: ${lead.sqFt || '(not provided)'}`,
+    '',
+    'Notes:',
+    lead.notes || '(none)',
+  ];
+
+  const html = `
+    <h2>New Snow Removal Lead</h2>
+    <p><strong>Submitted:</strong> ${escapeHtml(lead.submittedAt)}</p>
+    <ul>
+      <li><strong>Name:</strong> ${escapeHtml(lead.name)}</li>
+      <li><strong>Phone:</strong> ${escapeHtml(lead.phone || '(not provided)')}</li>
+      <li><strong>Email:</strong> ${escapeHtml(lead.email || '(not provided)')}</li>
+      <li><strong>Preferred Contact:</strong> ${escapeHtml(lead.preferredContact)}</li>
+      <li><strong>Address:</strong> ${escapeHtml(lead.address || '(not provided)')}</li>
+      <li><strong>Square Footage:</strong> ${escapeHtml(lead.sqFt || '(not provided)')}</li>
+    </ul>
+    <p><strong>Notes:</strong></p>
+    <pre>${escapeHtml(lead.notes || '(none)')}</pre>
+  `;
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: {
+      user,
+      pass,
+    },
+  });
+
+  await transporter.sendMail({
+    from: fromEmail,
+    to: toEmail,
+    subject: `New Snow Removal Lead: ${lead.name}`,
+    text: lines.join('\n'),
+    html,
+    replyTo: lead.email || undefined,
+  });
+
+  return {
+    attempted: true,
+    delivered: true,
+    channel: 'smtp' as const,
   };
 }
 
@@ -238,18 +313,46 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      const sendResult = await sendLeadNotificationByResend(leadRecord);
-      delivery = {
-        ...sendResult,
-        reason: sendResult.attempted ? undefined : sendResult.reason,
-      };
+      const smtpResult = await sendLeadNotificationBySmtp(leadRecord);
+      if (smtpResult.delivered) {
+        delivery = smtpResult;
+      } else {
+        const resendResult = await sendLeadNotificationByResend(leadRecord);
+        const attemptedAny = smtpResult.attempted || resendResult.attempted;
+
+        delivery = {
+          attempted: attemptedAny,
+          delivered: resendResult.delivered,
+          channel: resendResult.channel,
+          reason: resendResult.delivered
+            ? undefined
+            : smtpResult.reason || resendResult.reason || 'No email delivery route configured',
+        };
+      }
+
+      if (delivery.delivered) {
+        console.info('[snow-removal] lead dispatched', {
+          channel: delivery.channel,
+          submittedAt: leadRecord.submittedAt,
+          name: leadRecord.name,
+        });
+      }
+
+      if (!delivery.delivered && delivery.reason) {
+        console.warn('[snow-removal] lead accepted but delivery pending', {
+          reason: delivery.reason,
+          submittedAt: leadRecord.submittedAt,
+          name: leadRecord.name,
+        });
+      }
+
     } catch (notifyError) {
       console.error('[snow-removal] notification delivery failed', notifyError);
       delivery = {
         attempted: true,
         delivered: false,
-        channel: 'resend',
-        reason: 'Notification send failed',
+        channel: 'none',
+        reason: 'Notification send failed for SMTP/Resend routes',
       };
     }
 

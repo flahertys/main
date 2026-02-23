@@ -10,9 +10,15 @@ type EnvCheck = {
 };
 
 const checks: EnvCheck[] = [
-  { key: 'NEXT_PUBLIC_EMAILJS_SERVICE_ID', required: true },
-  { key: 'NEXT_PUBLIC_EMAILJS_TEMPLATE_ID', required: true },
-  { key: 'NEXT_PUBLIC_EMAILJS_PUBLIC_KEY', required: true },
+  { key: 'NEXT_PUBLIC_EMAILJS_SERVICE_ID', required: false },
+  { key: 'NEXT_PUBLIC_EMAILJS_TEMPLATE_ID', required: false },
+  { key: 'NEXT_PUBLIC_EMAILJS_PUBLIC_KEY', required: false },
+  { key: 'SMTP_HOST', required: false },
+  { key: 'SMTP_PORT', required: false },
+  { key: 'SMTP_USER', required: false },
+  { key: 'SMTP_PASS', required: false },
+  { key: 'SMTP_FROM', required: false },
+  { key: 'SMTP_TO', required: false },
   { key: 'RESEND_API_KEY', required: false },
   { key: 'SNOW_REMOVAL_FROM_EMAIL', required: false },
   { key: 'SNOW_REMOVAL_TO_EMAIL', required: false },
@@ -34,6 +40,10 @@ function isConfigured(key: string) {
   return value.length > 0 && !isPlaceholder(value);
 }
 
+function getMissing(keys: string[]) {
+  return keys.filter((key) => !isConfigured(key));
+}
+
 export async function GET(request: NextRequest) {
   const originBlock = enforceTrustedOrigin(request);
   if (originBlock) {
@@ -50,28 +60,53 @@ export async function GET(request: NextRequest) {
     return rateLimit.response;
   }
 
-  const requiredKeys = checks.filter((item) => item.required).map((item) => item.key);
-  const optionalKeys = checks.filter((item) => !item.required).map((item) => item.key);
+  const allKeys = checks.map((item) => item.key);
+  const missingAll = allKeys.filter((key) => !isConfigured(key));
 
-  const missingRequired = requiredKeys.filter((key) => !isConfigured(key));
-  const missingOptional = optionalKeys.filter((key) => !isConfigured(key));
+  const emailJsKeys = [
+    'NEXT_PUBLIC_EMAILJS_SERVICE_ID',
+    'NEXT_PUBLIC_EMAILJS_TEMPLATE_ID',
+    'NEXT_PUBLIC_EMAILJS_PUBLIC_KEY',
+  ];
+
+  const smtpBaseKeys = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM'];
+  const smtpDestinationConfigured = isConfigured('SMTP_TO') || isConfigured('SNOW_REMOVAL_TO_EMAIL');
+
+  const resendKeys = ['RESEND_API_KEY', 'SNOW_REMOVAL_FROM_EMAIL', 'SNOW_REMOVAL_TO_EMAIL'];
+
+  const missingEmailJs = getMissing(emailJsKeys);
+  const missingSmtpBase = getMissing(smtpBaseKeys);
+  const missingResend = getMissing(resendKeys);
+
+  const emailJsReady = missingEmailJs.length === 0;
+  const smtpReady = missingSmtpBase.length === 0 && smtpDestinationConfigured;
+  const resendReady = missingResend.length === 0;
+
+  const routesReady = {
+    emailjs: emailJsReady,
+    smtp: smtpReady,
+    resend: resendReady,
+  };
+
+  const ready = emailJsReady || smtpReady || resendReady;
 
   return NextResponse.json(
     {
       ok: true,
-      ready: missingRequired.length === 0,
+      ready,
       timestamp: new Date().toISOString(),
+      routes: {
+        ready: routesReady,
+        missing: {
+          emailjs: missingEmailJs,
+          smtp: smtpDestinationConfigured ? missingSmtpBase : [...missingSmtpBase, 'SMTP_TO or SNOW_REMOVAL_TO_EMAIL'],
+          resend: missingResend,
+        },
+      },
       checks: {
-        required: {
-          total: requiredKeys.length,
-          configured: requiredKeys.length - missingRequired.length,
-          missing: missingRequired,
-        },
-        optional: {
-          total: optionalKeys.length,
-          configured: optionalKeys.length - missingOptional.length,
-          missing: missingOptional,
-        },
+        total: allKeys.length,
+        configured: allKeys.length - missingAll.length,
+        missing: missingAll,
       },
       note: 'Values are intentionally not returned. Only readiness metadata is exposed.',
     },

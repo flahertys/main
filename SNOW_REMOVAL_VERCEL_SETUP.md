@@ -40,6 +40,41 @@ These are required for client-side EmailJS sending.
 
 These enable server-side delivery from `/api/snow-removal/contact` using Resend.
 
+## Alternate route: SMTP backend delivery (recommended when EmailJS fails)
+
+These variables let your backend send lead emails directly via SMTP (no EmailJS dependency).
+
+### `SMTP_HOST`
+
+- **Where to find it:** Your email provider SMTP settings (Gmail example: `smtp.gmail.com`)
+
+### `SMTP_PORT`
+
+- **Where to find it:** Your email provider SMTP settings (common: `587` for STARTTLS, `465` for SSL)
+
+### `SMTP_USER`
+
+- **Where to find it:** Your SMTP account login username/email
+
+### `SMTP_PASS`
+
+- **Where to find it:** SMTP password or app password (for Gmail, use App Password)
+
+### `SMTP_FROM`
+
+- **Where to find it:** Sender email address you want to send from
+
+### `SMTP_TO`
+
+- **Where to choose it:** Destination inbox for lead notifications
+- **Note:** If omitted, backend falls back to `SNOW_REMOVAL_TO_EMAIL`
+
+---
+
+## Resend backend delivery (optional fallback)
+
+These enable server-side fallback delivery using Resend.
+
 ### `RESEND_API_KEY`
 
 - **Where to find it:** Resend Dashboard -> **API Keys**

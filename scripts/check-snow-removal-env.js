@@ -6,35 +6,53 @@ const path = require("node:path");
 const strictMode = process.argv.includes("--strict");
 const envFiles = [".env.local", ".env"];
 
-const requirements = [
+const checks = [
   {
     key: "NEXT_PUBLIC_EMAILJS_SERVICE_ID",
-    required: true,
     source: "EmailJS dashboard -> Email Services -> Service ID",
   },
   {
     key: "NEXT_PUBLIC_EMAILJS_TEMPLATE_ID",
-    required: true,
     source: "EmailJS dashboard -> Email Templates -> Template ID",
   },
   {
     key: "NEXT_PUBLIC_EMAILJS_PUBLIC_KEY",
-    required: true,
     source: "EmailJS dashboard -> Account -> API Keys -> Public Key",
   },
   {
+    key: "SMTP_HOST",
+    source: "SMTP provider settings (host)",
+  },
+  {
+    key: "SMTP_PORT",
+    source: "SMTP provider settings (port, e.g. 587 or 465)",
+  },
+  {
+    key: "SMTP_USER",
+    source: "SMTP account username/login",
+  },
+  {
+    key: "SMTP_PASS",
+    source: "SMTP account password/app password",
+  },
+  {
+    key: "SMTP_FROM",
+    source: "Sender email address for SMTP",
+  },
+  {
+    key: "SMTP_TO",
+    source: "Destination inbox for SMTP delivery (or use SNOW_REMOVAL_TO_EMAIL)",
+  },
+  {
     key: "RESEND_API_KEY",
-    required: false,
     source: "Resend dashboard -> API Keys",
   },
   {
     key: "SNOW_REMOVAL_FROM_EMAIL",
-    required: false,
     source: "A verified sender/domain in Resend",
   },
   {
     key: "SNOW_REMOVAL_TO_EMAIL",
-    required: false,
     source: "The inbox that should receive leads (ex: njsnowremoval26@gmail.com)",
   },
 ];
@@ -95,49 +113,66 @@ function isPlaceholder(value) {
       : "Mode: WARN-ONLY (advisory check, does not block)\n\n",
   );
 
-  let missingRequired = 0;
-  let warningCount = 0;
-
-  for (const item of requirements) {
+  const configuredMap = new Map();
+  for (const item of checks) {
     const value = getValue(localEnv, item.key);
     const hasValue = value.length > 0 && !isPlaceholder(value);
+    configuredMap.set(item.key, hasValue);
 
     if (hasValue) {
       process.stdout.write(`✅ ${item.key}\n`);
-      continue;
-    }
-
-    if (item.required) {
-      missingRequired += 1;
-      process.stdout.write(`❌ ${item.key} (required)\n`);
+    } else {
+      process.stdout.write(`⚪ ${item.key}\n`);
       process.stdout.write(`   ↳ source: ${item.source}\n`);
-      continue;
     }
+  }
 
-    warningCount += 1;
-    process.stdout.write(`⚠️  ${item.key} (optional but recommended)\n`);
-    process.stdout.write(`   ↳ source: ${item.source}\n`);
+  const emailJsReady =
+    configuredMap.get("NEXT_PUBLIC_EMAILJS_SERVICE_ID") &&
+    configuredMap.get("NEXT_PUBLIC_EMAILJS_TEMPLATE_ID") &&
+    configuredMap.get("NEXT_PUBLIC_EMAILJS_PUBLIC_KEY");
+
+  const smtpReady =
+    configuredMap.get("SMTP_HOST") &&
+    configuredMap.get("SMTP_PORT") &&
+    configuredMap.get("SMTP_USER") &&
+    configuredMap.get("SMTP_PASS") &&
+    configuredMap.get("SMTP_FROM") &&
+    (configuredMap.get("SMTP_TO") || configuredMap.get("SNOW_REMOVAL_TO_EMAIL"));
+
+  const resendReady =
+    configuredMap.get("RESEND_API_KEY") &&
+    configuredMap.get("SNOW_REMOVAL_FROM_EMAIL") &&
+    configuredMap.get("SNOW_REMOVAL_TO_EMAIL");
+
+  const anyRouteReady = Boolean(emailJsReady || smtpReady || resendReady);
+
+  process.stdout.write("\nDelivery route readiness:\n");
+  process.stdout.write(`- EmailJS: ${emailJsReady ? "READY" : "NOT READY"}\n`);
+  process.stdout.write(`- SMTP: ${smtpReady ? "READY" : "NOT READY"}\n`);
+  process.stdout.write(`- Resend: ${resendReady ? "READY" : "NOT READY"}\n\n`);
+
+  if (!anyRouteReady) {
+    process.stdout.write("❌ No email delivery route is fully configured yet.\n");
+    process.stdout.write("   Configure one complete route: EmailJS OR SMTP OR Resend.\n");
+  } else {
+    process.stdout.write("✅ At least one email delivery route is configured.\n");
   }
 
   process.stdout.write("\n");
   process.stdout.write("Next step for deploy: add these values in Vercel -> Project Settings -> Environment Variables.\n");
   process.stdout.write("Reference doc: SNOW_REMOVAL_VERCEL_SETUP.md\n\n");
 
-  if (missingRequired > 0 && strictMode) {
-    process.stderr.write("❌ Missing required Snow Removal environment variables in strict mode.\n");
+  if (!anyRouteReady && strictMode) {
+    process.stderr.write("❌ No complete Snow Removal delivery route configured in strict mode.\n");
     process.exit(1);
   }
 
-  if (missingRequired > 0) {
-    process.stdout.write("⚠️  Required values are still missing, but warn-only mode allows continuing.\n");
+  if (!anyRouteReady) {
+    process.stdout.write("⚠️  Route config is incomplete, but warn-only mode allows continuing.\n");
     process.exit(0);
   }
 
-  if (warningCount > 0) {
-    process.stdout.write("ℹ️  Required values are configured. Optional backend delivery values are still missing.\n");
-    process.exit(0);
-  }
-
-  process.stdout.write("✅ Snow Removal env setup looks complete.\n");
+  process.stdout.write("✅ Snow Removal env setup looks usable.\n");
   process.exit(0);
 })();
