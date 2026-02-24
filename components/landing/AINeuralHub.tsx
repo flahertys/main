@@ -64,6 +64,22 @@ interface ResponseCompareSnapshot {
   createdAt: number;
 }
 
+interface SessionPreset {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  guideName: string;
+  responseStyle: ResponseStyle;
+  riskStance: RiskStance;
+  focusSymbol: string;
+  sessionIntent: string;
+  personaPreset: PersonaPresetId;
+  workflowTask: LlmWorkflowTask;
+  workflowDepth: LlmDepth;
+  workflowCreativity: number;
+}
+
 type PromptLibraryItem = {
   id: string;
   title: string;
@@ -433,6 +449,8 @@ export const AINeuralHub = () => {
   const [customPromptValue, setCustomPromptValue] = useState("");
   const [customPromptCategory, setCustomPromptCategory] = useState<PromptLibraryCategory>("ops");
   const [compareSnapshot, setCompareSnapshot] = useState<ResponseCompareSnapshot | null>(null);
+  const [sessionPresets, setSessionPresets] = useState<SessionPreset[]>([]);
+  const [sessionPresetName, setSessionPresetName] = useState("");
   const { connected, publicKey, sendTransaction } = useWallet();
 
   // Usage Tracking
@@ -503,6 +521,50 @@ export const AINeuralHub = () => {
         }
       } catch {
         // ignore malformed prompt pack payload
+      }
+    }
+
+    const storedSessionPresets = localStorage.getItem("tradehax_ai_session_presets");
+    if (storedSessionPresets) {
+      try {
+        const parsed = JSON.parse(storedSessionPresets) as Array<Partial<SessionPreset>>;
+        if (Array.isArray(parsed)) {
+          setSessionPresets(
+            parsed
+              .slice(0, 20)
+              .map((preset) => ({
+                id: typeof preset.id === "string" ? preset.id : `preset_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                name: String(preset.name ?? "Session Preset").slice(0, 42),
+                createdAt: typeof preset.createdAt === "number" ? preset.createdAt : Date.now(),
+                updatedAt: typeof preset.updatedAt === "number" ? preset.updatedAt : Date.now(),
+                guideName: String(preset.guideName ?? "Trader").slice(0, 24),
+                responseStyle: preset.responseStyle === "concise" || preset.responseStyle === "coach" || preset.responseStyle === "operator"
+                  ? preset.responseStyle
+                  : "coach",
+                riskStance: preset.riskStance === "guarded" || preset.riskStance === "balanced" || preset.riskStance === "aggressive"
+                  ? preset.riskStance
+                  : "balanced",
+                focusSymbol: String(preset.focusSymbol ?? "SOL").slice(0, 12),
+                sessionIntent: String(preset.sessionIntent ?? "Build disciplined consistency").slice(0, 72),
+                personaPreset: preset.personaPreset === "mystic" || preset.personaPreset === "analyst" || preset.personaPreset === "mentor"
+                  ? preset.personaPreset
+                  : "mystic",
+                workflowTask: preset.workflowTask === "chat" || preset.workflowTask === "generate" || preset.workflowTask === "summarize" || preset.workflowTask === "qa"
+                  ? preset.workflowTask
+                  : "chat",
+                workflowDepth: preset.workflowDepth === "quick" || preset.workflowDepth === "balanced" || preset.workflowDepth === "deep"
+                  ? preset.workflowDepth
+                  : "balanced",
+                workflowCreativity:
+                  typeof preset.workflowCreativity === "number"
+                    ? Math.max(20, Math.min(100, Math.round(preset.workflowCreativity)))
+                    : 65,
+              }))
+              .sort((a, b) => b.updatedAt - a.updatedAt),
+          );
+        }
+      } catch {
+        // ignore malformed preset payload
       }
     }
 
@@ -647,6 +709,10 @@ export const AINeuralHub = () => {
   useEffect(() => {
     localStorage.setItem("tradehax_ai_custom_prompt_packs", JSON.stringify(customPromptPacks.slice(0, 24)));
   }, [customPromptPacks]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_session_presets", JSON.stringify(sessionPresets.slice(0, 20)));
+  }, [sessionPresets]);
 
   useEffect(() => {
     setCommandSelectionIndex(0);
@@ -1008,6 +1074,205 @@ export const AINeuralHub = () => {
     setCustomPromptPacks((prev) => prev.filter((item) => item.id !== id));
   }
 
+  function createSessionPreset() {
+    const cleanedName = sessionPresetName.trim().slice(0, 42) || `${personaPreset.toUpperCase()} • ${focusSymbol}`;
+    const preset: SessionPreset = {
+      id: `preset_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name: cleanedName,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      guideName,
+      responseStyle,
+      riskStance,
+      focusSymbol,
+      sessionIntent,
+      personaPreset,
+      workflowTask,
+      workflowDepth,
+      workflowCreativity,
+    };
+
+    setSessionPresets((prev) => [preset, ...prev].slice(0, 20));
+    setSessionPresetName("");
+    setChatStatus(`Saved session preset: ${cleanedName}`);
+  }
+
+  function applySessionPreset(preset: SessionPreset) {
+    setGuideName(preset.guideName);
+    setResponseStyle(preset.responseStyle);
+    setRiskStance(preset.riskStance);
+    setFocusSymbol(normalizeSymbol(preset.focusSymbol) || "SOL");
+    setSessionIntent(preset.sessionIntent);
+    setPersonaPreset(preset.personaPreset);
+    setWorkflowTask(preset.workflowTask);
+    setWorkflowDepth(preset.workflowDepth);
+    setWorkflowCreativity(Math.max(20, Math.min(100, Math.round(preset.workflowCreativity))));
+    setSessionPresets((prev) =>
+      prev.map((item) =>
+        item.id === preset.id
+          ? {
+              ...item,
+              updatedAt: Date.now(),
+            }
+          : item,
+      ).sort((a, b) => b.updatedAt - a.updatedAt),
+    );
+    setActiveTab("CHAT");
+    setChatStatus(`Applied preset: ${preset.name}`);
+  }
+
+  function deleteSessionPreset(id: string) {
+    setSessionPresets((prev) => prev.filter((item) => item.id !== id));
+    setChatStatus("Session preset removed.");
+  }
+
+  function exportSessionSnapshot() {
+    const snapshot = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      settings: {
+        guideName,
+        responseStyle,
+        riskStance,
+        focusSymbol,
+        sessionIntent,
+        personaPreset,
+        workflowTask,
+        workflowDepth,
+        workflowCreativity,
+      },
+      customPromptPacks: customPromptPacks.slice(0, 24),
+      memoryCards: memoryCards.slice(0, 12),
+      sessionPresets: sessionPresets.slice(0, 20),
+    };
+
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tradehax-session-snapshot-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setChatStatus("Session snapshot exported.");
+  }
+
+  function importSessionSnapshotFromPrompt() {
+    const raw = window.prompt("Paste exported session snapshot JSON:");
+    if (!raw || !raw.trim()) return;
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        settings?: Partial<SessionPreset>;
+        customPromptPacks?: Array<Partial<PromptLibraryItem>>;
+        memoryCards?: Array<Partial<MemoryCard>>;
+        sessionPresets?: Array<Partial<SessionPreset>>;
+      };
+
+      if (parsed.settings) {
+        const settings = parsed.settings;
+        if (typeof settings.guideName === "string" && settings.guideName.trim()) {
+          setGuideName(settings.guideName.trim().slice(0, 24));
+        }
+        if (settings.responseStyle === "concise" || settings.responseStyle === "coach" || settings.responseStyle === "operator") {
+          setResponseStyle(settings.responseStyle);
+        }
+        if (settings.riskStance === "guarded" || settings.riskStance === "balanced" || settings.riskStance === "aggressive") {
+          setRiskStance(settings.riskStance);
+        }
+        if (typeof settings.focusSymbol === "string") {
+          setFocusSymbol(normalizeSymbol(settings.focusSymbol) || "SOL");
+        }
+        if (typeof settings.sessionIntent === "string") {
+          setSessionIntent(settings.sessionIntent.slice(0, 72));
+        }
+        if (settings.personaPreset === "mystic" || settings.personaPreset === "analyst" || settings.personaPreset === "mentor") {
+          setPersonaPreset(settings.personaPreset);
+        }
+        if (settings.workflowTask === "chat" || settings.workflowTask === "generate" || settings.workflowTask === "summarize" || settings.workflowTask === "qa") {
+          setWorkflowTask(settings.workflowTask);
+        }
+        if (settings.workflowDepth === "quick" || settings.workflowDepth === "balanced" || settings.workflowDepth === "deep") {
+          setWorkflowDepth(settings.workflowDepth);
+        }
+        if (typeof settings.workflowCreativity === "number") {
+          setWorkflowCreativity(Math.max(20, Math.min(100, Math.round(settings.workflowCreativity))));
+        }
+      }
+
+      if (Array.isArray(parsed.customPromptPacks)) {
+        setCustomPromptPacks(
+          parsed.customPromptPacks
+            .slice(0, 24)
+            .map((item) => ({
+              id: typeof item.id === "string" ? item.id : `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+              title: String(item.title ?? "Custom Prompt").slice(0, 40),
+              category: item.category === "trading" || item.category === "content" || item.category === "ops" ? item.category : "ops",
+              value: String(item.value ?? "").slice(0, 500),
+            }))
+            .filter((item) => item.value.trim().length > 0),
+        );
+      }
+
+      if (Array.isArray(parsed.memoryCards)) {
+        setMemoryCards(
+          parsed.memoryCards
+            .slice(0, 12)
+            .map<MemoryCard>((card) => ({
+              id: typeof card.id === "string" ? card.id : `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+              scope: card.scope === "long" ? "long" : "short",
+              title: String(card.title ?? "Memory").slice(0, 40),
+              content: String(card.content ?? "").slice(0, 160),
+              updatedAt: typeof card.updatedAt === "number" ? card.updatedAt : Date.now(),
+              confidence: typeof card.confidence === "number" ? Math.min(100, Math.max(1, card.confidence)) : 70,
+            }))
+            .filter((card) => card.content.trim().length > 0),
+        );
+      }
+
+      if (Array.isArray(parsed.sessionPresets)) {
+        setSessionPresets(
+          parsed.sessionPresets
+            .slice(0, 20)
+            .map((preset) => ({
+              id: typeof preset.id === "string" ? preset.id : `preset_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+              name: String(preset.name ?? "Session Preset").slice(0, 42),
+              createdAt: typeof preset.createdAt === "number" ? preset.createdAt : Date.now(),
+              updatedAt: typeof preset.updatedAt === "number" ? preset.updatedAt : Date.now(),
+              guideName: String(preset.guideName ?? "Trader").slice(0, 24),
+              responseStyle: preset.responseStyle === "concise" || preset.responseStyle === "coach" || preset.responseStyle === "operator"
+                ? preset.responseStyle
+                : "coach",
+              riskStance: preset.riskStance === "guarded" || preset.riskStance === "balanced" || preset.riskStance === "aggressive"
+                ? preset.riskStance
+                : "balanced",
+              focusSymbol: String(preset.focusSymbol ?? "SOL").slice(0, 12),
+              sessionIntent: String(preset.sessionIntent ?? "Build disciplined consistency").slice(0, 72),
+              personaPreset: preset.personaPreset === "mystic" || preset.personaPreset === "analyst" || preset.personaPreset === "mentor"
+                ? preset.personaPreset
+                : "mystic",
+              workflowTask: preset.workflowTask === "chat" || preset.workflowTask === "generate" || preset.workflowTask === "summarize" || preset.workflowTask === "qa"
+                ? preset.workflowTask
+                : "chat",
+              workflowDepth: preset.workflowDepth === "quick" || preset.workflowDepth === "balanced" || preset.workflowDepth === "deep"
+                ? preset.workflowDepth
+                : "balanced",
+              workflowCreativity:
+                typeof preset.workflowCreativity === "number"
+                  ? Math.max(20, Math.min(100, Math.round(preset.workflowCreativity)))
+                  : 65,
+            }))
+            .sort((a, b) => b.updatedAt - a.updatedAt),
+        );
+      }
+
+      setChatStatus("Session snapshot imported.");
+    } catch {
+      setChatStatus("Invalid snapshot JSON. Import aborted.");
+    }
+  }
+
   const promptLibraryEntries = [...PROMPT_LIBRARY, ...customPromptPacks];
 
   const slashCommands: SlashCommand[] = [
@@ -1053,6 +1318,24 @@ export const AINeuralHub = () => {
       description: "Switch to QA task",
       execute: () => setWorkflowTask("qa"),
     },
+    {
+      id: "save-preset",
+      label: "/savepreset",
+      description: "Save current settings as a session preset",
+      execute: () => createSessionPreset(),
+    },
+    {
+      id: "export-session",
+      label: "/exportsession",
+      description: "Export full session snapshot",
+      execute: () => exportSessionSnapshot(),
+    },
+    {
+      id: "import-session",
+      label: "/importsession",
+      description: "Import a session snapshot JSON",
+      execute: () => importSessionSnapshotFromPrompt(),
+    },
   ];
 
   const commandPaletteEntries: Array<{ id: string; label: string; hint: string; action: () => void }> = [
@@ -1062,6 +1345,9 @@ export const AINeuralHub = () => {
     { id: "task-generate", label: "Mode: Generate", hint: "Draft long-form or short-form output", action: () => setWorkflowTask("generate") },
     { id: "task-summarize", label: "Mode: Summarize", hint: "Compress dense source into action summary", action: () => setWorkflowTask("summarize") },
     { id: "task-qa", label: "Mode: Q&A", hint: "Ground answers in explicit context", action: () => setWorkflowTask("qa") },
+    { id: "save-preset", label: "Save Session Preset", hint: "Store current operator setup", action: () => createSessionPreset() },
+    { id: "export-session", label: "Export Session Snapshot", hint: "Download settings, memory, and presets JSON", action: () => exportSessionSnapshot() },
+    { id: "import-session", label: "Import Session Snapshot", hint: "Paste JSON to restore a saved workspace", action: () => importSessionSnapshotFromPrompt() },
     { id: "copy-last", label: "Copy Last Reply", hint: "Copy latest assistant output", action: () => { void copyLastReply(); } },
     { id: "export", label: "Export Transcript", hint: "Download current session transcript", action: () => exportTranscript() },
   ];
@@ -1122,7 +1408,7 @@ export const AINeuralHub = () => {
     const slashToken = input.split(/\s+/)[0].trim().toLowerCase();
     const command = slashCommands.find((item) => item.label === slashToken);
     if (!command) {
-      setChatStatus("Unknown slash command. Try /palette, /library, /chat, /generate, /summarize, /qa.");
+      setChatStatus("Unknown slash command. Try /palette, /library, /chat, /generate, /summarize, /qa, /savepreset, /exportsession, /importsession.");
       return true;
     }
 
@@ -2332,6 +2618,82 @@ export const AINeuralHub = () => {
                               {responseStyle.toUpperCase()} • {riskStance.toUpperCase()}
                             </span>
                           </div>
+                        </div>
+
+                        <div className="rounded-xl border border-cyan-400/20 bg-[rgba(6,10,16,0.82)] px-3 py-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-cyan-200">Phase 4 · Session Continuity</p>
+                            <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                              {sessionPresets.length} presets
+                            </span>
+                          </div>
+
+                          <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                            <input
+                              value={sessionPresetName}
+                              onChange={(event) => setSessionPresetName(event.target.value.slice(0, 42))}
+                              placeholder="Preset name (optional)"
+                              className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
+                            />
+                            <button
+                              type="button"
+                              onClick={createSessionPreset}
+                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100 hover:border-cyan-300/55"
+                            >
+                              Save Preset
+                            </button>
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={exportSessionSnapshot}
+                              className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                            >
+                              Export Snapshot
+                            </button>
+                            <button
+                              type="button"
+                              onClick={importSessionSnapshotFromPrompt}
+                              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
+                            >
+                              Import Snapshot
+                            </button>
+                          </div>
+
+                          {sessionPresets.length > 0 ? (
+                            <div className="mt-2 space-y-1.5">
+                              {sessionPresets.slice(0, 6).map((preset) => (
+                                <div
+                                  key={preset.id}
+                                  className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-black/35 px-2.5 py-1.5"
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => applySessionPreset(preset)}
+                                    className="min-w-0 flex-1 truncate text-left text-[10px] font-semibold text-cyan-100"
+                                    title={`${preset.personaPreset} • ${preset.focusSymbol} • ${preset.responseStyle}`}
+                                  >
+                                    {preset.name}
+                                  </button>
+                                  <span className="rounded-full border border-white/15 bg-black/30 px-1.5 py-0.5 text-[9px] uppercase text-zinc-400">
+                                    {preset.personaPreset}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteSessionPreset(preset.id)}
+                                    className="rounded-full border border-rose-300/25 bg-rose-500/10 p-1 text-rose-200 hover:border-rose-300/45"
+                                    aria-label={`Delete preset ${preset.name}`}
+                                    title="Delete preset"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-[10px] text-zinc-500">No presets saved yet. Save one to instantly restore your full operator setup.</p>
+                          )}
                         </div>
 
                         <div className="rounded-xl border border-white/10 bg-[rgba(9,12,18,0.72)] px-3 py-3">
