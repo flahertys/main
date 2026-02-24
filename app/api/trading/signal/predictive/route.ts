@@ -1,24 +1,13 @@
 import { enforceRateLimit, enforceTrustedOrigin } from "@/lib/security";
+import { generateTradebotSignalOutlooks } from "@/lib/trading/signal-outlook";
 import { NextRequest, NextResponse } from "next/server";
 
 const symbols = ["SOL/USDC", "ETH/USDC", "BTC/USDC"];
 
 function generatePredictiveSignals() {
-  const now = new Date().toISOString();
-  return symbols.map((symbol, index) => {
-    const confidence = Number((0.62 + index * 0.09).toFixed(2));
-    const direction = index % 2 === 0 ? "long" : "mean-revert";
-    return {
-      symbol,
-      direction,
-      confidence,
-      horizonMinutes: 45 + index * 20,
-      rationale:
-        direction === "long"
-          ? "Momentum + liquidity expansion with controlled slippage profile."
-          : "Volatility overshoot relative to intraday fair-value band.",
-      generatedAt: now,
-    };
+  return generateTradebotSignalOutlooks({
+    symbols,
+    seed: 101,
   });
 }
 
@@ -45,6 +34,10 @@ export async function GET(request: NextRequest) {
       ok: true,
       source: feedSource,
       signals: generatePredictiveSignals(),
+      notes: {
+        model: "tradebot-signal-outlook-v1",
+        includes: ["timeframes", "macro", "micro", "options-flow", "hedge-fund-indicators", "learner/premium"],
+      },
     },
     { headers: rateLimit.headers },
   );

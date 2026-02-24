@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-02-24T02:14:35.206Z",
+  "sources": [
+    "ai-training-set.jsonl",
+    "tradehax-training-expanded.jsonl",
+    "tradehax-crypto-education.jsonl",
+    "tradehax-domain-priority.jsonl",
+    "data\\custom-llm\\train.jsonl"
+  ],
+  "config": {
+    "minQualityScore": 0.28,
+    "validationShare": 0.2,
+    "shuffleSeed": 1337
+  },
+  "stats": {
+    "rawRows": 272,
+    "normalizedRows": 272,
+    "relevantRows": 186,
+    "syntheticScenarioRows": 80,
+    "combinedRelevantRows": 266,
+    "filteredRows": 210,
+    "dedupedRows": 105,
+    "finalRows": 105,
+    "trainRows": 84,
+    "validationRows": 21,
+    "avgQualityScore": 0.7803,
+    "categoryDistribution": {
+      "general": 8,
+      "tradebot_timeframe_learner": 40,
+      "tradebot_timeframe_premium": 40,
+      "optimization": 1,
+      "solana_defi": 1,
+      "crypto_portfolio": 1,
+      "bot_setup": 2,
+      "trading_strategy": 1,
+      "defi_education": 2,
+      "nft_concepts": 1,
+      "tech_ai": 1,
+      "market_process": 1,
+      "portfolio_management": 1,
+      "crypto_risk": 1,
+      "stock_trading": 1,
+      "crypto_trading": 1,
+      "stock_education": 1,
+      "ui/ux": 1
+    }
+  },
+  "outputs": {
+    "trainRaw": "data/tradebot/train.raw.jsonl",
+    "validationRaw": "data/tradebot/validation.raw.jsonl",
+    "trainChat": "data/tradebot/train.chat.jsonl",
+    "validationChat": "data/tradebot/validation.chat.jsonl"
+  },
+  "trainingNotes": [
+    "Use train.chat.jsonl for chat fine-tuning or instruction tuning frameworks.",
+    "Use validation.chat.jsonl for early stopping and hyperparameter checks.",
+    "Keep model objective focused on risk-adjusted decision support, not guaranteed returns."
+  ]
+}

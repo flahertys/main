@@ -20,6 +20,13 @@ export interface LLMResponse {
   model: string;
 }
 
+export interface GenerateOptions {
+  modelId?: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+}
+
 interface StreamMessage {
   token?: {
     text: string;
@@ -44,19 +51,24 @@ class HFLLMClient {
   /**
    * Generate text using Inference API
    */
-  async generate(prompt: string): Promise<LLMResponse> {
+  async generate(prompt: string, options?: GenerateOptions): Promise<LLMResponse> {
     if (!this.client) {
       throw new Error("HF client not initialized. Check API token.");
     }
 
+    const resolvedModel = options?.modelId || this.modelId;
+    const resolvedMaxTokens = options?.maxTokens ?? this.config.maxTokens ?? 512;
+    const resolvedTemperature = options?.temperature ?? this.config.temperature ?? 0.7;
+    const resolvedTopP = options?.topP ?? this.config.topP ?? 0.95;
+
     try {
       const response = await this.client.textGeneration({
-        model: this.modelId,
+        model: resolvedModel,
         inputs: prompt,
         parameters: {
-          max_new_tokens: this.config.maxTokens || 512,
-          temperature: this.config.temperature || 0.7,
-          top_p: this.config.topP || 0.95,
+          max_new_tokens: resolvedMaxTokens,
+          temperature: resolvedTemperature,
+          top_p: resolvedTopP,
           do_sample: true,
           return_full_text: false,
         },
@@ -72,7 +84,7 @@ class HFLLMClient {
 
       return {
         text,
-        model: this.modelId,
+        model: resolvedModel,
       };
     } catch (error) {
       throw new Error(
@@ -86,19 +98,25 @@ class HFLLMClient {
    */
   async *generateStream(
     prompt: string,
+    options?: GenerateOptions,
   ): AsyncGenerator<string, void, unknown> {
     if (!this.client) {
       throw new Error("HF client not initialized. Check API token.");
     }
 
+    const resolvedModel = options?.modelId || this.modelId;
+    const resolvedMaxTokens = options?.maxTokens ?? this.config.maxTokens ?? 512;
+    const resolvedTemperature = options?.temperature ?? this.config.temperature ?? 0.7;
+    const resolvedTopP = options?.topP ?? this.config.topP ?? 0.95;
+
     try {
       const stream = await this.client.textGenerationStream({
-        model: this.modelId,
+        model: resolvedModel,
         inputs: prompt,
         parameters: {
-          max_new_tokens: this.config.maxTokens || 512,
-          temperature: this.config.temperature || 0.7,
-          top_p: this.config.topP || 0.95,
+          max_new_tokens: resolvedMaxTokens,
+          temperature: resolvedTemperature,
+          top_p: resolvedTopP,
           do_sample: true,
         },
       });

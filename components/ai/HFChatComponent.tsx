@@ -17,9 +17,11 @@ type PipelineMemory = {
   mode: ChatMode;
   responseStyle: ResponseStyle;
   autoFallback: boolean;
+  freedomMode: FreedomMode;
 };
 
 type ResponseStyle = "concise" | "coach" | "operator";
+type FreedomMode = "uncensored" | "standard";
 
 const PIPELINE_MEMORY_KEY = "tradehax-ai-pipeline-memory-v1";
 
@@ -71,7 +73,27 @@ const PIPELINE_STEPS = [
   },
 ] as const;
 
+const QUICK_START_PROMPTS = [
+  {
+    label: "New user setup",
+    prompt: "I am brand new. Give me a simple 10-minute setup checklist and where to click first.",
+  },
+  {
+    label: "First trade plan",
+    prompt: "Build me a beginner-friendly trade plan with risk limits and exact next steps.",
+  },
+  {
+    label: "Portfolio check",
+    prompt: "Review my portfolio process and give me a safer weekly routine I can follow.",
+  },
+  {
+    label: "Pricing help",
+    prompt: "Explain the lowest-cost plan for me and when I should upgrade.",
+  },
+] as const;
+
 export function HFChatComponent() {
+  const [userId, setUserId] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -82,10 +104,16 @@ export function HFChatComponent() {
   const [autoAdvanceMessage, setAutoAdvanceMessage] = useState("");
   const [responseStyle, setResponseStyle] = useState<ResponseStyle>("coach");
   const [autoFallback, setAutoFallback] = useState(true);
+  const [freedomMode, setFreedomMode] = useState<FreedomMode>("uncensored");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    const storedUserId = window.localStorage.getItem("tradehax_user_id") || "";
+    if (storedUserId.trim().length > 0) {
+      setUserId(storedUserId.trim());
+    }
 
     try {
       const rawMemory = window.localStorage.getItem(PIPELINE_MEMORY_KEY);
@@ -107,6 +135,9 @@ export function HFChatComponent() {
       if (typeof parsed.autoFallback === "boolean") {
         setAutoFallback(parsed.autoFallback);
       }
+      if (parsed.freedomMode === "uncensored" || parsed.freedomMode === "standard") {
+        setFreedomMode(parsed.freedomMode);
+      }
     } catch {
       // Ignore malformed memory payloads
     }
@@ -121,9 +152,10 @@ export function HFChatComponent() {
       mode,
       responseStyle,
       autoFallback,
+      freedomMode,
     };
     window.localStorage.setItem(PIPELINE_MEMORY_KEY, JSON.stringify(memory));
-  }, [objective, selectedStep, mode, responseStyle, autoFallback]);
+  }, [objective, selectedStep, mode, responseStyle, autoFallback, freedomMode]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -163,6 +195,7 @@ export function HFChatComponent() {
         mode === "chat"
           ? {
               message: trimmedInput,
+              tier: freedomMode === "uncensored" ? "UNCENSORED" : "STANDARD",
               messages: messages.map((m) => ({ role: m.role, content: m.content })).concat([
                 { role: "user", content: trimmedInput },
               ]),
@@ -171,6 +204,7 @@ export function HFChatComponent() {
                 objective: objectiveForRequest,
                 responseStyle,
               },
+              userId,
             }
           : mode === "custom"
             ? {
@@ -182,6 +216,7 @@ export function HFChatComponent() {
                   objective: objectiveForRequest,
                   responseStyle,
                 },
+                userId,
               }
             : {
                 message: trimmedInput,
@@ -189,6 +224,7 @@ export function HFChatComponent() {
                 sessionId: `session-${Date.now()}`,
                 objective: objectiveForRequest,
                 responseStyle,
+                userId,
               };
 
       const callEndpoint = async (targetEndpoint: string, targetPayload: unknown) => {
@@ -200,6 +236,12 @@ export function HFChatComponent() {
 
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
+          if (data?.error === "INSUFFICIENT_CREDITS") {
+            const balance =
+              typeof data?.credits?.balance === "number" ? Math.max(0, Math.floor(data.credits.balance)) : null;
+            const suffix = balance !== null ? ` Current balance: ${balance} credits.` : "";
+            throw new Error(`Insufficient AI credits.${suffix} Top up from the Billing page.`);
+          }
           throw new Error(data?.error || data?.message || `API error: ${response.statusText}`);
         }
         return data;
@@ -215,6 +257,7 @@ export function HFChatComponent() {
 
         data = await callEndpoint("/api/ai/chat", {
           message: trimmedInput,
+          tier: freedomMode === "uncensored" ? "UNCENSORED" : "STANDARD",
           messages: messages.map((m) => ({ role: m.role, content: m.content })).concat([
             { role: "user", content: trimmedInput },
           ]),
@@ -224,6 +267,7 @@ export function HFChatComponent() {
             responseStyle,
             fallbackFromMode: mode,
           },
+          userId,
         });
       }
 
@@ -269,7 +313,7 @@ export function HFChatComponent() {
     } finally {
       setLoading(false);
     }
-  }, [input, messages, mode, objective, selectedStep, responseStyle, autoFallback]);
+  }, [input, messages, mode, objective, selectedStep, responseStyle, autoFallback, freedomMode, userId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -289,8 +333,8 @@ export function HFChatComponent() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-emerald-500/20 p-4">
         <div>
-          <h3 className="font-bold text-emerald-300">AI Chat Pipeline</h3>
-          <p className="text-xs text-emerald-200/70">Choose a mode, then follow the 4-step flow</p>
+          <h3 className="font-bold text-emerald-300">AI Assistant (Guided)</h3>
+          <p className="text-xs text-emerald-200/70">Beginner-friendly guidance with clear next steps and safer defaults.</p>
         </div>
         <button
           onClick={clearChat}
@@ -302,6 +346,11 @@ export function HFChatComponent() {
       </div>
 
       <div className="border-b border-emerald-500/20 p-4 space-y-3">
+        <div className="rounded border border-cyan-500/20 bg-cyan-600/10 px-3 py-2 text-xs text-cyan-100/90">
+          <p className="font-semibold">Start here if you&apos;re new:</p>
+          <p className="mt-1 text-cyan-100/75">Pick a quick prompt below, send it, then follow the 4-step flow from setup to action.</p>
+        </div>
+
         <div>
           <label className="block text-[11px] uppercase tracking-wide text-emerald-200/70 mb-1">
             Conversation objective (memory)
@@ -312,6 +361,28 @@ export function HFChatComponent() {
             placeholder="e.g. Get from onboarding to funded trading setup"
             className="w-full rounded border border-emerald-500/30 bg-black/40 px-3 py-2 text-sm text-emerald-100 placeholder-emerald-200/40 outline-none"
           />
+        </div>
+
+        <div>
+          <label className="block text-[11px] uppercase tracking-wide text-emerald-200/70 mb-1">
+            Quick-start prompts
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {QUICK_START_PROMPTS.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => {
+                  setInput(item.prompt);
+                  if (!objective.trim()) {
+                    setObjective(item.label);
+                  }
+                }}
+                className="rounded border border-emerald-500/20 bg-black/30 px-2 py-2 text-left text-[11px] text-emerald-100/85 hover:border-emerald-400/40"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -383,6 +454,24 @@ export function HFChatComponent() {
             Auto-fallback to General Chat on endpoint failure
           </label>
         </div>
+
+        <div className="rounded border border-fuchsia-500/20 bg-fuchsia-600/10 p-2">
+          <label htmlFor="freedom-mode" className="block text-[11px] font-semibold text-fuchsia-100/90 mb-1">
+            Chat freedom mode
+          </label>
+          <select
+            id="freedom-mode"
+            value={freedomMode}
+            onChange={(e) => setFreedomMode((e.target.value as FreedomMode) || "uncensored")}
+            className="w-full rounded border border-fuchsia-500/30 bg-black/40 px-2 py-1 text-xs text-fuchsia-100 outline-none"
+          >
+            <option value="uncensored">Uncensored (prioritized)</option>
+            <option value="standard">Standard safety mode</option>
+          </select>
+          <p className="mt-1 text-[11px] text-fuchsia-100/70">
+            Uncensored mode uses the platform&apos;s open-response path for direct output.
+          </p>
+        </div>
       </div>
 
       {/* Messages */}
@@ -443,7 +532,7 @@ export function HFChatComponent() {
             <Sparkles className="w-3 h-3" />
             Mode: {MODE_META[mode].label}
           </span>
-          <span>Current step: {selectedStep + 1}/4</span>
+          <span>Current step: {selectedStep + 1}/4 • {freedomMode === "uncensored" ? "Uncensored" : "Standard"}</span>
         </div>
         {objective && (
           <div className="mb-2 text-[11px] text-cyan-200/70">Objective memory: {objective}</div>
@@ -456,7 +545,7 @@ export function HFChatComponent() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message or choose a step template above..."
+            placeholder="Type your question in plain language (example: 'I am new. What should I do first?')"
             rows={3}
             disabled={loading}
             className="flex-1 rounded border border-emerald-500/30 bg-black/40 px-3 py-2 text-emerald-100 placeholder-emerald-200/40 outline-none resize-none disabled:opacity-50"

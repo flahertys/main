@@ -6,18 +6,19 @@ import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { createPageMetadata } from "@/lib/seo";
 import {
-    BarChart3,
-    Brain,
-    MessageSquare,
-    Sparkles,
-    Wand2,
-    Zap,
+  BarChart3,
+  Brain,
+  MessageSquare,
+  Sparkles,
+  Wand2,
+  Zap,
 } from "lucide-react";
+import Link from "next/link";
 
 export const metadata = createPageMetadata({
-  title: "TradeHax AI Hub - Smart Trading Environment",
+  title: "TradeHax AI Hub - Beginner Friendly AI Assistant",
   description:
-    "Unified AI platform with trading bots, image generation, smart environment context, and intelligent chat.",
+    "A clear, beginner-friendly AI hub for chat, text creation, image generation, and guided trading workflows.",
   path: "/ai-hub",
   keywords: ["ai trading", "smart environment", "image generation", "ai assistants"],
 });
@@ -32,21 +33,46 @@ export default function AIHubPage() {
         <div className="text-center mb-16">
           <div className="theme-badge inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold mb-6">
             <Brain className="w-4 h-4" />
-            UNIFIED AI PLATFORM
+            BEGINNER-FIRST AI PLATFORM
           </div>
 
-          <h1 className="theme-title text-4xl sm:text-5xl md:text-6xl font-bold mb-6">
-            TradeHax AI Hub
-          </h1>
+          <h1 className="theme-title text-4xl sm:text-5xl md:text-6xl font-bold mb-6">TradeHax AI Hub</h1>
 
           <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-            Your complete AI-powered trading ecosystem with intelligent bots,
-            image generation, context-aware advice, and smart portfolio
-            management.
+            Get clear help in plain language: ask questions, generate content, create images,
+            and follow guided next steps even if you&apos;re brand new.
           </p>
-          <p className="text-sm text-cyan-200/80 max-w-2xl mx-auto">
-            Open Mode is enabled by default for direct responses and expressive outputs. Configure
-            `TRADEHAX_LLM_OPEN_MODE` and `TRADEHAX_IMAGE_OPEN_MODE` per environment.
+
+          <div className="mx-auto max-w-3xl rounded-xl border border-emerald-500/20 bg-emerald-600/10 px-4 py-3 text-sm text-emerald-100/90">
+            <p className="font-semibold">How to use this page</p>
+            <p className="mt-1 text-emerald-100/75">1) Start with AI Chat, 2) ask for a step-by-step plan, 3) use Text/Image tools only when needed.</p>
+          </div>
+        </div>
+
+        <div className="mb-8 grid gap-4 md:grid-cols-3">
+          <QuickStartCard
+            title="I&apos;m new"
+            description="Open AI Chat and ask: 'What should I do first?'"
+            cta="Go to AI Chat"
+          />
+          <QuickStartCard
+            title="I need content"
+            description="Use Text Generator for posts, docs, and strategy notes."
+            cta="Open Text Generator"
+          />
+          <QuickStartCard
+            title="I need visuals"
+            description="Use Image Generator for charts, social art, and hero images."
+            cta="Open Image Generator"
+          />
+        </div>
+
+        <div className="mb-12 rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-5 py-4 text-sm text-cyan-100/90">
+          <p className="font-semibold">Low-cost usage model (for API sustainability)</p>
+          <p className="mt-1 text-cyan-100/75">
+            We keep pricing lightweight: enough to cover model/API costs while staying affordable for regular users.
+            Visit <Link href="/pricing" className="underline underline-offset-2"> pricing </Link>
+            for current limits and included usage.
           </p>
         </div>
 
@@ -61,7 +87,7 @@ export default function AIHubPage() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Wand2 className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-xl font-bold text-cyan-300">Image Generator</h2>
+              <h2 className="text-xl font-bold text-cyan-300">Image Generator (Simple)</h2>
             </div>
             <ImageGeneratorComponent />
           </div>
@@ -70,7 +96,7 @@ export default function AIHubPage() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <MessageSquare className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-xl font-bold text-emerald-300">AI Chat</h2>
+              <h2 className="text-xl font-bold text-emerald-300">AI Chat (Recommended First)</h2>
             </div>
             <HFChatComponent />
           </div>
@@ -82,7 +108,7 @@ export default function AIHubPage() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5 text-yellow-400" />
-              <h2 className="text-xl font-bold text-yellow-300">Text Generator</h2>
+              <h2 className="text-xl font-bold text-yellow-300">Text Generator (Templates)</h2>
             </div>
             <HFGeneratorComponent />
           </div>
@@ -94,7 +120,7 @@ export default function AIHubPage() {
               <CapabilityItem
                 icon={<Brain className="w-5 h-5" />}
                 title="Smart Environment"
-                description="Context-aware system with market data, portfolio tracking, and bot management"
+                description="Context-aware support with clear next actions for trading workflows"
               />
               <CapabilityItem
                 icon={<Wand2 className="w-5 h-5" />}
@@ -104,7 +130,7 @@ export default function AIHubPage() {
               <CapabilityItem
                 icon={<MessageSquare className="w-5 h-5" />}
                 title="Intelligent Chat"
-                description="Personalized trading advice based on your experience and risk tolerance"
+                description="Beginner-friendly guidance with step-by-step explanations"
               />
               <CapabilityItem
                 icon={<BarChart3 className="w-5 h-5" />}
@@ -186,44 +212,62 @@ export default function AIHubPage() {
 
         {/* Getting Started */}
         <div className="theme-panel theme-panel--success p-8">
-          <h2 className="text-2xl font-bold text-emerald-300 mb-6">Getting Started</h2>
+          <h2 className="text-2xl font-bold text-emerald-300 mb-6">Getting Started (5-minute path)</h2>
 
           <div className="space-y-4">
             <StepCard
               step="1"
-              title="Initialize Environment"
-              description="Set up your smart environment with wallet, preferences, and portfolio data"
+              title="Open AI Chat"
+              description="Use the guided assistant and describe your goal in simple words"
             />
             <StepCard
               step="2"
-              title="Configure AI Models"
-              description="Set HF_API_TOKEN, HF_MODEL_ID, and HF_IMAGE_MODEL_ID in .env.local"
+              title="Set your objective"
+              description="Example: 'I want a safe beginner trading routine this week'"
             />
             <StepCard
               step="3"
-              title="Create Trading Bots"
-              description="Define strategies (scalping, swing, long-term) and risk parameters"
+              title="Follow the step-by-step plan"
+              description="Use the suggested route pages and execute one task at a time"
             />
             <StepCard
               step="4"
-              title="Generate Images"
-              description="Use AI to create trading charts, NFT artwork, and marketing materials"
+              title="Use generators as needed"
+              description="Text for posts/docs, Image for visuals and chart storytelling"
             />
             <StepCard
               step="5"
-              title="Chat with AI"
-              description="Get personalized trading advice with market context awareness"
+              title="Review costs + limits"
+              description="Stay in the low-cost tier until your API usage grows"
             />
             <StepCard
               step="6"
-              title="Monitor Performance"
-              description="Track bot performance, portfolio allocation, and market signals"
+              title="Scale when ready"
+              description="Upgrade only when your usage exceeds included monthly requests"
             />
           </div>
         </div>
       </main>
 
       <ShamrockFooter />
+    </div>
+  );
+}
+
+function QuickStartCard({
+  title,
+  description,
+  cta,
+}: {
+  title: string;
+  description: string;
+  cta: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+      <h3 className="text-sm font-bold text-white">{title}</h3>
+      <p className="mt-1 text-xs text-gray-300">{description}</p>
+      <p className="mt-3 text-[11px] font-semibold text-cyan-300">{cta}</p>
     </div>
   );
 }
