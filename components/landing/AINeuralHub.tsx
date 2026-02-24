@@ -80,6 +80,33 @@ interface SessionPreset {
   workflowCreativity: number;
 }
 
+interface WorkspaceSettingsSnapshot {
+  guideName: string;
+  responseStyle: ResponseStyle;
+  riskStance: RiskStance;
+  focusSymbol: string;
+  sessionIntent: string;
+  personaPreset: PersonaPresetId;
+  workflowTask: LlmWorkflowTask;
+  workflowDepth: LlmDepth;
+  workflowCreativity: number;
+}
+
+interface WorkspaceSnapshotPayload {
+  settings: WorkspaceSettingsSnapshot;
+  customPromptPacks: PromptLibraryItem[];
+  memoryCards: MemoryCard[];
+  sessionPresets: SessionPreset[];
+}
+
+interface WorkspaceSnapshot {
+  id: string;
+  name: string;
+  version: number;
+  createdAt: number;
+  payload: WorkspaceSnapshotPayload;
+}
+
 type PromptLibraryItem = {
   id: string;
   title: string;
@@ -451,6 +478,9 @@ export const AINeuralHub = () => {
   const [compareSnapshot, setCompareSnapshot] = useState<ResponseCompareSnapshot | null>(null);
   const [sessionPresets, setSessionPresets] = useState<SessionPreset[]>([]);
   const [sessionPresetName, setSessionPresetName] = useState("");
+  const [workspaceSnapshots, setWorkspaceSnapshots] = useState<WorkspaceSnapshot[]>([]);
+  const [workspaceSnapshotName, setWorkspaceSnapshotName] = useState("");
+  const [selectedWorkspaceSnapshotId, setSelectedWorkspaceSnapshotId] = useState<string | null>(null);
   const { connected, publicKey, sendTransaction } = useWallet();
 
   // Usage Tracking
@@ -565,6 +595,34 @@ export const AINeuralHub = () => {
         }
       } catch {
         // ignore malformed preset payload
+      }
+    }
+
+    const storedWorkspaceSnapshots = localStorage.getItem("tradehax_ai_workspace_timeline");
+    if (storedWorkspaceSnapshots) {
+      try {
+        const parsed = JSON.parse(storedWorkspaceSnapshots) as Array<Partial<WorkspaceSnapshot>>;
+        if (Array.isArray(parsed)) {
+          const hydrated = parsed
+            .slice(0, 16)
+            .filter((item) =>
+              Boolean(item)
+              && typeof item.id === "string"
+              && typeof item.name === "string"
+              && typeof item.version === "number"
+              && typeof item.createdAt === "number"
+              && typeof item.payload === "object"
+              && item.payload !== null,
+            )
+            .map((item) => item as WorkspaceSnapshot)
+            .sort((a, b) => b.createdAt - a.createdAt);
+          setWorkspaceSnapshots(hydrated);
+          if (hydrated[0]?.id) {
+            setSelectedWorkspaceSnapshotId(hydrated[0].id);
+          }
+        }
+      } catch {
+        // ignore malformed timeline payload
       }
     }
 
@@ -713,6 +771,10 @@ export const AINeuralHub = () => {
   useEffect(() => {
     localStorage.setItem("tradehax_ai_session_presets", JSON.stringify(sessionPresets.slice(0, 20)));
   }, [sessionPresets]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_workspace_timeline", JSON.stringify(workspaceSnapshots.slice(0, 16)));
+  }, [workspaceSnapshots]);
 
   useEffect(() => {
     setCommandSelectionIndex(0);
@@ -1126,6 +1188,91 @@ export const AINeuralHub = () => {
     setChatStatus("Session preset removed.");
   }
 
+  function buildWorkspaceSettingsSnapshot(): WorkspaceSettingsSnapshot {
+    return {
+      guideName,
+      responseStyle,
+      riskStance,
+      focusSymbol,
+      sessionIntent,
+      personaPreset,
+      workflowTask,
+      workflowDepth,
+      workflowCreativity,
+    };
+  }
+
+  function createWorkspaceSnapshot(customName?: string) {
+    const nextVersion = (workspaceSnapshots[0]?.version ?? 0) + 1;
+    const snapshotName = (customName ?? workspaceSnapshotName).trim().slice(0, 56) || `Workspace v${nextVersion}`;
+    const snapshot: WorkspaceSnapshot = {
+      id: `ws_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name: snapshotName,
+      version: nextVersion,
+      createdAt: Date.now(),
+      payload: {
+        settings: buildWorkspaceSettingsSnapshot(),
+        customPromptPacks: customPromptPacks.slice(0, 24),
+        memoryCards: memoryCards.slice(0, 12),
+        sessionPresets: sessionPresets.slice(0, 20),
+      },
+    };
+
+    setWorkspaceSnapshots((prev) => [snapshot, ...prev].slice(0, 16));
+    setSelectedWorkspaceSnapshotId(snapshot.id);
+    setWorkspaceSnapshotName("");
+    setChatStatus(`Workspace snapshot saved: ${snapshot.name}`);
+  }
+
+  function restoreWorkspaceSnapshot(snapshot: WorkspaceSnapshot) {
+    const settings = snapshot.payload.settings;
+    setGuideName(settings.guideName);
+    setResponseStyle(settings.responseStyle);
+    setRiskStance(settings.riskStance);
+    setFocusSymbol(normalizeSymbol(settings.focusSymbol) || "SOL");
+    setSessionIntent(settings.sessionIntent.slice(0, 72));
+    setPersonaPreset(settings.personaPreset);
+    setWorkflowTask(settings.workflowTask);
+    setWorkflowDepth(settings.workflowDepth);
+    setWorkflowCreativity(Math.max(20, Math.min(100, Math.round(settings.workflowCreativity))));
+    setCustomPromptPacks(snapshot.payload.customPromptPacks.slice(0, 24));
+    setMemoryCards(snapshot.payload.memoryCards.slice(0, 12));
+    setSessionPresets(snapshot.payload.sessionPresets.slice(0, 20));
+    setSelectedWorkspaceSnapshotId(snapshot.id);
+    setActiveTab("CHAT");
+    setChatStatus(`Restored workspace snapshot: ${snapshot.name}`);
+  }
+
+  function restorePreviousWorkspaceSnapshot() {
+    if (workspaceSnapshots.length < 2) {
+      setChatStatus("No previous workspace snapshot available.");
+      return;
+    }
+    restoreWorkspaceSnapshot(workspaceSnapshots[1]);
+  }
+
+  function deleteWorkspaceSnapshot(id: string) {
+    setWorkspaceSnapshots((prev) => prev.filter((item) => item.id !== id));
+    if (selectedWorkspaceSnapshotId === id) {
+      setSelectedWorkspaceSnapshotId(null);
+    }
+    setChatStatus("Workspace snapshot deleted.");
+  }
+
+  function getWorkspaceSnapshotDiff(snapshot: WorkspaceSnapshot) {
+    const currentSettings = buildWorkspaceSettingsSnapshot();
+    const incomingSettings = snapshot.payload.settings;
+    const changedSettings = (Object.keys(currentSettings) as Array<keyof WorkspaceSettingsSnapshot>)
+      .filter((key) => currentSettings[key] !== incomingSettings[key]);
+
+    return {
+      changedSettings,
+      customPromptDelta: snapshot.payload.customPromptPacks.length - customPromptPacks.length,
+      memoryDelta: snapshot.payload.memoryCards.length - memoryCards.length,
+      presetsDelta: snapshot.payload.sessionPresets.length - sessionPresets.length,
+    };
+  }
+
   function exportSessionSnapshot() {
     const snapshot = {
       version: 1,
@@ -1336,6 +1483,18 @@ export const AINeuralHub = () => {
       description: "Import a session snapshot JSON",
       execute: () => importSessionSnapshotFromPrompt(),
     },
+    {
+      id: "snapshot",
+      label: "/snapshot",
+      description: "Capture workspace timeline snapshot",
+      execute: () => createWorkspaceSnapshot(),
+    },
+    {
+      id: "undo-snapshot",
+      label: "/undo",
+      description: "Restore previous workspace snapshot",
+      execute: () => restorePreviousWorkspaceSnapshot(),
+    },
   ];
 
   const commandPaletteEntries: Array<{ id: string; label: string; hint: string; action: () => void }> = [
@@ -1348,6 +1507,8 @@ export const AINeuralHub = () => {
     { id: "save-preset", label: "Save Session Preset", hint: "Store current operator setup", action: () => createSessionPreset() },
     { id: "export-session", label: "Export Session Snapshot", hint: "Download settings, memory, and presets JSON", action: () => exportSessionSnapshot() },
     { id: "import-session", label: "Import Session Snapshot", hint: "Paste JSON to restore a saved workspace", action: () => importSessionSnapshotFromPrompt() },
+    { id: "capture-workspace", label: "Capture Workspace Snapshot", hint: "Save full timeline snapshot of current state", action: () => createWorkspaceSnapshot() },
+    { id: "undo-workspace", label: "Undo to Previous Snapshot", hint: "Rewind workspace to prior saved state", action: () => restorePreviousWorkspaceSnapshot() },
     { id: "copy-last", label: "Copy Last Reply", hint: "Copy latest assistant output", action: () => { void copyLastReply(); } },
     { id: "export", label: "Export Transcript", hint: "Download current session transcript", action: () => exportTranscript() },
   ];
@@ -1408,7 +1569,7 @@ export const AINeuralHub = () => {
     const slashToken = input.split(/\s+/)[0].trim().toLowerCase();
     const command = slashCommands.find((item) => item.label === slashToken);
     if (!command) {
-      setChatStatus("Unknown slash command. Try /palette, /library, /chat, /generate, /summarize, /qa, /savepreset, /exportsession, /importsession.");
+      setChatStatus("Unknown slash command. Try /palette, /library, /chat, /generate, /summarize, /qa, /savepreset, /exportsession, /importsession, /snapshot, /undo.");
       return true;
     }
 
@@ -2131,6 +2292,12 @@ export const AINeuralHub = () => {
   const branchGraphEntries = branchTrail.slice(0, 8).reverse();
   const replayEntries = branchTrail;
   const activeReplayEntry = replayEntries.length > 0 ? replayEntries[Math.min(replayCursor, replayEntries.length - 1)] : null;
+  const selectedWorkspaceSnapshot = selectedWorkspaceSnapshotId
+    ? workspaceSnapshots.find((item) => item.id === selectedWorkspaceSnapshotId) ?? null
+    : workspaceSnapshots[0] ?? null;
+  const selectedWorkspaceSnapshotDiff = selectedWorkspaceSnapshot
+    ? getWorkspaceSnapshotDiff(selectedWorkspaceSnapshot)
+    : null;
 
   return (
     <section className="py-24 bg-black relative overflow-hidden">
@@ -2693,6 +2860,117 @@ export const AINeuralHub = () => {
                             </div>
                           ) : (
                             <p className="mt-2 text-[10px] text-zinc-500">No presets saved yet. Save one to instantly restore your full operator setup.</p>
+                          )}
+                        </div>
+
+                        <div className="rounded-xl border border-fuchsia-400/20 bg-[rgba(12,8,20,0.82)] px-3 py-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-fuchsia-200">Phase 5 · Workspace Timeline</p>
+                            <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                              {workspaceSnapshots.length} snapshots
+                            </span>
+                          </div>
+
+                          <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
+                            <input
+                              value={workspaceSnapshotName}
+                              onChange={(event) => setWorkspaceSnapshotName(event.target.value.slice(0, 56))}
+                              placeholder="Snapshot label (optional)"
+                              className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-fuchsia-300/55"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => createWorkspaceSnapshot()}
+                              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
+                            >
+                              Capture
+                            </button>
+                            <button
+                              type="button"
+                              onClick={restorePreviousWorkspaceSnapshot}
+                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
+                            >
+                              Undo
+                            </button>
+                          </div>
+
+                          {workspaceSnapshots.length > 0 ? (
+                            <div className="mt-2 space-y-1.5">
+                              {workspaceSnapshots.slice(0, 8).map((snapshot) => (
+                                <div
+                                  key={snapshot.id}
+                                  className={`rounded-md border px-2.5 py-1.5 ${
+                                    selectedWorkspaceSnapshot?.id === snapshot.id
+                                      ? "border-fuchsia-300/40 bg-fuchsia-500/10"
+                                      : "border-white/10 bg-black/35"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedWorkspaceSnapshotId(snapshot.id)}
+                                      className="min-w-0 flex-1 truncate text-left text-[10px] font-semibold text-fuchsia-100"
+                                      title={`v${snapshot.version} • ${new Date(snapshot.createdAt).toLocaleString()}`}
+                                    >
+                                      v{snapshot.version} • {snapshot.name}
+                                    </button>
+                                    <div className="flex items-center gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => restoreWorkspaceSnapshot(snapshot)}
+                                        className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2 py-0.5 text-[9px] uppercase text-cyan-100"
+                                        title="Restore this snapshot"
+                                      >
+                                        Restore
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => deleteWorkspaceSnapshot(snapshot.id)}
+                                        className="rounded-full border border-rose-300/25 bg-rose-500/10 p-1 text-rose-200 hover:border-rose-300/45"
+                                        aria-label={`Delete workspace snapshot ${snapshot.name}`}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <p className="mt-1 text-[9px] text-zinc-500">{new Date(snapshot.createdAt).toLocaleString()}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-[10px] text-zinc-500">No timeline snapshots yet. Capture one before risky edits and experiments.</p>
+                          )}
+
+                          {selectedWorkspaceSnapshot && selectedWorkspaceSnapshotDiff && (
+                            <div className="mt-2 rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
+                              <div className="mb-1 flex items-center justify-between gap-2">
+                                <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Diff preview vs live workspace</p>
+                                <span className="rounded-full border border-white/15 bg-black/30 px-1.5 py-0.5 text-[9px] text-zinc-300">
+                                  {selectedWorkspaceSnapshot.name}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5 text-[9px]">
+                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                  Settings changed: {selectedWorkspaceSnapshotDiff.changedSettings.length}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                  Prompt packs Δ {selectedWorkspaceSnapshotDiff.customPromptDelta}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                  Memory Δ {selectedWorkspaceSnapshotDiff.memoryDelta}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                  Presets Δ {selectedWorkspaceSnapshotDiff.presetsDelta}
+                                </span>
+                              </div>
+                              {selectedWorkspaceSnapshotDiff.changedSettings.length > 0 ? (
+                                <p className="mt-1 text-[10px] text-zinc-400">
+                                  {selectedWorkspaceSnapshotDiff.changedSettings.join(", ")}
+                                </p>
+                              ) : (
+                                <p className="mt-1 text-[10px] text-zinc-500">No settings drift from current workspace.</p>
+                              )}
+                            </div>
                           )}
                         </div>
 
