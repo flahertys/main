@@ -43,6 +43,7 @@ type MemoryScope = "short" | "long";
 type SocialChannel = "youtube" | "discord" | "x" | "linkedin" | "instagram" | "facebook" | "telegram" | "tiktok";
 type LlmWorkflowTask = "chat" | "generate" | "summarize" | "qa";
 type LlmDepth = "quick" | "balanced" | "deep";
+type PromptLibraryCategory = "trading" | "content" | "ops";
 
 interface ResponseQualitySnapshot {
   task: LlmWorkflowTask;
@@ -55,10 +56,18 @@ interface ResponseQualitySnapshot {
   riskDiscipline: number;
 }
 
+interface ResponseCompareSnapshot {
+  mode: "improve" | "rewrite" | "shorten";
+  original: string;
+  transformed: string;
+  sourceIndex: number;
+  createdAt: number;
+}
+
 type PromptLibraryItem = {
   id: string;
   title: string;
-  category: "trading" | "content" | "ops";
+  category: PromptLibraryCategory;
   value: string;
 };
 
@@ -417,7 +426,13 @@ export const AINeuralHub = () => {
   const [timeTick, setTimeTick] = useState(Date.now());
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
+  const [commandSelectionIndex, setCommandSelectionIndex] = useState(0);
   const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
+  const [customPromptPacks, setCustomPromptPacks] = useState<PromptLibraryItem[]>([]);
+  const [customPromptTitle, setCustomPromptTitle] = useState("");
+  const [customPromptValue, setCustomPromptValue] = useState("");
+  const [customPromptCategory, setCustomPromptCategory] = useState<PromptLibraryCategory>("ops");
+  const [compareSnapshot, setCompareSnapshot] = useState<ResponseCompareSnapshot | null>(null);
   const { connected, publicKey, sendTransaction } = useWallet();
 
   // Usage Tracking
@@ -467,6 +482,28 @@ export const AINeuralHub = () => {
     const storedPromptLibrary = localStorage.getItem("tradehax_ai_prompt_library_open");
     if (storedPromptLibrary === "true") {
       setIsPromptLibraryOpen(true);
+    }
+
+    const storedCustomPrompts = localStorage.getItem("tradehax_ai_custom_prompt_packs");
+    if (storedCustomPrompts) {
+      try {
+        const parsed = JSON.parse(storedCustomPrompts) as Array<Partial<PromptLibraryItem>>;
+        if (Array.isArray(parsed)) {
+          setCustomPromptPacks(
+            parsed
+              .slice(0, 24)
+              .map((item) => ({
+                id: typeof item.id === "string" ? item.id : `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                title: String(item.title ?? "Custom Prompt").slice(0, 40),
+                category: item.category === "trading" || item.category === "content" || item.category === "ops" ? item.category : "ops",
+                value: String(item.value ?? "").slice(0, 500),
+              }))
+              .filter((item) => item.value.trim().length > 0),
+          );
+        }
+      } catch {
+        // ignore malformed prompt pack payload
+      }
     }
 
     const storedVideoUrl = localStorage.getItem("tradehax_ai_video_source_url");
@@ -606,6 +643,14 @@ export const AINeuralHub = () => {
   useEffect(() => {
     localStorage.setItem("tradehax_ai_prompt_library_open", String(isPromptLibraryOpen));
   }, [isPromptLibraryOpen]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_custom_prompt_packs", JSON.stringify(customPromptPacks.slice(0, 24)));
+  }, [customPromptPacks]);
+
+  useEffect(() => {
+    setCommandSelectionIndex(0);
+  }, [commandQuery, isCommandPaletteOpen]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -937,6 +982,34 @@ export const AINeuralHub = () => {
     setChatStatus(`Loaded prompt: ${item.title}`);
   }
 
+  function createCustomPromptPack() {
+    const title = customPromptTitle.trim().slice(0, 40);
+    const value = customPromptValue.trim().slice(0, 500);
+    if (!title || !value) {
+      setChatStatus("Custom prompt title and content are required.");
+      return;
+    }
+
+    setCustomPromptPacks((prev) => [
+      {
+        id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        title,
+        category: customPromptCategory,
+        value,
+      },
+      ...prev,
+    ].slice(0, 24));
+    setCustomPromptTitle("");
+    setCustomPromptValue("");
+    setChatStatus("Custom prompt pack saved.");
+  }
+
+  function removeCustomPromptPack(id: string) {
+    setCustomPromptPacks((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  const promptLibraryEntries = [...PROMPT_LIBRARY, ...customPromptPacks];
+
   const slashCommands: SlashCommand[] = [
     {
       id: "new",
@@ -1005,6 +1078,39 @@ export const AINeuralHub = () => {
     return entry.label.toLowerCase().includes(query) || entry.hint.toLowerCase().includes(query);
   });
 
+  useEffect(() => {
+    if (!isCommandPaletteOpen) return;
+
+    const onPaletteKeyDown = (event: KeyboardEvent) => {
+      if (filteredCommandPaletteEntries.length === 0) return;
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setCommandSelectionIndex((prev) => (prev + 1) % filteredCommandPaletteEntries.length);
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setCommandSelectionIndex((prev) =>
+          prev <= 0 ? filteredCommandPaletteEntries.length - 1 : prev - 1,
+        );
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const selected = filteredCommandPaletteEntries[Math.min(commandSelectionIndex, filteredCommandPaletteEntries.length - 1)];
+        if (selected) {
+          runPaletteCommand(selected.id);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", onPaletteKeyDown);
+    return () => window.removeEventListener("keydown", onPaletteKeyDown);
+  }, [isCommandPaletteOpen, filteredCommandPaletteEntries, commandSelectionIndex]);
+
   function applySlashCommand(command: SlashCommand) {
     command.execute();
     setChatInput("");
@@ -1046,7 +1152,17 @@ export const AINeuralHub = () => {
 
     const transformPrompt = `${directive}\n\nOriginal response:\n${target.content}`;
     setWorkflowTask("generate");
-    await requestAssistantReply(transformPrompt, { appendUser: true });
+    const transformed = await requestAssistantReply(transformPrompt, { appendUser: true });
+    if (typeof transformed === "string" && transformed.trim()) {
+      setCompareSnapshot({
+        mode,
+        original: target.content,
+        transformed,
+        sourceIndex: index,
+        createdAt: Date.now(),
+      });
+      setChatStatus(`Compare view ready: ${mode.toUpperCase()} transform captured.`);
+    }
   }
 
   function applyRitualPrompt(value: string) {
@@ -1513,8 +1629,8 @@ export const AINeuralHub = () => {
     setChatStatus("Transcript exported.");
   }
 
-  async function requestAssistantReply(userMsg: string, options?: { appendUser?: boolean; regenerate?: boolean }) {
-    if (!userMsg.trim()) return;
+  async function requestAssistantReply(userMsg: string, options?: { appendUser?: boolean; regenerate?: boolean }): Promise<string | null> {
+    if (!userMsg.trim()) return null;
 
     if (options?.appendUser) {
       setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
@@ -1561,7 +1677,7 @@ export const AINeuralHub = () => {
                 : "AI temporarily unavailable. Please try again.";
           setMessages(prev => [...prev, { role: "assistant", content: `ERROR: ${errorMessage}` }]);
           setChatStatus("The assistant hit an issue. You can retry or switch models.");
-          return;
+          return null;
         }
       } else {
         const res = await fetch("/api/llm", {
@@ -1590,7 +1706,7 @@ export const AINeuralHub = () => {
               : "LLM task failed. Please retry with adjusted settings.";
           setMessages(prev => [...prev, { role: "assistant", content: `ERROR: ${errorMessage}` }]);
           setChatStatus("Task execution failed. Consider switching task mode or reducing complexity.");
-          return;
+          return null;
         }
       }
 
@@ -1606,13 +1722,17 @@ export const AINeuralHub = () => {
         });
         setChatStatus(`Model: ${resolvedModel}${providerLabel} • Task: ${workflowTask.toUpperCase()} • ${elapsedMs}ms`);
         incrementUsage();
+        return responseText;
       }
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "ERROR: NEURAL_TIMEOUT" }]);
       setChatStatus("Network timeout. Please check connection and retry.");
+      return null;
     } finally {
       setIsChatLoading(false);
     }
+
+    return null;
   }
 
   async function regenerateLastResponse() {
@@ -2871,12 +2991,56 @@ export const AINeuralHub = () => {
                             </button>
                           </div>
 
+                          <div className="mb-3 rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Build Custom Prompt Pack</p>
+                              <span className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2 py-0.5 text-[9px] text-cyan-100">
+                                Saved: {customPromptPacks.length}
+                              </span>
+                            </div>
+                            <div className="grid gap-2 md:grid-cols-[1fr_120px]">
+                              <input
+                                value={customPromptTitle}
+                                onChange={(event) => setCustomPromptTitle(event.target.value.slice(0, 40))}
+                                placeholder="Prompt title"
+                                className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/50"
+                              />
+                              <select
+                                value={customPromptCategory}
+                                onChange={(event) => setCustomPromptCategory(event.target.value as PromptLibraryCategory)}
+                                aria-label="Custom prompt category"
+                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1.5 text-[11px] text-zinc-200 outline-none focus:border-cyan-300/50"
+                              >
+                                <option value="trading">Trading</option>
+                                <option value="content">Content</option>
+                                <option value="ops">Ops</option>
+                              </select>
+                            </div>
+                            <textarea
+                              value={customPromptValue}
+                              onChange={(event) => setCustomPromptValue(event.target.value.slice(0, 500))}
+                              rows={3}
+                              placeholder="Prompt body"
+                              className="mt-2 w-full rounded-md border border-white/15 bg-black/50 px-2.5 py-2 text-[11px] text-white outline-none focus:border-cyan-300/50"
+                            />
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              <p className="text-[9px] text-zinc-500">Max 24 custom packs • 500 chars each</p>
+                              <button
+                                type="button"
+                                onClick={createCustomPromptPack}
+                                className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-100 hover:border-emerald-300/50"
+                              >
+                                Save Pack
+                              </button>
+                            </div>
+                          </div>
+
                           <div className="space-y-2">
                             {(["trading", "content", "ops"] as const).map((category) => (
                               <div key={category} className="rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
                                 <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">{category}</p>
                                 <div className="flex flex-wrap gap-1.5">
-                                  {PROMPT_LIBRARY.filter((item) => item.category === category).map((item) => (
+                                  {promptLibraryEntries.filter((item) => item.category === category).map((item) => (
                                     <button
                                       key={item.id}
                                       type="button"
@@ -2891,6 +3055,38 @@ export const AINeuralHub = () => {
                               </div>
                             ))}
                           </div>
+
+                          {customPromptPacks.length > 0 && (
+                            <div className="mt-3 rounded-lg border border-fuchsia-300/20 bg-fuchsia-500/5 px-2.5 py-2">
+                              <p className="mb-2 text-[9px] font-mono uppercase tracking-[0.12em] text-fuchsia-200">Manage Custom Packs</p>
+                              <div className="space-y-1.5">
+                                {customPromptPacks.slice(0, 8).map((item) => (
+                                  <div
+                                    key={`manage-${item.id}`}
+                                    className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-black/35 px-2 py-1.5"
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() => addPromptLibraryItem(item)}
+                                      className="min-w-0 flex-1 truncate text-left text-[10px] font-semibold text-fuchsia-100"
+                                      title={item.value}
+                                    >
+                                      {item.title}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeCustomPromptPack(item.id)}
+                                      className="rounded-full border border-rose-300/25 bg-rose-500/10 p-1 text-rose-200 hover:border-rose-300/45"
+                                      aria-label={`Remove ${item.title}`}
+                                      title="Remove custom prompt"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -2980,6 +3176,37 @@ export const AINeuralHub = () => {
                             <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Latency: {qualitySnapshot.latencyMs}ms</span>
                             <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Words: {qualitySnapshot.words}</span>
                             <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Chars: {qualitySnapshot.chars}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {compareSnapshot && (
+                        <div className="mt-3 rounded-xl border border-fuchsia-300/25 bg-[rgba(14,10,22,0.86)] px-3 py-3">
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-fuchsia-200">Original vs Improved</p>
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                                {compareSnapshot.mode}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setCompareSnapshot(null)}
+                                className="rounded-full border border-white/15 bg-black/35 px-2 py-0.5 text-[9px] uppercase text-zinc-300"
+                              >
+                                Close
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <div className="rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
+                              <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Original</p>
+                              <p className="whitespace-pre-wrap text-[11px] text-zinc-200/90">{compareSnapshot.original}</p>
+                            </div>
+                            <div className="rounded-lg border border-fuchsia-300/25 bg-fuchsia-500/10 px-2.5 py-2">
+                              <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-fuchsia-200">Improved</p>
+                              <p className="whitespace-pre-wrap text-[11px] text-fuchsia-50">{compareSnapshot.transformed}</p>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -3244,12 +3471,17 @@ export const AINeuralHub = () => {
 
               <div className="max-h-[360px] overflow-y-auto p-2">
                 {filteredCommandPaletteEntries.length > 0 ? (
-                  filteredCommandPaletteEntries.map((entry) => (
+                  filteredCommandPaletteEntries.map((entry, index) => (
                     <button
                       key={entry.id}
                       type="button"
                       onClick={() => runPaletteCommand(entry.id)}
-                      className="mb-1 flex w-full items-center justify-between rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-left hover:border-cyan-300/35"
+                      onMouseEnter={() => setCommandSelectionIndex(index)}
+                      className={`mb-1 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors ${
+                        commandSelectionIndex === index
+                          ? "border-cyan-300/45 bg-cyan-500/10"
+                          : "border-white/10 bg-black/35 hover:border-cyan-300/35"
+                      }`}
                     >
                       <div>
                         <p className="text-[11px] font-semibold text-cyan-100">{entry.label}</p>
@@ -3267,7 +3499,7 @@ export const AINeuralHub = () => {
 
               <div className="flex items-center justify-between border-t border-white/10 px-3 py-2 text-[10px] text-zinc-400">
                 <span>Tip: press Ctrl/Cmd + K any time</span>
-                <span>Phase 2 Operator Palette</span>
+                <span>Phase 3 Operator Palette</span>
               </div>
             </motion.div>
           </motion.div>
