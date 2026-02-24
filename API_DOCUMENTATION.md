@@ -138,6 +138,72 @@ curl -X POST https://tradehaxai.tech/api/subscribe \
 
 ---
 
+### 3. Unified LLM API
+
+#### GET /api/llm
+
+Returns route capabilities for the unified LLM automation endpoint.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "endpoint": "/api/llm",
+  "tasks": ["generate", "summarize", "qa", "chat"],
+  "defaultModel": "mistralai/Mistral-7B-Instruct-v0.1"
+}
+```
+
+---
+
+#### POST /api/llm
+
+Single endpoint for common text tasks. This wraps the Hugging Face server client with built-in request validation, rate limiting, and monetization usage tracking.
+
+**Request Body:**
+```json
+{
+  "task": "generate | summarize | qa | chat",
+  "prompt": "required for generate",
+  "text": "required for summarize",
+  "context": "required for qa, optional for chat",
+  "question": "required for qa",
+  "messages": [{ "role": "user", "content": "hello" }],
+  "model": "optional model id",
+  "temperature": 0.7,
+  "maxTokens": 512,
+  "topP": 0.95,
+  "userId": "optional user id"
+}
+```
+
+**Success Response:**
+```json
+{
+  "ok": true,
+  "task": "generate",
+  "result": "model output",
+  "model": "mistralai/Mistral-7B-Instruct-v0.1",
+  "settings": {
+    "temperature": 0.7,
+    "maxTokens": 512,
+    "topP": 0.95
+  },
+  "usage": {
+    "feature": "ai_chat",
+    "remainingToday": 149
+  }
+}
+```
+
+**Error Cases:**
+- `400` for invalid/missing task inputs
+- `415` for non-JSON payloads
+- `429` for per-minute or daily feature limit excess
+- `500` for upstream generation failures
+
+---
+
 ## Error Handling
 
 All API endpoints follow a consistent error response format:
