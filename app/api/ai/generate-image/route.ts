@@ -3,28 +3,42 @@
  * Generate images with Hugging Face Inference API
  */
 
-import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import {
-    enforceRateLimit,
-    enforceTrustedOrigin,
-    isFiniteNumberInRange,
-    isJsonContentType,
-    sanitizePlainText,
+  checkCredits,
+  deductCredits,
+  getCreditSnapshot,
+} from "@/lib/ai/credit-system";
+import { ingestBehavior } from "@/lib/ai/data-ingestion";
+import { resolveRequestUserId } from "@/lib/monetization/identity";
+import {
+  enforceRateLimit,
+  enforceTrustedOrigin,
+  isFiniteNumberInRange,
+  isJsonContentType,
+  sanitizePlainText,
 } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 
 interface ImageRequest {
   prompt: string;
+  model?: string;
   negativePrompt?: string;
   style?: "trading" | "nft" | "hero" | "general";
   width?: number;
   height?: number;
   safetyMode?: "open" | "standard";
+  userId?: string;
 }
 
 const DEFAULT_IMAGE_MODEL = "stabilityai/stable-diffusion-2-1";
 const DEFAULT_STANDARD_NEGATIVE =
   "blurry, low quality, watermark, logo, text overlay, disfigured, deformed";
+
+const IMAGE_MODEL_ALIASES: Record<string, string> = {
+  NEURAL_DIFF_V4: "stabilityai/stable-diffusion-2-1",
+  FLUX_CORE_X: "black-forest-labs/FLUX.1-schnell",
+  ASTRA_LINK: "stabilityai/stable-diffusion-xl-base-1.0",
+};
 
 export const runtime = "nodejs";
 
@@ -61,6 +75,54 @@ function parseErrorMessage(payload: unknown) {
   return "Image generation failed at Hugging Face.";
 }
 
+function resolveImageModel(requestedModel: unknown) {
+  const envDefault = process.env.HF_IMAGE_MODEL_ID || DEFAULT_IMAGE_MODEL;
+
+  if (typeof requestedModel !== "string") {
+    return envDefault;
+  }
+
+  const trimmed = requestedModel.trim();
+  if (!trimmed || trimmed.length > 120) {
+    return envDefault;
+  }
+
+  if (IMAGE_MODEL_ALIASES[trimmed]) {
+    return IMAGE_MODEL_ALIASES[trimmed];
+  }
+
+  return /^[a-zA-Z0-9._\-/]+$/.test(trimmed) ? trimmed : envDefault;
+}
+
+function createSvgFallbackDataUrl(prompt: string, width: number, height: number, style: ImageRequest["style"]) {
+  const safePrompt = sanitizePlainText(prompt, 120).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeStyle = sanitizePlainText(style ?? "general", 32).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#060b1b"/>
+      <stop offset="50%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <rect width="${width}" height="${height}" fill="url(#bg)"/>
+  <circle cx="${Math.round(width * 0.18)}" cy="${Math.round(height * 0.22)}" r="${Math.max(26, Math.round(Math.min(width, height) * 0.09))}" fill="#22d3ee" fill-opacity="0.25"/>
+  <circle cx="${Math.round(width * 0.82)}" cy="${Math.round(height * 0.74)}" r="${Math.max(22, Math.round(Math.min(width, height) * 0.08))}" fill="#34d399" fill-opacity="0.2"/>
+  <text x="${Math.round(width * 0.06)}" y="${Math.round(height * 0.12)}" fill="#67e8f9" font-family="Inter, Arial, sans-serif" font-size="${Math.max(18, Math.round(width * 0.025))}" font-weight="700">TradeHax Neural Image Preview</text>
+  <text x="${Math.round(width * 0.06)}" y="${Math.round(height * 0.2)}" fill="#d1fae5" font-family="Inter, Arial, sans-serif" font-size="${Math.max(14, Math.round(width * 0.018))}">Style: ${safeStyle}</text>
+  <foreignObject x="${Math.round(width * 0.06)}" y="${Math.round(height * 0.28)}" width="${Math.round(width * 0.88)}" height="${Math.round(height * 0.58)}">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Inter, Arial, sans-serif; color: #e5e7eb; font-size: ${Math.max(14, Math.round(width * 0.017))}px; line-height: 1.45;">
+      Prompt: ${safePrompt}
+    </div>
+  </foreignObject>
+</svg>`;
+
+  const encoded = Buffer.from(svg, "utf-8").toString("base64");
+  return `data:image/svg+xml;base64,${encoded}`;
+}
+
 export async function POST(request: NextRequest) {
   const originBlock = enforceTrustedOrigin(request);
   if (originBlock) {
@@ -91,16 +153,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = process.env.HF_API_TOKEN;
-    if (!token) {
+    const userId = await resolveRequestUserId(request, body.userId);
+    const hasCredits = await checkCredits(userId, "IMAGE_GEN");
+    if (!hasCredits) {
       return NextResponse.json(
         {
           ok: false,
-          error: "HF_API_TOKEN is not configured.",
+          error: "INSUFFICIENT_CREDITS",
+          message: "Image generation needs more AI credits.",
+          credits: await getCreditSnapshot(userId),
+          billing: {
+            topUpPath: "/billing",
+            creditsPath: "/api/monetization/ai-credits",
+          },
         },
-        { status: 500, headers: rateLimit.headers },
+        { status: 402, headers: rateLimit.headers },
       );
     }
+
+    const token = process.env.HF_API_TOKEN;
 
     const style = body.style ?? "general";
     const width = normalizeDimension(body.width, style === "hero" ? 1536 : 1024);
@@ -117,7 +188,27 @@ export async function POST(request: NextRequest) {
         ? ""
         : process.env.HF_IMAGE_NEGATIVE_PROMPT_DEFAULT || DEFAULT_STANDARD_NEGATIVE);
 
-    const model = process.env.HF_IMAGE_MODEL_ID || DEFAULT_IMAGE_MODEL;
+    const model = resolveImageModel(body.model);
+    if (!token) {
+      const fallbackUrl = createSvgFallbackDataUrl(prompt, width, height, style);
+      return NextResponse.json(
+        {
+          ok: true,
+          url: fallbackUrl,
+          prompt,
+          style,
+          width,
+          height,
+          mimeType: "image/svg+xml",
+          model: "local:fallback-svg",
+          openMode,
+          safetyMode: openMode ? "open" : "standard",
+          fallback: true,
+          warning: "HF_API_TOKEN missing; returned local preview image.",
+        },
+        { headers: rateLimit.headers },
+      );
+    }
     const endpoint = `https://api-inference.huggingface.co/models/${model}`;
     const styledPrompt = createStyledPrompt(prompt, style);
 
@@ -160,13 +251,24 @@ export async function POST(request: NextRequest) {
         payload = null;
       }
 
+      const fallbackUrl = createSvgFallbackDataUrl(prompt, width, height, style);
       return NextResponse.json(
         {
-          ok: false,
-          error: parseErrorMessage(payload),
+          ok: true,
+          url: fallbackUrl,
+          prompt,
+          style,
+          width,
+          height,
+          mimeType: "image/svg+xml",
+          model: "local:fallback-svg",
+          openMode,
+          safetyMode: openMode ? "open" : "standard",
+          fallback: true,
+          warning: parseErrorMessage(payload),
           providerStatus: hfResponse.status,
         },
-        { status: 502, headers: rateLimit.headers },
+        { headers: rateLimit.headers },
       );
     }
 
@@ -208,6 +310,23 @@ export async function POST(request: NextRequest) {
       console.warn("Image generation ingestion skipped:", ingestionError);
     }
 
+    const debit = await deductCredits(userId, "IMAGE_GEN");
+    if (!debit.success) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "INSUFFICIENT_CREDITS",
+          message: "Image generated but credits were depleted before finalization.",
+          credits: await getCreditSnapshot(userId),
+          billing: {
+            topUpPath: "/billing",
+            creditsPath: "/api/monetization/ai-credits",
+          },
+        },
+        { status: 402, headers: rateLimit.headers },
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       url: dataUrl,
@@ -219,6 +338,10 @@ export async function POST(request: NextRequest) {
       model,
       openMode,
       safetyMode: openMode ? "open" : "standard",
+      credits: {
+        spent: debit.cost,
+        remaining: debit.remaining,
+      },
     }, { headers: rateLimit.headers });
   } catch (error) {
     console.error("Image generation error:", error);

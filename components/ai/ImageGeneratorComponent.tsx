@@ -1,7 +1,7 @@
 "use client";
 
-import { Sparkles, Wand2, RotateCw } from "lucide-react";
-import { useState } from "react";
+import { RotateCw, Sparkles, Wand2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface GeneratedImageResult {
   url: string;
@@ -16,6 +16,7 @@ interface GeneratedImageResult {
 }
 
 export function ImageGeneratorComponent() {
+  const [userId, setUserId] = useState("");
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState<"trading" | "nft" | "hero" | "general">(
     "general",
@@ -24,6 +25,22 @@ export function ImageGeneratorComponent() {
   const [loading, setLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<GeneratedImageResult | null>(null);
   const [error, setError] = useState("");
+  const [safetyMode, setSafetyMode] = useState<"open" | "standard">("open");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("tradehax_user_id") || "";
+      if (stored.trim().length > 0) {
+        setUserId(stored.trim());
+      }
+    }
+  }, []);
+
+  const quickPrompts = [
+    "A clean beginner trading dashboard with clear risk controls and green/red candles",
+    "A minimal hero image for a finance app with AI assistant theme",
+    "A modern crypto education thumbnail with simple visual icons and bold title area",
+  ] as const;
 
   const generateImage = async () => {
     if (!prompt.trim()) return;
@@ -41,14 +58,21 @@ export function ImageGeneratorComponent() {
           style,
           width: style === "hero" ? 1920 : 1024,
           height: style === "hero" ? 1080 : 1024,
+          safetyMode,
+          userId,
         }),
       });
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
+        if (data?.error === "INSUFFICIENT_CREDITS") {
+          const balance =
+            typeof data?.credits?.balance === "number" ? Math.max(0, Math.floor(data.credits.balance)) : null;
+          const suffix = balance !== null ? ` Current balance: ${balance} credits.` : "";
+          throw new Error(`Insufficient AI credits for image generation.${suffix} Top up from Billing.`);
+        }
+        throw new Error(data?.error || `API error: ${response.statusText}`);
       }
-
-      const data = await response.json();
 
       if (!data.ok) {
         throw new Error(data.error || "Generation failed");
@@ -82,11 +106,56 @@ export function ImageGeneratorComponent() {
           Image Generator
         </h2>
 
+        <p className="text-sm text-cyan-100/75 mb-3">
+          3-step flow: pick a quick prompt, choose style, click <strong>Generate Image</strong>.
+        </p>
+
+        <div className="grid grid-cols-1 gap-2 mb-4">
+          {quickPrompts.map((item) => (
+            <button
+              key={item}
+              onClick={() => setPrompt(item)}
+              disabled={loading}
+              className="rounded border border-cyan-500/20 bg-black/30 px-3 py-2 text-left text-xs text-cyan-100/85 hover:border-cyan-400/40 disabled:opacity-50"
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-cyan-200 mb-2">Generation mode</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setSafetyMode("open")}
+                disabled={loading}
+                className={`rounded border px-3 py-2 text-xs font-semibold transition ${
+                  safetyMode === "open"
+                    ? "border-fuchsia-400/60 bg-fuchsia-500/20 text-fuchsia-100"
+                    : "border-cyan-500/20 bg-black/30 text-cyan-100/75"
+                } disabled:opacity-50`}
+              >
+                Uncensored (prioritized)
+              </button>
+              <button
+                onClick={() => setSafetyMode("standard")}
+                disabled={loading}
+                className={`rounded border px-3 py-2 text-xs font-semibold transition ${
+                  safetyMode === "standard"
+                    ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+                    : "border-cyan-500/20 bg-black/30 text-cyan-100/75"
+                } disabled:opacity-50`}
+              >
+                Standard safety
+              </button>
+            </div>
+          </div>
+
           {/* Prompt Input */}
           <div>
             <label className="block text-sm font-medium text-cyan-200 mb-2">
-              Describe your image
+              Describe your image (plain language)
             </label>
             <textarea
               value={prompt}
@@ -114,7 +183,7 @@ export function ImageGeneratorComponent() {
           {/* Style Selector */}
           <div>
             <label className="block text-sm font-medium text-cyan-200 mb-2">
-              Image Style
+              Image style
             </label>
             <div className="grid grid-cols-4 gap-2">
               {(
@@ -191,7 +260,7 @@ export function ImageGeneratorComponent() {
                 ) : null}
                 <p>
                   <strong>Mode:</strong>{" "}
-                  {generatedImage.openMode ? "Open Mode" : "Standard Mode"}
+                  {generatedImage.openMode ? "Uncensored (Open)" : "Standard"}
                 </p>
               </div>
               <button
@@ -212,7 +281,9 @@ export function ImageGeneratorComponent() {
 
       {/* Info */}
       <div className="text-xs text-cyan-200/60 space-y-1 border-t border-cyan-500/20 pt-4">
-        <p>💡 Supports:</p>
+        <p>💡 Best results:</p>
+        <p>• Keep prompts specific and short (1-2 sentences)</p>
+        <p>• Mention visual style + purpose (thumbnail, hero, chart)</p>
         <p>• Trading charts and visualizations</p>
         <p>• NFT artwork generation</p>
         <p>• Hero images for websites</p>

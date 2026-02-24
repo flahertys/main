@@ -48,6 +48,30 @@ type Snapshot = {
   }>;
 };
 
+type AICreditSnapshot = {
+  userId: string;
+  balance: number;
+  costs: {
+    STANDARD: number;
+    UNCENSORED: number;
+    IMAGE_GEN: number;
+    OVERCLOCK: number;
+    HFT_SIGNAL: number;
+    GUITAR_LESSON: number;
+  };
+  estimatedRequestsRemaining: {
+    standard: number;
+    uncensored: number;
+    image: number;
+  };
+  packs: Array<{
+    id: "starter" | "pro" | "elite";
+    label: string;
+    credits: number;
+    priceUsd: number;
+  }>;
+};
+
 function defaultUserId() {
   // Use cryptographically secure randomness for the guest identifier
   if (typeof window !== "undefined" && window.crypto && window.crypto.getRandomValues) {
@@ -82,6 +106,7 @@ export function BillingConsole() {
   const [userId, setUserId] = useState("");
   const [plans, setPlans] = useState<PlanDefinition[]>([]);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [aiCredits, setAiCredits] = useState<AICreditSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
@@ -99,17 +124,22 @@ export function BillingConsole() {
   async function loadData(targetUserId: string) {
     setLoading(true);
     try {
-      const [plansRes, snapshotRes] = await Promise.all([
+      const [plansRes, snapshotRes, creditsRes] = await Promise.all([
         fetch("/api/monetization/plans", { cache: "no-store" }),
         fetch(`/api/monetization/subscription?userId=${encodeURIComponent(targetUserId)}`, {
+          cache: "no-store",
+        }),
+        fetch(`/api/monetization/ai-credits?userId=${encodeURIComponent(targetUserId)}`, {
           cache: "no-store",
         }),
       ]);
 
       const plansJson = await plansRes.json();
       const snapshotJson = await snapshotRes.json();
+      const creditsJson = await creditsRes.json();
       setPlans(plansJson.plans ?? []);
       setSnapshot(snapshotJson.snapshot ?? null);
+      setAiCredits(creditsJson.snapshot ?? null);
     } catch (error) {
       setMessage("Unable to load billing data right now.");
       console.error(error);
@@ -227,6 +257,43 @@ export function BillingConsole() {
     }
   }
 
+  async function handleBuyCredits(packId: "starter" | "pro" | "elite") {
+    if (!userId) return;
+    setBusy(`credits:${packId}`);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/monetization/ai-credits", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          packId,
+          provider: "stripe",
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        setMessage(payload.error ?? "Unable to purchase AI credits right now.");
+        if (payload.snapshot) {
+          setAiCredits(payload.snapshot);
+        }
+        return;
+      }
+
+      if (payload.snapshot) {
+        setAiCredits(payload.snapshot);
+      }
+      setMessage(`AI credits added: +${payload.purchased?.credits ?? 0}.`);
+    } catch (error) {
+      setMessage("AI credit purchase failed. Please retry.");
+      console.error(error);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <div className="space-y-8">
       <section className="theme-panel p-6 sm:p-8">
@@ -258,7 +325,7 @@ export function BillingConsole() {
       ) : null}
 
       {!loading && snapshot ? (
-        <section className="grid gap-4 lg:grid-cols-2">
+        <section className="grid gap-4 lg:grid-cols-3">
           <article className="theme-grid-card">
             <div className="flex items-center gap-2 text-[#9efdc4]">
               <ShieldCheck className="w-4 h-4" />
@@ -304,6 +371,39 @@ export function BillingConsole() {
                   </div>
                 </div>
               ))}
+            </div>
+          </article>
+
+          <article className="theme-grid-card">
+            <div className="flex items-center gap-2 text-[#f9c27d]">
+              <Zap className="w-4 h-4" />
+              AI Credits
+            </div>
+            <h3 className="text-2xl font-bold text-white">
+              {typeof aiCredits?.balance === "number" ? aiCredits.balance : 0}
+            </h3>
+            <p className="text-[#9eb5c8] text-sm">Low-cost top-ups for AI chat + image generation.</p>
+            <div className="space-y-1 text-xs text-[#c9d7e5]">
+              <p>Standard chats left: {aiCredits?.estimatedRequestsRemaining.standard ?? 0}</p>
+              <p>Uncensored chats left: {aiCredits?.estimatedRequestsRemaining.uncensored ?? 0}</p>
+              <p>Image generations left: {aiCredits?.estimatedRequestsRemaining.image ?? 0}</p>
+            </div>
+            <div className="pt-2 space-y-2">
+              {(aiCredits?.packs ?? []).map((pack) => {
+                const packBusy = busy === `credits:${pack.id}`;
+                return (
+                  <button
+                    key={pack.id}
+                    onClick={() => handleBuyCredits(pack.id)}
+                    disabled={packBusy}
+                    className="theme-cta theme-cta--secondary w-full"
+                  >
+                    {packBusy
+                      ? "Processing..."
+                      : `${pack.label} · +${pack.credits} credits · $${pack.priceUsd}`}
+                  </button>
+                );
+              })}
             </div>
           </article>
         </section>

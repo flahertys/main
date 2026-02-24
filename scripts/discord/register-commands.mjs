@@ -79,6 +79,25 @@ const commands = [
     type: 1,
   },
   {
+    name: "signal-outlook",
+    description: "Multi-timeframe signal outlook with macro/micro/options context",
+    type: 1,
+    options: [
+      {
+        name: "symbol",
+        description: "Ticker pair, e.g. SOL/USDC",
+        type: 3,
+        required: false,
+      },
+      {
+        name: "dispatch",
+        description: "Dispatch generated outlook to configured Discord signal channel",
+        type: 5,
+        required: false,
+      },
+    ],
+  },
+  {
     name: "flow-latest",
     description: "Latest unusual options flow",
     type: 1,

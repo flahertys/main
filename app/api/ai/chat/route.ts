@@ -1,5 +1,5 @@
 import { resolveServerConsent } from "@/lib/ai/consent-server";
-import { checkCredits, deductCredits } from "@/lib/ai/credit-system";
+import { checkCredits, deductCredits, getCreditSnapshot } from "@/lib/ai/credit-system";
 import { buildTradeHaxSystemPrompt } from "@/lib/ai/custom-llm/system-prompt";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { getLLMClient } from "@/lib/ai/hf-server";
@@ -7,6 +7,7 @@ import { NeuralQuery, processNeuralCommand } from "@/lib/ai/kernel";
 import { formatRetrievalContext, retrieveRelevantContext } from "@/lib/ai/retriever";
 import { canConsumeFeature, consumeFeatureUsage, tierSupportsNeuralMode } from "@/lib/monetization/engine";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
+import { getSubscription } from "@/lib/monetization/store";
 import { enforceRateLimit, enforceTrustedOrigin, sanitizePlainText } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -16,6 +17,7 @@ type ChatRole = "user" | "assistant";
 type ChatRequestBody = {
   message?: string;
   messages?: Array<{ role?: string; content?: string }>;
+  model?: string;
   tier?: string;
   context?: unknown;
   userId?: string;
@@ -27,6 +29,8 @@ type ChatRequestBody = {
 };
 
 type ResponseStyle = "concise" | "coach" | "operator";
+
+const DEFAULT_CHAT_MODEL = process.env.HF_MODEL_ID || "mistralai/Mistral-7B-Instruct-v0.1";
 
 const COMMAND_PREFIXES = [
   "HELP",
@@ -53,7 +57,7 @@ const COMMAND_PREFIXES = [
 ] as const;
 
 function parseNeuralTier(value: unknown): NeuralTier {
-  const normalized = typeof value === "string" ? value.toUpperCase().trim() : "UNCENSORED";
+  const normalized = typeof value === "string" ? value.toUpperCase().trim() : "STANDARD";
   if (
     normalized === "STANDARD" ||
     normalized === "UNCENSORED" ||
@@ -63,7 +67,7 @@ function parseNeuralTier(value: unknown): NeuralTier {
   ) {
     return normalized;
   }
-  return "UNCENSORED";
+  return "STANDARD";
 }
 
 function resolveCategoryForTier(tier: NeuralTier) {
@@ -139,6 +143,20 @@ function isCommandLike(input: string) {
   }
 
   return COMMAND_PREFIXES.some((prefix) => upper === prefix || upper.startsWith(`${prefix} `));
+}
+
+function sanitizeModelId(value: unknown) {
+  if (typeof value !== "string") {
+    return DEFAULT_CHAT_MODEL;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 120) {
+    return DEFAULT_CHAT_MODEL;
+  }
+
+  const isSafe = /^[a-zA-Z0-9._\-/]+$/.test(trimmed);
+  return isSafe ? trimmed : DEFAULT_CHAT_MODEL;
 }
 
 function buildPromptFromConversation(args: {
@@ -228,7 +246,9 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = await resolveRequestUserId(req, body.userId);
+    const subscription = getSubscription(userId);
     const neuralTier = parseNeuralTier(body.tier);
+    const requestedModel = sanitizeModelId(body.model);
     const retrievalChunks = await retrieveRelevantContext(inputMessage, 5);
     const retrievalContext = formatRetrievalContext(retrievalChunks);
     const mergedContext = mergeContext(body.context, retrievalContext);
@@ -259,10 +279,20 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Credit Gate
-    const hasCredits = await checkCredits(userId, neuralTier as any);
+    const hasCredits = await checkCredits(userId, neuralTier);
     if (!hasCredits) {
+      const creditSnapshot = await getCreditSnapshot(userId);
       return NextResponse.json(
-        { ok: false, error: "INSUFFICIENT_CREDITS" },
+        {
+          ok: false,
+          error: "INSUFFICIENT_CREDITS",
+          message: "You do not have enough AI credits for this request.",
+          credits: creditSnapshot,
+          billing: {
+            topUpPath: "/billing",
+            creditsPath: "/api/monetization/ai-credits",
+          },
+        },
         { status: 402, headers: rateLimit.headers },
       );
     }
@@ -277,6 +307,8 @@ export async function POST(req: NextRequest) {
     const commandLike = isCommandLike(inputMessage);
     let response = "";
     let kernelResponse = "";
+    let provider = "kernel";
+    let fallbackReason = "";
 
     if (commandLike) {
       kernelResponse = await processNeuralCommand(query);
@@ -286,19 +318,28 @@ export async function POST(req: NextRequest) {
     const shouldTryHf = !commandLike || response.startsWith("AI_RESPONSE: ANALYZING_QUERY");
     if (shouldTryHf) {
       try {
-        const client = getLLMClient();
+        const client = getLLMClient({ modelId: requestedModel });
         const prompt = buildPromptFromConversation({
           inputMessage,
           messages: normalizedMessages,
           context: mergedContext,
-          systemPrompt: body.systemPrompt,
+          systemPrompt:
+            typeof body.systemPrompt === "string" && body.systemPrompt.trim().length > 0
+              ? body.systemPrompt
+              : buildTradeHaxSystemPrompt({
+                  openMode: neuralTier !== "STANDARD",
+                  audienceTier: subscription.tier === "pro" || subscription.tier === "elite" ? "premium" : "learner",
+                  guardrailMode: "strict_ip",
+                }),
           openMode: neuralTier !== "STANDARD",
         });
-        const hfResponse = await client.generate(prompt);
+        const hfResponse = await client.generate(prompt, { modelId: requestedModel });
         if (hfResponse.text.trim().length > 0) {
           response = hfResponse.text.trim();
+          provider = "huggingface";
         }
       } catch (hfError) {
+        fallbackReason = hfError instanceof Error ? hfError.message : "Primary model failed";
         console.warn("HF primary generation failed. Falling back to kernel response.", hfError);
       }
     }
@@ -308,6 +349,7 @@ export async function POST(req: NextRequest) {
         kernelResponse = await processNeuralCommand(query);
       }
       response = kernelResponse;
+      provider = "kernel";
     }
 
     try {
@@ -323,6 +365,9 @@ export async function POST(req: NextRequest) {
           tier: neuralTier,
           command_like: commandLike,
           used_hf: shouldTryHf,
+          model: requestedModel,
+          provider,
+          fallback_reason: fallbackReason,
           retrieved_chunks: retrievalChunks.length,
           retrieved_sources: retrievalChunks.map((chunk) => chunk.path).slice(0, 6).join(","),
         },
@@ -333,7 +378,22 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Deduct Credits
-    await deductCredits(userId, neuralTier as any);
+    const debit = await deductCredits(userId, neuralTier);
+    if (!debit.success) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "INSUFFICIENT_CREDITS",
+          message: "Credits were depleted before this response could be finalized.",
+          credits: await getCreditSnapshot(userId),
+          billing: {
+            topUpPath: "/billing",
+            creditsPath: "/api/monetization/ai-credits",
+          },
+        },
+        { status: 402, headers: rateLimit.headers },
+      );
+    }
     consumeFeatureUsage(userId, "ai_chat", 1, "api:ai:chat", {
       tier: neuralTier,
     });
@@ -349,9 +409,16 @@ export async function POST(req: NextRequest) {
         content: response
       },
       status: "SUCCESS",
+      provider,
+      model: requestedModel,
+      warning: fallbackReason || undefined,
       usage: {
         feature: "ai_chat",
         remainingToday: allowance.remainingToday,
+      },
+      credits: {
+        spent: debit.cost,
+        remaining: debit.remaining,
       },
       timestamp: new Date().toISOString()
     }, { headers: rateLimit.headers });

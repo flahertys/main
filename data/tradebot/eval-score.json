@@ -1,0 +1,65 @@
+{
+  "generatedAt": "2026-02-24T02:14:37.805Z",
+  "scenarios": 4,
+  "scored": 4,
+  "missing": [],
+  "overallScore": 0.2575,
+  "results": [
+    {
+      "id": "eval_001",
+      "score": 0.2575,
+      "components": {
+        "structure": 0,
+        "riskDiscipline": 0.4,
+        "macroMicroAlignment": 0.4,
+        "optionsFlowUse": 0.35,
+        "indicatorGrounding": 0,
+        "personaQuality": 0.45
+      },
+      "missing": false
+    },
+    {
+      "id": "eval_002",
+      "score": 0.2575,
+      "components": {
+        "structure": 0,
+        "riskDiscipline": 0.4,
+        "macroMicroAlignment": 0.4,
+        "optionsFlowUse": 0.35,
+        "indicatorGrounding": 0,
+        "personaQuality": 0.45
+      },
+      "missing": false
+    },
+    {
+      "id": "eval_003",
+      "score": 0.2575,
+      "components": {
+        "structure": 0,
+        "riskDiscipline": 0.4,
+        "macroMicroAlignment": 0.4,
+        "optionsFlowUse": 0.35,
+        "indicatorGrounding": 0,
+        "personaQuality": 0.45
+      },
+      "missing": false
+    },
+    {
+      "id": "eval_004",
+      "score": 0.2575,
+      "components": {
+        "structure": 0,
+        "riskDiscipline": 0.4,
+        "macroMicroAlignment": 0.4,
+        "optionsFlowUse": 0.35,
+        "indicatorGrounding": 0,
+        "personaQuality": 0.45
+      },
+      "missing": false
+    }
+  ],
+  "thresholds": {
+    "pass": 0.75,
+    "caution": 0.62
+  }
+}
