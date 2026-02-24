@@ -1,6 +1,14 @@
 "use client";
 
 import { WalletButton } from "@/components/counter/WalletButton";
+import {
+  exportLocalNeuralVault,
+  getLocalNeuralVault,
+  saveDatasetArtifact,
+  saveLearningEnvironmentArtifact,
+  saveTickerBehaviorArtifact,
+  saveUserBehaviorArtifact,
+} from "@/lib/ai/site-neural-memory";
 import { HAX_TOKEN_CONFIG } from "@/lib/trading/hax-token";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -481,6 +489,16 @@ export const AINeuralHub = () => {
   const [workspaceSnapshots, setWorkspaceSnapshots] = useState<WorkspaceSnapshot[]>([]);
   const [workspaceSnapshotName, setWorkspaceSnapshotName] = useState("");
   const [selectedWorkspaceSnapshotId, setSelectedWorkspaceSnapshotId] = useState<string | null>(null);
+  const [datasetName, setDatasetName] = useState("tradehax-session-dataset");
+  const [datasetRows, setDatasetRows] = useState("120");
+  const [datasetNotes, setDatasetNotes] = useState("");
+  const [behaviorLabel, setBehaviorLabel] = useState("early-session confidence pattern");
+  const [behaviorObservation, setBehaviorObservation] = useState("");
+  const [tickerBehaviorSymbol, setTickerBehaviorSymbol] = useState("SOL");
+  const [tickerBehaviorPattern, setTickerBehaviorPattern] = useState("");
+  const [learningEnvironmentName, setLearningEnvironmentName] = useState("macro event drill");
+  const [learningEnvironmentHypothesis, setLearningEnvironmentHypothesis] = useState("");
+  const [neuralVaultCount, setNeuralVaultCount] = useState(0);
   const { connected, publicKey, sendTransaction } = useWallet();
 
   // Usage Tracking
@@ -625,6 +643,53 @@ export const AINeuralHub = () => {
         // ignore malformed timeline payload
       }
     }
+
+    const storedDatasetName = localStorage.getItem("tradehax_ai_dataset_name");
+    if (storedDatasetName && storedDatasetName.trim()) {
+      setDatasetName(storedDatasetName.trim().slice(0, 80));
+    }
+
+    const storedDatasetRows = localStorage.getItem("tradehax_ai_dataset_rows");
+    if (storedDatasetRows && /^\d{1,6}$/.test(storedDatasetRows)) {
+      setDatasetRows(storedDatasetRows);
+    }
+
+    const storedDatasetNotes = localStorage.getItem("tradehax_ai_dataset_notes");
+    if (storedDatasetNotes && storedDatasetNotes.trim()) {
+      setDatasetNotes(storedDatasetNotes.trim().slice(0, 220));
+    }
+
+    const storedBehaviorLabel = localStorage.getItem("tradehax_ai_behavior_label");
+    if (storedBehaviorLabel && storedBehaviorLabel.trim()) {
+      setBehaviorLabel(storedBehaviorLabel.trim().slice(0, 100));
+    }
+
+    const storedBehaviorObservation = localStorage.getItem("tradehax_ai_behavior_observation");
+    if (storedBehaviorObservation && storedBehaviorObservation.trim()) {
+      setBehaviorObservation(storedBehaviorObservation.trim().slice(0, 240));
+    }
+
+    const storedTickerBehaviorSymbol = localStorage.getItem("tradehax_ai_ticker_behavior_symbol");
+    if (storedTickerBehaviorSymbol && storedTickerBehaviorSymbol.trim()) {
+      setTickerBehaviorSymbol(storedTickerBehaviorSymbol.trim().slice(0, 20).toUpperCase());
+    }
+
+    const storedTickerBehaviorPattern = localStorage.getItem("tradehax_ai_ticker_behavior_pattern");
+    if (storedTickerBehaviorPattern && storedTickerBehaviorPattern.trim()) {
+      setTickerBehaviorPattern(storedTickerBehaviorPattern.trim().slice(0, 240));
+    }
+
+    const storedLearningEnvironmentName = localStorage.getItem("tradehax_ai_learning_environment_name");
+    if (storedLearningEnvironmentName && storedLearningEnvironmentName.trim()) {
+      setLearningEnvironmentName(storedLearningEnvironmentName.trim().slice(0, 120));
+    }
+
+    const storedLearningEnvironmentHypothesis = localStorage.getItem("tradehax_ai_learning_environment_hypothesis");
+    if (storedLearningEnvironmentHypothesis && storedLearningEnvironmentHypothesis.trim()) {
+      setLearningEnvironmentHypothesis(storedLearningEnvironmentHypothesis.trim().slice(0, 260));
+    }
+
+    setNeuralVaultCount(getLocalNeuralVault().length);
 
     const storedVideoUrl = localStorage.getItem("tradehax_ai_video_source_url");
     if (storedVideoUrl && storedVideoUrl.trim()) {
@@ -775,6 +840,42 @@ export const AINeuralHub = () => {
   useEffect(() => {
     localStorage.setItem("tradehax_ai_workspace_timeline", JSON.stringify(workspaceSnapshots.slice(0, 16)));
   }, [workspaceSnapshots]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_dataset_name", datasetName.slice(0, 80));
+  }, [datasetName]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_dataset_rows", datasetRows.replace(/\D/g, "").slice(0, 6) || "0");
+  }, [datasetRows]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_dataset_notes", datasetNotes.slice(0, 220));
+  }, [datasetNotes]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_behavior_label", behaviorLabel.slice(0, 100));
+  }, [behaviorLabel]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_behavior_observation", behaviorObservation.slice(0, 240));
+  }, [behaviorObservation]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_ticker_behavior_symbol", tickerBehaviorSymbol.slice(0, 20).toUpperCase());
+  }, [tickerBehaviorSymbol]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_ticker_behavior_pattern", tickerBehaviorPattern.slice(0, 240));
+  }, [tickerBehaviorPattern]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_learning_environment_name", learningEnvironmentName.slice(0, 120));
+  }, [learningEnvironmentName]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_learning_environment_hypothesis", learningEnvironmentHypothesis.slice(0, 260));
+  }, [learningEnvironmentHypothesis]);
 
   useEffect(() => {
     setCommandSelectionIndex(0);
@@ -1303,6 +1404,105 @@ export const AINeuralHub = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     setChatStatus("Session snapshot exported.");
+  }
+
+  async function saveDatasetNeuralArtifact() {
+    const rows = Number(datasetRows.replace(/\D/g, "") || "0");
+    if (!datasetName.trim()) {
+      setChatStatus("Dataset name is required.");
+      return;
+    }
+
+    const result = await saveDatasetArtifact({
+      name: datasetName,
+      rows,
+      notes: datasetNotes,
+      userId: buildHubUserId(),
+      source: "system",
+      route: "/",
+      consent: {
+        analytics: true,
+        training: true,
+      },
+    });
+
+    setNeuralVaultCount(getLocalNeuralVault().length);
+    setChatStatus(result.ok ? "Dataset artifact saved to neural memory." : "Dataset saved locally. Network sync pending.");
+  }
+
+  async function saveUserBehaviorNeuralArtifact() {
+    if (!behaviorLabel.trim() || !behaviorObservation.trim()) {
+      setChatStatus("Behavior and observation are required.");
+      return;
+    }
+
+    const result = await saveUserBehaviorArtifact({
+      behavior: behaviorLabel,
+      observation: behaviorObservation,
+      userId: buildHubUserId(),
+      source: "system",
+      route: "/",
+      consent: {
+        analytics: true,
+        training: true,
+      },
+    });
+
+    setNeuralVaultCount(getLocalNeuralVault().length);
+    setChatStatus(result.ok ? "User behavior pattern saved." : "Behavior saved locally. Network sync pending.");
+  }
+
+  async function saveTickerBehaviorNeuralArtifact() {
+    if (!tickerBehaviorSymbol.trim() || !tickerBehaviorPattern.trim()) {
+      setChatStatus("Ticker symbol and pattern are required.");
+      return;
+    }
+
+    const result = await saveTickerBehaviorArtifact({
+      ticker: tickerBehaviorSymbol,
+      pattern: tickerBehaviorPattern,
+      userId: buildHubUserId(),
+      source: "system",
+      route: "/",
+      consent: {
+        analytics: true,
+        training: true,
+      },
+    });
+
+    setNeuralVaultCount(getLocalNeuralVault().length);
+    setChatStatus(result.ok ? "Ticker behavior pattern saved." : "Ticker behavior saved locally. Network sync pending.");
+  }
+
+  async function saveLearningEnvironmentNeuralArtifact() {
+    if (!learningEnvironmentName.trim() || !learningEnvironmentHypothesis.trim()) {
+      setChatStatus("Environment and hypothesis are required.");
+      return;
+    }
+
+    const result = await saveLearningEnvironmentArtifact({
+      environment: learningEnvironmentName,
+      hypothesis: learningEnvironmentHypothesis,
+      userId: buildHubUserId(),
+      source: "system",
+      route: "/",
+      consent: {
+        analytics: true,
+        training: true,
+      },
+    });
+
+    setNeuralVaultCount(getLocalNeuralVault().length);
+    setChatStatus(result.ok ? "Learning environment saved." : "Learning environment saved locally. Network sync pending.");
+  }
+
+  function exportNeuralVaultDataset() {
+    const result = exportLocalNeuralVault();
+    if (!result.ok) {
+      setChatStatus("Unable to export neural vault in this environment.");
+      return;
+    }
+    setChatStatus(`Exported neural vault with ${result.count} records.`);
   }
 
   function importSessionSnapshotFromPrompt() {
@@ -2972,6 +3172,138 @@ export const AINeuralHub = () => {
                               )}
                             </div>
                           )}
+                        </div>
+
+                        <div className="rounded-xl border border-emerald-400/20 bg-[rgba(8,16,14,0.84)] px-3 py-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-emerald-200">Phase 6 · Sitewide Neural Smartness</p>
+                            <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                              Vault {neuralVaultCount}
+                            </span>
+                          </div>
+
+                          <p className="mb-2 text-[10px] text-zinc-400">
+                            Save datasets, user patterns, ticker behavior, and learning environments in one reusable neural memory layer ready for sitewide integration.
+                          </p>
+
+                          <div className="space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
+                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Dataset Artifact</p>
+                            <div className="grid gap-2 md:grid-cols-[1.2fr_120px]">
+                              <input
+                                value={datasetName}
+                                onChange={(event) => setDatasetName(event.target.value.slice(0, 80))}
+                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                                placeholder="Dataset name"
+                              />
+                              <input
+                                value={datasetRows}
+                                onChange={(event) => setDatasetRows(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                                placeholder="Rows"
+                              />
+                            </div>
+                            <input
+                              value={datasetNotes}
+                              onChange={(event) => setDatasetNotes(event.target.value.slice(0, 220))}
+                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                              placeholder="Optional dataset note"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void saveDatasetNeuralArtifact();
+                              }}
+                              className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                            >
+                              Save Dataset
+                            </button>
+                          </div>
+
+                          <div className="mt-2 space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
+                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">User Behavior Pattern</p>
+                            <input
+                              value={behaviorLabel}
+                              onChange={(event) => setBehaviorLabel(event.target.value.slice(0, 100))}
+                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                              placeholder="Behavior label"
+                            />
+                            <input
+                              value={behaviorObservation}
+                              onChange={(event) => setBehaviorObservation(event.target.value.slice(0, 240))}
+                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                              placeholder="Observed behavior"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void saveUserBehaviorNeuralArtifact();
+                              }}
+                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
+                            >
+                              Save Behavior
+                            </button>
+                          </div>
+
+                          <div className="mt-2 space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
+                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Ticker Behavior Pattern</p>
+                            <div className="grid gap-2 md:grid-cols-[120px_1fr]">
+                              <input
+                                value={tickerBehaviorSymbol}
+                                onChange={(event) => setTickerBehaviorSymbol(event.target.value.slice(0, 20).toUpperCase())}
+                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                                placeholder="Ticker"
+                              />
+                              <input
+                                value={tickerBehaviorPattern}
+                                onChange={(event) => setTickerBehaviorPattern(event.target.value.slice(0, 240))}
+                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                                placeholder="Pattern and context"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void saveTickerBehaviorNeuralArtifact();
+                              }}
+                              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
+                            >
+                              Save Ticker Pattern
+                            </button>
+                          </div>
+
+                          <div className="mt-2 space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
+                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Learning Environment</p>
+                            <input
+                              value={learningEnvironmentName}
+                              onChange={(event) => setLearningEnvironmentName(event.target.value.slice(0, 120))}
+                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                              placeholder="Environment name"
+                            />
+                            <input
+                              value={learningEnvironmentHypothesis}
+                              onChange={(event) => setLearningEnvironmentHypothesis(event.target.value.slice(0, 260))}
+                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                              placeholder="Hypothesis / learning note"
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void saveLearningEnvironmentNeuralArtifact();
+                                }}
+                                className="rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-amber-100"
+                              >
+                                Save Environment
+                              </button>
+                              <button
+                                type="button"
+                                onClick={exportNeuralVaultDataset}
+                                className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                              >
+                                Export Neural Vault
+                              </button>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="rounded-xl border border-white/10 bg-[rgba(9,12,18,0.72)] px-3 py-3">
