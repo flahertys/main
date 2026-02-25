@@ -1,6 +1,7 @@
 import { HFChatComponent } from "@/components/ai/HFChatComponent";
 import { HFGeneratorComponent } from "@/components/ai/HFGeneratorComponent";
 import { ImageGeneratorComponent } from "@/components/ai/ImageGeneratorComponent";
+import { ModelScoreboardPanel } from "@/components/ai/ModelScoreboardPanel";
 import { SmartEnvironmentMonitor } from "@/components/ai/SmartEnvironmentMonitor";
 import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
@@ -117,6 +118,8 @@ export default function AIHubPage() {
         <div className="mb-12">
           <SmartEnvironmentMonitor />
         </div>
+
+        <ModelScoreboardPanel />
 
         <div className="theme-panel p-6 sm:p-8 mb-12">
           <div className="flex items-center gap-2 mb-4 text-amber-200">
