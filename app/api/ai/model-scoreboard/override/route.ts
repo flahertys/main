@@ -9,7 +9,7 @@ import { enforceRateLimit, enforceTrustedOrigin } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 
 type OverrideBody = {
-  domain?: PredictionDomain;
+  domain?: PredictionDomain | "all";
   mode?: DomainRoutingOverrideMode;
 };
 
@@ -26,6 +26,10 @@ function isAuthorized(request: NextRequest) {
 
 function isDomain(value: unknown): value is PredictionDomain {
   return value === "stock" || value === "crypto" || value === "kalshi" || value === "general";
+}
+
+function isDomainOrAll(value: unknown): value is PredictionDomain | "all" {
+  return value === "all" || isDomain(value);
 }
 
 function isMode(value: unknown): value is DomainRoutingOverrideMode {
@@ -109,23 +113,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!isDomain(body.domain) || !isMode(body.mode)) {
+  if (!isDomainOrAll(body.domain) || !isMode(body.mode)) {
     return NextResponse.json(
       {
         ok: false,
         error: "INVALID_INPUT",
-        message: "Expected domain in [stock, crypto, kalshi, general] and mode in [auto, stable, canary].",
+        message: "Expected domain in [all, stock, crypto, kalshi, general] and mode in [auto, stable, canary].",
       },
       { status: 400, headers: rateLimit.headers },
     );
   }
 
-  setPredictionRoutingOverride({ domain: body.domain, mode: body.mode });
+  const domains: PredictionDomain[] = ["stock", "crypto", "kalshi", "general"];
+  const appliedDomains = body.domain === "all" ? domains : [body.domain];
+
+  for (const domain of appliedDomains) {
+    setPredictionRoutingOverride({ domain, mode: body.mode });
+  }
 
   return NextResponse.json(
     {
       ok: true,
       domain: body.domain,
+      appliedDomains,
       mode: body.mode,
       overrides: getPredictionRoutingOverrides(),
       governance: getPredictionRoutingGovernanceSummary(),

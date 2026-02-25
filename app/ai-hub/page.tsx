@@ -119,6 +119,23 @@ export default function AIHubPage() {
           <SmartEnvironmentMonitor />
         </div>
 
+        <div id="ai-autopilot" className="mb-3 rounded-xl border border-fuchsia-500/20 bg-fuchsia-600/10 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-fuchsia-100">New here? One-click setup</p>
+              <p className="text-xs text-fuchsia-100/75 mt-1">
+                Launch a guided 30-second setup wizard for autopilot and beginner-safe defaults.
+              </p>
+            </div>
+            <Link
+              href="/ai-hub?setupWizard=1#ai-autopilot"
+              className="rounded border border-fuchsia-300/40 bg-black/25 px-3 py-1.5 text-xs font-semibold text-fuchsia-100 hover:bg-black/35 transition"
+            >
+              I&apos;m new — set this up for me
+            </Link>
+          </div>
+        </div>
+
         <ModelScoreboardPanel />
 
         <div className="theme-panel p-6 sm:p-8 mb-12">

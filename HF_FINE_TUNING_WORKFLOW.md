@@ -1,88 +1,88 @@
-# TradeHax Hugging Face Fine-Tuning Workflow (LoRA + 4-bit)
+# Hugging Face Fine-Tuning Workflow for TradeHax
 
-This runbook is tailored to the current repo and model loading path in `lib/ai/hf-server.ts`.
+## Overview
 
-## Security first
+This workflow is production-oriented:
 
-- Do **not** hardcode Hugging Face tokens in code.
-- Use `HF_API_TOKEN` in local environment only.
-- If a token was shared in chat/logs, rotate it immediately in Hugging Face settings.
+- Train with a real Mistral base model.
+- Push adapters/model artifacts to Hugging Face Hub.
+- Switch runtime inference to your fine-tuned model ID.
 
-## 1) Prepare dependencies
+## 1) Push latest repo state
 
-### Node.js app dependencies
+1. Ensure local lint/type-check pass.
+2. Push branch:
+   - `git push origin main`
 
-Use your existing workflow:
+## 2) Configure real training in `.env`
 
-- `npm install`
+Use these defaults for real runs:
 
-### Python training dependencies
+- `HF_MODEL_ID=mistralai/Mistral-7B-Instruct-v0.1`
+- `HF_HUB_MODEL_ID=irishpride81mf/tradehax-mistral-finetuned`
+- `DATASET_PATH=tradehax-training-expanded.jsonl`
+- `TRAIN_EPOCHS=3`
+- `TRAIN_BATCH_SIZE=4`
+- `TRAIN_LR=2e-5`
+- `LORA_R=16`
+- `LORA_ALPHA=32`
+- `LOAD_4BIT=True`
+- `USE_CUDA=True` (if GPU available)
+- `CLEAN_CHECKPOINTS=True` (for clean reruns)
 
-Install from the repo file:
+If GPU is unavailable or CPU-only is too slow:
+
+- Use **Hugging Face AutoTrain** for managed training, or
+- Run in **Google Colab** (T4/A100 runtime) with this repo script + dataset upload.
+
+## 3) Run fine-tune
+
+Install dependencies (once):
 
 - `pip install -r scripts/fine-tune-requirements.txt`
 
-## 2) Prepare dataset
+Run training:
 
-You can fine-tune from:
+- `npm run fine-tune`
 
-- `tradehax-training-expanded.jsonl` (root)
-- or generated datasets such as `data/custom-llm/train.jsonl`
+The workflow script supports dependency bootstrap (`--install-deps`) via `run-finetune-workflow.js` when needed.
 
-Supported JSONL row formats by the script:
+## 4) Push to Hub and switch inference model
 
-1. `{ "text": "..." }`
-2. `{ "messages": [{"role":"user|assistant|system","content":"..."}, ...] }`
-3. `{ "instruction": "...", "input": "...", "output": "..." }`
+After successful `push_to_hub`:
 
-## 3) Configure environment
+1. In Vercel project environment variables, set:
+   - `HF_MODEL_ID=irishpride81mf/tradehax-mistral-finetuned`
+2. Redeploy.
 
-Use placeholders in `.env` (already present in repo template):
+## 5) Test inference
 
-- `HF_API_TOKEN`
-- `HF_MODEL_ID`
-- `HF_HUB_MODEL_ID`
-- `HF_DATASET_PATH`
-- `HF_OUTPUT_DIR`
-- `HF_PUSH_TO_HUB`
+Validate server route:
 
-## 4) Run fine-tuning
+- `POST /api/hf-server`
+- Body example:
+  - `{ "prompt": "Give me a concise BTC/ETH market brief.", "task": "text-generation" }`
 
-Run the script:
+Expected result:
 
-- `python scripts/fine-tune-mistral-lora.py --dataset tradehax-training-expanded.jsonl --push-to-hub`
+- `200` with `{ output: ... }`
 
-If you want local-only output, omit `--push-to-hub`.
+If failures occur:
 
-## 5) Output artifacts
+- Confirm `HF_API_TOKEN` and `HF_MODEL_ID` in Vercel.
+- Confirm model visibility/permissions on HF Hub.
+- Check Vercel function logs for HF inference errors.
 
-The script saves LoRA adapter files under:
+## 6) Monetization enablement for premium AI
 
-- `artifacts/fine-tuned-tradehax-mistral/lora-adapter`
+To expose premium AI subscriptions:
 
-If `--push-to-hub` is enabled, it publishes adapter/tokenizer to your configured Hub repo.
+- Enable `NEXT_PUBLIC_ENABLE_PAYMENTS=true`
+- Configure billing envs (Stripe/Coinbase/etc.) used by monetization routes.
+- Verify billing screens and `/api/monetization/*` endpoints in staging before prod cutover.
 
-## 6) Integrate into TradeHax runtime
+## Notes
 
-Your server resolver in `lib/ai/hf-server.ts` already reads:
-
-- `HF_MODEL_ID`
-
-So after publishing your fine-tuned model (or merged artifact), set:
-
-- `HF_MODEL_ID=irishpride81mf/tradehax-mistral-finetuned`
-
-Then restart the Next.js server.
-
-## 7) Validate
-
-- Run `npm run type-check`
-- Run `npm run lint`
-- Hit an existing route using the HF client (`/api/llm` or `/api/ai/chat`) to confirm response path works.
-
-## Practical notes
-
-- Start with smaller subset + fewer epochs for fast iteration.
-- LoRA + 4-bit is the right choice for lower cost and memory pressure.
-- For production, consider adapter merging or dedicated inference endpoint based on throughput/latency goals.
+- Tiny-model tests are useful for plumbing verification only.
+- Real quality targets require Mistral + full dataset + stable HF Hub artifact.
 

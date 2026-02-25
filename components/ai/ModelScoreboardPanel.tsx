@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 type PredictionDomain = "stock" | "crypto" | "kalshi" | "general";
 type OverrideMode = "auto" | "stable" | "canary";
 type BeginnerSetupMode = "hands_off" | "balanced" | "operator";
+type OverrideApiDomain = PredictionDomain | "all";
 
 const SCOREBOARD_SETUP_STORAGE_KEY = "tradehax.scoreboard.setup.v1";
 
@@ -83,11 +84,14 @@ export function ModelScoreboardPanel() {
   const [error, setError] = useState("");
   const [advancedView, setAdvancedView] = useState(false);
   const [explainMode, setExplainMode] = useState(true);
+  const [showDisplayControls, setShowDisplayControls] = useState(false);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [setupStep, setSetupStep] = useState(1);
   const [setupMode, setSetupMode] = useState<BeginnerSetupMode>("balanced");
   const [showOperatorTools, setShowOperatorTools] = useState(false);
   const [adminKey, setAdminKey] = useState("");
+  const [showSafetyTools, setShowSafetyTools] = useState(false);
+  const [safetyPending, setSafetyPending] = useState(false);
   const [overridePending, setOverridePending] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -120,7 +124,9 @@ export function ModelScoreboardPanel() {
   useEffect(() => {
     try {
       const existing = window.localStorage.getItem(SCOREBOARD_SETUP_STORAGE_KEY);
-      if (!existing) {
+      const params = new URLSearchParams(window.location.search);
+      const forced = params.get("setupWizard") === "1";
+      if (!existing || forced) {
         setShowSetupWizard(true);
       }
     } catch {
@@ -177,7 +183,7 @@ export function ModelScoreboardPanel() {
     };
   }, [domains]);
 
-  async function applyOverride(domain: PredictionDomain, mode: OverrideMode) {
+  async function applyOverride(domain: OverrideApiDomain, mode: OverrideMode) {
     if (!adminKey.trim()) {
       setNotice("Enter admin key to use manual override controls.");
       return;
@@ -205,11 +211,30 @@ export function ModelScoreboardPanel() {
       if (next.ok && nextBody.ok) {
         setData(nextBody);
       }
-      setNotice(`Override updated: ${domain} → ${mode}.`);
+      setNotice(
+        domain === "all"
+          ? `Safety update applied to all domains: ${mode}.`
+          : `Override updated: ${domain} → ${mode}.`,
+      );
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Unable to update override.");
     } finally {
       setOverridePending("");
+    }
+  }
+
+  async function applyGlobalSafetyMode() {
+    if (!adminKey.trim()) {
+      setNotice("Enter admin key to enable global safety mode.");
+      return;
+    }
+
+    setSafetyPending(true);
+    setNotice("");
+    try {
+      await applyOverride("all", "stable");
+    } finally {
+      setSafetyPending(false);
     }
   }
 
@@ -218,14 +243,17 @@ export function ModelScoreboardPanel() {
       setAdvancedView(false);
       setExplainMode(true);
       setShowOperatorTools(false);
+      setShowDisplayControls(false);
     } else if (mode === "balanced") {
       setAdvancedView(false);
       setExplainMode(true);
       setShowOperatorTools(false);
+      setShowDisplayControls(false);
     } else {
       setAdvancedView(true);
       setExplainMode(true);
       setShowOperatorTools(true);
+      setShowDisplayControls(true);
     }
 
     try {
@@ -253,36 +281,7 @@ export function ModelScoreboardPanel() {
         </div>
       </div>
 
-      <div className="mb-4 flex items-center gap-2 text-xs">
-        <button
-          type="button"
-          onClick={() => setAdvancedView(false)}
-          className={`rounded px-2 py-1 border ${
-            !advancedView
-              ? "border-emerald-400/40 bg-emerald-600/20 text-emerald-100"
-              : "border-white/20 bg-black/20 text-zinc-300"
-          }`}
-        >
-          Simple view
-        </button>
-        <button
-          type="button"
-          onClick={() => setAdvancedView(true)}
-          className={`rounded px-2 py-1 border ${
-            advancedView
-              ? "border-cyan-400/40 bg-cyan-600/20 text-cyan-100"
-              : "border-white/20 bg-black/20 text-zinc-300"
-          }`}
-        >
-          Advanced view
-        </button>
-        <button
-          type="button"
-          onClick={() => setExplainMode((value) => !value)}
-          className="rounded px-2 py-1 border border-white/20 bg-black/20 text-zinc-300"
-        >
-          {explainMode ? "Hide tips" : "Show tips"}
-        </button>
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
         <button
           type="button"
           onClick={() => {
@@ -293,6 +292,47 @@ export function ModelScoreboardPanel() {
         >
           Setup wizard
         </button>
+        <button
+          type="button"
+          onClick={() => setShowDisplayControls((value) => !value)}
+          className="rounded px-2 py-1 border border-white/20 bg-black/20 text-zinc-300"
+        >
+          {showDisplayControls ? "Hide extra controls" : "Customize view"}
+        </button>
+
+        {showDisplayControls ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setAdvancedView(false)}
+              className={`rounded px-2 py-1 border ${
+                !advancedView
+                  ? "border-emerald-400/40 bg-emerald-600/20 text-emerald-100"
+                  : "border-white/20 bg-black/20 text-zinc-300"
+              }`}
+            >
+              Simple view
+            </button>
+            <button
+              type="button"
+              onClick={() => setAdvancedView(true)}
+              className={`rounded px-2 py-1 border ${
+                advancedView
+                  ? "border-cyan-400/40 bg-cyan-600/20 text-cyan-100"
+                  : "border-white/20 bg-black/20 text-zinc-300"
+              }`}
+            >
+              Advanced view
+            </button>
+            <button
+              type="button"
+              onClick={() => setExplainMode((value) => !value)}
+              className="rounded px-2 py-1 border border-white/20 bg-black/20 text-zinc-300"
+            >
+              {explainMode ? "Hide tips" : "Show tips"}
+            </button>
+          </>
+        ) : null}
       </div>
 
       <div className="mb-4 rounded border border-white/15 bg-black/25 p-3">
@@ -325,6 +365,44 @@ export function ModelScoreboardPanel() {
             <li>If none are red, do nothing — autopilot is fine.</li>
             <li>If a card is red, switch to Advanced view and use stable mode for that domain.</li>
           </ul>
+
+          <div className="mt-3 rounded border border-rose-500/20 bg-rose-600/10 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-[12px] font-semibold text-rose-100">Emergency Safety Mode</p>
+                <p className="text-[11px] text-rose-100/80 mt-1">One click to force all domains to stable mode.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSafetyTools((value) => !value)}
+                className="rounded border border-rose-300/30 bg-black/25 px-2 py-1 text-[11px] text-rose-100"
+              >
+                {showSafetyTools ? "Hide" : "Open"}
+              </button>
+            </div>
+
+            {showSafetyTools ? (
+              <div className="mt-2 space-y-2">
+                <input
+                  type="password"
+                  value={adminKey}
+                  onChange={(event) => setAdminKey(event.target.value)}
+                  placeholder="Enter TRADEHAX_ADMIN_KEY"
+                  className="w-full rounded border border-white/15 bg-black/30 px-2 py-1 text-xs text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    void applyGlobalSafetyMode();
+                  }}
+                  disabled={safetyPending}
+                  className="rounded border border-rose-300/40 bg-rose-600/20 px-3 py-1 text-xs text-rose-100 disabled:opacity-60"
+                >
+                  {safetyPending ? "Applying..." : "Set all domains to stable"}
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
