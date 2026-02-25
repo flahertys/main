@@ -1,4 +1,8 @@
-import { getPredictionTelemetrySummary, resolvePredictionModel } from "@/lib/ai/prediction-routing";
+import {
+    getPredictionRoutingGovernanceSummary,
+    getPredictionTelemetrySummary,
+    resolvePredictionModel,
+} from "@/lib/ai/prediction-routing";
 import { enforceRateLimit, enforceTrustedOrigin } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
@@ -42,6 +46,7 @@ export async function GET(request: NextRequest) {
   }
 
   const telemetry = getPredictionTelemetrySummary();
+  const governance = getPredictionRoutingGovernanceSummary();
   const dataset = readDatasetSummary();
 
   const recommendations = {
@@ -56,6 +61,7 @@ export async function GET(request: NextRequest) {
       ok: true,
       generatedAt: new Date().toISOString(),
       telemetry,
+      governance,
       recommendations,
       dataIntegrity: {
         algorithm: dataset?.integrity?.algorithm || "unknown",

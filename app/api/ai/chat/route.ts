@@ -326,7 +326,7 @@ export async function POST(req: NextRequest) {
     const commandLike = isCommandLike(inputMessage);
     let response = "";
     let kernelResponse = "";
-    let provider = "kernel";
+    let provider: "kernel" | "huggingface" = "kernel";
     let fallbackReason = "";
 
     if (commandLike) {
