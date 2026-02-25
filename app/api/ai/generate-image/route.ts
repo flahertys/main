@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const hf = new HfInference(token);
-      const imageBlob = await hf.textToImage({
+      const imageResult = await hf.textToImage({
         model,
         inputs: styledPrompt,
         parameters: {
@@ -234,7 +234,12 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      const blobType = String((imageBlob as Blob).type || "").trim();
+      const imageBlob =
+        typeof imageResult === "string"
+          ? new Blob([imageResult], { type: "image/png" })
+          : imageResult;
+
+      const blobType = String(imageBlob.type || "").trim();
       if (blobType) {
         mimeType = blobType;
       }

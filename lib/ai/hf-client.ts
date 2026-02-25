@@ -86,7 +86,8 @@ class HFLLMClient {
         if (typeof content === "string") {
           text = content;
         } else if (Array.isArray(content)) {
-          text = content
+          const contentParts = content as Array<{ text?: string } | null | undefined>;
+          text = contentParts
             .map((part) => (typeof part?.text === "string" ? part.text : ""))
             .join("")
             .trim();
