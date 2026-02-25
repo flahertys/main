@@ -1,0 +1,16 @@
+# Fine-tuning dependencies (Windows-optimized)
+# Install with: pip install -r scripts/fine-tune-requirements-windows.txt --only-binary :all:
+
+# Core HF packages (pre-built wheels available)
+transformers>=4.35.0
+huggingface-hub>=0.20.0
+datasets>=2.15.0
+peft>=0.7.0
+accelerate>=0.25.0
+evaluate>=0.4.0
+
+# Numeric (pre-built for Windows)
+numpy>=1.24.0
+
+# No torch/bitsandbytes here (install separately if using GPU)
+# If GPU training needed: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118

@@ -1,6 +1,14 @@
 "use client";
 
 import { WalletButton } from "@/components/counter/WalletButton";
+import {
+  exportLocalNeuralVault,
+  getLocalNeuralVault,
+  saveDatasetArtifact,
+  saveLearningEnvironmentArtifact,
+  saveTickerBehaviorArtifact,
+  saveUserBehaviorArtifact,
+} from "@/lib/ai/site-neural-memory";
 import { HAX_TOKEN_CONFIG } from "@/lib/trading/hax-token";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -10,15 +18,18 @@ import {
   BookOpen,
   Brain,
   Coins,
+  Command,
   Copy,
   Cpu,
   Download,
   Eraser,
+  List,
   Lock,
   Pencil,
   Plus,
   RotateCcw,
   RotateCw,
+  Search,
   Send,
   ShieldAlert,
   ShieldCheck,
@@ -38,6 +49,85 @@ type RiskStance = "guarded" | "balanced" | "aggressive";
 type PersonaPresetId = "mystic" | "analyst" | "mentor";
 type MemoryScope = "short" | "long";
 type SocialChannel = "youtube" | "discord" | "x" | "linkedin" | "instagram" | "facebook" | "telegram" | "tiktok";
+type LlmWorkflowTask = "chat" | "generate" | "summarize" | "qa";
+type LlmDepth = "quick" | "balanced" | "deep";
+type PromptLibraryCategory = "trading" | "content" | "ops";
+
+interface ResponseQualitySnapshot {
+  task: LlmWorkflowTask;
+  model: string;
+  latencyMs: number;
+  words: number;
+  chars: number;
+  clarity: number;
+  actionability: number;
+  riskDiscipline: number;
+}
+
+interface ResponseCompareSnapshot {
+  mode: "improve" | "rewrite" | "shorten";
+  original: string;
+  transformed: string;
+  sourceIndex: number;
+  createdAt: number;
+}
+
+interface SessionPreset {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  guideName: string;
+  responseStyle: ResponseStyle;
+  riskStance: RiskStance;
+  focusSymbol: string;
+  sessionIntent: string;
+  personaPreset: PersonaPresetId;
+  workflowTask: LlmWorkflowTask;
+  workflowDepth: LlmDepth;
+  workflowCreativity: number;
+}
+
+interface WorkspaceSettingsSnapshot {
+  guideName: string;
+  responseStyle: ResponseStyle;
+  riskStance: RiskStance;
+  focusSymbol: string;
+  sessionIntent: string;
+  personaPreset: PersonaPresetId;
+  workflowTask: LlmWorkflowTask;
+  workflowDepth: LlmDepth;
+  workflowCreativity: number;
+}
+
+interface WorkspaceSnapshotPayload {
+  settings: WorkspaceSettingsSnapshot;
+  customPromptPacks: PromptLibraryItem[];
+  memoryCards: MemoryCard[];
+  sessionPresets: SessionPreset[];
+}
+
+interface WorkspaceSnapshot {
+  id: string;
+  name: string;
+  version: number;
+  createdAt: number;
+  payload: WorkspaceSnapshotPayload;
+}
+
+type PromptLibraryItem = {
+  id: string;
+  title: string;
+  category: PromptLibraryCategory;
+  value: string;
+};
+
+type SlashCommand = {
+  id: string;
+  label: string;
+  description: string;
+  execute: () => void;
+};
 
 interface Message {
   role: "user" | "assistant";
@@ -140,6 +230,80 @@ const QUICK_RITUAL_PROMPTS = [
     value: "I feel emotionally noisy. Give me a short reset protocol before I make trading decisions.",
   },
 ] as const;
+
+const LLM_WORKFLOW_TASKS: Array<{ id: LlmWorkflowTask; label: string; hint: string }> = [
+  { id: "chat", label: "Neural Chat", hint: "Full guided assistant with relationship memory + persona controls" },
+  { id: "generate", label: "Generate", hint: "High-quality text drafting for ideas, scripts, and content" },
+  { id: "summarize", label: "Summarize", hint: "Compress long content into concise, decision-ready outputs" },
+  { id: "qa", label: "Q&A", hint: "Answer strictly from provided context to improve factual discipline" },
+];
+
+const LLM_WORKFLOW_TEMPLATES: Array<{
+  id: "exec" | "thread" | "sop";
+  label: string;
+  task: LlmWorkflowTask;
+  prompt: string;
+  context?: string;
+}> = [
+  {
+    id: "exec",
+    label: "Exec Brief",
+    task: "summarize",
+    prompt: "Summarize this into: key signals, risks, opportunities, and one immediate action for today.",
+  },
+  {
+    id: "thread",
+    label: "Social Thread",
+    task: "generate",
+    prompt: "Turn this into a high-converting social thread with hook, value bullets, CTA, and risk-aware language.",
+  },
+  {
+    id: "sop",
+    label: "Risk SOP",
+    task: "qa",
+    prompt: "Create a strict execution SOP with pre-trade checks, invalidation triggers, and post-trade review steps.",
+    context: "Use only the context provided here. Do not infer unsupported facts.",
+  },
+];
+
+const PROMPT_LIBRARY: PromptLibraryItem[] = [
+  {
+    id: "trade-plan-week",
+    title: "Weekly Risk Plan",
+    category: "trading",
+    value: "Build my weekly trade plan with risk budget, A+ setup filter, and a no-trade checklist.",
+  },
+  {
+    id: "trade-postmortem",
+    title: "Trade Postmortem",
+    category: "trading",
+    value: "Review this trade like a coach: what was valid, what was emotional noise, and what to do next time.",
+  },
+  {
+    id: "content-thread",
+    title: "Social Thread Builder",
+    category: "content",
+    value: "Turn this into a high-converting thread with hook, authority proof, value bullets, and CTA.",
+  },
+  {
+    id: "content-brief",
+    title: "Executive Brief",
+    category: "content",
+    value: "Summarize this into key points, risks, opportunities, and one immediate action.",
+  },
+  {
+    id: "ops-checklist",
+    title: "Ops Checklist",
+    category: "ops",
+    value: "Create an operator checklist for execution: prep, trigger, risk limits, and post-action review.",
+  },
+  {
+    id: "ops-standard",
+    title: "SOP Draft",
+    category: "ops",
+    value: "Draft a concise SOP with prerequisites, step-by-step actions, failure modes, and escalation path.",
+  },
+];
 
 const PERSONA_PRESETS: Array<{ id: PersonaPresetId; label: string; description: string; prompt: string }> = [
   {
@@ -311,6 +475,30 @@ export const AINeuralHub = () => {
   const [editingMessageDraft, setEditingMessageDraft] = useState("");
   const [replayCursor, setReplayCursor] = useState(0);
   const [timeTick, setTimeTick] = useState(Date.now());
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+  const [commandSelectionIndex, setCommandSelectionIndex] = useState(0);
+  const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
+  const [customPromptPacks, setCustomPromptPacks] = useState<PromptLibraryItem[]>([]);
+  const [customPromptTitle, setCustomPromptTitle] = useState("");
+  const [customPromptValue, setCustomPromptValue] = useState("");
+  const [customPromptCategory, setCustomPromptCategory] = useState<PromptLibraryCategory>("ops");
+  const [compareSnapshot, setCompareSnapshot] = useState<ResponseCompareSnapshot | null>(null);
+  const [sessionPresets, setSessionPresets] = useState<SessionPreset[]>([]);
+  const [sessionPresetName, setSessionPresetName] = useState("");
+  const [workspaceSnapshots, setWorkspaceSnapshots] = useState<WorkspaceSnapshot[]>([]);
+  const [workspaceSnapshotName, setWorkspaceSnapshotName] = useState("");
+  const [selectedWorkspaceSnapshotId, setSelectedWorkspaceSnapshotId] = useState<string | null>(null);
+  const [datasetName, setDatasetName] = useState("tradehax-session-dataset");
+  const [datasetRows, setDatasetRows] = useState("120");
+  const [datasetNotes, setDatasetNotes] = useState("");
+  const [behaviorLabel, setBehaviorLabel] = useState("early-session confidence pattern");
+  const [behaviorObservation, setBehaviorObservation] = useState("");
+  const [tickerBehaviorSymbol, setTickerBehaviorSymbol] = useState("SOL");
+  const [tickerBehaviorPattern, setTickerBehaviorPattern] = useState("");
+  const [learningEnvironmentName, setLearningEnvironmentName] = useState("macro event drill");
+  const [learningEnvironmentHypothesis, setLearningEnvironmentHypothesis] = useState("");
+  const [neuralVaultCount, setNeuralVaultCount] = useState(0);
   const { connected, publicKey, sendTransaction } = useWallet();
 
   // Usage Tracking
@@ -356,6 +544,152 @@ export const AINeuralHub = () => {
     if (storedPersona === "mystic" || storedPersona === "analyst" || storedPersona === "mentor") {
       setPersonaPreset(storedPersona);
     }
+
+    const storedPromptLibrary = localStorage.getItem("tradehax_ai_prompt_library_open");
+    if (storedPromptLibrary === "true") {
+      setIsPromptLibraryOpen(true);
+    }
+
+    const storedCustomPrompts = localStorage.getItem("tradehax_ai_custom_prompt_packs");
+    if (storedCustomPrompts) {
+      try {
+        const parsed = JSON.parse(storedCustomPrompts) as Array<Partial<PromptLibraryItem>>;
+        if (Array.isArray(parsed)) {
+          setCustomPromptPacks(
+            parsed
+              .slice(0, 24)
+              .map((item) => ({
+                id: typeof item.id === "string" ? item.id : `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                title: String(item.title ?? "Custom Prompt").slice(0, 40),
+                category: item.category === "trading" || item.category === "content" || item.category === "ops" ? item.category : "ops",
+                value: String(item.value ?? "").slice(0, 500),
+              }))
+              .filter((item) => item.value.trim().length > 0),
+          );
+        }
+      } catch {
+        // ignore malformed prompt pack payload
+      }
+    }
+
+    const storedSessionPresets = localStorage.getItem("tradehax_ai_session_presets");
+    if (storedSessionPresets) {
+      try {
+        const parsed = JSON.parse(storedSessionPresets) as Array<Partial<SessionPreset>>;
+        if (Array.isArray(parsed)) {
+          setSessionPresets(
+            parsed
+              .slice(0, 20)
+              .map((preset) => ({
+                id: typeof preset.id === "string" ? preset.id : `preset_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                name: String(preset.name ?? "Session Preset").slice(0, 42),
+                createdAt: typeof preset.createdAt === "number" ? preset.createdAt : Date.now(),
+                updatedAt: typeof preset.updatedAt === "number" ? preset.updatedAt : Date.now(),
+                guideName: String(preset.guideName ?? "Trader").slice(0, 24),
+                responseStyle: preset.responseStyle === "concise" || preset.responseStyle === "coach" || preset.responseStyle === "operator"
+                  ? preset.responseStyle
+                  : "coach",
+                riskStance: preset.riskStance === "guarded" || preset.riskStance === "balanced" || preset.riskStance === "aggressive"
+                  ? preset.riskStance
+                  : "balanced",
+                focusSymbol: String(preset.focusSymbol ?? "SOL").slice(0, 12),
+                sessionIntent: String(preset.sessionIntent ?? "Build disciplined consistency").slice(0, 72),
+                personaPreset: preset.personaPreset === "mystic" || preset.personaPreset === "analyst" || preset.personaPreset === "mentor"
+                  ? preset.personaPreset
+                  : "mystic",
+                workflowTask: preset.workflowTask === "chat" || preset.workflowTask === "generate" || preset.workflowTask === "summarize" || preset.workflowTask === "qa"
+                  ? preset.workflowTask
+                  : "chat",
+                workflowDepth: preset.workflowDepth === "quick" || preset.workflowDepth === "balanced" || preset.workflowDepth === "deep"
+                  ? preset.workflowDepth
+                  : "balanced",
+                workflowCreativity:
+                  typeof preset.workflowCreativity === "number"
+                    ? Math.max(20, Math.min(100, Math.round(preset.workflowCreativity)))
+                    : 65,
+              }))
+              .sort((a, b) => b.updatedAt - a.updatedAt),
+          );
+        }
+      } catch {
+        // ignore malformed preset payload
+      }
+    }
+
+    const storedWorkspaceSnapshots = localStorage.getItem("tradehax_ai_workspace_timeline");
+    if (storedWorkspaceSnapshots) {
+      try {
+        const parsed = JSON.parse(storedWorkspaceSnapshots) as Array<Partial<WorkspaceSnapshot>>;
+        if (Array.isArray(parsed)) {
+          const hydrated = parsed
+            .slice(0, 16)
+            .filter((item) =>
+              Boolean(item)
+              && typeof item.id === "string"
+              && typeof item.name === "string"
+              && typeof item.version === "number"
+              && typeof item.createdAt === "number"
+              && typeof item.payload === "object"
+              && item.payload !== null,
+            )
+            .map((item) => item as WorkspaceSnapshot)
+            .sort((a, b) => b.createdAt - a.createdAt);
+          setWorkspaceSnapshots(hydrated);
+          if (hydrated[0]?.id) {
+            setSelectedWorkspaceSnapshotId(hydrated[0].id);
+          }
+        }
+      } catch {
+        // ignore malformed timeline payload
+      }
+    }
+
+    const storedDatasetName = localStorage.getItem("tradehax_ai_dataset_name");
+    if (storedDatasetName && storedDatasetName.trim()) {
+      setDatasetName(storedDatasetName.trim().slice(0, 80));
+    }
+
+    const storedDatasetRows = localStorage.getItem("tradehax_ai_dataset_rows");
+    if (storedDatasetRows && /^\d{1,6}$/.test(storedDatasetRows)) {
+      setDatasetRows(storedDatasetRows);
+    }
+
+    const storedDatasetNotes = localStorage.getItem("tradehax_ai_dataset_notes");
+    if (storedDatasetNotes && storedDatasetNotes.trim()) {
+      setDatasetNotes(storedDatasetNotes.trim().slice(0, 220));
+    }
+
+    const storedBehaviorLabel = localStorage.getItem("tradehax_ai_behavior_label");
+    if (storedBehaviorLabel && storedBehaviorLabel.trim()) {
+      setBehaviorLabel(storedBehaviorLabel.trim().slice(0, 100));
+    }
+
+    const storedBehaviorObservation = localStorage.getItem("tradehax_ai_behavior_observation");
+    if (storedBehaviorObservation && storedBehaviorObservation.trim()) {
+      setBehaviorObservation(storedBehaviorObservation.trim().slice(0, 240));
+    }
+
+    const storedTickerBehaviorSymbol = localStorage.getItem("tradehax_ai_ticker_behavior_symbol");
+    if (storedTickerBehaviorSymbol && storedTickerBehaviorSymbol.trim()) {
+      setTickerBehaviorSymbol(storedTickerBehaviorSymbol.trim().slice(0, 20).toUpperCase());
+    }
+
+    const storedTickerBehaviorPattern = localStorage.getItem("tradehax_ai_ticker_behavior_pattern");
+    if (storedTickerBehaviorPattern && storedTickerBehaviorPattern.trim()) {
+      setTickerBehaviorPattern(storedTickerBehaviorPattern.trim().slice(0, 240));
+    }
+
+    const storedLearningEnvironmentName = localStorage.getItem("tradehax_ai_learning_environment_name");
+    if (storedLearningEnvironmentName && storedLearningEnvironmentName.trim()) {
+      setLearningEnvironmentName(storedLearningEnvironmentName.trim().slice(0, 120));
+    }
+
+    const storedLearningEnvironmentHypothesis = localStorage.getItem("tradehax_ai_learning_environment_hypothesis");
+    if (storedLearningEnvironmentHypothesis && storedLearningEnvironmentHypothesis.trim()) {
+      setLearningEnvironmentHypothesis(storedLearningEnvironmentHypothesis.trim().slice(0, 260));
+    }
+
+    setNeuralVaultCount(getLocalNeuralVault().length);
 
     const storedVideoUrl = localStorage.getItem("tradehax_ai_video_source_url");
     if (storedVideoUrl && storedVideoUrl.trim()) {
@@ -492,6 +826,81 @@ export const AINeuralHub = () => {
   }, [personaPreset]);
 
   useEffect(() => {
+    localStorage.setItem("tradehax_ai_prompt_library_open", String(isPromptLibraryOpen));
+  }, [isPromptLibraryOpen]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_custom_prompt_packs", JSON.stringify(customPromptPacks.slice(0, 24)));
+  }, [customPromptPacks]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_session_presets", JSON.stringify(sessionPresets.slice(0, 20)));
+  }, [sessionPresets]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_workspace_timeline", JSON.stringify(workspaceSnapshots.slice(0, 16)));
+  }, [workspaceSnapshots]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_dataset_name", datasetName.slice(0, 80));
+  }, [datasetName]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_dataset_rows", datasetRows.replace(/\D/g, "").slice(0, 6) || "0");
+  }, [datasetRows]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_dataset_notes", datasetNotes.slice(0, 220));
+  }, [datasetNotes]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_behavior_label", behaviorLabel.slice(0, 100));
+  }, [behaviorLabel]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_behavior_observation", behaviorObservation.slice(0, 240));
+  }, [behaviorObservation]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_ticker_behavior_symbol", tickerBehaviorSymbol.slice(0, 20).toUpperCase());
+  }, [tickerBehaviorSymbol]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_ticker_behavior_pattern", tickerBehaviorPattern.slice(0, 240));
+  }, [tickerBehaviorPattern]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_learning_environment_name", learningEnvironmentName.slice(0, 120));
+  }, [learningEnvironmentName]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_learning_environment_hypothesis", learningEnvironmentHypothesis.slice(0, 260));
+  }, [learningEnvironmentHypothesis]);
+
+  useEffect(() => {
+    setCommandSelectionIndex(0);
+  }, [commandQuery, isCommandPaletteOpen]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const isMetaCommand = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k";
+      if (isMetaCommand) {
+        event.preventDefault();
+        setActiveTab("CHAT");
+        setIsCommandPaletteOpen(true);
+        return;
+      }
+
+      if (event.key === "Escape") {
+        setIsCommandPaletteOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem("tradehax_ai_video_source_url", videoSourceUrl);
   }, [videoSourceUrl]);
 
@@ -587,6 +996,11 @@ export const AINeuralHub = () => {
   ]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatStatus, setChatStatus] = useState<string>("");
+  const [workflowTask, setWorkflowTask] = useState<LlmWorkflowTask>("chat");
+  const [workflowDepth, setWorkflowDepth] = useState<LlmDepth>("balanced");
+  const [workflowCreativity, setWorkflowCreativity] = useState(65);
+  const [workflowContext, setWorkflowContext] = useState("");
+  const [qualitySnapshot, setQualitySnapshot] = useState<ResponseQualitySnapshot | null>(null);
 
   const relationshipScore = Math.min(100, 18 + usageCount * 20 + Math.min(messages.length, 12) * 4);
   const relationshipTier = relationshipScore >= 85
@@ -725,6 +1139,677 @@ export const AINeuralHub = () => {
         ? "Mode: Mystic Open. Be direct and creative while preserving safety and privacy."
         : "Mode: Guardian Standard. Be conservative, compliance-friendly, and explicit about uncertainty.",
     ].join(" ");
+  }
+
+  function getMaxTokensForDepth(depth: LlmDepth) {
+    if (depth === "quick") return 320;
+    if (depth === "deep") return 1100;
+    return 700;
+  }
+
+  function scoreResponseQuality(text: string, task: LlmWorkflowTask) {
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    const sentences = text
+      .split(/[.!?]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const avgWordsPerSentence = words.length / Math.max(1, sentences.length);
+    const bullets = (text.match(/(^|\n)\s*[-•\d]+[.)-]?\s+/g) || []).length;
+    const hasRiskLanguage = /(risk|stop|invalidation|drawdown|position size|exposure)/i.test(text);
+    const hasNextStep = /(next step|immediate action|do this now|first step|checklist)/i.test(text);
+
+    const clarity = Math.max(35, Math.min(100, Math.round(100 - Math.abs(16 - avgWordsPerSentence) * 2.8)));
+    const actionability = Math.max(30, Math.min(100, Math.round(40 + bullets * 14 + (hasNextStep ? 16 : 0))));
+    const riskDiscipline = Math.max(28, Math.min(100, Math.round(45 + (hasRiskLanguage ? 32 : 0) + (task === "qa" ? 10 : 0))));
+
+    return {
+      words: words.length,
+      chars: text.length,
+      clarity,
+      actionability,
+      riskDiscipline,
+    };
+  }
+
+  function applyWorkflowTemplate(templateId: "exec" | "thread" | "sop") {
+    const template = LLM_WORKFLOW_TEMPLATES.find((item) => item.id === templateId);
+    if (!template) return;
+    setWorkflowTask(template.task);
+    setChatInput((prev) => `${template.prompt}\n\n${prev.trim()}`.trim().slice(0, 1800));
+    if (template.context) {
+      setWorkflowContext(template.context);
+    }
+    setChatStatus(`${template.label} template loaded.`);
+  }
+
+  function buildQaContext() {
+    const memoryContext = [...longMemoryCards, ...shortMemoryCards]
+      .slice(0, 6)
+      .map((card) => `${card.title}: ${card.content}`)
+      .join("\n");
+
+    return [
+      workflowContext.trim(),
+      `Guide profile: ${guideName} • ${selectedPersona.label}`,
+      `Session intent: ${sessionIntent}`,
+      memoryContext,
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+      .slice(0, 8000);
+  }
+
+  function injectPrompt(prompt: string) {
+    setActiveTab("CHAT");
+    setChatInput((prev) => `${prompt}\n\n${prev.trim()}`.trim().slice(0, 2500));
+  }
+
+  function addPromptLibraryItem(item: PromptLibraryItem) {
+    injectPrompt(item.value);
+    setIsPromptLibraryOpen(false);
+    setChatStatus(`Loaded prompt: ${item.title}`);
+  }
+
+  function createCustomPromptPack() {
+    const title = customPromptTitle.trim().slice(0, 40);
+    const value = customPromptValue.trim().slice(0, 500);
+    if (!title || !value) {
+      setChatStatus("Custom prompt title and content are required.");
+      return;
+    }
+
+    setCustomPromptPacks((prev) => [
+      {
+        id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        title,
+        category: customPromptCategory,
+        value,
+      },
+      ...prev,
+    ].slice(0, 24));
+    setCustomPromptTitle("");
+    setCustomPromptValue("");
+    setChatStatus("Custom prompt pack saved.");
+  }
+
+  function removeCustomPromptPack(id: string) {
+    setCustomPromptPacks((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  function createSessionPreset() {
+    const cleanedName = sessionPresetName.trim().slice(0, 42) || `${personaPreset.toUpperCase()} • ${focusSymbol}`;
+    const preset: SessionPreset = {
+      id: `preset_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name: cleanedName,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      guideName,
+      responseStyle,
+      riskStance,
+      focusSymbol,
+      sessionIntent,
+      personaPreset,
+      workflowTask,
+      workflowDepth,
+      workflowCreativity,
+    };
+
+    setSessionPresets((prev) => [preset, ...prev].slice(0, 20));
+    setSessionPresetName("");
+    setChatStatus(`Saved session preset: ${cleanedName}`);
+  }
+
+  function applySessionPreset(preset: SessionPreset) {
+    setGuideName(preset.guideName);
+    setResponseStyle(preset.responseStyle);
+    setRiskStance(preset.riskStance);
+    setFocusSymbol(normalizeSymbol(preset.focusSymbol) || "SOL");
+    setSessionIntent(preset.sessionIntent);
+    setPersonaPreset(preset.personaPreset);
+    setWorkflowTask(preset.workflowTask);
+    setWorkflowDepth(preset.workflowDepth);
+    setWorkflowCreativity(Math.max(20, Math.min(100, Math.round(preset.workflowCreativity))));
+    setSessionPresets((prev) =>
+      prev.map((item) =>
+        item.id === preset.id
+          ? {
+              ...item,
+              updatedAt: Date.now(),
+            }
+          : item,
+      ).sort((a, b) => b.updatedAt - a.updatedAt),
+    );
+    setActiveTab("CHAT");
+    setChatStatus(`Applied preset: ${preset.name}`);
+  }
+
+  function deleteSessionPreset(id: string) {
+    setSessionPresets((prev) => prev.filter((item) => item.id !== id));
+    setChatStatus("Session preset removed.");
+  }
+
+  function buildWorkspaceSettingsSnapshot(): WorkspaceSettingsSnapshot {
+    return {
+      guideName,
+      responseStyle,
+      riskStance,
+      focusSymbol,
+      sessionIntent,
+      personaPreset,
+      workflowTask,
+      workflowDepth,
+      workflowCreativity,
+    };
+  }
+
+  function createWorkspaceSnapshot(customName?: string) {
+    const nextVersion = (workspaceSnapshots[0]?.version ?? 0) + 1;
+    const snapshotName = (customName ?? workspaceSnapshotName).trim().slice(0, 56) || `Workspace v${nextVersion}`;
+    const snapshot: WorkspaceSnapshot = {
+      id: `ws_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name: snapshotName,
+      version: nextVersion,
+      createdAt: Date.now(),
+      payload: {
+        settings: buildWorkspaceSettingsSnapshot(),
+        customPromptPacks: customPromptPacks.slice(0, 24),
+        memoryCards: memoryCards.slice(0, 12),
+        sessionPresets: sessionPresets.slice(0, 20),
+      },
+    };
+
+    setWorkspaceSnapshots((prev) => [snapshot, ...prev].slice(0, 16));
+    setSelectedWorkspaceSnapshotId(snapshot.id);
+    setWorkspaceSnapshotName("");
+    setChatStatus(`Workspace snapshot saved: ${snapshot.name}`);
+  }
+
+  function restoreWorkspaceSnapshot(snapshot: WorkspaceSnapshot) {
+    const settings = snapshot.payload.settings;
+    setGuideName(settings.guideName);
+    setResponseStyle(settings.responseStyle);
+    setRiskStance(settings.riskStance);
+    setFocusSymbol(normalizeSymbol(settings.focusSymbol) || "SOL");
+    setSessionIntent(settings.sessionIntent.slice(0, 72));
+    setPersonaPreset(settings.personaPreset);
+    setWorkflowTask(settings.workflowTask);
+    setWorkflowDepth(settings.workflowDepth);
+    setWorkflowCreativity(Math.max(20, Math.min(100, Math.round(settings.workflowCreativity))));
+    setCustomPromptPacks(snapshot.payload.customPromptPacks.slice(0, 24));
+    setMemoryCards(snapshot.payload.memoryCards.slice(0, 12));
+    setSessionPresets(snapshot.payload.sessionPresets.slice(0, 20));
+    setSelectedWorkspaceSnapshotId(snapshot.id);
+    setActiveTab("CHAT");
+    setChatStatus(`Restored workspace snapshot: ${snapshot.name}`);
+  }
+
+  function restorePreviousWorkspaceSnapshot() {
+    if (workspaceSnapshots.length < 2) {
+      setChatStatus("No previous workspace snapshot available.");
+      return;
+    }
+    restoreWorkspaceSnapshot(workspaceSnapshots[1]);
+  }
+
+  function deleteWorkspaceSnapshot(id: string) {
+    setWorkspaceSnapshots((prev) => prev.filter((item) => item.id !== id));
+    if (selectedWorkspaceSnapshotId === id) {
+      setSelectedWorkspaceSnapshotId(null);
+    }
+    setChatStatus("Workspace snapshot deleted.");
+  }
+
+  function getWorkspaceSnapshotDiff(snapshot: WorkspaceSnapshot) {
+    const currentSettings = buildWorkspaceSettingsSnapshot();
+    const incomingSettings = snapshot.payload.settings;
+    const changedSettings = (Object.keys(currentSettings) as Array<keyof WorkspaceSettingsSnapshot>)
+      .filter((key) => currentSettings[key] !== incomingSettings[key]);
+
+    return {
+      changedSettings,
+      customPromptDelta: snapshot.payload.customPromptPacks.length - customPromptPacks.length,
+      memoryDelta: snapshot.payload.memoryCards.length - memoryCards.length,
+      presetsDelta: snapshot.payload.sessionPresets.length - sessionPresets.length,
+    };
+  }
+
+  function exportSessionSnapshot() {
+    const snapshot = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      settings: {
+        guideName,
+        responseStyle,
+        riskStance,
+        focusSymbol,
+        sessionIntent,
+        personaPreset,
+        workflowTask,
+        workflowDepth,
+        workflowCreativity,
+      },
+      customPromptPacks: customPromptPacks.slice(0, 24),
+      memoryCards: memoryCards.slice(0, 12),
+      sessionPresets: sessionPresets.slice(0, 20),
+    };
+
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tradehax-session-snapshot-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setChatStatus("Session snapshot exported.");
+  }
+
+  async function saveDatasetNeuralArtifact() {
+    const rows = Number(datasetRows.replace(/\D/g, "") || "0");
+    if (!datasetName.trim()) {
+      setChatStatus("Dataset name is required.");
+      return;
+    }
+
+    const result = await saveDatasetArtifact({
+      name: datasetName,
+      rows,
+      notes: datasetNotes,
+      userId: buildHubUserId(),
+      source: "system",
+      route: "/",
+      consent: {
+        analytics: true,
+        training: true,
+      },
+    });
+
+    setNeuralVaultCount(getLocalNeuralVault().length);
+    setChatStatus(result.ok ? "Dataset artifact saved to neural memory." : "Dataset saved locally. Network sync pending.");
+  }
+
+  async function saveUserBehaviorNeuralArtifact() {
+    if (!behaviorLabel.trim() || !behaviorObservation.trim()) {
+      setChatStatus("Behavior and observation are required.");
+      return;
+    }
+
+    const result = await saveUserBehaviorArtifact({
+      behavior: behaviorLabel,
+      observation: behaviorObservation,
+      userId: buildHubUserId(),
+      source: "system",
+      route: "/",
+      consent: {
+        analytics: true,
+        training: true,
+      },
+    });
+
+    setNeuralVaultCount(getLocalNeuralVault().length);
+    setChatStatus(result.ok ? "User behavior pattern saved." : "Behavior saved locally. Network sync pending.");
+  }
+
+  async function saveTickerBehaviorNeuralArtifact() {
+    if (!tickerBehaviorSymbol.trim() || !tickerBehaviorPattern.trim()) {
+      setChatStatus("Ticker symbol and pattern are required.");
+      return;
+    }
+
+    const result = await saveTickerBehaviorArtifact({
+      ticker: tickerBehaviorSymbol,
+      pattern: tickerBehaviorPattern,
+      userId: buildHubUserId(),
+      source: "system",
+      route: "/",
+      consent: {
+        analytics: true,
+        training: true,
+      },
+    });
+
+    setNeuralVaultCount(getLocalNeuralVault().length);
+    setChatStatus(result.ok ? "Ticker behavior pattern saved." : "Ticker behavior saved locally. Network sync pending.");
+  }
+
+  async function saveLearningEnvironmentNeuralArtifact() {
+    if (!learningEnvironmentName.trim() || !learningEnvironmentHypothesis.trim()) {
+      setChatStatus("Environment and hypothesis are required.");
+      return;
+    }
+
+    const result = await saveLearningEnvironmentArtifact({
+      environment: learningEnvironmentName,
+      hypothesis: learningEnvironmentHypothesis,
+      userId: buildHubUserId(),
+      source: "system",
+      route: "/",
+      consent: {
+        analytics: true,
+        training: true,
+      },
+    });
+
+    setNeuralVaultCount(getLocalNeuralVault().length);
+    setChatStatus(result.ok ? "Learning environment saved." : "Learning environment saved locally. Network sync pending.");
+  }
+
+  function exportNeuralVaultDataset() {
+    const result = exportLocalNeuralVault();
+    if (!result.ok) {
+      setChatStatus("Unable to export neural vault in this environment.");
+      return;
+    }
+    setChatStatus(`Exported neural vault with ${result.count} records.`);
+  }
+
+  function importSessionSnapshotFromPrompt() {
+    const raw = window.prompt("Paste exported session snapshot JSON:");
+    if (!raw || !raw.trim()) return;
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        settings?: Partial<SessionPreset>;
+        customPromptPacks?: Array<Partial<PromptLibraryItem>>;
+        memoryCards?: Array<Partial<MemoryCard>>;
+        sessionPresets?: Array<Partial<SessionPreset>>;
+      };
+
+      if (parsed.settings) {
+        const settings = parsed.settings;
+        if (typeof settings.guideName === "string" && settings.guideName.trim()) {
+          setGuideName(settings.guideName.trim().slice(0, 24));
+        }
+        if (settings.responseStyle === "concise" || settings.responseStyle === "coach" || settings.responseStyle === "operator") {
+          setResponseStyle(settings.responseStyle);
+        }
+        if (settings.riskStance === "guarded" || settings.riskStance === "balanced" || settings.riskStance === "aggressive") {
+          setRiskStance(settings.riskStance);
+        }
+        if (typeof settings.focusSymbol === "string") {
+          setFocusSymbol(normalizeSymbol(settings.focusSymbol) || "SOL");
+        }
+        if (typeof settings.sessionIntent === "string") {
+          setSessionIntent(settings.sessionIntent.slice(0, 72));
+        }
+        if (settings.personaPreset === "mystic" || settings.personaPreset === "analyst" || settings.personaPreset === "mentor") {
+          setPersonaPreset(settings.personaPreset);
+        }
+        if (settings.workflowTask === "chat" || settings.workflowTask === "generate" || settings.workflowTask === "summarize" || settings.workflowTask === "qa") {
+          setWorkflowTask(settings.workflowTask);
+        }
+        if (settings.workflowDepth === "quick" || settings.workflowDepth === "balanced" || settings.workflowDepth === "deep") {
+          setWorkflowDepth(settings.workflowDepth);
+        }
+        if (typeof settings.workflowCreativity === "number") {
+          setWorkflowCreativity(Math.max(20, Math.min(100, Math.round(settings.workflowCreativity))));
+        }
+      }
+
+      if (Array.isArray(parsed.customPromptPacks)) {
+        setCustomPromptPacks(
+          parsed.customPromptPacks
+            .slice(0, 24)
+            .map((item) => ({
+              id: typeof item.id === "string" ? item.id : `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+              title: String(item.title ?? "Custom Prompt").slice(0, 40),
+              category: item.category === "trading" || item.category === "content" || item.category === "ops" ? item.category : "ops",
+              value: String(item.value ?? "").slice(0, 500),
+            }))
+            .filter((item) => item.value.trim().length > 0),
+        );
+      }
+
+      if (Array.isArray(parsed.memoryCards)) {
+        setMemoryCards(
+          parsed.memoryCards
+            .slice(0, 12)
+            .map<MemoryCard>((card) => ({
+              id: typeof card.id === "string" ? card.id : `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+              scope: card.scope === "long" ? "long" : "short",
+              title: String(card.title ?? "Memory").slice(0, 40),
+              content: String(card.content ?? "").slice(0, 160),
+              updatedAt: typeof card.updatedAt === "number" ? card.updatedAt : Date.now(),
+              confidence: typeof card.confidence === "number" ? Math.min(100, Math.max(1, card.confidence)) : 70,
+            }))
+            .filter((card) => card.content.trim().length > 0),
+        );
+      }
+
+      if (Array.isArray(parsed.sessionPresets)) {
+        setSessionPresets(
+          parsed.sessionPresets
+            .slice(0, 20)
+            .map((preset) => ({
+              id: typeof preset.id === "string" ? preset.id : `preset_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+              name: String(preset.name ?? "Session Preset").slice(0, 42),
+              createdAt: typeof preset.createdAt === "number" ? preset.createdAt : Date.now(),
+              updatedAt: typeof preset.updatedAt === "number" ? preset.updatedAt : Date.now(),
+              guideName: String(preset.guideName ?? "Trader").slice(0, 24),
+              responseStyle: preset.responseStyle === "concise" || preset.responseStyle === "coach" || preset.responseStyle === "operator"
+                ? preset.responseStyle
+                : "coach",
+              riskStance: preset.riskStance === "guarded" || preset.riskStance === "balanced" || preset.riskStance === "aggressive"
+                ? preset.riskStance
+                : "balanced",
+              focusSymbol: String(preset.focusSymbol ?? "SOL").slice(0, 12),
+              sessionIntent: String(preset.sessionIntent ?? "Build disciplined consistency").slice(0, 72),
+              personaPreset: preset.personaPreset === "mystic" || preset.personaPreset === "analyst" || preset.personaPreset === "mentor"
+                ? preset.personaPreset
+                : "mystic",
+              workflowTask: preset.workflowTask === "chat" || preset.workflowTask === "generate" || preset.workflowTask === "summarize" || preset.workflowTask === "qa"
+                ? preset.workflowTask
+                : "chat",
+              workflowDepth: preset.workflowDepth === "quick" || preset.workflowDepth === "balanced" || preset.workflowDepth === "deep"
+                ? preset.workflowDepth
+                : "balanced",
+              workflowCreativity:
+                typeof preset.workflowCreativity === "number"
+                  ? Math.max(20, Math.min(100, Math.round(preset.workflowCreativity)))
+                  : 65,
+            }))
+            .sort((a, b) => b.updatedAt - a.updatedAt),
+        );
+      }
+
+      setChatStatus("Session snapshot imported.");
+    } catch {
+      setChatStatus("Invalid snapshot JSON. Import aborted.");
+    }
+  }
+
+  const promptLibraryEntries = [...PROMPT_LIBRARY, ...customPromptPacks];
+
+  const slashCommands: SlashCommand[] = [
+    {
+      id: "new",
+      label: "/new",
+      description: "Start a new secure chat session",
+      execute: () => startNewChat(),
+    },
+    {
+      id: "palette",
+      label: "/palette",
+      description: "Open command palette",
+      execute: () => setIsCommandPaletteOpen(true),
+    },
+    {
+      id: "library",
+      label: "/library",
+      description: "Toggle prompt library drawer",
+      execute: () => setIsPromptLibraryOpen((prev) => !prev),
+    },
+    {
+      id: "task-chat",
+      label: "/chat",
+      description: "Switch to Neural Chat task",
+      execute: () => setWorkflowTask("chat"),
+    },
+    {
+      id: "task-generate",
+      label: "/generate",
+      description: "Switch to Generate task",
+      execute: () => setWorkflowTask("generate"),
+    },
+    {
+      id: "task-summarize",
+      label: "/summarize",
+      description: "Switch to Summarize task",
+      execute: () => setWorkflowTask("summarize"),
+    },
+    {
+      id: "task-qa",
+      label: "/qa",
+      description: "Switch to QA task",
+      execute: () => setWorkflowTask("qa"),
+    },
+    {
+      id: "save-preset",
+      label: "/savepreset",
+      description: "Save current settings as a session preset",
+      execute: () => createSessionPreset(),
+    },
+    {
+      id: "export-session",
+      label: "/exportsession",
+      description: "Export full session snapshot",
+      execute: () => exportSessionSnapshot(),
+    },
+    {
+      id: "import-session",
+      label: "/importsession",
+      description: "Import a session snapshot JSON",
+      execute: () => importSessionSnapshotFromPrompt(),
+    },
+    {
+      id: "snapshot",
+      label: "/snapshot",
+      description: "Capture workspace timeline snapshot",
+      execute: () => createWorkspaceSnapshot(),
+    },
+    {
+      id: "undo-snapshot",
+      label: "/undo",
+      description: "Restore previous workspace snapshot",
+      execute: () => restorePreviousWorkspaceSnapshot(),
+    },
+  ];
+
+  const commandPaletteEntries: Array<{ id: string; label: string; hint: string; action: () => void }> = [
+    { id: "new-chat", label: "New Chat", hint: "Start a fresh secure session", action: () => startNewChat() },
+    { id: "toggle-library", label: "Toggle Prompt Library", hint: "Open/close curated prompt drawer", action: () => setIsPromptLibraryOpen((prev) => !prev) },
+    { id: "task-chat", label: "Mode: Neural Chat", hint: "Relationship-aware assistant mode", action: () => setWorkflowTask("chat") },
+    { id: "task-generate", label: "Mode: Generate", hint: "Draft long-form or short-form output", action: () => setWorkflowTask("generate") },
+    { id: "task-summarize", label: "Mode: Summarize", hint: "Compress dense source into action summary", action: () => setWorkflowTask("summarize") },
+    { id: "task-qa", label: "Mode: Q&A", hint: "Ground answers in explicit context", action: () => setWorkflowTask("qa") },
+    { id: "save-preset", label: "Save Session Preset", hint: "Store current operator setup", action: () => createSessionPreset() },
+    { id: "export-session", label: "Export Session Snapshot", hint: "Download settings, memory, and presets JSON", action: () => exportSessionSnapshot() },
+    { id: "import-session", label: "Import Session Snapshot", hint: "Paste JSON to restore a saved workspace", action: () => importSessionSnapshotFromPrompt() },
+    { id: "capture-workspace", label: "Capture Workspace Snapshot", hint: "Save full timeline snapshot of current state", action: () => createWorkspaceSnapshot() },
+    { id: "undo-workspace", label: "Undo to Previous Snapshot", hint: "Rewind workspace to prior saved state", action: () => restorePreviousWorkspaceSnapshot() },
+    { id: "copy-last", label: "Copy Last Reply", hint: "Copy latest assistant output", action: () => { void copyLastReply(); } },
+    { id: "export", label: "Export Transcript", hint: "Download current session transcript", action: () => exportTranscript() },
+  ];
+
+  const slashQuery = chatInput.startsWith("/") ? chatInput.slice(1).trim().toLowerCase() : "";
+  const filteredSlashCommands = chatInput.startsWith("/")
+    ? slashCommands.filter((command) =>
+        command.label.replace(/^\//, "").includes(slashQuery) || command.description.toLowerCase().includes(slashQuery),
+      )
+    : [];
+  const filteredCommandPaletteEntries = commandPaletteEntries.filter((entry) => {
+    const query = commandQuery.trim().toLowerCase();
+    if (!query) return true;
+    return entry.label.toLowerCase().includes(query) || entry.hint.toLowerCase().includes(query);
+  });
+
+  useEffect(() => {
+    if (!isCommandPaletteOpen) return;
+
+    const onPaletteKeyDown = (event: KeyboardEvent) => {
+      if (filteredCommandPaletteEntries.length === 0) return;
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setCommandSelectionIndex((prev) => (prev + 1) % filteredCommandPaletteEntries.length);
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setCommandSelectionIndex((prev) =>
+          prev <= 0 ? filteredCommandPaletteEntries.length - 1 : prev - 1,
+        );
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const selected = filteredCommandPaletteEntries[Math.min(commandSelectionIndex, filteredCommandPaletteEntries.length - 1)];
+        if (selected) {
+          runPaletteCommand(selected.id);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", onPaletteKeyDown);
+    return () => window.removeEventListener("keydown", onPaletteKeyDown);
+  }, [isCommandPaletteOpen, filteredCommandPaletteEntries, commandSelectionIndex]);
+
+  function applySlashCommand(command: SlashCommand) {
+    command.execute();
+    setChatInput("");
+    setChatStatus(`Executed ${command.label}`);
+  }
+
+  function tryExecuteSlashInput(input: string) {
+    if (!input.startsWith("/")) return false;
+    const slashToken = input.split(/\s+/)[0].trim().toLowerCase();
+    const command = slashCommands.find((item) => item.label === slashToken);
+    if (!command) {
+      setChatStatus("Unknown slash command. Try /palette, /library, /chat, /generate, /summarize, /qa, /savepreset, /exportsession, /importsession, /snapshot, /undo.");
+      return true;
+    }
+
+    applySlashCommand(command);
+    return true;
+  }
+
+  function runPaletteCommand(id: string) {
+    const match = commandPaletteEntries.find((entry) => entry.id === id);
+    if (!match) return;
+    match.action();
+    setIsCommandPaletteOpen(false);
+    setCommandQuery("");
+  }
+
+  async function transformAssistantMessage(index: number, mode: "improve" | "rewrite" | "shorten") {
+    if (isChatLoading || isCharging) return;
+    const target = messages[index];
+    if (!target || target.role !== "assistant") return;
+
+    const directive =
+      mode === "improve"
+        ? "Improve the following response for clarity, stronger structure, and sharper actionability while preserving intent."
+        : mode === "rewrite"
+          ? "Rewrite the following response with a higher-end, executive tone and cleaner structure while preserving meaning."
+          : "Shorten the following response into concise bullets with one immediate action line.";
+
+    const transformPrompt = `${directive}\n\nOriginal response:\n${target.content}`;
+    setWorkflowTask("generate");
+    const transformed = await requestAssistantReply(transformPrompt, { appendUser: true });
+    if (typeof transformed === "string" && transformed.trim()) {
+      setCompareSnapshot({
+        mode,
+        original: target.content,
+        transformed,
+        sourceIndex: index,
+        createdAt: Date.now(),
+      });
+      setChatStatus(`Compare view ready: ${mode.toUpperCase()} transform captured.`);
+    }
   }
 
   function applyRitualPrompt(value: string) {
@@ -1191,8 +2276,8 @@ export const AINeuralHub = () => {
     setChatStatus("Transcript exported.");
   }
 
-  async function requestAssistantReply(userMsg: string, options?: { appendUser?: boolean; regenerate?: boolean }) {
-    if (!userMsg.trim()) return;
+  async function requestAssistantReply(userMsg: string, options?: { appendUser?: boolean; regenerate?: boolean }): Promise<string | null> {
+    if (!userMsg.trim()) return null;
 
     if (options?.appendUser) {
       setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
@@ -1200,48 +2285,101 @@ export const AINeuralHub = () => {
 
     setIsChatLoading(true);
     setChatStatus(options?.regenerate ? "Regenerating response..." : "");
+    const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
 
     try {
-      const res = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: userMsg,
-          userId: buildHubUserId(),
-          model: selectedChatModel,
-          tier: openModeEnabled ? "UNCENSORED" : "STANDARD",
-          systemPrompt: buildPremierSystemPrompt(),
-          context: {
-            relationshipTier,
-            riskStance,
-            focusSymbol,
-            sessionIntent,
-          },
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data?.ok && typeof data?.response === "string" && data.response.trim()) {
-        setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
-        if (typeof data?.model === "string") {
-          setChatStatus(`Model: ${data.model}${typeof data?.provider === "string" ? ` • Provider: ${data.provider}` : ""}`);
+      let responseText = "";
+      let resolvedModel = selectedChatModel;
+      let providerLabel = "";
+
+      if (workflowTask === "chat") {
+        const res = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: userMsg,
+            userId: buildHubUserId(),
+            model: selectedChatModel,
+            tier: openModeEnabled ? "UNCENSORED" : "STANDARD",
+            systemPrompt: buildPremierSystemPrompt(),
+            context: {
+              relationshipTier,
+              riskStance,
+              focusSymbol,
+              sessionIntent,
+            },
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data?.ok && typeof data?.response === "string" && data.response.trim()) {
+          responseText = data.response;
+          resolvedModel = typeof data?.model === "string" ? data.model : selectedChatModel;
+          providerLabel = typeof data?.provider === "string" ? ` • Provider: ${data.provider}` : "";
+        } else {
+          const errorMessage =
+            typeof data?.message === "string" && data.message.trim()
+              ? data.message
+              : typeof data?.error === "string" && data.error.trim()
+                ? data.error
+                : "AI temporarily unavailable. Please try again.";
+          setMessages(prev => [...prev, { role: "assistant", content: `ERROR: ${errorMessage}` }]);
+          setChatStatus("The assistant hit an issue. You can retry or switch models.");
+          return null;
         }
-        incrementUsage();
       } else {
-        const errorMessage =
-          typeof data?.message === "string" && data.message.trim()
-            ? data.message
-            : typeof data?.error === "string" && data.error.trim()
+        const res = await fetch("/api/llm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            task: workflowTask,
+            userId: buildHubUserId(),
+            model: selectedChatModel,
+            temperature: Number((workflowCreativity / 100).toFixed(2)),
+            maxTokens: getMaxTokensForDepth(workflowDepth),
+            topP: 0.95,
+            ...(workflowTask === "generate" ? { prompt: userMsg } : {}),
+            ...(workflowTask === "summarize" ? { text: userMsg } : {}),
+            ...(workflowTask === "qa" ? { question: userMsg, context: buildQaContext() } : {}),
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data?.ok && typeof data?.result === "string" && data.result.trim()) {
+          responseText = data.result;
+          resolvedModel = typeof data?.model === "string" ? data.model : selectedChatModel;
+        } else {
+          const errorMessage =
+            typeof data?.error === "string" && data.error.trim()
               ? data.error
-              : "AI temporarily unavailable. Please try again.";
-        setMessages(prev => [...prev, { role: "assistant", content: `ERROR: ${errorMessage}` }]);
-        setChatStatus("The assistant hit an issue. You can retry or switch models.");
+              : "LLM task failed. Please retry with adjusted settings.";
+          setMessages(prev => [...prev, { role: "assistant", content: `ERROR: ${errorMessage}` }]);
+          setChatStatus("Task execution failed. Consider switching task mode or reducing complexity.");
+          return null;
+        }
+      }
+
+      if (responseText.trim()) {
+        setMessages(prev => [...prev, { role: "assistant", content: responseText }]);
+        const elapsedMs = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt);
+        const quality = scoreResponseQuality(responseText, workflowTask);
+        setQualitySnapshot({
+          task: workflowTask,
+          model: resolvedModel,
+          latencyMs: elapsedMs,
+          ...quality,
+        });
+        setChatStatus(`Model: ${resolvedModel}${providerLabel} • Task: ${workflowTask.toUpperCase()} • ${elapsedMs}ms`);
+        incrementUsage();
+        return responseText;
       }
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "ERROR: NEURAL_TIMEOUT" }]);
       setChatStatus("Network timeout. Please check connection and retry.");
+      return null;
     } finally {
       setIsChatLoading(false);
     }
+
+    return null;
   }
 
   async function regenerateLastResponse() {
@@ -1283,6 +2421,9 @@ export const AINeuralHub = () => {
     if (!chatInput.trim() || isChatLoading || isCharging) return;
 
     const userMsg = chatInput.trim();
+    if (tryExecuteSlashInput(userMsg)) {
+      return;
+    }
     setChatInput("");
     await requestAssistantReply(userMsg, { appendUser: true });
   };
@@ -1351,6 +2492,12 @@ export const AINeuralHub = () => {
   const branchGraphEntries = branchTrail.slice(0, 8).reverse();
   const replayEntries = branchTrail;
   const activeReplayEntry = replayEntries.length > 0 ? replayEntries[Math.min(replayCursor, replayEntries.length - 1)] : null;
+  const selectedWorkspaceSnapshot = selectedWorkspaceSnapshotId
+    ? workspaceSnapshots.find((item) => item.id === selectedWorkspaceSnapshotId) ?? null
+    : workspaceSnapshots[0] ?? null;
+  const selectedWorkspaceSnapshotDiff = selectedWorkspaceSnapshot
+    ? getWorkspaceSnapshotDiff(selectedWorkspaceSnapshot)
+    : null;
 
   return (
     <section className="py-24 bg-black relative overflow-hidden">
@@ -1812,10 +2959,350 @@ export const AINeuralHub = () => {
                               <Download className="h-3.5 w-3.5" />
                               Export Chat
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsPromptLibraryOpen((prev) => !prev)}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-100"
+                              title="Toggle prompt library drawer"
+                            >
+                              <List className="h-3.5 w-3.5" />
+                              Prompt Library
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCommandPaletteOpen(true);
+                                setActiveTab("CHAT");
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-2.5 py-1 text-[10px] font-semibold text-fuchsia-100"
+                              title="Open command palette (Ctrl/Cmd + K)"
+                            >
+                              <Command className="h-3.5 w-3.5" />
+                              Command Palette
+                            </button>
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[10px] text-zinc-300">
                               <SlidersHorizontal className="h-3.5 w-3.5" />
                               {responseStyle.toUpperCase()} • {riskStance.toUpperCase()}
                             </span>
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-cyan-400/20 bg-[rgba(6,10,16,0.82)] px-3 py-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-cyan-200">Phase 4 · Session Continuity</p>
+                            <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                              {sessionPresets.length} presets
+                            </span>
+                          </div>
+
+                          <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                            <input
+                              value={sessionPresetName}
+                              onChange={(event) => setSessionPresetName(event.target.value.slice(0, 42))}
+                              placeholder="Preset name (optional)"
+                              className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
+                            />
+                            <button
+                              type="button"
+                              onClick={createSessionPreset}
+                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100 hover:border-cyan-300/55"
+                            >
+                              Save Preset
+                            </button>
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={exportSessionSnapshot}
+                              className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                            >
+                              Export Snapshot
+                            </button>
+                            <button
+                              type="button"
+                              onClick={importSessionSnapshotFromPrompt}
+                              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
+                            >
+                              Import Snapshot
+                            </button>
+                          </div>
+
+                          {sessionPresets.length > 0 ? (
+                            <div className="mt-2 space-y-1.5">
+                              {sessionPresets.slice(0, 6).map((preset) => (
+                                <div
+                                  key={preset.id}
+                                  className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-black/35 px-2.5 py-1.5"
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => applySessionPreset(preset)}
+                                    className="min-w-0 flex-1 truncate text-left text-[10px] font-semibold text-cyan-100"
+                                    title={`${preset.personaPreset} • ${preset.focusSymbol} • ${preset.responseStyle}`}
+                                  >
+                                    {preset.name}
+                                  </button>
+                                  <span className="rounded-full border border-white/15 bg-black/30 px-1.5 py-0.5 text-[9px] uppercase text-zinc-400">
+                                    {preset.personaPreset}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteSessionPreset(preset.id)}
+                                    className="rounded-full border border-rose-300/25 bg-rose-500/10 p-1 text-rose-200 hover:border-rose-300/45"
+                                    aria-label={`Delete preset ${preset.name}`}
+                                    title="Delete preset"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-[10px] text-zinc-500">No presets saved yet. Save one to instantly restore your full operator setup.</p>
+                          )}
+                        </div>
+
+                        <div className="rounded-xl border border-fuchsia-400/20 bg-[rgba(12,8,20,0.82)] px-3 py-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-fuchsia-200">Phase 5 · Workspace Timeline</p>
+                            <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                              {workspaceSnapshots.length} snapshots
+                            </span>
+                          </div>
+
+                          <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
+                            <input
+                              value={workspaceSnapshotName}
+                              onChange={(event) => setWorkspaceSnapshotName(event.target.value.slice(0, 56))}
+                              placeholder="Snapshot label (optional)"
+                              className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-fuchsia-300/55"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => createWorkspaceSnapshot()}
+                              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
+                            >
+                              Capture
+                            </button>
+                            <button
+                              type="button"
+                              onClick={restorePreviousWorkspaceSnapshot}
+                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
+                            >
+                              Undo
+                            </button>
+                          </div>
+
+                          {workspaceSnapshots.length > 0 ? (
+                            <div className="mt-2 space-y-1.5">
+                              {workspaceSnapshots.slice(0, 8).map((snapshot) => (
+                                <div
+                                  key={snapshot.id}
+                                  className={`rounded-md border px-2.5 py-1.5 ${
+                                    selectedWorkspaceSnapshot?.id === snapshot.id
+                                      ? "border-fuchsia-300/40 bg-fuchsia-500/10"
+                                      : "border-white/10 bg-black/35"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedWorkspaceSnapshotId(snapshot.id)}
+                                      className="min-w-0 flex-1 truncate text-left text-[10px] font-semibold text-fuchsia-100"
+                                      title={`v${snapshot.version} • ${new Date(snapshot.createdAt).toLocaleString()}`}
+                                    >
+                                      v{snapshot.version} • {snapshot.name}
+                                    </button>
+                                    <div className="flex items-center gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => restoreWorkspaceSnapshot(snapshot)}
+                                        className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2 py-0.5 text-[9px] uppercase text-cyan-100"
+                                        title="Restore this snapshot"
+                                      >
+                                        Restore
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => deleteWorkspaceSnapshot(snapshot.id)}
+                                        className="rounded-full border border-rose-300/25 bg-rose-500/10 p-1 text-rose-200 hover:border-rose-300/45"
+                                        aria-label={`Delete workspace snapshot ${snapshot.name}`}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <p className="mt-1 text-[9px] text-zinc-500">{new Date(snapshot.createdAt).toLocaleString()}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-[10px] text-zinc-500">No timeline snapshots yet. Capture one before risky edits and experiments.</p>
+                          )}
+
+                          {selectedWorkspaceSnapshot && selectedWorkspaceSnapshotDiff && (
+                            <div className="mt-2 rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
+                              <div className="mb-1 flex items-center justify-between gap-2">
+                                <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Diff preview vs live workspace</p>
+                                <span className="rounded-full border border-white/15 bg-black/30 px-1.5 py-0.5 text-[9px] text-zinc-300">
+                                  {selectedWorkspaceSnapshot.name}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5 text-[9px]">
+                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                  Settings changed: {selectedWorkspaceSnapshotDiff.changedSettings.length}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                  Prompt packs Δ {selectedWorkspaceSnapshotDiff.customPromptDelta}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                  Memory Δ {selectedWorkspaceSnapshotDiff.memoryDelta}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                  Presets Δ {selectedWorkspaceSnapshotDiff.presetsDelta}
+                                </span>
+                              </div>
+                              {selectedWorkspaceSnapshotDiff.changedSettings.length > 0 ? (
+                                <p className="mt-1 text-[10px] text-zinc-400">
+                                  {selectedWorkspaceSnapshotDiff.changedSettings.join(", ")}
+                                </p>
+                              ) : (
+                                <p className="mt-1 text-[10px] text-zinc-500">No settings drift from current workspace.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="rounded-xl border border-emerald-400/20 bg-[rgba(8,16,14,0.84)] px-3 py-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-emerald-200">Phase 6 · Sitewide Neural Smartness</p>
+                            <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                              Vault {neuralVaultCount}
+                            </span>
+                          </div>
+
+                          <p className="mb-2 text-[10px] text-zinc-400">
+                            Save datasets, user patterns, ticker behavior, and learning environments in one reusable neural memory layer ready for sitewide integration.
+                          </p>
+
+                          <div className="space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
+                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Dataset Artifact</p>
+                            <div className="grid gap-2 md:grid-cols-[1.2fr_120px]">
+                              <input
+                                value={datasetName}
+                                onChange={(event) => setDatasetName(event.target.value.slice(0, 80))}
+                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                                placeholder="Dataset name"
+                              />
+                              <input
+                                value={datasetRows}
+                                onChange={(event) => setDatasetRows(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                                placeholder="Rows"
+                              />
+                            </div>
+                            <input
+                              value={datasetNotes}
+                              onChange={(event) => setDatasetNotes(event.target.value.slice(0, 220))}
+                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                              placeholder="Optional dataset note"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void saveDatasetNeuralArtifact();
+                              }}
+                              className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                            >
+                              Save Dataset
+                            </button>
+                          </div>
+
+                          <div className="mt-2 space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
+                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">User Behavior Pattern</p>
+                            <input
+                              value={behaviorLabel}
+                              onChange={(event) => setBehaviorLabel(event.target.value.slice(0, 100))}
+                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                              placeholder="Behavior label"
+                            />
+                            <input
+                              value={behaviorObservation}
+                              onChange={(event) => setBehaviorObservation(event.target.value.slice(0, 240))}
+                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                              placeholder="Observed behavior"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void saveUserBehaviorNeuralArtifact();
+                              }}
+                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
+                            >
+                              Save Behavior
+                            </button>
+                          </div>
+
+                          <div className="mt-2 space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
+                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Ticker Behavior Pattern</p>
+                            <div className="grid gap-2 md:grid-cols-[120px_1fr]">
+                              <input
+                                value={tickerBehaviorSymbol}
+                                onChange={(event) => setTickerBehaviorSymbol(event.target.value.slice(0, 20).toUpperCase())}
+                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                                placeholder="Ticker"
+                              />
+                              <input
+                                value={tickerBehaviorPattern}
+                                onChange={(event) => setTickerBehaviorPattern(event.target.value.slice(0, 240))}
+                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                                placeholder="Pattern and context"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void saveTickerBehaviorNeuralArtifact();
+                              }}
+                              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
+                            >
+                              Save Ticker Pattern
+                            </button>
+                          </div>
+
+                          <div className="mt-2 space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
+                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Learning Environment</p>
+                            <input
+                              value={learningEnvironmentName}
+                              onChange={(event) => setLearningEnvironmentName(event.target.value.slice(0, 120))}
+                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                              placeholder="Environment name"
+                            />
+                            <input
+                              value={learningEnvironmentHypothesis}
+                              onChange={(event) => setLearningEnvironmentHypothesis(event.target.value.slice(0, 260))}
+                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                              placeholder="Hypothesis / learning note"
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void saveLearningEnvironmentNeuralArtifact();
+                                }}
+                                className="rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-amber-100"
+                              >
+                                Save Environment
+                              </button>
+                              <button
+                                type="button"
+                                onClick={exportNeuralVaultDataset}
+                                className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                              >
+                                Export Neural Vault
+                              </button>
+                            </div>
                           </div>
                         </div>
 
@@ -2273,6 +3760,40 @@ export const AINeuralHub = () => {
                                     </button>
                                   </div>
                                 )}
+                                {msg.role === "assistant" && (
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        void transformAssistantMessage(i, "improve");
+                                      }}
+                                      className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2 py-0.5 text-[9px] uppercase text-cyan-100 hover:border-cyan-300/50"
+                                      title="Improve this response"
+                                    >
+                                      Improve
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        void transformAssistantMessage(i, "rewrite");
+                                      }}
+                                      className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-2 py-0.5 text-[9px] uppercase text-fuchsia-100 hover:border-fuchsia-300/50"
+                                      title="Rewrite this response"
+                                    >
+                                      Rewrite
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        void transformAssistantMessage(i, "shorten");
+                                      }}
+                                      className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2 py-0.5 text-[9px] uppercase text-emerald-100 hover:border-emerald-300/50"
+                                      title="Shorten this response"
+                                    >
+                                      Shorten
+                                    </button>
+                                  </div>
+                                )}
                               </div>
 
                               {editingMessageIndex === i ? (
@@ -2326,8 +3847,220 @@ export const AINeuralHub = () => {
                       </div>
 
                       <div className="mb-3 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100/85">
-                        Try: I&apos;m new to trading. Give me a safe beginner plan for this week.
+                        {workflowTask === "chat"
+                          ? "Try: I&apos;m new to trading. Give me a safe beginner plan for this week."
+                          : workflowTask === "generate"
+                            ? "Generate mode tip: ask for exact format (e.g. 5 bullets + 1 action)."
+                            : workflowTask === "summarize"
+                              ? "Summarize mode tip: paste the full source text for stronger compression quality."
+                              : "Q&A mode tip: add context below so answers stay grounded and factual."}
                       </div>
+
+                      <div className="mb-3 rounded-xl border border-white/10 bg-[rgba(8,12,18,0.82)] px-3 py-3">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-zinc-300">Operator Workflow Dock</p>
+                          <span className="rounded-full border border-cyan-300/20 bg-cyan-500/10 px-2 py-0.5 text-[9px] uppercase text-cyan-100">Industry-grade controls</span>
+                        </div>
+
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          {LLM_WORKFLOW_TASKS.map((task) => (
+                            <button
+                              key={task.id}
+                              type="button"
+                              onClick={() => setWorkflowTask(task.id)}
+                              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                                workflowTask === task.id
+                                  ? "border-cyan-300/40 bg-cyan-500/15 text-cyan-100"
+                                  : "border-white/15 bg-black/35 text-zinc-300 hover:border-cyan-300/30"
+                              }`}
+                              title={task.hint}
+                            >
+                              {task.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="grid gap-2 md:grid-cols-[1fr_1fr]">
+                          <div>
+                            <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400">Depth</p>
+                            <div className="mt-1 flex gap-1.5">
+                              {(["quick", "balanced", "deep"] as LlmDepth[]).map((depth) => (
+                                <button
+                                  key={depth}
+                                  type="button"
+                                  onClick={() => setWorkflowDepth(depth)}
+                                  className={`rounded-full border px-2 py-0.5 text-[9px] uppercase ${
+                                    workflowDepth === depth
+                                      ? "border-fuchsia-300/40 bg-fuchsia-500/15 text-fuchsia-100"
+                                      : "border-white/15 bg-black/35 text-zinc-300"
+                                  }`}
+                                >
+                                  {depth}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="workflow-creativity-range">
+                              <span>Creativity</span>
+                              <span>{workflowCreativity}%</span>
+                            </label>
+                            <input
+                              id="workflow-creativity-range"
+                              type="range"
+                              min={20}
+                              max={100}
+                              value={workflowCreativity}
+                              onChange={(event) => setWorkflowCreativity(Number(event.target.value))}
+                              className="mt-1 w-full accent-cyan-400"
+                              title="Adjust generation creativity"
+                            />
+                          </div>
+                        </div>
+
+                        {workflowTask === "qa" && (
+                          <div className="mt-2">
+                            <label className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="workflow-context-input">
+                              Context (used by Q&A task)
+                            </label>
+                            <textarea
+                              id="workflow-context-input"
+                              value={workflowContext}
+                              onChange={(event) => setWorkflowContext(event.target.value.slice(0, 2000))}
+                              rows={3}
+                              className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2.5 py-2 text-[11px] text-white outline-none focus:border-cyan-300/60"
+                              placeholder="Paste source context here so answers remain grounded."
+                            />
+                          </div>
+                        )}
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {LLM_WORKFLOW_TEMPLATES.map((template) => (
+                            <button
+                              key={template.id}
+                              type="button"
+                              onClick={() => applyWorkflowTemplate(template.id)}
+                              className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                              title={`Load ${template.label} template`}
+                            >
+                              {template.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {isPromptLibraryOpen && (
+                        <div className="mb-3 rounded-xl border border-cyan-400/20 bg-[rgba(6,10,16,0.84)] px-3 py-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-cyan-200">Prompt Library</p>
+                            <button
+                              type="button"
+                              onClick={() => setIsPromptLibraryOpen(false)}
+                              className="rounded-full border border-white/15 bg-black/35 px-2 py-0.5 text-[9px] uppercase text-zinc-300"
+                            >
+                              Close
+                            </button>
+                          </div>
+
+                          <div className="mb-3 rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Build Custom Prompt Pack</p>
+                              <span className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2 py-0.5 text-[9px] text-cyan-100">
+                                Saved: {customPromptPacks.length}
+                              </span>
+                            </div>
+                            <div className="grid gap-2 md:grid-cols-[1fr_120px]">
+                              <input
+                                value={customPromptTitle}
+                                onChange={(event) => setCustomPromptTitle(event.target.value.slice(0, 40))}
+                                placeholder="Prompt title"
+                                className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/50"
+                              />
+                              <select
+                                value={customPromptCategory}
+                                onChange={(event) => setCustomPromptCategory(event.target.value as PromptLibraryCategory)}
+                                aria-label="Custom prompt category"
+                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1.5 text-[11px] text-zinc-200 outline-none focus:border-cyan-300/50"
+                              >
+                                <option value="trading">Trading</option>
+                                <option value="content">Content</option>
+                                <option value="ops">Ops</option>
+                              </select>
+                            </div>
+                            <textarea
+                              value={customPromptValue}
+                              onChange={(event) => setCustomPromptValue(event.target.value.slice(0, 500))}
+                              rows={3}
+                              placeholder="Prompt body"
+                              className="mt-2 w-full rounded-md border border-white/15 bg-black/50 px-2.5 py-2 text-[11px] text-white outline-none focus:border-cyan-300/50"
+                            />
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              <p className="text-[9px] text-zinc-500">Max 24 custom packs • 500 chars each</p>
+                              <button
+                                type="button"
+                                onClick={createCustomPromptPack}
+                                className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-100 hover:border-emerald-300/50"
+                              >
+                                Save Pack
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            {(["trading", "content", "ops"] as const).map((category) => (
+                              <div key={category} className="rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
+                                <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">{category}</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {promptLibraryEntries.filter((item) => item.category === category).map((item) => (
+                                    <button
+                                      key={item.id}
+                                      type="button"
+                                      onClick={() => addPromptLibraryItem(item)}
+                                      className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-100 hover:border-cyan-300/45"
+                                      title={item.value}
+                                    >
+                                      {item.title}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {customPromptPacks.length > 0 && (
+                            <div className="mt-3 rounded-lg border border-fuchsia-300/20 bg-fuchsia-500/5 px-2.5 py-2">
+                              <p className="mb-2 text-[9px] font-mono uppercase tracking-[0.12em] text-fuchsia-200">Manage Custom Packs</p>
+                              <div className="space-y-1.5">
+                                {customPromptPacks.slice(0, 8).map((item) => (
+                                  <div
+                                    key={`manage-${item.id}`}
+                                    className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-black/35 px-2 py-1.5"
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() => addPromptLibraryItem(item)}
+                                      className="min-w-0 flex-1 truncate text-left text-[10px] font-semibold text-fuchsia-100"
+                                      title={item.value}
+                                    >
+                                      {item.title}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeCustomPromptPack(item.id)}
+                                      className="rounded-full border border-rose-300/25 bg-rose-500/10 p-1 text-rose-200 hover:border-rose-300/45"
+                                      aria-label={`Remove ${item.title}`}
+                                      title="Remove custom prompt"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <div className="mb-3 flex flex-wrap gap-2">
                         {[...activePromptPack, ...QUICK_RITUAL_PROMPTS].map((prompt) => (
@@ -2360,8 +4093,94 @@ export const AINeuralHub = () => {
                           <Send className="w-4 h-4" />
                         </button>
                       </form>
+                      {filteredSlashCommands.length > 0 && (
+                        <div className="mt-2 rounded-lg border border-white/10 bg-black/40 px-2 py-2">
+                          <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Slash commands</p>
+                          <div className="space-y-1">
+                            {filteredSlashCommands.slice(0, 6).map((command) => (
+                              <button
+                                key={command.id}
+                                type="button"
+                                onClick={() => applySlashCommand(command)}
+                                className="flex w-full items-center justify-between rounded-md border border-white/10 bg-black/35 px-2 py-1 text-left hover:border-cyan-300/35"
+                              >
+                                <span className="text-[10px] font-semibold text-cyan-100">{command.label}</span>
+                                <span className="text-[9px] text-zinc-400">{command.description}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {chatStatus && (
                         <p className="mt-3 text-[11px] text-cyan-300/80 font-mono">{chatStatus}</p>
+                      )}
+                      {qualitySnapshot && (
+                        <div className="mt-3 rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                          <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-wide text-zinc-300">
+                            <span className="text-cyan-200">Response Scorecard</span>
+                            <span className="rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[9px] text-zinc-400">
+                              {qualitySnapshot.task.toUpperCase()} • {qualitySnapshot.model}
+                            </span>
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-3">
+                            {[
+                              { label: "Clarity", value: qualitySnapshot.clarity, tone: "from-cyan-400 to-blue-400" },
+                              { label: "Actionability", value: qualitySnapshot.actionability, tone: "from-emerald-400 to-teal-400" },
+                              { label: "Risk Discipline", value: qualitySnapshot.riskDiscipline, tone: "from-fuchsia-400 to-purple-400" },
+                            ].map((metric) => (
+                              <div key={metric.label} className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5">
+                                <div className="mb-1 flex items-center justify-between text-[10px] text-zinc-300">
+                                  <span>{metric.label}</span>
+                                  <span>{metric.value}%</span>
+                                </div>
+                                <div className="h-1.5 rounded-full bg-zinc-800/80">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${metric.value}%` }}
+                                    transition={{ duration: 0.4, ease: "easeOut" }}
+                                    className={`h-1.5 rounded-full bg-gradient-to-r ${metric.tone}`}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-zinc-400">
+                            <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Latency: {qualitySnapshot.latencyMs}ms</span>
+                            <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Words: {qualitySnapshot.words}</span>
+                            <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Chars: {qualitySnapshot.chars}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {compareSnapshot && (
+                        <div className="mt-3 rounded-xl border border-fuchsia-300/25 bg-[rgba(14,10,22,0.86)] px-3 py-3">
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-fuchsia-200">Original vs Improved</p>
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                                {compareSnapshot.mode}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setCompareSnapshot(null)}
+                                className="rounded-full border border-white/15 bg-black/35 px-2 py-0.5 text-[9px] uppercase text-zinc-300"
+                              >
+                                Close
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <div className="rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
+                              <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Original</p>
+                              <p className="whitespace-pre-wrap text-[11px] text-zinc-200/90">{compareSnapshot.original}</p>
+                            </div>
+                            <div className="rounded-lg border border-fuchsia-300/25 bg-fuchsia-500/10 px-2.5 py-2">
+                              <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-fuchsia-200">Improved</p>
+                              <p className="whitespace-pre-wrap text-[11px] text-fuchsia-50">{compareSnapshot.transformed}</p>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </motion.div>
                   )}
@@ -2590,6 +4409,74 @@ export const AINeuralHub = () => {
 
         </div>
       </div>
+
+      <AnimatePresence>
+        {isCommandPaletteOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-start justify-center bg-black/65 px-4 pt-24 backdrop-blur-sm"
+            onClick={() => setIsCommandPaletteOpen(false)}
+          >
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -14, opacity: 0 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="w-full max-w-2xl rounded-2xl border border-cyan-400/25 bg-[rgba(8,12,18,0.96)] shadow-[0_0_40px_rgba(34,211,238,0.12)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
+                <Search className="h-4 w-4 text-cyan-300" />
+                <input
+                  value={commandQuery}
+                  onChange={(event) => setCommandQuery(event.target.value.slice(0, 80))}
+                  placeholder="Search commands..."
+                  className="w-full bg-transparent text-sm text-white placeholder:text-zinc-500 outline-none"
+                  autoFocus
+                />
+                <span className="rounded-md border border-white/10 bg-black/30 px-1.5 py-0.5 text-[9px] uppercase text-zinc-400">
+                  Esc
+                </span>
+              </div>
+
+              <div className="max-h-[360px] overflow-y-auto p-2">
+                {filteredCommandPaletteEntries.length > 0 ? (
+                  filteredCommandPaletteEntries.map((entry, index) => (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      onClick={() => runPaletteCommand(entry.id)}
+                      onMouseEnter={() => setCommandSelectionIndex(index)}
+                      className={`mb-1 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors ${
+                        commandSelectionIndex === index
+                          ? "border-cyan-300/45 bg-cyan-500/10"
+                          : "border-white/10 bg-black/35 hover:border-cyan-300/35"
+                      }`}
+                    >
+                      <div>
+                        <p className="text-[11px] font-semibold text-cyan-100">{entry.label}</p>
+                        <p className="text-[10px] text-zinc-400">{entry.hint}</p>
+                      </div>
+                      <Command className="h-3.5 w-3.5 text-zinc-500" />
+                    </button>
+                  ))
+                ) : (
+                  <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-4 text-center text-[11px] text-zinc-500">
+                    No commands match your query.
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between border-t border-white/10 px-3 py-2 text-[10px] text-zinc-400">
+                <span>Tip: press Ctrl/Cmd + K any time</span>
+                <span>Phase 3 Operator Palette</span>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

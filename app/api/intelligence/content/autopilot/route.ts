@@ -1,3 +1,13 @@
+import {
+    getAutopilotDraft,
+    getSocialAutopilotPersistenceStatus,
+    listAutopilotDrafts,
+    listAutopilotQueueJobs,
+    type SocialAutopilotDraft,
+    type SocialAutopilotQueueJob,
+    upsertAutopilotDraft,
+    upsertAutopilotQueueJobs,
+} from "@/lib/intelligence/social-autopilot-persistence";
 import { enforceRateLimit, enforceTrustedOrigin } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -10,60 +20,6 @@ type SocialChannel =
   | "facebook"
   | "telegram"
   | "tiktok";
-
-type DraftStatus = "draft" | "pending_approval" | "approved" | "published";
-type QueueStatus = "queued" | "running" | "done" | "failed";
-
-type AutopilotDraft = {
-  id: string;
-  sourceUrl: string;
-  focus: string;
-  channels: SocialChannel[];
-  content: Record<string, unknown>;
-  status: DraftStatus;
-  scheduledAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  performance: {
-    impressions: number;
-    engagements: number;
-    clicks: number;
-    lastUpdatedAt?: string;
-  };
-};
-
-type QueueJob = {
-  id: string;
-  draftId: string;
-  channel: SocialChannel;
-  runAt: string;
-  status: QueueStatus;
-  attempts: number;
-  lastError?: string;
-  result?: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type AutopilotStore = {
-  drafts: Map<string, AutopilotDraft>;
-  queue: Map<string, QueueJob>;
-};
-
-declare global {
-   
-  var __TRADEHAX_SOCIAL_AUTOPILOT_STORE__: AutopilotStore | undefined;
-}
-
-function getStore(): AutopilotStore {
-  if (!globalThis.__TRADEHAX_SOCIAL_AUTOPILOT_STORE__) {
-    globalThis.__TRADEHAX_SOCIAL_AUTOPILOT_STORE__ = {
-      drafts: new Map(),
-      queue: new Map(),
-    };
-  }
-  return globalThis.__TRADEHAX_SOCIAL_AUTOPILOT_STORE__;
-}
 
 function nowIso() {
   return new Date().toISOString();
@@ -162,7 +118,7 @@ async function publishChannel(channel: SocialChannel, payload: string) {
     : { ok: false, reason: `connector_placeholder_${channel}_missing_credentials` };
 }
 
-function channelPayloadFromDraft(draft: AutopilotDraft, channel: SocialChannel) {
+function channelPayloadFromDraft(draft: SocialAutopilotDraft, channel: SocialChannel) {
   const raw = draft.content?.[channel];
   if (typeof raw === "string") return raw;
   if (raw && typeof raw === "object") {
@@ -173,21 +129,22 @@ function channelPayloadFromDraft(draft: AutopilotDraft, channel: SocialChannel) 
   return `${draft.focus} update from ${draft.sourceUrl}`;
 }
 
-async function runDueQueueJobs(store: AutopilotStore) {
+async function runDueQueueJobs() {
+  const jobs = await listAutopilotQueueJobs();
   const now = Date.now();
-  const jobs = Array.from(store.queue.values()).filter(
+  const due = jobs.filter(
     (job) => job.status === "queued" && new Date(job.runAt).getTime() <= now,
   );
 
   const results: Array<{ jobId: string; ok: boolean; reason: string }> = [];
 
-  for (const job of jobs) {
-    const draft = store.drafts.get(job.draftId);
+  for (const job of due) {
+    const draft = await getAutopilotDraft(job.draftId);
     if (!draft) {
       job.status = "failed";
       job.lastError = "Draft not found";
       job.updatedAt = nowIso();
-      store.queue.set(job.id, job);
+      await upsertAutopilotQueueJobs([job]);
       results.push({ jobId: job.id, ok: false, reason: "draft_not_found" });
       continue;
     }
@@ -195,7 +152,7 @@ async function runDueQueueJobs(store: AutopilotStore) {
     job.status = "running";
     job.attempts += 1;
     job.updatedAt = nowIso();
-    store.queue.set(job.id, job);
+    await upsertAutopilotQueueJobs([job]);
 
     const payload = channelPayloadFromDraft(draft, job.channel);
     try {
@@ -209,12 +166,12 @@ async function runDueQueueJobs(store: AutopilotStore) {
         job.lastError = publishResult.reason;
       }
       job.updatedAt = nowIso();
-      store.queue.set(job.id, job);
+      await upsertAutopilotQueueJobs([job]);
 
       if (publishResult.ok) {
         draft.status = "published";
         draft.updatedAt = nowIso();
-        store.drafts.set(draft.id, draft);
+        await upsertAutopilotDraft(draft);
       }
 
       results.push({ jobId: job.id, ok: publishResult.ok, reason: publishResult.reason });
@@ -222,7 +179,7 @@ async function runDueQueueJobs(store: AutopilotStore) {
       job.status = "failed";
       job.lastError = error instanceof Error ? error.message : "publish_failed";
       job.updatedAt = nowIso();
-      store.queue.set(job.id, job);
+      await upsertAutopilotQueueJobs([job]);
       results.push({ jobId: job.id, ok: false, reason: job.lastError });
     }
   }
@@ -255,13 +212,12 @@ export async function GET(request: NextRequest) {
   });
   if (!rateLimit.allowed) return rateLimit.response;
 
-  const store = getStore();
-  await runDueQueueJobs(store);
+  await runDueQueueJobs();
 
-  const drafts = Array.from(store.drafts.values()).sort(
+  const drafts = (await listAutopilotDrafts()).sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   );
-  const queue = Array.from(store.queue.values()).sort(
+  const queue = (await listAutopilotQueueJobs()).sort(
     (a, b) => new Date(a.runAt).getTime() - new Date(b.runAt).getTime(),
   );
 
@@ -276,10 +232,13 @@ export async function GET(request: NextRequest) {
       performance: d.performance,
     }));
 
+  const persistence = await getSocialAutopilotPersistenceStatus();
+
   return NextResponse.json(
     {
       ok: true,
       connectors: connectorStatus(),
+      persistence,
       drafts,
       queue,
       calendar,
@@ -299,7 +258,6 @@ export async function POST(request: NextRequest) {
   });
   if (!rateLimit.allowed) return rateLimit.response;
 
-  const store = getStore();
   const body = (await request.json()) as {
     action?: string;
     draftId?: string;
@@ -324,7 +282,7 @@ export async function POST(request: NextRequest) {
     }
 
     const id = newId("draft");
-    const draft: AutopilotDraft = {
+    const draft: SocialAutopilotDraft = {
       id,
       sourceUrl,
       focus,
@@ -335,13 +293,13 @@ export async function POST(request: NextRequest) {
       updatedAt: nowIso(),
       performance: { impressions: 0, engagements: 0, clicks: 0 },
     };
-    store.drafts.set(id, draft);
+    await upsertAutopilotDraft(draft);
     return NextResponse.json({ ok: true, draft }, { headers: rateLimit.headers });
   }
 
   if (action === "submit_for_approval" || action === "approve_draft" || action === "publish_now" || action === "schedule_draft" || action === "update_performance") {
     const draftId = String(body.draftId || "").trim();
-    const draft = store.drafts.get(draftId);
+    const draft = await getAutopilotDraft(draftId);
     if (!draft) {
       return NextResponse.json({ ok: false, error: "Draft not found" }, { status: 404, headers: rateLimit.headers });
     }
@@ -349,14 +307,14 @@ export async function POST(request: NextRequest) {
     if (action === "submit_for_approval") {
       draft.status = "pending_approval";
       draft.updatedAt = nowIso();
-      store.drafts.set(draft.id, draft);
+      await upsertAutopilotDraft(draft);
       return NextResponse.json({ ok: true, draft }, { headers: rateLimit.headers });
     }
 
     if (action === "approve_draft") {
       draft.status = "approved";
       draft.updatedAt = nowIso();
-      store.drafts.set(draft.id, draft);
+      await upsertAutopilotDraft(draft);
       return NextResponse.json({ ok: true, draft }, { headers: rateLimit.headers });
     }
 
@@ -369,11 +327,11 @@ export async function POST(request: NextRequest) {
       const channels = normalizeChannels(body.channels ?? draft.channels);
       draft.scheduledAt = runAt;
       draft.updatedAt = nowIso();
-      store.drafts.set(draft.id, draft);
+      await upsertAutopilotDraft(draft);
 
-      const createdJobs: QueueJob[] = [];
+      const createdJobs: SocialAutopilotQueueJob[] = [];
       for (const channel of channels) {
-        const job: QueueJob = {
+        const job: SocialAutopilotQueueJob = {
           id: newId("job"),
           draftId: draft.id,
           channel,
@@ -383,9 +341,9 @@ export async function POST(request: NextRequest) {
           createdAt: nowIso(),
           updatedAt: nowIso(),
         };
-        store.queue.set(job.id, job);
         createdJobs.push(job);
       }
+      await upsertAutopilotQueueJobs(createdJobs);
 
       return NextResponse.json({ ok: true, draft, jobs: createdJobs }, { headers: rateLimit.headers });
     }
@@ -393,8 +351,9 @@ export async function POST(request: NextRequest) {
     if (action === "publish_now") {
       const channels = normalizeChannels(body.channels ?? draft.channels);
       const jobRunAt = nowIso();
+      const createdJobs: SocialAutopilotQueueJob[] = [];
       for (const channel of channels) {
-        const job: QueueJob = {
+        const job: SocialAutopilotQueueJob = {
           id: newId("job"),
           draftId: draft.id,
           channel,
@@ -404,11 +363,12 @@ export async function POST(request: NextRequest) {
           createdAt: nowIso(),
           updatedAt: nowIso(),
         };
-        store.queue.set(job.id, job);
+        createdJobs.push(job);
       }
+      await upsertAutopilotQueueJobs(createdJobs);
 
-      const results = await runDueQueueJobs(store);
-      const updatedDraft = store.drafts.get(draft.id);
+      const results = await runDueQueueJobs();
+      const updatedDraft = await getAutopilotDraft(draft.id);
       return NextResponse.json({ ok: true, draft: updatedDraft, results }, { headers: rateLimit.headers });
     }
 
@@ -423,13 +383,13 @@ export async function POST(request: NextRequest) {
         lastUpdatedAt: nowIso(),
       };
       draft.updatedAt = nowIso();
-      store.drafts.set(draft.id, draft);
+      await upsertAutopilotDraft(draft);
       return NextResponse.json({ ok: true, draft }, { headers: rateLimit.headers });
     }
   }
 
   if (action === "run_due_jobs") {
-    const results = await runDueQueueJobs(store);
+    const results = await runDueQueueJobs();
     return NextResponse.json({ ok: true, results }, { headers: rateLimit.headers });
   }
 

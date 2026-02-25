@@ -1,6 +1,7 @@
 "use client";
 
 import { clientConsentKeys } from "@/components/ai/ConsentCenter";
+import { trackNeuralEvent } from "@/lib/ai/site-neural-memory";
 import { MessageCircle, Send, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -150,24 +151,21 @@ export function SiteNavigatorWidget() {
 
   const trackEvent = useCallback(async (eventName: string, metadata?: Record<string, unknown>) => {
     try {
-      await fetch("/api/ai/behavior/track", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      await trackNeuralEvent({
+        event: eventName,
+        source: "ai_navigator",
+        userId: consent.userId || sessionId,
+        prompt: eventName,
+        response: "navigator_event_tracked",
+        route: pathname,
+        metadata: {
+          path: pathname,
+          ...metadata,
         },
-        body: JSON.stringify({
-          event: eventName,
-          source: "ai_navigator",
-          userId: consent.userId || sessionId,
-          metadata: {
-            path: pathname,
-            ...metadata,
-          },
-          consent: {
-            analytics: consent.analytics !== false,
-            training: consent.training === true,
-          },
-        }),
+        consent: {
+          analytics: consent.analytics !== false,
+          training: consent.training === true,
+        },
       });
     } catch {
       // Non-blocking analytics

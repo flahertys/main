@@ -1,17 +1,28 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export function HFGeneratorComponent() {
+  const searchParams = useSearchParams();
   const [prompt, setPrompt] = useState("");
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const [mode, setMode] = useState<"simple" | "pro">("simple");
   const [model, setModel] = useState("mistralai/Mistral-7B-Instruct-v0.1");
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(512);
+
+  useEffect(() => {
+    const starter = searchParams.get("starter");
+    if (starter === "content-engine") {
+      setPrompt("Write a 7-day beginner-friendly social content plan for trade education with one post idea per day.");
+      setMode("simple");
+    }
+  }, [searchParams]);
 
   const promptTemplates = [
     {
@@ -78,6 +89,31 @@ export function HFGeneratorComponent() {
           Simple mode: choose a template, edit one sentence, then click <strong>Generate</strong>.
         </p>
 
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <button
+            onClick={() => setMode("simple")}
+            disabled={loading}
+            className={`rounded border px-3 py-2 text-xs font-semibold ${
+              mode === "simple"
+                ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+                : "border-emerald-500/20 bg-black/30 text-emerald-100/75"
+            }`}
+          >
+            Simple mode
+          </button>
+          <button
+            onClick={() => setMode("pro")}
+            disabled={loading}
+            className={`rounded border px-3 py-2 text-xs font-semibold ${
+              mode === "pro"
+                ? "border-cyan-400/60 bg-cyan-500/20 text-cyan-100"
+                : "border-emerald-500/20 bg-black/30 text-emerald-100/75"
+            }`}
+          >
+            Pro controls
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
           {promptTemplates.map((template) => (
             <button
@@ -92,7 +128,7 @@ export function HFGeneratorComponent() {
         </div>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className={`grid grid-cols-1 md:grid-cols-3 gap-3 ${mode === "pro" ? "" : "hidden"}`}>
             <div>
               <label htmlFor="hf-generator-model" className="block text-sm font-medium text-emerald-200 mb-2">Model (advanced)</label>
               <input

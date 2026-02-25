@@ -1,4 +1,5 @@
 "use client";
+import { scheduleLinks } from '@/lib/booking';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -13,7 +14,7 @@ export const MobileMenu = () => {
     { name: "Tokenomics", href: "/tokenomics", icon: "🪙" },
     { name: "Games", href: "/game", icon: "🎮" },
     { name: "Spades", href: "/spades", icon: "♠️" },
-    { name: "Lessons", href: "https://calendar.app.google/hhBXuJjfaApoXVzc6", icon: "📚" },
+    { name: "Lessons", href: scheduleLinks.guitarLessons, icon: "📚" },
   ];
 
   return (
