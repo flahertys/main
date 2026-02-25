@@ -1,5 +1,6 @@
 import { HFChatComponent } from "@/components/ai/HFChatComponent";
 import { HFGeneratorComponent } from "@/components/ai/HFGeneratorComponent";
+import { HubSectionProgressRail } from "@/components/ai/HubSectionProgressRail";
 import { ImageGeneratorComponent } from "@/components/ai/ImageGeneratorComponent";
 import { ModelScoreboardPanel } from "@/components/ai/ModelScoreboardPanel";
 import { SmartEnvironmentMonitor } from "@/components/ai/SmartEnvironmentMonitor";
@@ -30,6 +31,34 @@ export const metadata = createPageMetadata({
 });
 
 export default function AIHubPage() {
+  const progressSteps = [
+    {
+      id: "ai-chat",
+      label: "AI Chat",
+      nextAction: "Ask for a one-goal, one-week action plan with clear daily tasks.",
+    },
+    {
+      id: "text-generator",
+      label: "Text",
+      nextAction: "Turn your plan into a publish-ready post or SOP in one draft.",
+    },
+    {
+      id: "image-generator",
+      label: "Image",
+      nextAction: "Generate one visual asset that supports your post or landing message.",
+    },
+    {
+      id: "ai-autopilot",
+      label: "Autopilot",
+      nextAction: "Run one-click setup and keep beginner-safe defaults active.",
+    },
+    {
+      id: "getting-started",
+      label: "5-Min Path",
+      nextAction: "Complete the checklist and lock your next action before leaving.",
+    },
+  ] as const;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
       <ShamrockHeader />
@@ -66,21 +95,21 @@ export default function AIHubPage() {
           <div className="grid gap-3 md:grid-cols-3">
             <Link
               href="/ai-hub?starter=new-user-setup"
-              className="rounded-xl border border-fuchsia-400/20 bg-black/30 p-4 hover:border-fuchsia-300/40 transition"
+              className="rounded-xl border border-fuchsia-400/20 bg-black/30 p-4 hover:border-fuchsia-300/40 hover:-translate-y-0.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70"
             >
               <div className="text-sm font-semibold text-fuchsia-100">New User Setup</div>
               <p className="mt-1 text-xs text-fuchsia-100/70">Auto-loads onboarding objective + guided first question.</p>
             </Link>
             <Link
               href="/ai-hub?starter=first-trade-plan"
-              className="rounded-xl border border-cyan-400/20 bg-black/30 p-4 hover:border-cyan-300/40 transition"
+              className="rounded-xl border border-cyan-400/20 bg-black/30 p-4 hover:border-cyan-300/40 hover:-translate-y-0.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
             >
               <div className="text-sm font-semibold text-cyan-100">First Trade Plan</div>
               <p className="mt-1 text-xs text-cyan-100/70">Sets up a risk-aware beginner plan workflow.</p>
             </Link>
             <Link
               href="/ai-hub?starter=content-engine"
-              className="rounded-xl border border-emerald-400/20 bg-black/30 p-4 hover:border-emerald-300/40 transition"
+              className="rounded-xl border border-emerald-400/20 bg-black/30 p-4 hover:border-emerald-300/40 hover:-translate-y-0.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70"
             >
               <div className="text-sm font-semibold text-emerald-100">Content Engine</div>
               <p className="mt-1 text-xs text-emerald-100/70">Pre-fills text + image generation for social growth.</p>
@@ -93,17 +122,65 @@ export default function AIHubPage() {
             title="I&apos;m new"
             description="Open AI Chat and ask: 'What should I do first?'"
             cta="Go to AI Chat"
+            href="#ai-chat"
+            tone="emerald"
           />
           <QuickStartCard
             title="I need content"
             description="Use Text Generator for posts, docs, and strategy notes."
             cta="Open Text Generator"
+            href="#text-generator"
+            tone="yellow"
           />
           <QuickStartCard
             title="I need visuals"
             description="Use Image Generator for charts, social art, and hero images."
             cta="Open Image Generator"
+            href="#image-generator"
+            tone="cyan"
           />
+        </div>
+
+        <div className="sticky top-3 z-20 mb-10 rounded-xl border border-white/10 bg-black/50 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.3)] backdrop-blur-sm sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-300">Fast Navigation</p>
+            <div className="flex flex-wrap gap-2">
+              <Link href="#ai-chat" className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-100 hover:bg-emerald-500/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70">AI Chat</Link>
+              <Link href="#text-generator" className="rounded-full border border-yellow-400/25 bg-yellow-500/10 px-3 py-1 text-[11px] font-semibold text-yellow-100 hover:bg-yellow-500/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300/70">Text</Link>
+              <Link href="#image-generator" className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 text-[11px] font-semibold text-cyan-100 hover:bg-cyan-500/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70">Image</Link>
+              <Link href="#ai-autopilot" className="rounded-full border border-fuchsia-400/25 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-semibold text-fuchsia-100 hover:bg-fuchsia-500/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70">Autopilot</Link>
+              <Link href="#getting-started" className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] font-semibold text-zinc-100 hover:bg-white/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-200/70">5-Min Path</Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-10 rounded-xl border border-emerald-500/20 bg-emerald-600/10 px-5 py-4">
+          <p className="text-sm font-semibold text-emerald-100">Starter prompts (copy/paste into AI Chat)</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {[
+              "Build me a safe 7-day beginner workflow with daily time blocks.",
+              "Turn my idea into a one-page content plan with 3 posts.",
+              "Give me one clear next action for today and why it matters.",
+            ].map((prompt) => (
+              <Link
+                key={prompt}
+                href="#ai-chat"
+                className="rounded-lg border border-emerald-400/25 bg-black/25 px-3 py-2 text-[11px] text-emerald-100/90 hover:bg-black/35 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70"
+                title={prompt}
+              >
+                {prompt}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-10 rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-5 py-4">
+          <p className="text-sm font-semibold text-cyan-100">What you can finish in 2 minutes</p>
+          <ul className="mt-2 space-y-1 text-xs text-cyan-100/80">
+            <li>• Get a clear step-by-step action plan from AI Chat</li>
+            <li>• Draft a publish-ready post with Text Generator</li>
+            <li>• Produce a visual concept for social/landing with Image Generator</li>
+          </ul>
         </div>
 
         <div className="mb-12 rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-5 py-4 text-sm text-cyan-100/90">
@@ -114,6 +191,8 @@ export default function AIHubPage() {
             for current limits and included usage.
           </p>
         </div>
+
+        <HubSectionProgressRail steps={[...progressSteps]} />
 
         {/* Smart Environment Monitor */}
         <div className="mb-12">
@@ -128,7 +207,7 @@ export default function AIHubPage() {
           </Suspense>
         </div>
 
-        <div id="ai-autopilot" className="mb-3 rounded-xl border border-fuchsia-500/20 bg-fuchsia-600/10 px-4 py-3">
+        <div id="ai-autopilot" className="mb-3 scroll-mt-28 rounded-xl border border-fuchsia-500/20 bg-fuchsia-600/10 px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-fuchsia-100">New here? One-click setup</p>
@@ -182,7 +261,7 @@ export default function AIHubPage() {
         {/* Features Grid */}
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
           {/* Image Generator */}
-          <div>
+          <div id="image-generator" className="scroll-mt-28">
             <div className="flex items-center gap-2 mb-4">
               <Wand2 className="w-5 h-5 text-cyan-400" />
               <h2 className="text-xl font-bold text-cyan-300">Image Generator (Simple)</h2>
@@ -199,7 +278,7 @@ export default function AIHubPage() {
           </div>
 
           {/* AI Chat */}
-          <div>
+          <div id="ai-chat" className="scroll-mt-28">
             <div className="flex items-center gap-2 mb-4">
               <MessageSquare className="w-5 h-5 text-emerald-400" />
               <h2 className="text-xl font-bold text-emerald-300">AI Chat (Recommended First)</h2>
@@ -219,7 +298,7 @@ export default function AIHubPage() {
         {/* Additional Tools */}
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
           {/* Text Generator */}
-          <div>
+          <div id="text-generator" className="scroll-mt-28">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5 text-yellow-400" />
               <h2 className="text-xl font-bold text-yellow-300">Text Generator (Templates)</h2>
@@ -333,7 +412,7 @@ export default function AIHubPage() {
         </div>
 
         {/* Getting Started */}
-        <div className="theme-panel theme-panel--success p-8">
+        <div id="getting-started" className="theme-panel theme-panel--success scroll-mt-28 p-8">
           <h2 className="text-2xl font-bold text-emerald-300 mb-6">Getting Started (5-minute path)</h2>
 
           <div className="space-y-4">
@@ -400,17 +479,27 @@ function QuickStartCard({
   title,
   description,
   cta,
+  href,
+  tone,
 }: {
   title: string;
   description: string;
   cta: string;
+  href: string;
+  tone: "emerald" | "yellow" | "cyan";
 }) {
+  const toneStyles = {
+    emerald: "border-emerald-500/25 hover:border-emerald-400/50 hover:bg-emerald-500/10 text-emerald-300",
+    yellow: "border-yellow-500/25 hover:border-yellow-400/50 hover:bg-yellow-500/10 text-yellow-300",
+    cyan: "border-cyan-500/25 hover:border-cyan-400/50 hover:bg-cyan-500/10 text-cyan-300",
+  };
+
   return (
-    <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+    <Link href={href} className={`block rounded-xl border bg-black/30 p-4 transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${toneStyles[tone]}`}>
       <h3 className="text-sm font-bold text-white">{title}</h3>
       <p className="mt-1 text-xs text-gray-300">{description}</p>
-      <p className="mt-3 text-[11px] font-semibold text-cyan-300">{cta}</p>
-    </div>
+      <p className="mt-3 text-[11px] font-semibold">{cta}</p>
+    </Link>
   );
 }
 

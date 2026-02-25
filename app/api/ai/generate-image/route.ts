@@ -4,19 +4,20 @@
  */
 
 import {
-  checkCredits,
-  deductCredits,
-  getCreditSnapshot,
+    checkCredits,
+    deductCredits,
+    getCreditSnapshot,
 } from "@/lib/ai/credit-system";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
 import {
-  enforceRateLimit,
-  enforceTrustedOrigin,
-  isFiniteNumberInRange,
-  isJsonContentType,
-  sanitizePlainText,
+    enforceRateLimit,
+    enforceTrustedOrigin,
+    isFiniteNumberInRange,
+    isJsonContentType,
+    sanitizePlainText,
 } from "@/lib/security";
+import { HfInference } from "@huggingface/inference";
 import { NextRequest, NextResponse } from "next/server";
 
 interface ImageRequest {
@@ -209,7 +210,6 @@ export async function POST(request: NextRequest) {
         { headers: rateLimit.headers },
       );
     }
-    const endpoint = `https://api-inference.huggingface.co/models/${model}`;
     const styledPrompt = createStyledPrompt(prompt, style);
 
     const guidanceScaleRaw = Number.parseFloat(process.env.HF_IMAGE_GUIDANCE_SCALE || "6.5");
@@ -217,15 +217,13 @@ export async function POST(request: NextRequest) {
 
     const stepsRaw = Number.parseInt(process.env.HF_IMAGE_STEPS || "30", 10);
     const numInferenceSteps = Number.isFinite(stepsRaw) ? Math.max(10, Math.min(60, stepsRaw)) : 30;
+    let imageBuffer: Buffer;
+    let mimeType = "image/png";
 
-    const hfResponse = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Accept: "image/png",
-      },
-      body: JSON.stringify({
+    try {
+      const hf = new HfInference(token);
+      const imageBlob = await hf.textToImage({
+        model,
         inputs: styledPrompt,
         parameters: {
           negative_prompt: negativePrompt || undefined,
@@ -234,23 +232,15 @@ export async function POST(request: NextRequest) {
           guidance_scale: guidanceScale,
           num_inference_steps: numInferenceSteps,
         },
-        options: {
-          wait_for_model: true,
-          use_cache: false,
-        },
-      }),
-      cache: "no-store",
-    });
+      });
 
-    const contentType = hfResponse.headers.get("content-type") || "";
-    if (!hfResponse.ok || contentType.includes("application/json")) {
-      let payload: unknown = null;
-      try {
-        payload = await hfResponse.json();
-      } catch {
-        payload = null;
+      const blobType = String((imageBlob as Blob).type || "").trim();
+      if (blobType) {
+        mimeType = blobType;
       }
 
+      imageBuffer = Buffer.from(await imageBlob.arrayBuffer());
+    } catch (hfError) {
       const fallbackUrl = createSvgFallbackDataUrl(prompt, width, height, style);
       return NextResponse.json(
         {
@@ -265,14 +255,14 @@ export async function POST(request: NextRequest) {
           openMode,
           safetyMode: openMode ? "open" : "standard",
           fallback: true,
-          warning: parseErrorMessage(payload),
-          providerStatus: hfResponse.status,
+          warning: parseErrorMessage({
+            error: hfError instanceof Error ? hfError.message : String(hfError),
+          }),
         },
         { headers: rateLimit.headers },
       );
     }
 
-    const imageBuffer = Buffer.from(await hfResponse.arrayBuffer());
     if (imageBuffer.length === 0) {
       return NextResponse.json(
         {
@@ -283,7 +273,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const mimeType = contentType.split(";")[0] || "image/png";
     const dataUrl = `data:${mimeType};base64,${imageBuffer.toString("base64")}`;
 
     try {

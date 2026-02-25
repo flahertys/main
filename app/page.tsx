@@ -1,12 +1,6 @@
-"use client";
-
-import { WalletButton } from "@/components/counter/WalletButton";
-import { AINeuralHub } from '@/components/landing/AINeuralHub';
-import { Roadmap } from '@/components/landing/Roadmap';
-import { ServiceGrid } from '@/components/landing/ServiceGrid';
 import { TrackedCtaLink } from "@/components/monetization/TrackedCtaLink";
+import { DeferredRender } from '@/components/ui/DeferredRender';
 import { GlitchText } from '@/components/ui/GlitchText';
-import { LiveActivity } from '@/components/ui/LiveActivity';
 import { scheduleLinks } from "@/lib/booking";
 import { businessProfile } from "@/lib/business-profile";
 import {
@@ -19,7 +13,45 @@ import {
     Sparkles,
     Wrench,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from 'next/link';
+
+const WalletButton = dynamic(
+  () => import("@/components/counter/WalletButton").then((mod) => mod.WalletButton),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.02]" aria-hidden="true" />
+    ),
+  },
+);
+
+const LiveActivity = dynamic(
+  () => import("@/components/ui/LiveActivity").then((mod) => mod.LiveActivity),
+  { ssr: false },
+);
+
+const ServiceGrid = dynamic(
+  () => import("@/components/landing/ServiceGrid").then((mod) => mod.ServiceGrid),
+  {
+    loading: () => <div className="mx-auto max-w-7xl px-6 py-20 text-zinc-500 text-sm">Loading service capabilities…</div>,
+  },
+);
+
+const AINeuralHub = dynamic(
+  () => import("@/components/landing/AINeuralHub").then((mod) => mod.AINeuralHub),
+  {
+    ssr: false,
+    loading: () => <div className="mx-auto max-w-7xl px-6 py-20 text-zinc-500 text-sm">Loading AI workspace…</div>,
+  },
+);
+
+const Roadmap = dynamic(
+  () => import("@/components/landing/Roadmap").then((mod) => mod.Roadmap),
+  {
+    loading: () => <div className="mx-auto max-w-7xl px-6 py-20 text-zinc-500 text-sm">Loading roadmap…</div>,
+  },
+);
 
 const intentLanes = [
   {
@@ -75,6 +107,14 @@ const intentLanes = [
 ] as const;
 
 export default function Home() {
+  const quickPathLinks = [
+    { label: "Book Service", href: scheduleLinks.root },
+    { label: "Browse Services", href: "/services" },
+    { label: "Open AI Hub", href: "/ai-hub" },
+    { label: "View Pricing", href: "/pricing" },
+    { label: "See Portfolio", href: "/portfolio" },
+  ] as const;
+
   return (
     <main className="min-h-screen bg-black">
       {/* Hero + Scaffold */}
@@ -157,6 +197,26 @@ export default function Home() {
 
       <LiveActivity />
 
+      <section className="max-w-7xl mx-auto px-6 pt-8 pb-6">
+        <div className="theme-panel p-6 md:p-7">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-cyan-300">Quick Paths</h2>
+            <p className="text-xs text-zinc-400">Choose one route and execute the next action in under 60 seconds.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {quickPathLinks.map((route) => (
+              <Link
+                key={route.label}
+                href={route.href}
+                className="theme-cta theme-cta--secondary px-4 py-2 text-xs uppercase tracking-wider"
+              >
+                {route.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Intent Lanes Section */}
       <section className="max-w-7xl mx-auto px-6 py-24">
         <div className="theme-panel p-8 md:p-12">
@@ -190,11 +250,23 @@ export default function Home() {
       </section>
 
       {/* Service Grid Section */}
-      <ServiceGrid />
+      <DeferredRender
+        fallback={<div className="mx-auto max-w-7xl px-6 py-20 text-zinc-500 text-sm">Loading service capabilities…</div>}
+      >
+        <ServiceGrid />
+      </DeferredRender>
 
-      <AINeuralHub />
+      <DeferredRender
+        fallback={<div className="mx-auto max-w-7xl px-6 py-20 text-zinc-500 text-sm">Loading AI workspace…</div>}
+      >
+        <AINeuralHub />
+      </DeferredRender>
 
-      <Roadmap />
+      <DeferredRender
+        fallback={<div className="mx-auto max-w-7xl px-6 py-20 text-zinc-500 text-sm">Loading roadmap…</div>}
+      >
+        <Roadmap />
+      </DeferredRender>
 
       {/* Quick Contact Rail */}
       <section className="max-w-7xl mx-auto px-6 py-12">

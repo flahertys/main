@@ -34,6 +34,14 @@ interface StreamMessage {
   generated_text?: string;
 }
 
+interface ChatCompletionChunk {
+  choices?: Array<{
+    delta?: {
+      content?: string;
+    };
+  }>;
+}
+
 class HFLLMClient {
   private client: HfInference | null = null;
   private modelId: string;
@@ -62,24 +70,50 @@ class HFLLMClient {
     const resolvedTopP = options?.topP ?? this.config.topP ?? 0.95;
 
     try {
-      const response = await this.client.textGeneration({
-        model: resolvedModel,
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: resolvedMaxTokens,
+      let text = "";
+
+      try {
+        const response = await this.client.chatCompletion({
+          model: resolvedModel,
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: resolvedMaxTokens,
           temperature: resolvedTemperature,
           top_p: resolvedTopP,
-          do_sample: true,
-          return_full_text: false,
-        },
-      });
+          stream: false,
+        });
 
-      let text = "";
-      if (typeof response === "string") {
-        text = response;
-      } else if (Array.isArray(response) && response.length > 0) {
-        const first = response[0] as Record<string, unknown>;
-        text = (first.generated_text as string) || "";
+        const content = response?.choices?.[0]?.message?.content;
+        if (typeof content === "string") {
+          text = content;
+        } else if (Array.isArray(content)) {
+          text = content
+            .map((part) => (typeof part?.text === "string" ? part.text : ""))
+            .join("")
+            .trim();
+        }
+      } catch (chatError) {
+        const fallbackResponse = await this.client.textGeneration({
+          model: resolvedModel,
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: resolvedMaxTokens,
+            temperature: resolvedTemperature,
+            top_p: resolvedTopP,
+            do_sample: true,
+            return_full_text: false,
+          },
+        });
+
+        if (typeof fallbackResponse === "string") {
+          text = fallbackResponse;
+        } else if (Array.isArray(fallbackResponse) && fallbackResponse.length > 0) {
+          const first = fallbackResponse[0] as Record<string, unknown>;
+          text = (first.generated_text as string) || "";
+        }
+
+        if (!text.trim()) {
+          throw chatError;
+        }
       }
 
       return {
@@ -110,24 +144,43 @@ class HFLLMClient {
     const resolvedTopP = options?.topP ?? this.config.topP ?? 0.95;
 
     try {
-      const stream = await this.client.textGenerationStream({
-        model: resolvedModel,
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: resolvedMaxTokens,
+      try {
+        const stream = this.client.chatCompletionStream({
+          model: resolvedModel,
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: resolvedMaxTokens,
           temperature: resolvedTemperature,
           top_p: resolvedTopP,
-          do_sample: true,
-        },
-      });
+          stream: true,
+        });
 
-      for await (const chunk of stream) {
-        const message = chunk as StreamMessage;
-        if (message.token?.text) {
-          yield message.token.text;
+        for await (const chunk of stream) {
+          const message = chunk as ChatCompletionChunk;
+          const content = message.choices?.[0]?.delta?.content;
+          if (typeof content === "string" && content.length > 0) {
+            yield content;
+          }
         }
-        if (message.generated_text) {
-          break;
+      } catch {
+        const stream = await this.client.textGenerationStream({
+          model: resolvedModel,
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: resolvedMaxTokens,
+            temperature: resolvedTemperature,
+            top_p: resolvedTopP,
+            do_sample: true,
+          },
+        });
+
+        for await (const chunk of stream) {
+          const message = chunk as StreamMessage;
+          if (message.token?.text) {
+            yield message.token.text;
+          }
+          if (message.generated_text) {
+            break;
+          }
         }
       }
     } catch (error) {
@@ -174,11 +227,11 @@ class HFLLMClient {
     if (!this.client) return false;
 
     try {
-      // Try a minimal request
-      await this.client.textGeneration({
+      await this.client.chatCompletion({
         model: this.modelId,
-        inputs: "test",
-        parameters: { max_new_tokens: 1 },
+        messages: [{ role: "user", content: "test" }],
+        max_tokens: 1,
+        stream: false,
       });
       return true;
     } catch {
@@ -208,3 +261,4 @@ class HFLLMClient {
 }
 
 export { HFLLMClient };
+
