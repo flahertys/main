@@ -126,11 +126,13 @@ export default function SchedulePage() {
               title="TradeHax AI Calendar"
               src={businessProfile.scheduling.calendarEmbed}
               className="w-full h-[560px]"
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
             />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <TrackedCtaLink
-              href={businessProfile.scheduling.calendarEmbed}
+              href={businessProfile.scheduling.meetIntake}
               conversionId="open_google_calendar"
               surface="schedule:calendar"
               external
