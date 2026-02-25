@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import { scheduleLinks } from '@/lib/booking';
 
 const curriculum = [
   { id: '01', title: "Neural_Theory", status: "STAGING", dur: "45m" },
@@ -12,7 +12,7 @@ export const GuitarStudio = () => {
     <section className="py-32 bg-black relative overflow-hidden">
       {/* Background Ambience */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
-      
+
       <div className="container mx-auto px-6">
         {/* Header: The Meat & Potatoes */}
         <div className="mb-20">
@@ -24,21 +24,21 @@ export const GuitarStudio = () => {
             GUITAR_<span className="text-cyan-500">STUDIO</span>
           </h2>
           <p className="text-zinc-500 mt-6 max-w-2xl text-lg font-medium leading-relaxed">
-            Direct 1-on-1 elite instruction from the TradeHax lead architect. 
+            Direct 1-on-1 elite instruction from the TradeHax lead architect.
             Bridging the gap between raw talent and high-performance session mastery.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+
           {/* Main Visual: YouTube Console */}
           <div className="lg:col-span-8 space-y-6">
             <div className="relative p-1 glass-panel rounded-[2.5rem] overflow-hidden shadow-2xl group">
               <div className="scanline" />
               <div className="aspect-video rounded-[2.2rem] overflow-hidden bg-black relative">
-                <iframe 
+                <iframe
                   className="w-full h-full relative z-10 opacity-90 group-hover:opacity-100 transition-opacity"
-                  src="https://www.youtube.com/embed?listType=user_uploads&list=tradehax" 
+                  src="https://www.youtube.com/embed?listType=user_uploads&list=tradehax"
                   title="TradeHax Masterclass"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -46,7 +46,7 @@ export const GuitarStudio = () => {
                 />
               </div>
             </div>
-            
+
             {/* Telemetry Board & Quick Links */}
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -63,11 +63,11 @@ export const GuitarStudio = () => {
                   <p className="text-2xl font-black text-white italic">48KHZ_SYNC</p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="https://calendar.app.google/hhBXuJjfaApoXVzc6" className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-cyan-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Schedule_Meet</a>
-                <a href="https://calendar.app.google/hhBXuJjfaApoXVzc6" className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-purple-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Reserve_Zoom</a>
-                <a href="https://calendar.app.google/hhBXuJjfaApoXVzc6" className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-blue-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Sync_Teams</a>
+                <a href={scheduleLinks.guitarLessons} className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-cyan-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Schedule_Meet</a>
+                <a href={scheduleLinks.guitarLessons} className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-purple-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Reserve_Zoom</a>
+                <a href={scheduleLinks.guitarLessons} className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-blue-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Sync_Teams</a>
               </div>
             </div>
           </div>
@@ -83,13 +83,13 @@ export const GuitarStudio = () => {
                 </div>
                 <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1">Michael S. Flaherty</h4>
                 <p className="text-cyan-500 font-mono text-[10px] uppercase tracking-widest mb-4">Lead_Instructor // TradeHax_Architect</p>
-                
+
                 <div className="flex flex-wrap gap-1.5 mb-6">
                   {["SOAD", "PHISH", "HENDRIX", "SUBLIME", "STEELY_DAN", "A7X", "FLOYD", "YES"].map(tag => (
                     <span key={tag} className="text-[8px] font-mono text-zinc-600 border border-zinc-800 px-2 py-0.5 rounded-sm">{tag}</span>
                   ))}
                 </div>
-                
+
                 <div className="space-y-4 mb-8">
                   <div className="flex justify-between text-xs font-mono">
                     <span className="text-zinc-500">Methodology</span>
@@ -102,8 +102,8 @@ export const GuitarStudio = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <a href="https://calendar.app.google/hhBXuJjfaApoXVzc6" className="flex-1 py-3 bg-white text-black text-[10px] font-black rounded-xl text-center hover:bg-cyan-500 hover:text-white transition-all">BOOK_SESSION</a>
-                  <a href="https://calendar.app.google/hhBXuJjfaApoXVzc6" className="flex-1 py-3 border border-zinc-800 text-zinc-400 text-[10px] font-black rounded-xl text-center hover:bg-zinc-800 hover:text-white transition-all uppercase">Calendar</a>
+                  <a href={scheduleLinks.guitarLessons} className="flex-1 py-3 bg-white text-black text-[10px] font-black rounded-xl text-center hover:bg-cyan-500 hover:text-white transition-all">BOOK_SESSION</a>
+                  <a href={scheduleLinks.guitarLessons} className="flex-1 py-3 border border-zinc-800 text-zinc-400 text-[10px] font-black rounded-xl text-center hover:bg-zinc-800 hover:text-white transition-all uppercase">Calendar</a>
                 </div>
               </div>
             </div>
@@ -111,9 +111,10 @@ export const GuitarStudio = () => {
             {/* Google Calendar Hub */}
             <div className="p-2 bg-zinc-900/50 border border-white/5 rounded-[2.5rem] overflow-hidden">
               <div className="aspect-[4/5] rounded-[2.2rem] overflow-hidden bg-zinc-950">
-                <iframe 
-                  src="https://calendar.google.com/calendar/embed?src=irishmikeflaherty%40gmail.com&ctz=America%2FNew_York" 
-                  className="w-full h-full border-none opacity-60 hover:opacity-100 transition-opacity invert" 
+                <iframe
+                  src="https://calendar.google.com/calendar/embed?src=irishmikeflaherty%40gmail.com&ctz=America%2FNew_York"
+                  title="TradeHax Guitar Studio Calendar"
+                  className="w-full h-full border-none opacity-60 hover:opacity-100 transition-opacity invert"
                 />
               </div>
             </div>

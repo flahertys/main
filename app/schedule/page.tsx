@@ -56,6 +56,10 @@ export default function SchedulePage() {
             Choose a booking option below. This page is optimized for both
             desktop and mobile scheduling.
           </p>
+          <p className="mt-2 text-xs text-[#9ca9c5]">
+            All lesson and service booking links across the site route through this
+            scheduling hub for a cleaner, consistent experience.
+          </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <TrackedCtaLink
               href={businessProfile.contactLinks.text}

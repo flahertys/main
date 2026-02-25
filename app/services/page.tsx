@@ -4,23 +4,23 @@ import { AdSenseBlock } from "@/components/monetization/AdSenseBlock";
 import { TrackedCtaLink } from "@/components/monetization/TrackedCtaLink";
 import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
-import { bookingLinks } from "@/lib/booking";
+import { scheduleLinks } from "@/lib/booking";
 import { businessProfile } from "@/lib/business-profile";
 import { createPageMetadata } from "@/lib/seo";
 import type { ServiceConversionId } from "@/lib/service-conversions";
 import {
-  ArrowRight,
-  CheckCircle2,
-  Code,
-  Database,
-  LineChart,
-  Megaphone,
-  Server,
-  ShoppingCart,
-  Smartphone,
-  Users,
-  Wrench,
-  Zap,
+    ArrowRight,
+    CheckCircle2,
+    Code,
+    Database,
+    LineChart,
+    Megaphone,
+    Server,
+    ShoppingCart,
+    Smartphone,
+    Users,
+    Wrench,
+    Zap,
 } from "lucide-react";
 
 export const metadata = createPageMetadata({
@@ -110,7 +110,7 @@ export default function ServicesPage() {
             ]}
             pricing="Starting at $5,000"
             ctaLabel="Book Web3 Discovery Call"
-            ctaHref={bookingLinks.webDevConsult}
+            ctaHref={scheduleLinks.webDevConsult}
             ctaConversionId="book_web3_consult"
           />
 
@@ -128,7 +128,7 @@ export default function ServicesPage() {
             ]}
             pricing="Starting at $3,000"
             ctaLabel="Book Trading Strategy Session"
-            ctaHref={bookingLinks.tradingConsult}
+            ctaHref={scheduleLinks.tradingConsult}
             ctaConversionId="book_trading_consult"
           />
 
@@ -145,7 +145,7 @@ export default function ServicesPage() {
             ]}
             pricing="$200/hour"
             ctaLabel="Book Web3 Strategy Consult"
-            ctaHref={bookingLinks.webDevConsult}
+            ctaHref={scheduleLinks.webDevConsult}
             ctaConversionId="book_web3_consult"
           />
 
@@ -162,7 +162,7 @@ export default function ServicesPage() {
             ]}
             pricing="Starting at $4,000"
             ctaLabel="Start Build Consultation"
-            ctaHref={bookingLinks.webDevConsult}
+            ctaHref={scheduleLinks.webDevConsult}
             ctaConversionId="book_web3_consult"
           />
 
@@ -180,7 +180,7 @@ export default function ServicesPage() {
             ]}
             pricing="$50-100/hour"
             ctaLabel="Book Repair / Support Intake"
-            ctaHref={bookingLinks.techSupport}
+            ctaHref={scheduleLinks.techSupport}
             ctaConversionId="book_repair_quote"
           />
 
@@ -198,7 +198,7 @@ export default function ServicesPage() {
             ]}
             pricing="Starting at $1,000/month"
             ctaLabel="Book Marketing Strategy Call"
-            ctaHref={bookingLinks.socialMediaConsult}
+            ctaHref={scheduleLinks.socialMediaConsult}
             ctaConversionId="book_social_media_consult"
           />
 
@@ -216,7 +216,7 @@ export default function ServicesPage() {
             ]}
             pricing="Starting at $500/month"
             ctaLabel="Book IT Management Consult"
-            ctaHref={bookingLinks.itManagement}
+            ctaHref={scheduleLinks.itManagement}
             ctaConversionId="book_it_management_consult"
           />
 
@@ -234,7 +234,7 @@ export default function ServicesPage() {
             ]}
             pricing="Starting at $8,000"
             ctaLabel="Book App Development Consult"
-            ctaHref={bookingLinks.appDevelopment}
+            ctaHref={scheduleLinks.appDevelopment}
             ctaConversionId="book_app_development_consult"
           />
 
@@ -252,7 +252,7 @@ export default function ServicesPage() {
             ]}
             pricing="Starting at $3,500"
             ctaLabel="Book Database Architecture Call"
-            ctaHref={bookingLinks.databaseConsult}
+            ctaHref={scheduleLinks.databaseConsult}
             ctaConversionId="book_database_consult"
           />
 
@@ -270,7 +270,7 @@ export default function ServicesPage() {
             ]}
             pricing="Starting at $6,000"
             ctaLabel="Book E-Commerce Build Session"
-            ctaHref={bookingLinks.ecommerceConsult}
+            ctaHref={scheduleLinks.ecommerceConsult}
             ctaConversionId="book_ecommerce_consult"
           />
         </div>
@@ -424,7 +424,7 @@ function ServiceCard({
           href={ctaHref}
           conversionId={ctaConversionId}
           surface={`services:card:${title.toLowerCase().replace(/\s+/g, "_")}`}
-          external
+          external={ctaHref.startsWith("http")}
           className="theme-cta theme-cta--compact mt-4"
         >
           {ctaLabel}
