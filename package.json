@@ -48,6 +48,8 @@
     "hf:test-inference": "node ./scripts/test-inference.js",
     "hf:sync-assets": "node ./scripts/sync-hf-assets-safe.js",
     "hf:sync-assets:direct": "node ./scripts/sync-hf-assets.js",
+    "ai:env:doctor": "node ./scripts/ai-env-doctor.js",
+    "ai:env:doctor:strict": "node ./scripts/ai-env-doctor.js --strict",
     "hf:pipeline": "npm run hf:validate && npm run pipeline:quality",
     "hf:pipeline:strict": "npm run hf:pipeline && npm run pipeline:local",
     "social:setup": "node ./scripts/setup-social-apis.js",
