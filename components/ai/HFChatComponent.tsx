@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUp, Compass, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface Message {
@@ -93,6 +94,7 @@ const QUICK_START_PROMPTS = [
 ] as const;
 
 export function HFChatComponent() {
+  const searchParams = useSearchParams();
   const [userId, setUserId] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -142,6 +144,26 @@ export function HFChatComponent() {
       // Ignore malformed memory payloads
     }
   }, []);
+
+  useEffect(() => {
+    const starter = searchParams.get("starter");
+    if (!starter) return;
+
+    if (starter === "new-user-setup") {
+      setMode("navigator");
+      setSelectedStep(0);
+      setObjective("Get fully onboarded as a new user with clear first actions");
+      setInput("I am brand new. Give me a 10-minute setup checklist and the first page I should open.");
+      return;
+    }
+
+    if (starter === "first-trade-plan") {
+      setMode("custom");
+      setSelectedStep(1);
+      setObjective("Build a beginner-safe first trade plan with risk limits");
+      setInput("Create my first beginner trade plan with risk controls and exact step-by-step actions.");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

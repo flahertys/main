@@ -8,8 +8,12 @@ import { createPageMetadata } from "@/lib/seo";
 import {
   BarChart3,
   Brain,
+  Crown,
+  Layers,
   MessageSquare,
+  ShieldCheck,
   Sparkles,
+  Target,
   Wand2,
   Zap,
 } from "lucide-react";
@@ -49,6 +53,39 @@ export default function AIHubPage() {
           </div>
         </div>
 
+        <div className="mb-10 rounded-2xl border border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-600/15 via-indigo-600/10 to-cyan-600/10 p-5 sm:p-6">
+          <div className="flex items-center gap-2 text-fuchsia-100 mb-3">
+            <Crown className="w-5 h-5" />
+            <h2 className="text-lg sm:text-xl font-bold">TradeHax Launchpad (1-click starts)</h2>
+          </div>
+          <p className="text-sm text-fuchsia-100/80 mb-4">
+            Designed for new users: pick your goal and we pre-configure the assistant flow so you start with momentum, not confusion.
+          </p>
+          <div className="grid gap-3 md:grid-cols-3">
+            <Link
+              href="/ai-hub?starter=new-user-setup"
+              className="rounded-xl border border-fuchsia-400/20 bg-black/30 p-4 hover:border-fuchsia-300/40 transition"
+            >
+              <div className="text-sm font-semibold text-fuchsia-100">New User Setup</div>
+              <p className="mt-1 text-xs text-fuchsia-100/70">Auto-loads onboarding objective + guided first question.</p>
+            </Link>
+            <Link
+              href="/ai-hub?starter=first-trade-plan"
+              className="rounded-xl border border-cyan-400/20 bg-black/30 p-4 hover:border-cyan-300/40 transition"
+            >
+              <div className="text-sm font-semibold text-cyan-100">First Trade Plan</div>
+              <p className="mt-1 text-xs text-cyan-100/70">Sets up a risk-aware beginner plan workflow.</p>
+            </Link>
+            <Link
+              href="/ai-hub?starter=content-engine"
+              className="rounded-xl border border-emerald-400/20 bg-black/30 p-4 hover:border-emerald-300/40 transition"
+            >
+              <div className="text-sm font-semibold text-emerald-100">Content Engine</div>
+              <p className="mt-1 text-xs text-emerald-100/70">Pre-fills text + image generation for social growth.</p>
+            </Link>
+          </div>
+        </div>
+
         <div className="mb-8 grid gap-4 md:grid-cols-3">
           <QuickStartCard
             title="I&apos;m new"
@@ -79,6 +116,30 @@ export default function AIHubPage() {
         {/* Smart Environment Monitor */}
         <div className="mb-12">
           <SmartEnvironmentMonitor />
+        </div>
+
+        <div className="theme-panel p-6 sm:p-8 mb-12">
+          <div className="flex items-center gap-2 mb-4 text-amber-200">
+            <Target className="w-5 h-5" />
+            <h2 className="text-xl sm:text-2xl font-bold">Why this stands out vs generic AI tools</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            <EdgeCard
+              icon={<Layers className="w-4 h-4" />}
+              title="Flow-aware UX"
+              description="Most tools stop at chat. TradeHax pushes users through clear objective → route → execution → next action."
+            />
+            <EdgeCard
+              icon={<ShieldCheck className="w-4 h-4" />}
+              title="Safer onboarding"
+              description="Beginner prompts, low-friction controls, and predictable next steps reduce overwhelm and churn."
+            />
+            <EdgeCard
+              icon={<Crown className="w-4 h-4" />}
+              title="Operator-grade depth"
+              description="Advanced controls remain available for power users without cluttering the first-time experience."
+            />
+          </div>
         </div>
 
         {/* Features Grid */}
@@ -250,6 +311,26 @@ export default function AIHubPage() {
       </main>
 
       <ShamrockFooter />
+    </div>
+  );
+}
+
+function EdgeCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+      <div className="inline-flex items-center gap-2 text-amber-200 text-sm font-semibold mb-2">
+        {icon}
+        {title}
+      </div>
+      <p className="text-xs text-zinc-300 leading-relaxed">{description}</p>
     </div>
   );
 }
