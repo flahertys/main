@@ -10,6 +10,7 @@ import { createPageMetadata } from "@/lib/seo";
 import {
     BarChart3,
     Brain,
+    CheckCircle2,
     Crown,
     Layers,
     MessageSquare,
@@ -60,12 +61,14 @@ export default function AIHubPage() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
+    <div className="relative min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.14),transparent_60%)]" />
+      <div className="pointer-events-none absolute right-0 top-44 h-72 w-72 rounded-full bg-fuchsia-600/10 blur-3xl" />
       <ShamrockHeader />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-28 md:pb-12">
         {/* Hero */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-14 sm:mb-16">
           <div className="theme-badge inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold mb-6">
             <Brain className="w-4 h-4" />
             BEGINNER-FIRST AI PLATFORM
@@ -97,6 +100,13 @@ export default function AIHubPage() {
             <p className="font-semibold">How to use this page</p>
             <p className="mt-1 text-emerald-100/75">1) Start with AI Chat, 2) ask for a step-by-step plan, 3) use Text/Image tools only when needed.</p>
           </div>
+        </div>
+
+        <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard label="Guided Flow" value="4-step" description="Objective → route → execute → next action" />
+          <MetricCard label="Workspace Core" value="Chat-first" description="Primary interface optimized for rapid iteration" />
+          <MetricCard label="Reliability" value="Fallback-enabled" description="Model routing + resilient provider behavior" />
+          <MetricCard label="Operator Signal" value="Real-time" description="Confidence, risk, and next-action visibility" />
         </div>
 
         <div className="mb-8 grid gap-4 md:grid-cols-3">
@@ -465,7 +475,7 @@ export default function AIHubPage() {
           </div>
         </div>
 
-        <div className="fixed inset-x-0 bottom-3 z-20 mx-auto w-[min(620px,calc(100%-1rem))] rounded-xl border border-white/15 bg-black/70 p-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
+        <div className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 mx-auto w-[min(620px,calc(100%-1rem))] rounded-xl border border-white/15 bg-black/70 p-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
           <div className="flex items-center gap-2">
             <Link
               href="#ai-chat"
@@ -484,6 +494,27 @@ export default function AIHubPage() {
       </main>
 
       <ShamrockFooter />
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-emerald-300/25">
+      <p className="text-[10px] uppercase tracking-wider text-zinc-400">{label}</p>
+      <p className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-emerald-200">
+        <CheckCircle2 className="w-3.5 h-3.5" />
+        {value}
+      </p>
+      <p className="mt-1 text-[11px] text-zinc-300/80 leading-relaxed">{description}</p>
     </div>
   );
 }
