@@ -29,6 +29,29 @@ const textTemplate =
 
 const encodedTextTemplate = encodeURIComponent(textTemplate);
 
+const defaultCalendarEmbedUrl =
+  "https://calendar.google.com/calendar/embed?src=irishmikeflaherty%40gmail.com&ctz=America%2FNew_York";
+
+function normalizeCalendarEmbedUrl(raw?: string) {
+  const value = (raw || "").trim();
+  if (!value) return defaultCalendarEmbedUrl;
+
+  // Only allow explicit Google Calendar embed endpoints for iframe src.
+  if (
+    value.startsWith("https://calendar.google.com/calendar/embed") ||
+    value.startsWith("http://calendar.google.com/calendar/embed")
+  ) {
+    return value;
+  }
+
+  // calendar.app.google links are booking pages and generally not iframe-embeddable.
+  if (value.includes("calendar.app.google")) {
+    return defaultCalendarEmbedUrl;
+  }
+
+  return defaultCalendarEmbedUrl;
+}
+
 export const businessProfile = {
   contactEmail,
   contactPhoneE164,
@@ -88,9 +111,7 @@ export const businessProfile = {
   },
   scheduling: {
     primary: process.env.NEXT_PUBLIC_BOOKING_PRIMARY_URL || bookingLinks.webDevConsult,
-    calendarEmbed:
-      process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_EMBED_URL ||
-      "https://calendar.google.com/calendar/embed?src=irishmikeflaherty%40gmail.com&ctz=America%2FNew_York",
+    calendarEmbed: normalizeCalendarEmbedUrl(process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_EMBED_URL),
     meetIntake: process.env.NEXT_PUBLIC_GOOGLE_MEET_BOOKING_URL || "https://calendar.app.google/hhBXuJjfaApoXVzc6",
   },
 } as const;
