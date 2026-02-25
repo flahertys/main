@@ -4,7 +4,11 @@ import { buildTradeHaxSystemPrompt } from "@/lib/ai/custom-llm/system-prompt";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { getLLMClient } from "@/lib/ai/hf-server";
 import { NeuralQuery, processNeuralCommand } from "@/lib/ai/kernel";
-import { inferPredictionDomain, resolvePredictionModel } from "@/lib/ai/prediction-routing";
+import {
+  inferPredictionDomain,
+  recordPredictionTelemetry,
+  resolvePredictionModel,
+} from "@/lib/ai/prediction-routing";
 import { formatRetrievalContext, retrieveRelevantContext } from "@/lib/ai/retriever";
 import { canConsumeFeature, consumeFeatureUsage, tierSupportsNeuralMode } from "@/lib/monetization/engine";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
@@ -368,6 +372,14 @@ export async function POST(req: NextRequest) {
       response = kernelResponse;
       provider = "kernel";
     }
+
+    recordPredictionTelemetry({
+      domain: domainSignal.domain,
+      model: requestedModel,
+      confidence: domainSignal.confidence,
+      provider,
+      fallback: Boolean(fallbackReason),
+    });
 
     try {
       await ingestBehavior({

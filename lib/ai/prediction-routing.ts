@@ -6,6 +6,34 @@ type DomainSignal = {
   reasons: string[];
 };
 
+type PredictionTelemetryRecord = {
+  domain: PredictionDomain;
+  model: string;
+  confidence: number;
+  provider: "huggingface" | "kernel";
+  fallback: boolean;
+  timestamp: string;
+};
+
+type PredictionTelemetrySummary = {
+  generatedAt: string;
+  totalRequests: number;
+  domains: Array<{
+    domain: PredictionDomain;
+    requests: number;
+    avgConfidence: number;
+    fallbackRate: number;
+    providers: {
+      huggingface: number;
+      kernel: number;
+    };
+    models: Array<{
+      model: string;
+      requests: number;
+    }>;
+  }>;
+};
+
 const KALSHI_TERMS = [
   "kalshi",
   "event contract",
@@ -75,6 +103,18 @@ function normalizeContext(context: unknown): string {
   }
 }
 
+function getTelemetryStore() {
+  const globalRef = globalThis as typeof globalThis & {
+    __TRADEHAX_PREDICTION_TELEMETRY__?: PredictionTelemetryRecord[];
+  };
+
+  if (!globalRef.__TRADEHAX_PREDICTION_TELEMETRY__) {
+    globalRef.__TRADEHAX_PREDICTION_TELEMETRY__ = [];
+  }
+
+  return globalRef.__TRADEHAX_PREDICTION_TELEMETRY__;
+}
+
 export function inferPredictionDomain(inputMessage: string, context?: unknown): DomainSignal {
   const text = `${inputMessage} ${normalizeContext(context)}`.toLowerCase();
 
@@ -123,5 +163,75 @@ export function resolvePredictionModel(domain: PredictionDomain): string {
   return process.env.TRADEHAX_MODEL_GENERAL || fallback;
 }
 
-export type { DomainSignal, PredictionDomain };
+export function recordPredictionTelemetry(input: {
+  domain: PredictionDomain;
+  model: string;
+  confidence: number;
+  provider: "huggingface" | "kernel";
+  fallback: boolean;
+}) {
+  const store = getTelemetryStore();
+  store.push({
+    domain: input.domain,
+    model: input.model,
+    confidence: Math.max(0, Math.min(100, Math.round(input.confidence))),
+    provider: input.provider,
+    fallback: Boolean(input.fallback),
+    timestamp: new Date().toISOString(),
+  });
+
+  if (store.length > 2000) {
+    store.splice(0, store.length - 2000);
+  }
+}
+
+export function getPredictionTelemetrySummary(): PredictionTelemetrySummary {
+  const store = getTelemetryStore();
+  const domains: PredictionDomain[] = ["stock", "crypto", "kalshi", "general"];
+
+  const summaryDomains = domains.map((domain) => {
+    const rows = store.filter((row) => row.domain === domain);
+    const requests = rows.length;
+    const avgConfidence =
+      requests > 0
+        ? Number.parseFloat((rows.reduce((sum, row) => sum + row.confidence, 0) / requests).toFixed(1))
+        : 0;
+    const fallbackRate =
+      requests > 0
+        ? Number.parseFloat(((rows.filter((row) => row.fallback).length / requests) * 100).toFixed(1))
+        : 0;
+
+    const providers = {
+      huggingface: rows.filter((row) => row.provider === "huggingface").length,
+      kernel: rows.filter((row) => row.provider === "kernel").length,
+    };
+
+    const modelCounts = new Map<string, number>();
+    for (const row of rows) {
+      modelCounts.set(row.model, (modelCounts.get(row.model) || 0) + 1);
+    }
+
+    const models = Array.from(modelCounts.entries())
+      .map(([model, count]) => ({ model, requests: count }))
+      .sort((a, b) => b.requests - a.requests)
+      .slice(0, 6);
+
+    return {
+      domain,
+      requests,
+      avgConfidence,
+      fallbackRate,
+      providers,
+      models,
+    };
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    totalRequests: store.length,
+    domains: summaryDomains,
+  };
+}
+
+export type { DomainSignal, PredictionDomain, PredictionTelemetrySummary };
 
