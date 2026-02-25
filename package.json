@@ -46,6 +46,7 @@
     "hf:validate": "node ./scripts/validate-deployment.js",
     "hf:setup-vercel": "node ./scripts/setup-vercel-deployment.js",
     "hf:test-inference": "node ./scripts/test-inference.js",
+    "hf:sync-assets": "node ./scripts/sync-hf-assets.js",
     "hf:pipeline": "npm run hf:validate && npm run pipeline:quality",
     "hf:pipeline:strict": "npm run hf:pipeline && npm run pipeline:local",
     "social:setup": "node ./scripts/setup-social-apis.js",
