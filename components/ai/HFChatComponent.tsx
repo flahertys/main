@@ -1,6 +1,22 @@
 "use client";
 
-import { ArrowUp, Compass, Copy, Loader2, PanelLeft, Sparkles, Trash2 } from "lucide-react";
+import {
+    Archive,
+    ArrowUp,
+    Compass,
+    Copy,
+    FileJson,
+    FileText,
+    Loader2,
+    PanelLeft,
+    Pencil,
+    Pin,
+    Plus,
+    Search,
+    Sparkles,
+    Trash2,
+    X
+} from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -30,11 +46,20 @@ type PipelineMemory = {
 
 type ResponseStyle = "concise" | "coach" | "operator";
 type FreedomMode = "uncensored" | "standard";
+type PromptCategory = "onboarding" | "trading" | "content" | "ops";
+
+type PinnedPrompt = {
+  id: string;
+  label: string;
+  prompt: string;
+  category: PromptCategory;
+};
 
 type ChatSession = {
   id: string;
   title: string;
   updatedAt: number;
+  archived: boolean;
   messages: Message[];
   objective: string;
   selectedStep: number;
@@ -140,6 +165,7 @@ function createEmptySession(overrides?: Partial<ChatSession>): ChatSession {
     id: `session-${now}-${Math.random().toString(36).slice(2, 8)}`,
     title: "New session",
     updatedAt: now,
+    archived: false,
     messages: [],
     objective: "",
     selectedStep: 0,
@@ -148,6 +174,25 @@ function createEmptySession(overrides?: Partial<ChatSession>): ChatSession {
     autoFallback: true,
     freedomMode: "uncensored",
     ...overrides,
+  };
+}
+
+function sanitizePinnedPrompt(raw: unknown): PinnedPrompt | null {
+  if (!raw || typeof raw !== "object") return null;
+  const item = raw as Partial<PinnedPrompt>;
+  if (typeof item.id !== "string" || typeof item.label !== "string" || typeof item.prompt !== "string") {
+    return null;
+  }
+  const category = item.category;
+  if (category !== "onboarding" && category !== "trading" && category !== "content" && category !== "ops") {
+    return null;
+  }
+
+  return {
+    id: item.id,
+    label: item.label.trim().slice(0, 40),
+    prompt: item.prompt.trim().slice(0, 220),
+    category,
   };
 }
 
@@ -197,10 +242,14 @@ export function HFChatComponent() {
   const [userId, setUserId] = useState("");
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState("");
+  const [showArchivedSessions, setShowArchivedSessions] = useState(false);
+  const [sessionSearch, setSessionSearch] = useState("");
   const [isRenamingSession, setIsRenamingSession] = useState(false);
   const [sessionDraftName, setSessionDraftName] = useState("");
-  const [pinnedPrompts, setPinnedPrompts] = useState<string[]>([]);
+  const [pinnedPrompts, setPinnedPrompts] = useState<PinnedPrompt[]>([]);
+  const [pinLabel, setPinLabel] = useState("");
   const [pinInput, setPinInput] = useState("");
+  const [pinCategory, setPinCategory] = useState<PromptCategory>("onboarding");
   const [storageWarning, setStorageWarning] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -260,9 +309,26 @@ export function HFChatComponent() {
     try {
       const rawPinned = window.localStorage.getItem(PINNED_PROMPTS_KEY);
       if (rawPinned) {
-        const parsedPinned = JSON.parse(rawPinned) as string[];
+        const parsedPinned = JSON.parse(rawPinned) as unknown[];
         if (Array.isArray(parsedPinned)) {
-          setPinnedPrompts(parsedPinned.filter((item) => typeof item === "string" && item.trim().length > 0));
+          // Backward compatibility with previous string-only format
+          const normalized = parsedPinned
+            .map((item, index) => {
+              if (typeof item === "string" && item.trim().length > 0) {
+                return {
+                  id: `legacy-${index}-${item.slice(0, 8)}`,
+                  label: item.trim().slice(0, 40),
+                  prompt: item.trim().slice(0, 220),
+                  category: "onboarding" as PromptCategory,
+                };
+              }
+              return sanitizePinnedPrompt(item);
+            })
+            .filter((item): item is PinnedPrompt => Boolean(item));
+
+          if (normalized.length > 0) {
+            setPinnedPrompts(normalized.slice(0, 24));
+          }
         }
       }
     } catch {
@@ -602,6 +668,74 @@ export function HFChatComponent() {
     applySession(newSession);
   };
 
+  const archiveActiveSession = () => {
+    if (!activeSessionId) return;
+
+    const archivedSession = sessions.find((session) => session.id === activeSessionId);
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === activeSessionId
+          ? { ...session, archived: true, updatedAt: Date.now() }
+          : session,
+      ),
+    );
+
+    const fallbackSession = sessions.find((session) => session.id !== activeSessionId && !session.archived);
+    if (fallbackSession) {
+      setActiveSessionId(fallbackSession.id);
+      applySession(fallbackSession);
+      return;
+    }
+
+    const freshSession = createEmptySession({
+      mode,
+      responseStyle,
+      autoFallback,
+      freedomMode,
+    });
+    setSessions((prev) => [freshSession, ...prev]);
+    setActiveSessionId(freshSession.id);
+    applySession(freshSession);
+    if (archivedSession) {
+      setStorageWarning(`Archived session: ${archivedSession.title}`);
+    }
+  };
+
+  const deleteActiveSession = () => {
+    if (!activeSessionId) return;
+    const remaining = sessions.filter((session) => session.id !== activeSessionId);
+    setSessions(remaining);
+
+    const fallback = remaining.find((session) => !session.archived) ?? remaining[0];
+    if (fallback) {
+      setActiveSessionId(fallback.id);
+      applySession(fallback);
+    } else {
+      const fresh = createEmptySession({
+        mode,
+        responseStyle,
+        autoFallback,
+        freedomMode,
+      });
+      setSessions([fresh]);
+      setActiveSessionId(fresh.id);
+      applySession(fresh);
+    }
+  };
+
+  const toggleArchivedSession = (sessionId: string) => {
+    const target = sessions.find((session) => session.id === sessionId);
+    if (!target) return;
+
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === sessionId
+          ? { ...session, archived: !session.archived, updatedAt: Date.now() }
+          : session,
+      ),
+    );
+  };
+
   const switchSession = (sessionId: string) => {
     const targetSession = sessions.find((session) => session.id === sessionId);
     if (!targetSession) return;
@@ -644,6 +778,7 @@ export function HFChatComponent() {
 
   const addPinnedPrompt = () => {
     const trimmed = pinInput.trim().replace(/\s+/g, " ");
+    const trimmedLabel = (pinLabel.trim() || trimmed).replace(/\s+/g, " ").slice(0, 40);
     if (!trimmed) return;
     if (trimmed.length > 220) {
       setStorageWarning("Pinned prompt is too long. Keep it under 220 characters.");
@@ -651,18 +786,60 @@ export function HFChatComponent() {
     }
 
     setPinnedPrompts((prev) => {
-      if (prev.some((item) => item.toLowerCase() === trimmed.toLowerCase())) {
+      if (prev.some((item) => item.prompt.toLowerCase() === trimmed.toLowerCase())) {
         return prev;
       }
-      return [trimmed, ...prev].slice(0, 16);
+      const entry: PinnedPrompt = {
+        id: `pin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        label: trimmedLabel,
+        prompt: trimmed,
+        category: pinCategory,
+      };
+      return [entry, ...prev].slice(0, 24);
     });
 
     setStorageWarning("");
+    setPinLabel("");
     setPinInput("");
   };
 
-  const removePinnedPrompt = (prompt: string) => {
-    setPinnedPrompts((prev) => prev.filter((item) => item !== prompt));
+  const removePinnedPrompt = (promptId: string) => {
+    setPinnedPrompts((prev) => prev.filter((item) => item.id !== promptId));
+  };
+
+  const exportActiveSession = (format: "json" | "md") => {
+    const active = sessions.find((session) => session.id === activeSessionId);
+    if (!active || typeof window === "undefined") return;
+
+    try {
+      const timestamp = new Date(active.updatedAt).toISOString().replace(/[:.]/g, "-");
+      const filenameBase = `tradehax-session-${active.id}-${timestamp}`;
+
+      const payload =
+        format === "json"
+          ? JSON.stringify(active, null, 2)
+          : [
+              `# ${active.title}`,
+              "",
+              `- Updated: ${new Date(active.updatedAt).toLocaleString()}`,
+              `- Mode: ${active.mode}`,
+              `- Objective: ${active.objective || "(none)"}`,
+              "",
+              ...active.messages.map((message) => `## ${message.role === "assistant" ? "Assistant" : "User"}\n\n${message.content}\n`),
+            ].join("\n");
+
+      const blob = new Blob([payload], { type: format === "json" ? "application/json" : "text/markdown" });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = window.document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${filenameBase}.${format === "json" ? "json" : "md"}`;
+      window.document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setStorageWarning("Export failed. Please try again.");
+    }
   };
 
   const promptQualityScore = (() => {
@@ -690,6 +867,18 @@ export function HFChatComponent() {
     }
   };
 
+  const filteredSessions = sessions.filter((session) => {
+    if (session.archived !== showArchivedSessions) return false;
+    if (!sessionSearch.trim()) return true;
+    const query = sessionSearch.trim().toLowerCase();
+    return (
+      session.title.toLowerCase().includes(query) ||
+      session.messages.some((message) => message.content.toLowerCase().includes(query))
+    );
+  });
+
+  const filteredPinnedPrompts = pinnedPrompts.filter((item) => item.category === pinCategory);
+
   return (
     <div className="theme-panel w-full h-[80vh] min-h-[620px] max-h-[980px] overflow-hidden">
       <div className="grid h-full lg:grid-cols-[320px_1fr]">
@@ -706,24 +895,84 @@ export function HFChatComponent() {
                   <Plus className="w-3 h-3 inline mr-1" />New
                 </button>
               </div>
+              <div className="mb-2 flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-3 h-3 absolute left-2 top-1.5 text-emerald-200/60" />
+                  <input
+                    value={sessionSearch}
+                    onChange={(e) => setSessionSearch(e.target.value)}
+                    placeholder="Search sessions"
+                    className="w-full rounded border border-white/15 bg-black/30 py-1 pl-6 pr-2 text-[11px] text-emerald-100 outline-none"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowArchivedSessions((prev) => !prev)}
+                  className="rounded border border-white/15 bg-black/25 px-2 py-1 text-[11px] text-emerald-100/80"
+                >
+                  {showArchivedSessions ? "Active" : "Archived"}
+                </button>
+              </div>
               <div className="space-y-1 max-h-44 overflow-y-auto pr-1">
-                {sessions.map((session) => {
+                {filteredSessions.map((session) => {
                   const active = session.id === activeSessionId;
                   return (
-                    <button
+                    <div
                       key={session.id}
-                      onClick={() => switchSession(session.id)}
-                      className={`w-full rounded px-2 py-1.5 text-left text-[11px] border transition ${
+                      className={`rounded px-2 py-1.5 text-[11px] border transition ${
                         active
                           ? "border-cyan-400/50 bg-cyan-500/20 text-cyan-100"
-                          : "border-white/10 bg-black/25 text-emerald-100/80 hover:border-emerald-400/40"
+                          : "border-white/10 bg-black/25 text-emerald-100/80"
                       }`}
                     >
-                      <div className="font-semibold truncate">{session.title}</div>
-                      <div className="opacity-70">{new Date(session.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-                    </button>
+                      <button
+                        onClick={() => switchSession(session.id)}
+                        className="w-full text-left"
+                      >
+                        <div className="font-semibold truncate">{session.title}</div>
+                        <div className="opacity-70">{new Date(session.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+                      </button>
+                      <div className="mt-1 flex gap-1">
+                        <button
+                          onClick={() => toggleArchivedSession(session.id)}
+                          className="rounded border border-white/15 px-1.5 py-0.5 text-[10px]"
+                          title={session.archived ? "Restore session" : "Archive session"}
+                        >
+                          <Archive className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
                   );
                 })}
+              </div>
+              <div className="mt-2 flex items-center gap-1">
+                <button
+                  onClick={() => exportActiveSession("json")}
+                  className="rounded border border-white/15 bg-black/20 px-2 py-1 text-[11px] text-emerald-100/85"
+                  title="Export active session as JSON"
+                >
+                  <FileJson className="w-3 h-3 inline mr-1" />JSON
+                </button>
+                <button
+                  onClick={() => exportActiveSession("md")}
+                  className="rounded border border-white/15 bg-black/20 px-2 py-1 text-[11px] text-emerald-100/85"
+                  title="Export active session as Markdown"
+                >
+                  <FileText className="w-3 h-3 inline mr-1" />MD
+                </button>
+                <button
+                  onClick={archiveActiveSession}
+                  className="rounded border border-white/15 bg-black/20 px-2 py-1 text-[11px] text-emerald-100/85"
+                  title="Archive active session"
+                >
+                  <Archive className="w-3 h-3 inline mr-1" />Archive
+                </button>
+                <button
+                  onClick={deleteActiveSession}
+                  className="rounded border border-rose-400/25 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-100"
+                  title="Delete active session"
+                >
+                  <Trash2 className="w-3 h-3 inline mr-1" />Delete
+                </button>
               </div>
               <div className="mt-2 flex items-center gap-2">
                 {isRenamingSession ? (
@@ -846,6 +1095,26 @@ export function HFChatComponent() {
               <label className="block text-[11px] uppercase tracking-wide text-fuchsia-100/80 mb-1">
                 Pinned prompts
               </label>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <input
+                  value={pinLabel}
+                  onChange={(e) => setPinLabel(e.target.value)}
+                  placeholder="Label (optional)"
+                  className="rounded border border-fuchsia-500/30 bg-black/35 px-2 py-1 text-[11px] text-fuchsia-100 outline-none"
+                />
+                <select
+                  title="Pinned prompt category"
+                  aria-label="Pinned prompt category"
+                  value={pinCategory}
+                  onChange={(e) => setPinCategory(e.target.value as PromptCategory)}
+                  className="rounded border border-fuchsia-500/30 bg-black/35 px-2 py-1 text-[11px] text-fuchsia-100 outline-none"
+                >
+                  <option value="onboarding">Onboarding</option>
+                  <option value="trading">Trading</option>
+                  <option value="content">Content</option>
+                  <option value="ops">Ops</option>
+                </select>
+              </div>
               <div className="flex gap-2 mb-2">
                 <input
                   value={pinInput}
@@ -869,19 +1138,20 @@ export function HFChatComponent() {
                 </button>
               </div>
               <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                {pinnedPrompts.length === 0 && (
+                {filteredPinnedPrompts.length === 0 && (
                   <p className="text-[11px] text-fuchsia-100/60">No pinned prompts yet.</p>
                 )}
-                {pinnedPrompts.map((prompt) => (
-                  <div key={prompt} className="flex items-start gap-1 rounded border border-fuchsia-500/20 bg-black/25 px-2 py-1">
+                {filteredPinnedPrompts.map((prompt) => (
+                  <div key={prompt.id} className="flex items-start gap-1 rounded border border-fuchsia-500/20 bg-black/25 px-2 py-1">
                     <button
-                      onClick={() => setInput(prompt)}
+                      onClick={() => setInput(prompt.prompt)}
                       className="flex-1 text-left text-[11px] text-fuchsia-100/90 hover:text-fuchsia-50"
                     >
-                      {prompt}
+                      <span className="font-semibold">{prompt.label}</span>
+                      <span className="block opacity-80">{prompt.prompt}</span>
                     </button>
                     <button
-                      onClick={() => removePinnedPrompt(prompt)}
+                      onClick={() => removePinnedPrompt(prompt.id)}
                       className="text-fuchsia-100/70 hover:text-fuchsia-50"
                       title="Remove pinned prompt"
                     >
