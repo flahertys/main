@@ -123,15 +123,15 @@ export default function AIHubPage() {
           />
         </div>
 
-        <div className="sticky top-3 z-20 mb-10 rounded-xl border border-white/10 bg-black/50 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.3)] backdrop-blur-sm sm:p-5">
+        <div className="sticky top-2 sm:top-3 z-20 mb-10 rounded-xl border border-white/10 bg-black/50 p-3 shadow-[0_8px_30px_rgba(0,0,0,0.3)] backdrop-blur-sm sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-300">Fast Navigation</p>
             <div className="flex flex-wrap gap-2">
-              <Link href="#ai-chat" className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-100 hover:bg-emerald-500/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70">AI Chat</Link>
-              <Link href="#text-generator" className="rounded-full border border-yellow-400/25 bg-yellow-500/10 px-3 py-1 text-[11px] font-semibold text-yellow-100 hover:bg-yellow-500/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300/70">Text</Link>
-              <Link href="#image-generator" className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 text-[11px] font-semibold text-cyan-100 hover:bg-cyan-500/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70">Image</Link>
-              <Link href="#ai-autopilot" className="rounded-full border border-fuchsia-400/25 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-semibold text-fuchsia-100 hover:bg-fuchsia-500/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70">Autopilot</Link>
-              <Link href="#getting-started" className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] font-semibold text-zinc-100 hover:bg-white/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-200/70">5-Min Path</Link>
+              <Link href="#ai-chat" className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-100 transition motion-safe:hover:-translate-y-0.5 hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70">AI Chat</Link>
+              <Link href="#text-generator" className="rounded-full border border-yellow-400/25 bg-yellow-500/10 px-3 py-1 text-[11px] font-semibold text-yellow-100 transition motion-safe:hover:-translate-y-0.5 hover:bg-yellow-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300/70">Text</Link>
+              <Link href="#image-generator" className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 text-[11px] font-semibold text-cyan-100 transition motion-safe:hover:-translate-y-0.5 hover:bg-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70">Image</Link>
+              <Link href="#ai-autopilot" className="rounded-full border border-fuchsia-400/25 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-semibold text-fuchsia-100 transition motion-safe:hover:-translate-y-0.5 hover:bg-fuchsia-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70">Autopilot</Link>
+              <Link href="#getting-started" className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] font-semibold text-zinc-100 transition motion-safe:hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-200/70">5-Min Path</Link>
             </div>
           </div>
         </div>
@@ -176,19 +176,19 @@ export default function AIHubPage() {
         </div>
 
         <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-emerald-300/35">
             <p className="text-[11px] uppercase tracking-wider text-emerald-200/80">Primary Interface</p>
             <p className="mt-1 text-sm font-semibold text-emerald-100">Conversation-first workspace</p>
           </div>
-          <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-4 py-3">
+          <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-cyan-300/35">
             <p className="text-[11px] uppercase tracking-wider text-cyan-200/80">Session Memory</p>
             <p className="mt-1 text-sm font-semibold text-cyan-100">Resume and continue where you left off</p>
           </div>
-          <div className="rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/10 px-4 py-3">
+          <div className="rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/10 px-4 py-3 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-fuchsia-300/35">
             <p className="text-[11px] uppercase tracking-wider text-fuchsia-200/80">Preset Intelligence</p>
             <p className="mt-1 text-sm font-semibold text-fuchsia-100">Role-based AI profiles for each objective</p>
           </div>
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-amber-300/35">
             <p className="text-[11px] uppercase tracking-wider text-amber-200/80">Operator Visibility</p>
             <p className="mt-1 text-sm font-semibold text-amber-100">Decision signals + next action every turn</p>
           </div>
@@ -200,9 +200,7 @@ export default function AIHubPage() {
         <div className="mb-12">
           <Suspense
             fallback={
-              <div className="rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-4 py-3 text-xs text-cyan-100/80">
-                Loading smart environment monitor...
-              </div>
+              <LoadingPanel label="Loading smart environment monitor" tone="cyan" />
             }
           >
             <SmartEnvironmentMonitor />
@@ -228,9 +226,7 @@ export default function AIHubPage() {
 
         <Suspense
           fallback={
-            <div className="mb-8 rounded-xl border border-fuchsia-500/20 bg-fuchsia-600/10 px-4 py-3 text-xs text-fuchsia-100/80">
-              Loading AI autopilot controls...
-            </div>
+            <LoadingPanel label="Loading AI autopilot controls" tone="fuchsia" className="mb-8" />
           }
         >
           <ModelScoreboardPanel />
@@ -270,9 +266,7 @@ export default function AIHubPage() {
           </div>
           <Suspense
             fallback={
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-600/10 px-4 py-3 text-xs text-emerald-100/80">
-                Loading AI chat...
-              </div>
+              <LoadingPanel label="Loading AI chat" tone="emerald" />
             }
           >
             <HFChatComponent />
@@ -289,9 +283,7 @@ export default function AIHubPage() {
             </div>
             <Suspense
               fallback={
-                <div className="rounded-xl border border-yellow-500/20 bg-yellow-600/10 px-4 py-3 text-xs text-yellow-100/80">
-                  Loading text generator...
-                </div>
+                <LoadingPanel label="Loading text generator" tone="yellow" />
               }
             >
               <HFGeneratorComponent />
@@ -306,9 +298,7 @@ export default function AIHubPage() {
             </div>
             <Suspense
               fallback={
-                <div className="rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-4 py-3 text-xs text-cyan-100/80">
-                  Loading image generator...
-                </div>
+                <LoadingPanel label="Loading image generator" tone="cyan" />
               }
             >
               <ImageGeneratorComponent />
@@ -438,7 +428,7 @@ export default function AIHubPage() {
         </div>
 
         {/* Getting Started */}
-        <div id="getting-started" className="theme-panel theme-panel--success scroll-mt-28 p-8">
+        <div id="getting-started" className="theme-panel theme-panel--success scroll-mt-28 p-6 sm:p-8">
           <h2 className="text-2xl font-bold text-emerald-300 mb-6">Getting Started (5-minute path)</h2>
 
           <div className="space-y-4">
@@ -474,6 +464,23 @@ export default function AIHubPage() {
             />
           </div>
         </div>
+
+        <div className="fixed inset-x-0 bottom-3 z-20 mx-auto w-[min(620px,calc(100%-1rem))] rounded-xl border border-white/15 bg-black/70 p-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
+          <div className="flex items-center gap-2">
+            <Link
+              href="#ai-chat"
+              className="flex-1 rounded-lg border border-emerald-300/35 bg-emerald-500/20 px-3 py-2 text-center text-xs font-semibold text-emerald-50"
+            >
+              Open AI Chat
+            </Link>
+            <Link
+              href="/ai-hub?starter=new-user-setup#ai-chat"
+              className="flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-center text-xs font-semibold text-zinc-100"
+            >
+              New User Setup
+            </Link>
+          </div>
+        </div>
       </main>
 
       <ShamrockFooter />
@@ -491,7 +498,7 @@ function EdgeCard({
   description: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+    <div className="rounded-xl border border-white/10 bg-black/30 p-4 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-white/20">
       <div className="inline-flex items-center gap-2 text-amber-200 text-sm font-semibold mb-2">
         {icon}
         {title}
@@ -521,7 +528,7 @@ function QuickStartCard({
   };
 
   return (
-    <Link href={href} className={`block rounded-xl border bg-black/30 p-4 transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${toneStyles[tone]}`}>
+    <Link href={href} className={`block rounded-xl border bg-black/30 p-4 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${toneStyles[tone]}`}>
       <h3 className="text-sm font-bold text-white">{title}</h3>
       <p className="mt-1 text-xs text-gray-300">{description}</p>
       <p className="mt-3 text-[11px] font-semibold">{cta}</p>
@@ -563,7 +570,7 @@ function DatasetCard({
   format: string;
 }) {
   return (
-    <div className="border border-emerald-500/30 rounded p-6 bg-emerald-600/5">
+    <div className="border border-emerald-500/30 rounded p-5 sm:p-6 bg-emerald-600/5 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-emerald-300/40">
       <div className="text-xs font-bold text-emerald-400 mb-2">{type}</div>
       <h3 className="font-bold text-white mb-2">{title}</h3>
       <p className="text-sm text-gray-400 mb-4">{description}</p>
@@ -587,7 +594,7 @@ function ModelCard({
   use: string;
 }) {
   return (
-    <div className="border border-blue-500/30 rounded p-4 bg-blue-600/5">
+    <div className="border border-blue-500/30 rounded p-4 bg-blue-600/5 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-blue-300/40">
       <div className="font-bold text-blue-300 mb-1">{name}</div>
       <div className="text-xs text-gray-500 space-y-1">
         <div>
@@ -614,13 +621,40 @@ function StepCard({
   description: string;
 }) {
   return (
-    <div className="flex gap-4 pb-4 border-b border-emerald-500/20 last:border-0">
+    <div className="flex gap-4 pb-4 border-b border-emerald-500/20 last:border-0 transition motion-safe:hover:translate-x-0.5">
       <div className="flex-shrink-0 w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center font-bold text-white">
         {step}
       </div>
       <div>
         <h4 className="font-bold text-white mb-1">{title}</h4>
         <p className="text-sm text-emerald-200/80">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function LoadingPanel({
+  label,
+  tone,
+  className,
+}: {
+  label: string;
+  tone: "emerald" | "cyan" | "fuchsia" | "yellow";
+  className?: string;
+}) {
+  const toneClass = {
+    emerald: "border-emerald-500/20 bg-emerald-600/10 text-emerald-100/80",
+    cyan: "border-cyan-500/20 bg-cyan-600/10 text-cyan-100/80",
+    fuchsia: "border-fuchsia-500/20 bg-fuchsia-600/10 text-fuchsia-100/80",
+    yellow: "border-yellow-500/20 bg-yellow-600/10 text-yellow-100/80",
+  }[tone];
+
+  return (
+    <div className={`rounded-xl border px-4 py-3 text-xs ${toneClass} ${className || ""}`}>
+      <div className="mb-2">{label}...</div>
+      <div className="space-y-1.5">
+        <div className="h-2 w-3/4 animate-pulse rounded bg-white/20" />
+        <div className="h-2 w-1/2 animate-pulse rounded bg-white/20" />
       </div>
     </div>
   );
