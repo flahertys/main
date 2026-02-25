@@ -19,7 +19,6 @@ import Link from 'next/link';
 const WalletButton = dynamic(
   () => import("@/components/counter/WalletButton").then((mod) => mod.WalletButton),
   {
-    ssr: false,
     loading: () => (
       <div className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.02]" aria-hidden="true" />
     ),
@@ -28,7 +27,7 @@ const WalletButton = dynamic(
 
 const LiveActivity = dynamic(
   () => import("@/components/ui/LiveActivity").then((mod) => mod.LiveActivity),
-  { ssr: false },
+  {},
 );
 
 const ServiceGrid = dynamic(
@@ -41,7 +40,6 @@ const ServiceGrid = dynamic(
 const AINeuralHub = dynamic(
   () => import("@/components/landing/AINeuralHub").then((mod) => mod.AINeuralHub),
   {
-    ssr: false,
     loading: () => <div className="mx-auto max-w-7xl px-6 py-20 text-zinc-500 text-sm">Loading AI workspace…</div>,
   },
 );
