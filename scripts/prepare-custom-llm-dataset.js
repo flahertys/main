@@ -2,6 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 
 const ROOT = process.cwd();
 const INPUT_FILES = [
@@ -14,8 +15,10 @@ const INPUT_FILES = [
 const OUTPUT_DIR = path.join(ROOT, "data", "custom-llm");
 const OUTPUT_FILE = path.join(OUTPUT_DIR, "train.jsonl");
 const SUMMARY_FILE = path.join(OUTPUT_DIR, "summary.json");
+const EXTERNAL_DATASET_DIR = path.join(ROOT, "data", "external-datasets");
 
 const STOCK_CRYPTO_WEIGHT = Number.parseInt(process.env.TRADEHAX_WEIGHT_STOCK_CRYPTO || "7", 10);
+const KALSHI_WEIGHT = Number.parseInt(process.env.TRADEHAX_WEIGHT_KALSHI || "6", 10);
 const MUSIC_TECH_WEIGHT = Number.parseInt(process.env.TRADEHAX_WEIGHT_MUSIC_TECH || "3", 10);
 const GENERAL_WEIGHT = Number.parseInt(process.env.TRADEHAX_WEIGHT_GENERAL || "1", 10);
 const SHUFFLE_SEED = Number.parseInt(process.env.TRADEHAX_DATASET_SHUFFLE_SEED || "42", 10);
@@ -43,6 +46,21 @@ function readJsonl(filePath) {
         throw new Error(`Invalid JSONL at ${filePath}:${index + 1}`);
       }
     });
+}
+
+function hashText(value) {
+  return crypto.createHash("sha256").update(String(value)).digest("hex");
+}
+
+function readExternalJsonlFiles() {
+  if (!fs.existsSync(EXTERNAL_DATASET_DIR)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(EXTERNAL_DATASET_DIR)
+    .filter((name) => name.toLowerCase().endsWith(".jsonl"))
+    .map((name) => path.join(EXTERNAL_DATASET_DIR, name));
 }
 
 function toTrainingRecord(raw) {
@@ -85,6 +103,7 @@ function toTrainingRecord(raw) {
     metadata: {
       category,
       source: "tradehax-jsonl",
+      sourceRowHash: hashText(`${instruction}||${input}||${output}||${category}`),
     },
   };
 }
@@ -97,6 +116,16 @@ function resolvePriorityWeight(category) {
   const normalized = normalizeCategory(category);
 
   // Highest priority: stock + crypto learning and execution
+  if (
+    normalized.includes("KALSHI") ||
+    normalized.includes("PREDICTION_MARKET") ||
+    normalized.includes("EVENT_CONTRACT") ||
+    normalized.includes("ELECTION_ODDS") ||
+    normalized.includes("FED_PROBABILITY")
+  ) {
+    return safeWeight(KALSHI_WEIGHT, 6);
+  }
+
   if (
     normalized.includes("STOCK") ||
     normalized.includes("CRYPTO") ||
@@ -141,22 +170,44 @@ function seededShuffle(items, seed) {
 }
 
 function main() {
-  const rows = INPUT_FILES.flatMap((filePath) => readJsonl(filePath));
+  const externalFiles = readExternalJsonlFiles();
+  const allInputFiles = [...INPUT_FILES, ...externalFiles];
+  const rows = allInputFiles.flatMap((filePath) => readJsonl(filePath));
   const categoryCounts = new Map();
+  const seenInstructionOutput = new Set();
   const trainingRows = rows
     .map(toTrainingRecord)
     .filter(Boolean)
+    .filter((row) => {
+      const user = row.messages?.[1]?.content || "";
+      const assistant = row.messages?.[2]?.content || "";
+      const key = hashText(`${user}::${assistant}`);
+      if (seenInstructionOutput.has(key)) {
+        return false;
+      }
+      seenInstructionOutput.add(key);
+      return true;
+    })
     .flatMap((row) => {
       const weight = resolvePriorityWeight(row.metadata.category);
       const categoryKey = normalizeCategory(row.metadata.category);
       categoryCounts.set(categoryKey, (categoryCounts.get(categoryKey) || 0) + weight);
       const weightedRows = [];
       for (let i = 0; i < weight; i += 1) {
+        const userPrompt = row.messages?.[1]?.content || "";
+        const assistantReply = row.messages?.[2]?.content || "";
+        const integrityBaseHash = hashText(
+          `${userPrompt}||${assistantReply}||${normalizeCategory(row.metadata.category)}`,
+        );
+        const integrityHash = hashText(`${userPrompt}||${assistantReply}||${row.metadata.category}||${i}`);
         weightedRows.push({
           ...row,
           metadata: {
             ...row.metadata,
             sampleWeight: weight,
+            sampleIndex: i,
+            integrityBaseHash,
+            integrityHash,
           },
         });
       }
@@ -175,14 +226,21 @@ function main() {
 
   const summary = {
     generatedAt: new Date().toISOString(),
-    sourceFiles: INPUT_FILES.map((filePath) => path.basename(filePath)),
+    sourceFiles: allInputFiles.map((filePath) => path.basename(filePath)),
     weights: {
+      kalshi: safeWeight(KALSHI_WEIGHT, 6),
       stockCrypto: safeWeight(STOCK_CRYPTO_WEIGHT, 7),
       musicTech: safeWeight(MUSIC_TECH_WEIGHT, 3),
       general: safeWeight(GENERAL_WEIGHT, 1),
     },
     shuffleSeed: SHUFFLE_SEED,
-    samples: shuffledRows.length,
+    uniqueRowsBeforeWeighting: seenInstructionOutput.size,
+    samplesAfterWeighting: shuffledRows.length,
+    integrity: {
+      trainFileSha256: hashText(output),
+      algorithm: "sha256",
+      externalDatasetDirUsed: fs.existsSync(EXTERNAL_DATASET_DIR),
+    },
     categoryDistribution: Object.fromEntries([...categoryCounts.entries()].sort((a, b) => b[1] - a[1])),
   };
   fs.writeFileSync(SUMMARY_FILE, `${JSON.stringify(summary, null, 2)}\n`, "utf8");

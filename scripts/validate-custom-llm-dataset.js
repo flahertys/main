@@ -2,6 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 
 const ROOT = process.cwd();
 const DATASET_PATH = path.join(ROOT, "data", "custom-llm", "train.jsonl");
@@ -42,6 +43,16 @@ function normalizeCategory(value) {
 
 function groupBucket(category) {
   const normalized = normalizeCategory(category);
+  if (
+    normalized.includes("KALSHI") ||
+    normalized.includes("PREDICTION_MARKET") ||
+    normalized.includes("EVENT_CONTRACT") ||
+    normalized.includes("ELECTION_ODDS") ||
+    normalized.includes("FED_PROBABILITY")
+  ) {
+    return "kalshi";
+  }
+
   if (
     normalized.includes("STOCK") ||
     normalized.includes("CRYPTO") ||
@@ -93,12 +104,37 @@ function validateStructure(row, index) {
   if (!row.metadata || typeof row.metadata !== "object") {
     fail(`Row ${index + 1}: metadata missing.`);
   }
+
+  if (typeof row.metadata.integrityHash !== "string" || !/^[a-f0-9]{64}$/i.test(row.metadata.integrityHash)) {
+    fail(`Row ${index + 1}: metadata.integrityHash missing or invalid (expected sha256 hex).`);
+  }
+
+  if (
+    typeof row.metadata.integrityBaseHash !== "string" ||
+    !/^[a-f0-9]{64}$/i.test(row.metadata.integrityBaseHash)
+  ) {
+    fail(`Row ${index + 1}: metadata.integrityBaseHash missing or invalid (expected sha256 hex).`);
+  }
+
+  const expectedBaseHash = crypto
+    .createHash("sha256")
+    .update(`${user.content}||${assistant.content}||${normalizeCategory(row.metadata.category)}`)
+    .digest("hex");
+
+  if (typeof expectedBaseHash !== "string" || expectedBaseHash.length !== 64) {
+    fail(`Row ${index + 1}: failed to compute integrity hash.`);
+  }
+
+  if (row.metadata.integrityBaseHash !== expectedBaseHash) {
+    fail(`Row ${index + 1}: integrityBaseHash mismatch.`);
+  }
 }
 
 function main() {
   const rows = readDatasetRows(DATASET_PATH);
 
   const bucketCounts = {
+    kalshi: 0,
     stock_crypto: 0,
     music_tech: 0,
     general: 0,
@@ -117,11 +153,20 @@ function main() {
   });
 
   const stockCryptoShare = bucketCounts.stock_crypto / rows.length;
+  const kalshiShare = bucketCounts.kalshi / rows.length;
+  const coreMarketsShare = (bucketCounts.stock_crypto + bucketCounts.kalshi) / rows.length;
   const musicTechShare = bucketCounts.music_tech / rows.length;
+  const minKalshiShare = Number.parseFloat(process.env.TRADEHAX_MIN_KALSHI_SHARE || "0");
 
-  if (stockCryptoShare < 0.45) {
+  if (coreMarketsShare < 0.45) {
     fail(
-      `Stock/Crypto share too low (${(stockCryptoShare * 100).toFixed(1)}%). Expected >= 45%.`,
+      `Core market share too low (${(coreMarketsShare * 100).toFixed(1)}%). Expected >= 45% across stock/crypto/kalshi.`,
+    );
+  }
+
+  if (stockCryptoShare < 0.30) {
+    fail(
+      `Stock/Crypto share too low (${(stockCryptoShare * 100).toFixed(1)}%). Expected >= 30% even with Kalshi blend.`,
     );
   }
 
@@ -131,13 +176,25 @@ function main() {
     );
   }
 
+  if (Number.isFinite(minKalshiShare) && minKalshiShare > 0 && kalshiShare < minKalshiShare) {
+    fail(
+      `Kalshi share too low (${(kalshiShare * 100).toFixed(1)}%). Expected >= ${(minKalshiShare * 100).toFixed(1)}%.`,
+    );
+  }
+
   console.log("✅ Dataset validation passed.");
   console.log(`Samples: ${rows.length}`);
   console.log(
-    `Bucket share: stock_crypto=${(stockCryptoShare * 100).toFixed(1)}% music_tech=${(
+    `Bucket share: core_markets=${(coreMarketsShare * 100).toFixed(1)}% kalshi=${(kalshiShare * 100).toFixed(1)}% stock_crypto=${(stockCryptoShare * 100).toFixed(1)}% music_tech=${(
       musicTechShare * 100
     ).toFixed(1)}% general=${((bucketCounts.general / rows.length) * 100).toFixed(1)}%`,
   );
+
+  if (kalshiShare < 0.03) {
+    console.warn(
+      `⚠️ Kalshi coverage is ${(kalshiShare * 100).toFixed(1)}% (recommended >= 3.0% for prediction-market specialization).`,
+    );
+  }
   console.log("Top categories:");
 
   [...categoryCounts.entries()]
