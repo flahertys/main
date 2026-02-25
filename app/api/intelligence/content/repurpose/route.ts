@@ -1,7 +1,10 @@
 import { getLLMClient } from "@/lib/ai/hf-server";
 import { enforceRateLimit, enforceTrustedOrigin } from "@/lib/security";
-import { NextRequest, NextResponse } from "next/server";
 import { promises as dns } from "dns";
+import { NextRequest, NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type SocialChannel =
   | "youtube"
@@ -14,6 +17,9 @@ type SocialChannel =
   | "tiktok";
 
 const DEFAULT_CHANNELS: SocialChannel[] = ["youtube", "discord", "x", "linkedin"];
+const OUTBOUND_FETCH_TIMEOUT_MS = 10_000;
+const MAX_HTML_BYTES = 2_000_000;
+const DNS_CACHE_TTL_MS = 5 * 60_000;
 const ALLOWED_CHANNELS = new Set<SocialChannel>([
   "youtube",
   "discord",
@@ -24,6 +30,8 @@ const ALLOWED_CHANNELS = new Set<SocialChannel>([
   "telegram",
   "tiktok",
 ]);
+
+const dnsResolutionCache = new Map<string, { expiresAt: number; addresses: string[] }>();
 
 function normalizeChannels(input: unknown): SocialChannel[] {
   if (!Array.isArray(input)) return DEFAULT_CHANNELS;
@@ -102,13 +110,27 @@ async function parseAndValidateUrlAsync(urlRaw: unknown): Promise<string | null>
   if (!hostname) return null;
 
   try {
-    const records = await dns.lookup(hostname, { all: true });
+    const now = Date.now();
+    const cached = dnsResolutionCache.get(hostname);
+    const addresses =
+      cached && cached.expiresAt > now
+        ? cached.addresses
+        : (await dns.lookup(hostname, { all: true })).map((record) => record.address);
+
+    if (!cached || cached.expiresAt <= now) {
+      dnsResolutionCache.set(hostname, {
+        expiresAt: now + DNS_CACHE_TTL_MS,
+        addresses,
+      });
+    }
+
+    const records = addresses;
     if (!records || records.length === 0) {
       return null;
     }
 
     for (const record of records) {
-      if (isPrivateOrLoopbackAddress(record.address)) {
+      if (isPrivateOrLoopbackAddress(record)) {
         return null;
       }
     }
@@ -294,20 +316,32 @@ export async function POST(request: NextRequest) {
   const channels = normalizeChannels(body.channels);
 
   let html = "";
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
+    const controller = new AbortController();
+    timeout = setTimeout(() => controller.abort(), OUTBOUND_FETCH_TIMEOUT_MS);
+
     const response = await fetch(sourceUrl, {
       method: "GET",
       cache: "no-store",
+      signal: controller.signal,
       headers: {
         "User-Agent": "TradeHax-SocialAutopilot/1.0",
       },
     });
-
     if (!response.ok) {
       throw new Error(`Website fetch failed (${response.status})`);
     }
 
+    const contentLength = Number(response.headers.get("content-length") || "0");
+    if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
+      throw new Error("Website content is too large to process safely.");
+    }
+
     html = await response.text();
+    if (html.length > MAX_HTML_BYTES) {
+      html = html.slice(0, MAX_HTML_BYTES);
+    }
   } catch (error) {
     return NextResponse.json(
       {
@@ -316,6 +350,10 @@ export async function POST(request: NextRequest) {
       },
       { status: 502, headers: rateLimit.headers },
     );
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
   }
 
   const content = cleanTextFromHtml(html);
