@@ -3,10 +3,11 @@ import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { bookingLinks } from "@/lib/booking";
 import { businessProfile } from "@/lib/business-profile";
-import { createPageMetadata } from "@/lib/seo";
+import { absoluteUrl, createPageMetadata } from "@/lib/seo";
 import type { ServiceConversionId } from "@/lib/service-conversions";
 import { CalendarCheck2, Clock3, Link2, MessageSquare, MonitorCog, Phone } from "lucide-react";
 import Link from "next/link";
+import Script from "next/script";
 
 type ScheduleOptionKey = "device-repair" | "guitar-lessons" | "web3-consulting";
 
@@ -15,18 +16,113 @@ type ScheduleSearchParams = {
 };
 
 export const metadata = createPageMetadata({
-  title: "Book a Service | TradeHax AI | Philadelphia and Remote Support",
+  title: "Book Tech Support, Guitar Lessons, and Web3 Consulting | Philadelphia + South Jersey",
   description:
-    "Book repair, development, and lesson services with clear scheduling options for Greater Philadelphia, South Jersey, and remote support.",
+    "Book tech support, online guitar lessons, and Web3 consulting with fast response across Greater Philadelphia, South Jersey, and remote nationwide.",
   path: "/schedule",
+  imagePath: "/og-services.svg",
+  imageAlt: "TradeHax AI scheduling for Philadelphia and South Jersey services",
   keywords: [
     "book tech support philadelphia",
     "book guitar lessons online",
     "web development consultation",
     "south jersey computer support",
     "tradehax ai scheduling",
+    "philadelphia web3 consulting",
+    "atlantic county tech support",
+    "south jersey guitar lessons",
+    "local computer help near me",
+    "same day remote tech support",
   ],
 });
+
+const localSeoFaqs = [
+  {
+    question: "What areas do you serve locally?",
+    answer:
+      "We support Greater Philadelphia and South Jersey locally, including Atlantic County, and offer remote services nationwide.",
+  },
+  {
+    question: "How fast can I get a response after booking?",
+    answer:
+      "Our target first-response window is under two hours during active hours, with urgent after-hours support available via emergency line unlock.",
+  },
+  {
+    question: "Do you provide remote-only options?",
+    answer:
+      "Yes. Most services, including tech support, guitar lessons, and consulting, are optimized for remote delivery.",
+  },
+] as const;
+
+const schedulePageJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: absoluteUrl("/"),
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Services",
+          item: absoluteUrl("/services"),
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: "Schedule",
+          item: absoluteUrl("/schedule"),
+        },
+      ],
+    },
+    {
+      "@type": "Service",
+      "@id": `${absoluteUrl("/schedule")}#booking-service`,
+      name: "TradeHax AI Service Booking",
+      provider: {
+        "@type": "LocalBusiness",
+        name: "TradeHax AI",
+        telephone: businessProfile.contactPhoneE164,
+        email: businessProfile.contactEmail,
+      },
+      areaServed: [
+        "Greater Philadelphia",
+        "South Jersey",
+        "Atlantic County",
+        "United States",
+      ],
+      serviceType: [
+        "Tech Support",
+        "Online Guitar Lessons",
+        "Web3 Consulting",
+      ],
+      availableChannel: [
+        {
+          "@type": "ServiceChannel",
+          serviceUrl: absoluteUrl("/schedule"),
+          availableLanguage: ["English"],
+        },
+      ],
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${absoluteUrl("/schedule")}#faq`,
+      mainEntity: localSeoFaqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
 
 const bookingOptions = [
   {
@@ -117,6 +213,9 @@ export default function SchedulePage({ searchParams }: { searchParams?: Schedule
 
   return (
     <div className="min-h-screen">
+      <Script id="schedule-page-jsonld" type="application/ld+json" strategy="beforeInteractive">
+        {JSON.stringify(schedulePageJsonLd)}
+      </Script>
       <ShamrockHeader />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <section className="theme-panel p-6 sm:p-8 mb-8">
@@ -287,6 +386,37 @@ export default function SchedulePage({ searchParams }: { searchParams?: Schedule
               <h3 className="font-semibold text-lg">Remote-First</h3>
               <p>Most consultations and lessons are optimized for remote delivery.</p>
             </article>
+          </div>
+        </section>
+
+        <section className="theme-panel p-6 sm:p-8 mt-8">
+          <h2 className="theme-title text-2xl font-bold mb-4">Local Service Coverage</h2>
+          <p className="text-[#cdd8ee] mb-3">
+            TradeHax AI supports clients across <strong>Greater Philadelphia</strong> and
+            <strong> South Jersey</strong>, including Atlantic County, with remote service options nationwide.
+          </p>
+          <p className="text-sm text-[#9ca9c5]">
+            Looking for broader service details? Visit our
+            <Link href="/services" className="ml-1 underline underline-offset-2 hover:text-white">
+              services overview
+            </Link>
+            .
+          </p>
+        </section>
+
+        <section className="theme-panel p-6 sm:p-8 mt-8" aria-labelledby="schedule-faq-heading">
+          <h2 id="schedule-faq-heading" className="theme-title text-2xl font-bold mb-4">
+            Scheduling FAQ
+          </h2>
+          <div className="space-y-3">
+            {localSeoFaqs.map((faq) => (
+              <details key={faq.question} className="rounded-lg border border-[#5f769f]/35 bg-[#0a1422] px-4 py-3">
+                <summary className="cursor-pointer font-semibold text-[#e7ecfb]">
+                  {faq.question}
+                </summary>
+                <p className="mt-2 text-sm text-[#b6c3de]">{faq.answer}</p>
+              </details>
+            ))}
           </div>
         </section>
       </main>
