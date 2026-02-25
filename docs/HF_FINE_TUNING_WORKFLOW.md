@@ -6,11 +6,13 @@ This workflow fine-tunes Mistral-7B for multi-purpose AI on TradeHax datasets, u
 
 ## Steps
 
-1. Install deps: `pip install -r scripts/fine-tune-requirements.txt`
-2. Set HF_API_TOKEN in env.
-3. Run: `node scripts/run-finetune-workflow.js` or directly `python scripts/fine-tune-mistral-lora.py`
-4. Update .env HF_MODEL_ID to fine-tuned model.
-5. Deploy to Vercel.
+1. Install Python **3.10 or 3.11** (required for `torch`/`transformers` in this workflow).
+2. Set `HF_API_TOKEN` in env (required if pushing to Hub).
+3. Run automated workflow:
+   - Install deps + train: `npm run fine-tune -- --install-deps`
+   - Train + push adapter: `npm run fine-tune -- --push`
+4. Update `.env` `HF_MODEL_ID` to the fine-tuned model.
+5. Redeploy to Vercel.
 
 ## Configs
 
@@ -22,3 +24,8 @@ This workflow fine-tunes Mistral-7B for multi-purpose AI on TradeHax datasets, u
 
 - API call: POST /api/hf-server with {"prompt": "Test trading query"}
 - Monitor: Use Hugging Face Hub for model metrics.
+
+## Notes for Windows
+
+- `bitsandbytes` is disabled on Windows by default in this setup.
+- If your machine only has Python 3.14+, the workflow will stop early and prompt you to install Python 3.11.
