@@ -50,38 +50,115 @@ const MODEL_REPOS = modelRepoNames.length > 0 ? modelRepoNames : DEFAULT_MODEL_R
 const DATASET_ASSETS = [
   {
     repo: String(process.env.HF_DATASET_NAME || "tradehax-behavioral").trim() || "tradehax-behavioral",
-    sourcePath: path.join(ROOT, "data", "custom-llm", "train.jsonl"),
-    targetPath: "train.jsonl",
+    files: [
+      {
+        sourcePath: path.join(ROOT, "data", "custom-llm", "train.jsonl"),
+        targetPath: "train.jsonl",
+      },
+    ],
     title: "TradeHax Behavioral Dataset",
     description: "Primary behavioral training rows used by the TradeHax AI experience.",
   },
   {
     repo: "tradehax-ai-training-set",
-    sourcePath: path.join(ROOT, "ai-training-set.jsonl"),
-    targetPath: "ai-training-set.jsonl",
+    files: [
+      {
+        sourcePath: path.join(ROOT, "ai-training-set.jsonl"),
+        targetPath: "ai-training-set.jsonl",
+      },
+    ],
     title: "TradeHax AI Training Set",
     description: "Core Q&A and route-planning dataset exported for Hugging Face training workflows.",
   },
   {
     repo: "tradehax-crypto-education",
-    sourcePath: path.join(ROOT, "tradehax-crypto-education.jsonl"),
-    targetPath: "tradehax-crypto-education.jsonl",
+    files: [
+      {
+        sourcePath: path.join(ROOT, "tradehax-crypto-education.jsonl"),
+        targetPath: "tradehax-crypto-education.jsonl",
+      },
+    ],
     title: "TradeHax Crypto Education",
     description: "Education-focused crypto and Web3 learning dataset.",
   },
   {
     repo: "tradehax-training-expanded",
-    sourcePath: path.join(ROOT, "tradehax-training-expanded.jsonl"),
-    targetPath: "tradehax-training-expanded.jsonl",
+    files: [
+      {
+        sourcePath: path.join(ROOT, "tradehax-training-expanded.jsonl"),
+        targetPath: "tradehax-training-expanded.jsonl",
+      },
+    ],
     title: "TradeHax Expanded Training",
     description: "Expanded production-oriented dataset for advanced model behavior.",
   },
   {
     repo: "tradehax-domain-priority",
-    sourcePath: path.join(ROOT, "tradehax-domain-priority.jsonl"),
-    targetPath: "tradehax-domain-priority.jsonl",
+    files: [
+      {
+        sourcePath: path.join(ROOT, "tradehax-domain-priority.jsonl"),
+        targetPath: "tradehax-domain-priority.jsonl",
+      },
+    ],
     title: "TradeHax Domain Priority",
     description: "Domain routing and prioritization dataset for TradeHax model orchestration.",
+  },
+  {
+    repo: "tradehax-market-seed",
+    files: [
+      {
+        sourcePath: path.join(ROOT, "data", "external-datasets", "kalshi-seed.jsonl"),
+        targetPath: "kalshi-seed.jsonl",
+      },
+    ],
+    title: "TradeHax Market Seed",
+    description: "External market seed rows (Kalshi-style events) used for strategy bootstrapping.",
+  },
+  {
+    repo: "tradehax-tradebot-training",
+    files: [
+      {
+        sourcePath: path.join(ROOT, "data", "tradebot", "train.chat.jsonl"),
+        targetPath: "train.chat.jsonl",
+      },
+      {
+        sourcePath: path.join(ROOT, "data", "tradebot", "train.raw.jsonl"),
+        targetPath: "train.raw.jsonl",
+      },
+      {
+        sourcePath: path.join(ROOT, "data", "tradebot", "validation.chat.jsonl"),
+        targetPath: "validation.chat.jsonl",
+      },
+      {
+        sourcePath: path.join(ROOT, "data", "tradebot", "validation.raw.jsonl"),
+        targetPath: "validation.raw.jsonl",
+      },
+      {
+        sourcePath: path.join(ROOT, "data", "tradebot", "manifest.json"),
+        targetPath: "manifest.json",
+      },
+    ],
+    title: "TradeHax Tradebot Training",
+    description: "Tradebot supervised and validation corpora plus manifest metadata.",
+  },
+  {
+    repo: "tradehax-tradebot-evaluation",
+    files: [
+      {
+        sourcePath: path.join(ROOT, "data", "tradebot", "eval-suite.jsonl"),
+        targetPath: "eval-suite.jsonl",
+      },
+      {
+        sourcePath: path.join(ROOT, "data", "tradebot", "eval-responses.jsonl"),
+        targetPath: "eval-responses.jsonl",
+      },
+      {
+        sourcePath: path.join(ROOT, "data", "tradebot", "eval-score.json"),
+        targetPath: "eval-score.json",
+      },
+    ],
+    title: "TradeHax Tradebot Evaluation",
+    description: "Evaluation prompts, generated responses, and scoring outputs for tradebot quality checks.",
   },
 ];
 
@@ -215,8 +292,15 @@ async function main() {
 
   let uploadedDatasets = 0;
   for (const asset of DATASET_ASSETS) {
-    if (!fs.existsSync(asset.sourcePath)) {
-      console.log(`⚠️  Skipping missing dataset file: ${path.relative(ROOT, asset.sourcePath)}`);
+    const assetFiles = Array.isArray(asset.files)
+      ? asset.files
+      : [{ sourcePath: asset.sourcePath, targetPath: asset.targetPath }];
+
+    const missingFiles = assetFiles.filter((file) => !fs.existsSync(file.sourcePath));
+    if (missingFiles.length > 0) {
+      for (const missingFile of missingFiles) {
+        console.log(`⚠️  Skipping missing dataset file: ${path.relative(ROOT, missingFile.sourcePath)}`);
+      }
       continue;
     }
 
@@ -227,19 +311,19 @@ async function main() {
     });
 
     const datasetRepoId = `${targetUser}/${asset.repo}`;
-    const datasetContentBase64 = fs.readFileSync(asset.sourcePath).toString("base64");
     const readmeContent = datasetReadme(asset, targetUser);
+    const datasetFilesPayload = assetFiles.map((file) => ({
+      path: file.targetPath,
+      content: fs.readFileSync(file.sourcePath).toString("base64"),
+      encoding: "base64",
+    }));
 
     await commitFiles({
       typePlural: "datasets",
       repoId: datasetRepoId,
-      summary: `Sync dataset asset: ${asset.targetPath}`,
+      summary: `Sync dataset asset(s): ${asset.repo}`,
       files: [
-        {
-          path: asset.targetPath,
-          content: datasetContentBase64,
-          encoding: "base64",
-        },
+        ...datasetFilesPayload,
         {
           path: "README.md",
           content: readmeContent,
