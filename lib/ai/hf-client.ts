@@ -76,6 +76,9 @@ function isRetryableGenerationError(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   return (
     isProviderUnavailableError(error) ||
+    message.includes("not supported for task") ||
+    message.includes("supported task:") ||
+    message.includes("task text-generation") ||
     message.includes("model is loading") ||
     message.includes("overloaded") ||
     message.includes("temporarily unavailable") ||
@@ -144,17 +147,26 @@ class HFLLMClient {
 
       return "";
     } catch (chatError) {
-      const fallbackResponse = await this.client.textGeneration({
-        model: modelId,
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: args.maxTokens,
-          temperature: args.temperature,
-          top_p: args.topP,
-          do_sample: true,
-          return_full_text: false,
-        },
-      });
+      let fallbackResponse: unknown;
+      try {
+        fallbackResponse = await this.client.textGeneration({
+          model: modelId,
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: args.maxTokens,
+            temperature: args.temperature,
+            top_p: args.topP,
+            do_sample: true,
+            return_full_text: false,
+          },
+        });
+      } catch (textGenError) {
+        const textGenMessage = textGenError instanceof Error ? textGenError.message.toLowerCase() : String(textGenError).toLowerCase();
+        if (textGenMessage.includes("not supported for task") || textGenMessage.includes("supported task:")) {
+          throw chatError;
+        }
+        throw textGenError;
+      }
 
       if (typeof fallbackResponse === "string") {
         return fallbackResponse;
