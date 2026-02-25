@@ -7,6 +7,12 @@ import { createPageMetadata } from "@/lib/seo";
 import type { ServiceConversionId } from "@/lib/service-conversions";
 import { CalendarCheck2, Clock3, Link2, MessageSquare, MonitorCog, Phone } from "lucide-react";
 
+type ScheduleOptionKey = "device-repair" | "guitar-lessons" | "web3-consulting";
+
+type ScheduleSearchParams = {
+  service?: string | string[];
+};
+
 export const metadata = createPageMetadata({
   title: "Book a Service | TradeHax AI | Philadelphia and Remote Support",
   description:
@@ -23,26 +29,78 @@ export const metadata = createPageMetadata({
 
 const bookingOptions = [
   {
+    key: "device-repair" as ScheduleOptionKey,
     title: "Device Repair",
     detail: "Remote-first diagnostics and hardware support scheduling.",
     href: bookingLinks.techSupport,
     conversionId: "book_repair_quote" as ServiceConversionId,
+    aliases: ["tech-support"],
   },
   {
+    key: "guitar-lessons" as ScheduleOptionKey,
     title: "Guitar Lessons",
     detail: "Weekly and monthly lesson scheduling with live remote sessions.",
     href: bookingLinks.guitarLessons,
     conversionId: "book_guitar_lesson" as ServiceConversionId,
+    aliases: ["guitar-lessons"],
   },
   {
+    key: "web3-consulting" as ScheduleOptionKey,
     title: "Web3 Consulting",
     detail: "Architecture planning, implementation guidance, and Solana integrations.",
     href: bookingLinks.webDevConsult,
     conversionId: "book_web3_consult" as ServiceConversionId,
+    aliases: [
+      "web3-consult",
+      "trading-consult",
+      "social-media-consult",
+      "it-management",
+      "app-development",
+      "database-consult",
+      "ecommerce-consult",
+    ],
   },
 ] as const;
 
-export default function SchedulePage() {
+const serviceAliasLabel: Record<string, string> = {
+  "tech-support": "Tech Support",
+  "guitar-lessons": "Guitar Lessons",
+  "web3-consult": "Web3 Consulting",
+  "trading-consult": "Trading System Development",
+  "social-media-consult": "Social Media Marketing",
+  "it-management": "IT Management",
+  "app-development": "Application Development",
+  "database-consult": "Database Consulting",
+  "ecommerce-consult": "E-Commerce Consulting",
+};
+
+const serviceAliasToOption: Record<string, ScheduleOptionKey> = bookingOptions.reduce(
+  (acc, option) => {
+    option.aliases.forEach((alias) => {
+      acc[alias] = option.key;
+    });
+    return acc;
+  },
+  {} as Record<string, ScheduleOptionKey>
+);
+
+export default function SchedulePage({ searchParams }: { searchParams?: ScheduleSearchParams }) {
+  const serviceParamRaw = Array.isArray(searchParams?.service)
+    ? searchParams?.service[0]
+    : searchParams?.service;
+  const requestedService = serviceParamRaw?.trim().toLowerCase() ?? null;
+  const highlightedKey = requestedService
+    ? serviceAliasToOption[requestedService] ?? null
+    : null;
+  const requestedServiceLabel = requestedService
+    ? serviceAliasLabel[requestedService] ?? requestedService
+    : null;
+  const prioritizedBookingOptions = highlightedKey
+    ? [...bookingOptions].sort(
+        (a, b) => Number(b.key === highlightedKey) - Number(a.key === highlightedKey)
+      )
+    : bookingOptions;
+
   return (
     <div className="min-h-screen">
       <ShamrockHeader />
@@ -60,6 +118,11 @@ export default function SchedulePage() {
             All lesson and service booking links across the site route through this
             scheduling hub for a cleaner, consistent experience.
           </p>
+          {requestedServiceLabel && highlightedKey && (
+            <p className="mt-2 inline-flex items-center rounded-full border border-cyan-300/35 bg-cyan-400/10 px-3 py-1 text-xs text-cyan-100">
+              Request detected: <strong className="ml-1">{requestedServiceLabel}</strong>. Matching option is highlighted below.
+            </p>
+          )}
           <div className="mt-5 flex flex-wrap gap-3">
             <TrackedCtaLink
               href={businessProfile.contactLinks.text}
@@ -102,8 +165,14 @@ export default function SchedulePage() {
         </section>
 
         <section className="grid gap-5 lg:grid-cols-3 mb-8">
-          {bookingOptions.map((item) => (
-            <article key={item.title} className="theme-grid-card">
+          {prioritizedBookingOptions.map((item) => {
+            const isHighlighted = highlightedKey === item.key;
+
+            return (
+            <article
+              key={item.title}
+              className={`theme-grid-card ${isHighlighted ? "border-cyan-300/65 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.35)]" : ""}`}
+            >
               <CalendarCheck2 className="w-5 h-5 text-[#77f9a8]" />
               <h2 className="text-lg font-semibold">{item.title}</h2>
               <p>{item.detail}</p>
@@ -114,11 +183,11 @@ export default function SchedulePage() {
                 external
                 className="theme-cta theme-cta--compact mt-1 self-start"
               >
-                Open Booking
+                {isHighlighted ? "Continue Booking" : "Open Booking"}
                 <Link2 className="w-4 h-4" />
               </TrackedCtaLink>
             </article>
-          ))}
+          );})}
         </section>
 
         <section className="theme-panel p-5 sm:p-6 mb-8">
