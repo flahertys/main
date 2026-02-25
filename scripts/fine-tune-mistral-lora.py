@@ -34,9 +34,11 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    model_id = os.getenv("HF_MODEL_ID", "mistralai/Mistral-7B-Instruct-v0.1")
+    use_cuda = torch.cuda.is_available()
+    env_model_id = os.getenv("HF_MODEL_ID")
+    model_id = env_model_id or ("mistralai/Mistral-7B-Instruct-v0.1" if use_cuda else "sshleifer/tiny-gpt2")
     hub_model_id = os.getenv("HF_HUB_MODEL_ID", "irishpride81mf/tradehax-mistral-finetuned")
-    dataset_path = os.getenv("DATASET_PATH", "data/custom-llm/tradehax-training-expanded.jsonl")
+    dataset_path = os.getenv("DATASET_PATH", "tradehax-training-expanded.jsonl")
     output_dir = os.getenv("TRAIN_OUTPUT_DIR", "./fine-tuned-tradehax-mistral")
     epochs = int(os.getenv("TRAIN_EPOCHS", "3"))
     batch_size = int(os.getenv("TRAIN_BATCH_SIZE", "2"))
@@ -47,6 +49,16 @@ def main() -> None:
     lora_alpha = int(os.getenv("LORA_ALPHA", "32"))
 
     dataset_file = Path(dataset_path)
+    if not dataset_file.exists():
+        candidates = [
+            Path("tradehax-training-expanded.jsonl"),
+            Path("data/custom-llm/tradehax-training-expanded.jsonl"),
+            Path("data/custom-llm/tradehax-training-expanded.json"),
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                dataset_file = candidate
+                break
     if not dataset_file.exists():
         raise FileNotFoundError(f"Dataset file not found: {dataset_file}")
 
@@ -60,10 +72,41 @@ def main() -> None:
 
     print(f"Loading dataset from: {dataset_file}")
     dataset = load_dataset("json", data_files=str(dataset_file), split="train")
+
+    def normalize_example(example):
+        if isinstance(example.get("text"), str) and example["text"].strip():
+            return {"text": example["text"].strip()}
+
+        instructions = example.get("instructions") or example.get("instruction")
+        response = example.get("response") or example.get("output")
+        context = example.get("input") or example.get("context")
+        if isinstance(instructions, str) and isinstance(response, str):
+            text = f"Instruction: {instructions.strip()}"
+            if isinstance(context, str) and context.strip():
+                text += f"\nContext: {context.strip()}"
+            text += f"\nAnswer: {response.strip()}"
+            return {"text": text}
+
+        messages = example.get("messages")
+        if isinstance(messages, list) and messages:
+            lines = []
+            for message in messages:
+                if not isinstance(message, dict):
+                    continue
+                role = str(message.get("role", "user")).upper()
+                content = str(message.get("content", "")).strip()
+                if content:
+                    lines.append(f"{role}: {content}")
+            return {"text": "\n".join(lines).strip()}
+
+        return {"text": ""}
+
+    dataset = dataset.map(normalize_example, remove_columns=dataset.column_names)
+    dataset = dataset.filter(lambda row: isinstance(row.get("text"), str) and row["text"].strip() != "")
     dataset = dataset.train_test_split(test_size=0.1, seed=42)
 
     print(f"Loading tokenizer: {model_id}")
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -83,7 +126,6 @@ def main() -> None:
         remove_columns=dataset["train"].column_names,
     )
 
-    use_cuda = torch.cuda.is_available()
     use_4bit = use_cuda and os.name != "nt"
 
     model_kwargs = {
@@ -95,10 +137,17 @@ def main() -> None:
     print(f"Loading model: {model_id} | cuda={use_cuda} | load_in_4bit={use_4bit}")
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
 
+    if "gpt2" in model_id.lower():
+        target_modules = ["c_attn"]
+    elif "mistral" in model_id.lower() or "llama" in model_id.lower():
+        target_modules = ["q_proj", "v_proj"]
+    else:
+        target_modules = ["q_proj", "v_proj"]
+
     lora_config = LoraConfig(
         r=lora_r,
         lora_alpha=lora_alpha,
-        target_modules=["q_proj", "v_proj"],
+        target_modules=target_modules,
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM",
