@@ -7,18 +7,19 @@ import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { createPageMetadata } from "@/lib/seo";
 import {
-  BarChart3,
-  Brain,
-  Crown,
-  Layers,
-  MessageSquare,
-  ShieldCheck,
-  Sparkles,
-  Target,
-  Wand2,
-  Zap,
+    BarChart3,
+    Brain,
+    Crown,
+    Layers,
+    MessageSquare,
+    ShieldCheck,
+    Sparkles,
+    Target,
+    Wand2,
+    Zap,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const metadata = createPageMetadata({
   title: "TradeHax AI Hub - Beginner Friendly AI Assistant",
@@ -116,7 +117,15 @@ export default function AIHubPage() {
 
         {/* Smart Environment Monitor */}
         <div className="mb-12">
-          <SmartEnvironmentMonitor />
+          <Suspense
+            fallback={
+              <div className="rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-4 py-3 text-xs text-cyan-100/80">
+                Loading smart environment monitor...
+              </div>
+            }
+          >
+            <SmartEnvironmentMonitor />
+          </Suspense>
         </div>
 
         <div id="ai-autopilot" className="mb-3 rounded-xl border border-fuchsia-500/20 bg-fuchsia-600/10 px-4 py-3">
@@ -136,7 +145,15 @@ export default function AIHubPage() {
           </div>
         </div>
 
-        <ModelScoreboardPanel />
+        <Suspense
+          fallback={
+            <div className="mb-8 rounded-xl border border-fuchsia-500/20 bg-fuchsia-600/10 px-4 py-3 text-xs text-fuchsia-100/80">
+              Loading AI autopilot controls...
+            </div>
+          }
+        >
+          <ModelScoreboardPanel />
+        </Suspense>
 
         <div className="theme-panel p-6 sm:p-8 mb-12">
           <div className="flex items-center gap-2 mb-4 text-amber-200">
@@ -170,7 +187,15 @@ export default function AIHubPage() {
               <Wand2 className="w-5 h-5 text-cyan-400" />
               <h2 className="text-xl font-bold text-cyan-300">Image Generator (Simple)</h2>
             </div>
-            <ImageGeneratorComponent />
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-4 py-3 text-xs text-cyan-100/80">
+                  Loading image generator...
+                </div>
+              }
+            >
+              <ImageGeneratorComponent />
+            </Suspense>
           </div>
 
           {/* AI Chat */}
@@ -179,7 +204,15 @@ export default function AIHubPage() {
               <MessageSquare className="w-5 h-5 text-emerald-400" />
               <h2 className="text-xl font-bold text-emerald-300">AI Chat (Recommended First)</h2>
             </div>
-            <HFChatComponent />
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-600/10 px-4 py-3 text-xs text-emerald-100/80">
+                  Loading AI chat...
+                </div>
+              }
+            >
+              <HFChatComponent />
+            </Suspense>
           </div>
         </div>
 
@@ -191,7 +224,15 @@ export default function AIHubPage() {
               <Sparkles className="w-5 h-5 text-yellow-400" />
               <h2 className="text-xl font-bold text-yellow-300">Text Generator (Templates)</h2>
             </div>
-            <HFGeneratorComponent />
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-yellow-500/20 bg-yellow-600/10 px-4 py-3 text-xs text-yellow-100/80">
+                  Loading text generator...
+                </div>
+              }
+            >
+              <HFGeneratorComponent />
+            </Suspense>
           </div>
 
           {/* Capabilities */}
