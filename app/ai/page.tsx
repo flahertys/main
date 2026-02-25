@@ -5,6 +5,7 @@ import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { createPageMetadata } from "@/lib/seo";
 import { AlertCircle, Brain, GitBranch, MessageSquare, Route } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const metadata = createPageMetadata({
   title: "AI Hub - Hugging Face LLM Integration",
@@ -119,7 +120,15 @@ export default function AIHubPage() {
               <MessageSquare className="w-5 h-5 text-cyan-400" />
               <h2 className="text-xl font-bold text-cyan-300">Chat</h2>
             </div>
-            <HFChatComponent />
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-4 py-3 text-xs text-cyan-100/80">
+                  Loading AI chat...
+                </div>
+              }
+            >
+              <HFChatComponent />
+            </Suspense>
           </div>
 
           {/* Generator */}
@@ -128,7 +137,15 @@ export default function AIHubPage() {
               <Brain className="w-5 h-5 text-emerald-400" />
               <h2 className="text-xl font-bold text-emerald-300">Generator</h2>
             </div>
-            <HFGeneratorComponent />
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-600/10 px-4 py-3 text-xs text-emerald-100/80">
+                  Loading text generator...
+                </div>
+              }
+            >
+              <HFGeneratorComponent />
+            </Suspense>
           </div>
         </div>
 

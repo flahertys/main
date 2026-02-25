@@ -1,19 +1,25 @@
 import { HFChatComponent } from "@/components/ai/HFChatComponent";
 import { HFGeneratorComponent } from "@/components/ai/HFGeneratorComponent";
 import { ImageGeneratorComponent } from "@/components/ai/ImageGeneratorComponent";
+import { ModelScoreboardPanel } from "@/components/ai/ModelScoreboardPanel";
 import { SmartEnvironmentMonitor } from "@/components/ai/SmartEnvironmentMonitor";
 import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { createPageMetadata } from "@/lib/seo";
 import {
-  BarChart3,
-  Brain,
-  MessageSquare,
-  Sparkles,
-  Wand2,
-  Zap,
+    BarChart3,
+    Brain,
+    Crown,
+    Layers,
+    MessageSquare,
+    ShieldCheck,
+    Sparkles,
+    Target,
+    Wand2,
+    Zap,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const metadata = createPageMetadata({
   title: "TradeHax AI Hub - Beginner Friendly AI Assistant",
@@ -49,6 +55,39 @@ export default function AIHubPage() {
           </div>
         </div>
 
+        <div className="mb-10 rounded-2xl border border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-600/15 via-indigo-600/10 to-cyan-600/10 p-5 sm:p-6">
+          <div className="flex items-center gap-2 text-fuchsia-100 mb-3">
+            <Crown className="w-5 h-5" />
+            <h2 className="text-lg sm:text-xl font-bold">TradeHax Launchpad (1-click starts)</h2>
+          </div>
+          <p className="text-sm text-fuchsia-100/80 mb-4">
+            Designed for new users: pick your goal and we pre-configure the assistant flow so you start with momentum, not confusion.
+          </p>
+          <div className="grid gap-3 md:grid-cols-3">
+            <Link
+              href="/ai-hub?starter=new-user-setup"
+              className="rounded-xl border border-fuchsia-400/20 bg-black/30 p-4 hover:border-fuchsia-300/40 transition"
+            >
+              <div className="text-sm font-semibold text-fuchsia-100">New User Setup</div>
+              <p className="mt-1 text-xs text-fuchsia-100/70">Auto-loads onboarding objective + guided first question.</p>
+            </Link>
+            <Link
+              href="/ai-hub?starter=first-trade-plan"
+              className="rounded-xl border border-cyan-400/20 bg-black/30 p-4 hover:border-cyan-300/40 transition"
+            >
+              <div className="text-sm font-semibold text-cyan-100">First Trade Plan</div>
+              <p className="mt-1 text-xs text-cyan-100/70">Sets up a risk-aware beginner plan workflow.</p>
+            </Link>
+            <Link
+              href="/ai-hub?starter=content-engine"
+              className="rounded-xl border border-emerald-400/20 bg-black/30 p-4 hover:border-emerald-300/40 transition"
+            >
+              <div className="text-sm font-semibold text-emerald-100">Content Engine</div>
+              <p className="mt-1 text-xs text-emerald-100/70">Pre-fills text + image generation for social growth.</p>
+            </Link>
+          </div>
+        </div>
+
         <div className="mb-8 grid gap-4 md:grid-cols-3">
           <QuickStartCard
             title="I&apos;m new"
@@ -78,7 +117,66 @@ export default function AIHubPage() {
 
         {/* Smart Environment Monitor */}
         <div className="mb-12">
-          <SmartEnvironmentMonitor />
+          <Suspense
+            fallback={
+              <div className="rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-4 py-3 text-xs text-cyan-100/80">
+                Loading smart environment monitor...
+              </div>
+            }
+          >
+            <SmartEnvironmentMonitor />
+          </Suspense>
+        </div>
+
+        <div id="ai-autopilot" className="mb-3 rounded-xl border border-fuchsia-500/20 bg-fuchsia-600/10 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-fuchsia-100">New here? One-click setup</p>
+              <p className="text-xs text-fuchsia-100/75 mt-1">
+                Launch a guided 30-second setup wizard for autopilot and beginner-safe defaults.
+              </p>
+            </div>
+            <Link
+              href="/ai-hub?setupWizard=1#ai-autopilot"
+              className="rounded border border-fuchsia-300/40 bg-black/25 px-3 py-1.5 text-xs font-semibold text-fuchsia-100 hover:bg-black/35 transition"
+            >
+              I&apos;m new — set this up for me
+            </Link>
+          </div>
+        </div>
+
+        <Suspense
+          fallback={
+            <div className="mb-8 rounded-xl border border-fuchsia-500/20 bg-fuchsia-600/10 px-4 py-3 text-xs text-fuchsia-100/80">
+              Loading AI autopilot controls...
+            </div>
+          }
+        >
+          <ModelScoreboardPanel />
+        </Suspense>
+
+        <div className="theme-panel p-6 sm:p-8 mb-12">
+          <div className="flex items-center gap-2 mb-4 text-amber-200">
+            <Target className="w-5 h-5" />
+            <h2 className="text-xl sm:text-2xl font-bold">Why this stands out vs generic AI tools</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            <EdgeCard
+              icon={<Layers className="w-4 h-4" />}
+              title="Flow-aware UX"
+              description="Most tools stop at chat. TradeHax pushes users through clear objective → route → execution → next action."
+            />
+            <EdgeCard
+              icon={<ShieldCheck className="w-4 h-4" />}
+              title="Safer onboarding"
+              description="Beginner prompts, low-friction controls, and predictable next steps reduce overwhelm and churn."
+            />
+            <EdgeCard
+              icon={<Crown className="w-4 h-4" />}
+              title="Operator-grade depth"
+              description="Advanced controls remain available for power users without cluttering the first-time experience."
+            />
+          </div>
         </div>
 
         {/* Features Grid */}
@@ -89,7 +187,15 @@ export default function AIHubPage() {
               <Wand2 className="w-5 h-5 text-cyan-400" />
               <h2 className="text-xl font-bold text-cyan-300">Image Generator (Simple)</h2>
             </div>
-            <ImageGeneratorComponent />
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-4 py-3 text-xs text-cyan-100/80">
+                  Loading image generator...
+                </div>
+              }
+            >
+              <ImageGeneratorComponent />
+            </Suspense>
           </div>
 
           {/* AI Chat */}
@@ -98,7 +204,15 @@ export default function AIHubPage() {
               <MessageSquare className="w-5 h-5 text-emerald-400" />
               <h2 className="text-xl font-bold text-emerald-300">AI Chat (Recommended First)</h2>
             </div>
-            <HFChatComponent />
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-600/10 px-4 py-3 text-xs text-emerald-100/80">
+                  Loading AI chat...
+                </div>
+              }
+            >
+              <HFChatComponent />
+            </Suspense>
           </div>
         </div>
 
@@ -110,7 +224,15 @@ export default function AIHubPage() {
               <Sparkles className="w-5 h-5 text-yellow-400" />
               <h2 className="text-xl font-bold text-yellow-300">Text Generator (Templates)</h2>
             </div>
-            <HFGeneratorComponent />
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-yellow-500/20 bg-yellow-600/10 px-4 py-3 text-xs text-yellow-100/80">
+                  Loading text generator...
+                </div>
+              }
+            >
+              <HFGeneratorComponent />
+            </Suspense>
           </div>
 
           {/* Capabilities */}
@@ -250,6 +372,26 @@ export default function AIHubPage() {
       </main>
 
       <ShamrockFooter />
+    </div>
+  );
+}
+
+function EdgeCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+      <div className="inline-flex items-center gap-2 text-amber-200 text-sm font-semibold mb-2">
+        {icon}
+        {title}
+      </div>
+      <p className="text-xs text-zinc-300 leading-relaxed">{description}</p>
     </div>
   );
 }

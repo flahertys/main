@@ -1,12 +1,20 @@
 "use client";
 
 import { ArrowUp, Compass, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   id: string;
+  meta?: {
+    step: number;
+    mode: ChatMode;
+    timestamp: number;
+    predictionDomain?: "stock" | "crypto" | "kalshi" | "general";
+    predictionConfidence?: number;
+  };
 }
 
 type ChatMode = "navigator" | "custom" | "chat";
@@ -92,7 +100,60 @@ const QUICK_START_PROMPTS = [
   },
 ] as const;
 
+type DecisionSignals = {
+  confidence: number;
+  risk: number;
+  priority: "High" | "Medium" | "Low";
+  nextAction: string;
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function scoreAssistantResponse(content: string, step: number, mode: ChatMode): DecisionSignals {
+  const text = content.toLowerCase();
+  const actionableMatches = (text.match(/\b(step|next|then|open|visit|click|start|do this|checklist)\b/g) || []).length;
+  const uncertaintyMatches = (text.match(/\b(maybe|might|could|possibly|depends|uncertain|not sure)\b/g) || []).length;
+  const riskMatches = (text.match(/\b(leverage|margin|all-in|borrow|high risk|volatile|liquidation)\b/g) || []).length;
+  const safetyMatches = (text.match(/\b(risk|stop[- ]?loss|limit|safe|discipline|position size|conservative)\b/g) || []).length;
+  const routeMatches = (text.match(/\/(ai|ai-hub|pricing|schedule|services|dashboard|trading)/g) || []).length;
+
+  let confidence = 58 + actionableMatches * 6 + routeMatches * 5 + safetyMatches * 3 - uncertaintyMatches * 8;
+  if (mode === "navigator") confidence += 5;
+  if (step >= 2) confidence += 4;
+
+  let risk = 34 + riskMatches * 9 + uncertaintyMatches * 5 - safetyMatches * 4;
+  if (mode === "custom") risk -= 3;
+  if (routeMatches > 0) risk -= 2;
+
+  confidence = clamp(confidence, 25, 98);
+  risk = clamp(risk, 5, 95);
+
+  let priority: DecisionSignals["priority"] = "Medium";
+  if (step >= 2 || routeMatches > 0 || actionableMatches >= 4) {
+    priority = "High";
+  }
+  if (uncertaintyMatches >= 3 && actionableMatches <= 1) {
+    priority = "Low";
+  }
+
+  let nextAction = "Confirm your objective, then ask for one concrete next click.";
+  if (step === 0) nextAction = "Lock your objective in one sentence and request a 3-step start plan.";
+  if (step === 1) nextAction = "Ask for exact page order and complete the first page now.";
+  if (step === 2) nextAction = "Execute the top action now, then return with result feedback.";
+  if (step >= 3) nextAction = "Choose one CTA (pricing, schedule, or service) and complete it.";
+
+  return {
+    confidence,
+    risk,
+    priority,
+    nextAction,
+  };
+}
+
 export function HFChatComponent() {
+  const searchParams = useSearchParams();
   const [userId, setUserId] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -144,6 +205,26 @@ export function HFChatComponent() {
   }, []);
 
   useEffect(() => {
+    const starter = searchParams.get("starter");
+    if (!starter) return;
+
+    if (starter === "new-user-setup") {
+      setMode("navigator");
+      setSelectedStep(0);
+      setObjective("Get fully onboarded as a new user with clear first actions");
+      setInput("I am brand new. Give me a 10-minute setup checklist and the first page I should open.");
+      return;
+    }
+
+    if (starter === "first-trade-plan") {
+      setMode("custom");
+      setSelectedStep(1);
+      setObjective("Build a beginner-safe first trade plan with risk limits");
+      setInput("Create my first beginner trade plan with risk controls and exact step-by-step actions.");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
 
     const memory: PipelineMemory = {
@@ -180,6 +261,11 @@ export function HFChatComponent() {
       role: "user",
       content: trimmedInput,
       id: `msg-${Date.now()}`,
+      meta: {
+        step: selectedStep,
+        mode,
+        timestamp: Date.now(),
+      },
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -297,6 +383,22 @@ export function HFChatComponent() {
         role: "assistant",
         content: `${coreResponse}${suggestionText}`,
         id: `msg-${Date.now()}-ai`,
+        meta: {
+          step: selectedStep,
+          mode,
+          timestamp: Date.now(),
+          predictionDomain:
+            data?.prediction?.domain === "stock" ||
+            data?.prediction?.domain === "crypto" ||
+            data?.prediction?.domain === "kalshi" ||
+            data?.prediction?.domain === "general"
+              ? data.prediction.domain
+              : "general",
+          predictionConfidence:
+            typeof data?.prediction?.confidence === "number"
+              ? Math.max(0, Math.min(100, Math.round(data.prediction.confidence)))
+              : undefined,
+        },
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -329,7 +431,7 @@ export function HFChatComponent() {
   };
 
   return (
-    <div className="theme-panel w-full h-[600px] flex flex-col overflow-hidden">
+    <div className="theme-panel w-full h-[78vh] min-h-[560px] max-h-[920px] flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-emerald-500/20 p-4">
         <div>
@@ -475,7 +577,7 @@ export function HFChatComponent() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full text-emerald-200/50 text-center">
             <div>
@@ -494,13 +596,59 @@ export function HFChatComponent() {
             className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+              className={`max-w-[90%] sm:max-w-[82%] lg:max-w-md px-4 py-2 rounded-lg ${
                 msg.role === "user"
                   ? "bg-emerald-600/40 text-emerald-100 border border-emerald-500/30"
                   : "bg-cyan-600/20 text-cyan-100 border border-cyan-500/20"
               }`}
             >
               {msg.content}
+              {msg.role === "assistant" && (
+                <div className="mt-3 rounded border border-cyan-400/25 bg-black/30 p-2 text-[11px]">
+                  {(() => {
+                    const signals = scoreAssistantResponse(
+                      msg.content,
+                      msg.meta?.step ?? selectedStep,
+                      msg.meta?.mode ?? mode,
+                    );
+
+                    return (
+                      <>
+                        <div className="mb-2 font-semibold text-cyan-200">Decision Signals</div>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {msg.meta?.predictionDomain && msg.meta.predictionDomain !== "general" ? (
+                            <SignalPill
+                              label={`Domain ${msg.meta.predictionDomain.toUpperCase()}`}
+                              tone="mid"
+                            />
+                          ) : null}
+                          {typeof msg.meta?.predictionConfidence === "number" ? (
+                            <SignalPill
+                              label={`Domain conf ${msg.meta.predictionConfidence}%`}
+                              tone={msg.meta.predictionConfidence >= 70 ? "good" : "mid"}
+                            />
+                          ) : null}
+                          <SignalPill
+                            label={`Confidence ${signals.confidence}%`}
+                            tone={signals.confidence >= 75 ? "good" : signals.confidence >= 55 ? "mid" : "warn"}
+                          />
+                          <SignalPill
+                            label={`Risk ${signals.risk}%`}
+                            tone={signals.risk <= 30 ? "good" : signals.risk <= 55 ? "mid" : "warn"}
+                          />
+                          <SignalPill
+                            label={`Priority ${signals.priority}`}
+                            tone={signals.priority === "High" ? "good" : signals.priority === "Medium" ? "mid" : "warn"}
+                          />
+                        </div>
+                        <p className="text-cyan-100/75">
+                          <span className="font-semibold text-cyan-200">Next action:</span> {signals.nextAction}
+                        </p>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -526,7 +674,7 @@ export function HFChatComponent() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-emerald-500/20 p-4">
+      <div className="border-t border-emerald-500/20 p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-between mb-2 text-[11px] text-emerald-200/70">
           <span className="inline-flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
@@ -562,4 +710,21 @@ export function HFChatComponent() {
       </div>
     </div>
   );
+}
+
+function SignalPill({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "good" | "mid" | "warn";
+}) {
+  const toneClasses =
+    tone === "good"
+      ? "border-emerald-400/30 bg-emerald-500/20 text-emerald-100"
+      : tone === "mid"
+        ? "border-amber-400/30 bg-amber-500/20 text-amber-100"
+        : "border-rose-400/30 bg-rose-500/20 text-rose-100";
+
+  return <span className={`rounded px-2 py-1 border ${toneClasses}`}>{label}</span>;
 }
