@@ -6,6 +6,7 @@ import { businessProfile } from "@/lib/business-profile";
 import { createPageMetadata } from "@/lib/seo";
 import type { ServiceConversionId } from "@/lib/service-conversions";
 import { CalendarCheck2, Clock3, Link2, MessageSquare, MonitorCog, Phone } from "lucide-react";
+import Link from "next/link";
 
 type ScheduleOptionKey = "device-repair" | "guitar-lessons" | "web3-consulting";
 
@@ -84,6 +85,18 @@ const serviceAliasToOption: Record<string, ScheduleOptionKey> = bookingOptions.r
   {} as Record<string, ScheduleOptionKey>
 );
 
+const serviceSwitcherOptions = [
+  { key: "tech-support", label: "Tech Support" },
+  { key: "guitar-lessons", label: "Guitar Lessons" },
+  { key: "web3-consult", label: "Web3" },
+  { key: "trading-consult", label: "Trading" },
+  { key: "social-media-consult", label: "Marketing" },
+  { key: "it-management", label: "IT Mgmt" },
+  { key: "app-development", label: "App Dev" },
+  { key: "database-consult", label: "Database" },
+  { key: "ecommerce-consult", label: "E-Commerce" },
+] as const;
+
 export default function SchedulePage({ searchParams }: { searchParams?: ScheduleSearchParams }) {
   const serviceParamRaw = Array.isArray(searchParams?.service)
     ? searchParams?.service[0]
@@ -95,6 +108,7 @@ export default function SchedulePage({ searchParams }: { searchParams?: Schedule
   const requestedServiceLabel = requestedService
     ? serviceAliasLabel[requestedService] ?? requestedService
     : null;
+  const hasKnownRequestedService = Boolean(requestedService && highlightedKey);
   const prioritizedBookingOptions = highlightedKey
     ? [...bookingOptions].sort(
         (a, b) => Number(b.key === highlightedKey) - Number(a.key === highlightedKey)
@@ -118,9 +132,36 @@ export default function SchedulePage({ searchParams }: { searchParams?: Schedule
             All lesson and service booking links across the site route through this
             scheduling hub for a cleaner, consistent experience.
           </p>
+          <nav className="mt-4" aria-label="Choose service type">
+            <ul className="flex flex-wrap gap-2">
+              {serviceSwitcherOptions.map((option) => {
+                const isSelected = option.key === requestedService;
+                return (
+                  <li key={option.key}>
+                    <Link
+                      href={`/schedule?service=${option.key}#booking-options`}
+                      aria-current={isSelected ? "page" : undefined}
+                      className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#040a13] ${
+                        isSelected
+                          ? "border-cyan-300/70 bg-cyan-400/15 text-cyan-100"
+                          : "border-[#5f769f]/40 bg-[#0a1422] text-[#cdd8ee] hover:border-cyan-300/50 hover:text-white"
+                      }`}
+                    >
+                      {option.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
           {requestedServiceLabel && highlightedKey && (
             <p className="mt-2 inline-flex items-center rounded-full border border-cyan-300/35 bg-cyan-400/10 px-3 py-1 text-xs text-cyan-100">
               Request detected: <strong className="ml-1">{requestedServiceLabel}</strong>. Matching option is highlighted below.
+            </p>
+          )}
+          {requestedServiceLabel && !hasKnownRequestedService && (
+            <p className="mt-2 inline-flex items-center rounded-full border border-amber-300/35 bg-amber-400/10 px-3 py-1 text-xs text-amber-100">
+              We couldn&apos;t map “{requestedServiceLabel}” directly. Pick a service above to continue.
             </p>
           )}
           <div className="mt-5 flex flex-wrap gap-3">
@@ -164,7 +205,7 @@ export default function SchedulePage({ searchParams }: { searchParams?: Schedule
           </p>
         </section>
 
-        <section className="grid gap-5 lg:grid-cols-3 mb-8">
+        <section id="booking-options" className="grid gap-5 lg:grid-cols-3 mb-8 scroll-mt-36">
           {prioritizedBookingOptions.map((item) => {
             const isHighlighted = highlightedKey === item.key;
 
@@ -173,6 +214,11 @@ export default function SchedulePage({ searchParams }: { searchParams?: Schedule
               key={item.title}
               className={`theme-grid-card ${isHighlighted ? "border-cyan-300/65 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.35)]" : ""}`}
             >
+              {isHighlighted && (
+                <span className="inline-flex w-fit rounded-full border border-cyan-300/40 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-100">
+                  Recommended
+                </span>
+              )}
               <CalendarCheck2 className="w-5 h-5 text-[#77f9a8]" />
               <h2 className="text-lg font-semibold">{item.title}</h2>
               <p>{item.detail}</p>
