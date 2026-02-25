@@ -348,6 +348,7 @@ export async function POST(req: NextRequest) {
     const commandLike = isCommandLike(inputMessage);
     let response = "";
     let kernelResponse = "";
+    let effectiveModel = requestedModel;
     let provider: "kernel" | "huggingface" = "kernel";
     let fallbackReason = "";
 
@@ -384,6 +385,7 @@ export async function POST(req: NextRequest) {
         });
         if (hfResponse.text.trim().length > 0) {
           response = hfResponse.text.trim();
+          effectiveModel = hfResponse.model || requestedModel;
           provider = "huggingface";
         }
       } catch (hfError) {
@@ -402,7 +404,7 @@ export async function POST(req: NextRequest) {
 
     recordPredictionTelemetry({
       domain: domainSignal.domain,
-      model: requestedModel,
+      model: effectiveModel,
       confidence: domainSignal.confidence,
       provider,
       fallback: Boolean(fallbackReason),
@@ -421,7 +423,7 @@ export async function POST(req: NextRequest) {
           tier: neuralTier,
           command_like: commandLike,
           used_hf: shouldTryHf,
-          model: requestedModel,
+          model: effectiveModel,
           llm_preset: preset.id,
           llm_preset_source: preset.modeSource,
           llm_preset_temp: preset.temperature,
@@ -474,7 +476,7 @@ export async function POST(req: NextRequest) {
       },
       status: "SUCCESS",
       provider,
-      model: requestedModel,
+      model: effectiveModel,
       preset: {
         id: preset.id,
         label: preset.label,

@@ -49,6 +49,8 @@ export default function AIHubPage() {
               <li>Create a new API token (read access is fine)</li>
               <li>Copy the token and add to <code className="bg-black/40 px-2 py-1 rounded">.env.local</code></li>
               <li>Set <code className="bg-black/40 px-2 py-1 rounded">HF_API_TOKEN=hf_your_token_here</code></li>
+              <li>Set <code className="bg-black/40 px-2 py-1 rounded">HF_MODEL_ID=Qwen/Qwen2.5-7B-Instruct</code> (recommended)</li>
+              <li>Optional failover chain: <code className="bg-black/40 px-2 py-1 rounded">HF_FALLBACK_MODELS=meta-llama/Meta-Llama-3-8B-Instruct,HuggingFaceH4/zephyr-7b-beta,mistralai/Mistral-Nemo-Instruct-2407</code></li>
               <li>Set <code className="bg-black/40 px-2 py-1 rounded">HF_IMAGE_MODEL_ID=stabilityai/stable-diffusion-2-1</code></li>
               <li>Optional: set <code className="bg-black/40 px-2 py-1 rounded">TRADEHAX_LLM_OPEN_MODE=false</code> for safer defaults (or true for broader output) and <code className="bg-black/40 px-2 py-1 rounded">TRADEHAX_IMAGE_OPEN_MODE=true</code></li>
               <li>Restart your development server</li>
@@ -155,20 +157,20 @@ export default function AIHubPage() {
 
           <div className="grid md:grid-cols-2 gap-8">
             <div>
-              <h3 className="font-bold text-emerald-300 mb-3">💰 Free/Fast</h3>
+              <h3 className="font-bold text-emerald-300 mb-3">💰 Fast / Broad Provider Coverage</h3>
               <ul className="space-y-2 text-sm text-emerald-100">
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-400">→</span>
                   <div>
-                    <div className="font-semibold">distilgpt2</div>
-                    <div className="text-emerald-200/60">Smallest, fastest GPT2</div>
+                    <div className="font-semibold">Qwen/Qwen2.5-7B-Instruct</div>
+                    <div className="text-emerald-200/60">Great quality + generally available providers</div>
                   </div>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-400">→</span>
                   <div>
-                    <div className="font-semibold">gpt2</div>
-                    <div className="text-emerald-200/60">Classic language model</div>
+                    <div className="font-semibold">HuggingFaceH4/zephyr-7b-beta</div>
+                    <div className="text-emerald-200/60">Reliable instruction-following fallback</div>
                   </div>
                 </li>
               </ul>
@@ -180,15 +182,15 @@ export default function AIHubPage() {
                 <li className="flex items-start gap-2">
                   <span className="text-cyan-400">→</span>
                   <div>
-                    <div className="font-semibold">mistralai/Mistral-7B-Instruct-v0.1</div>
-                    <div className="text-cyan-200/60">Fast, high-quality (default)</div>
+                    <div className="font-semibold">meta-llama/Meta-Llama-3-8B-Instruct</div>
+                    <div className="text-cyan-200/60">Strong general-purpose quality</div>
                   </div>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-cyan-400">→</span>
                   <div>
-                    <div className="font-semibold">meta-llama/Llama-2-7b</div>
-                    <div className="text-cyan-200/60">Powerful open-source LLM</div>
+                    <div className="font-semibold">mistralai/Mistral-Nemo-Instruct-2407</div>
+                    <div className="text-cyan-200/60">Good long-form reasoning fallback</div>
                   </div>
                 </li>
               </ul>
@@ -202,11 +204,13 @@ export default function AIHubPage() {
             </p>
             <div className="bg-black/60 border border-blue-500/20 rounded p-4 text-blue-100 text-xs font-mono space-y-1">
               <div># Fastest</div>
-              <div>HF_MODEL_ID=distilgpt2</div>
+              <div>HF_MODEL_ID=Qwen/Qwen2.5-7B-Instruct</div>
               <div className="mt-2"># Recommended</div>
-              <div>HF_MODEL_ID=mistralai/Mistral-7B-Instruct-v0.1</div>
+              <div>HF_MODEL_ID=meta-llama/Meta-Llama-3-8B-Instruct</div>
               <div className="mt-2"># Best Quality</div>
-              <div>HF_MODEL_ID=meta-llama/Llama-2-7b</div>
+              <div>HF_MODEL_ID=mistralai/Mistral-Nemo-Instruct-2407</div>
+              <div className="mt-2"># Automatic model failover chain</div>
+              <div>HF_FALLBACK_MODELS=Qwen/Qwen2.5-7B-Instruct,HuggingFaceH4/zephyr-7b-beta,meta-llama/Meta-Llama-3-8B-Instruct,mistralai/Mistral-Nemo-Instruct-2407</div>
             </div>
           </div>
         </div>
