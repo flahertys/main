@@ -21,7 +21,7 @@ This document defines a practical, production-grade baseline for the TradeHax LL
 
 ## Recommended Workflow
 
-1. Copy values from `.env.ai.example` to `.env.local`.
+1. Copy values from `AI_ENVIRONMENT_TEMPLATE.env` to `.env.local`.
 2. Set production values in your deployment environment (Vercel project settings).
 3. Run `npm run ai:env:doctor` locally.
 4. Run `npm run ai:env:doctor:strict` in CI before deploy.
