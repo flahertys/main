@@ -1,6 +1,7 @@
 "use client";
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { scheduleLinks } from '@/lib/booking';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 const steps = [
   { id: 1, title: "Level_Scan", desc: "Select your current proficiency." },
@@ -17,7 +18,7 @@ export const DiscoveryPortal = () => {
   return (
     <div className="w-full glass-panel rounded-[2.5rem] p-10 relative overflow-hidden shadow-2xl min-h-[500px] flex flex-col">
       <div className="scanline opacity-10" />
-      
+
       {!isComplete ? (
         <div className="relative z-10 flex-1 flex flex-col">
           {/* Progress Header */}
@@ -35,7 +36,7 @@ export const DiscoveryPortal = () => {
           {/* Step Content */}
           <div className="flex-1">
             <p className="text-zinc-500 mb-8 font-mono italic text-sm">{steps[currentStep-1].desc}</p>
-            
+
             <div className="grid grid-cols-1 gap-3">
               {currentStep === 1 && ["BEGINNER_INIT", "INTERMEDIATE_RELAY", "ADVANCED_NODE"].map(lvl => (
                 <button key={lvl} onClick={nextStep} className="w-full p-5 bg-white/5 border border-white/5 rounded-xl text-left text-xs font-black text-zinc-400 hover:bg-cyan-500 hover:text-black transition-all hover:translate-x-2">
@@ -56,7 +57,7 @@ export const DiscoveryPortal = () => {
           </div>
         </div>
       ) : (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="relative z-10 flex-1 flex flex-col items-center justify-center text-center"
@@ -68,8 +69,8 @@ export const DiscoveryPortal = () => {
           <p className="text-zinc-500 max-w-sm mb-10 font-mono text-sm leading-relaxed">
             Data analysis complete. Your profile matches our elite training parameters. Finalize your link below.
           </p>
-          <a 
-            href="https://calendar.app.google/hhBXuJjfaApoXVzc6"
+          <a
+            href={scheduleLinks.guitarLessons}
             className="px-12 py-6 bg-cyan-500 text-black font-black rounded-2xl hover:bg-white transition-all shadow-[0_20px_50px_rgba(6,182,212,0.3)] uppercase italic"
           >
             Schedule_Masterclass
@@ -80,7 +81,7 @@ export const DiscoveryPortal = () => {
       {/* Progress Bar Footer */}
       {!isComplete && (
         <div className="mt-12 h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
-          <motion.div 
+          <motion.div
             className="h-full bg-cyan-500"
             animate={{ width: `${(currentStep / steps.length) * 100}%` }}
           />

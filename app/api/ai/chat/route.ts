@@ -4,6 +4,11 @@ import { buildTradeHaxSystemPrompt } from "@/lib/ai/custom-llm/system-prompt";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { getLLMClient } from "@/lib/ai/hf-server";
 import { NeuralQuery, processNeuralCommand } from "@/lib/ai/kernel";
+import {
+  inferPredictionDomain,
+  recordPredictionTelemetry,
+  resolvePredictionModel,
+} from "@/lib/ai/prediction-routing";
 import { formatRetrievalContext, retrieveRelevantContext } from "@/lib/ai/retriever";
 import { canConsumeFeature, consumeFeatureUsage, tierSupportsNeuralMode } from "@/lib/monetization/engine";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
@@ -165,6 +170,8 @@ function buildPromptFromConversation(args: {
   context: unknown;
   systemPrompt?: string;
   openMode?: boolean;
+  predictionDomain?: string;
+  predictionConfidence?: number;
 }) {
   const contextText = serializeContext(args.context);
   const resolvedSystemPrompt =
@@ -188,6 +195,14 @@ function buildPromptFromConversation(args: {
   } else if (responseStyle === "coach") {
     lines.push(
       "Style directive:\nRespond in coaching tone with clear reasoning, then end with one actionable next step.",
+    );
+  }
+
+  if (args.predictionDomain && args.predictionDomain !== "general") {
+    lines.push(
+      `Domain directive:\nPrimary prediction domain is ${args.predictionDomain} (confidence ${
+        args.predictionConfidence ?? 0
+      }%). Keep assumptions explicit and prefer verifiable market framing.`,
     );
   }
 
@@ -248,11 +263,15 @@ export async function POST(req: NextRequest) {
     const userId = await resolveRequestUserId(req, body.userId);
     const subscription = getSubscription(userId);
     const neuralTier = parseNeuralTier(body.tier);
-    const requestedModel = sanitizeModelId(body.model);
     const retrievalChunks = await retrieveRelevantContext(inputMessage, 5);
     const retrievalContext = formatRetrievalContext(retrievalChunks);
     const mergedContext = mergeContext(body.context, retrievalContext);
     const consent = await resolveServerConsent(userId, body.consent);
+    const domainSignal = inferPredictionDomain(inputMessage, mergedContext);
+    const requestedModel =
+      typeof body.model === "string" && body.model.trim().length > 0
+        ? sanitizeModelId(body.model)
+        : sanitizeModelId(resolvePredictionModel(domainSignal.domain));
 
     if (!tierSupportsNeuralMode(userId, neuralTier)) {
       return NextResponse.json(
@@ -307,7 +326,7 @@ export async function POST(req: NextRequest) {
     const commandLike = isCommandLike(inputMessage);
     let response = "";
     let kernelResponse = "";
-    let provider = "kernel";
+    let provider: "kernel" | "huggingface" = "kernel";
     let fallbackReason = "";
 
     if (commandLike) {
@@ -332,6 +351,8 @@ export async function POST(req: NextRequest) {
                   guardrailMode: "strict_ip",
                 }),
           openMode: neuralTier !== "STANDARD",
+          predictionDomain: domainSignal.domain,
+          predictionConfidence: domainSignal.confidence,
         });
         const hfResponse = await client.generate(prompt, { modelId: requestedModel });
         if (hfResponse.text.trim().length > 0) {
@@ -352,6 +373,14 @@ export async function POST(req: NextRequest) {
       provider = "kernel";
     }
 
+    recordPredictionTelemetry({
+      domain: domainSignal.domain,
+      model: requestedModel,
+      confidence: domainSignal.confidence,
+      provider,
+      fallback: Boolean(fallbackReason),
+    });
+
     try {
       await ingestBehavior({
         timestamp: new Date().toISOString(),
@@ -370,6 +399,9 @@ export async function POST(req: NextRequest) {
           fallback_reason: fallbackReason,
           retrieved_chunks: retrievalChunks.length,
           retrieved_sources: retrievalChunks.map((chunk) => chunk.path).slice(0, 6).join(","),
+          prediction_domain: domainSignal.domain,
+          prediction_confidence: domainSignal.confidence,
+          prediction_reasons: domainSignal.reasons.join(","),
         },
         consent,
       });
@@ -411,6 +443,11 @@ export async function POST(req: NextRequest) {
       status: "SUCCESS",
       provider,
       model: requestedModel,
+      prediction: {
+        domain: domainSignal.domain,
+        confidence: domainSignal.confidence,
+        reasons: domainSignal.reasons,
+      },
       warning: fallbackReason || undefined,
       usage: {
         feature: "ai_chat",

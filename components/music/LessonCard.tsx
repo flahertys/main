@@ -1,7 +1,7 @@
 "use client";
 
+import { scheduleLinks } from '@/lib/booking';
 import { CheckCircle2 } from 'lucide-react';
-import { bookingLinks } from '@/lib/booking';
 
 interface LessonCardProps {
   title: string;
@@ -21,7 +21,7 @@ export function LessonCard({
   popular = false,
 }: LessonCardProps) {
   const handleBooking = () => {
-    window.open(bookingLinks.guitarLessons, '_blank');
+    window.location.assign(scheduleLinks.guitarLessons);
   };
 
   return (
@@ -49,7 +49,7 @@ export function LessonCard({
           </li>
         ))}
       </ul>
-      <button 
+      <button
         onClick={handleBooking}
         className="w-full px-6 py-3 bg-gradient-to-r from-[#00D100] to-[#00FF41] text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-semibold"
       >
