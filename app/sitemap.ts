@@ -13,12 +13,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
-      url: `${baseUrl}/snow-removal`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.95,
-    },
-    {
       url: `${baseUrl}/services`,
       lastModified: now,
       changeFrequency: 'weekly',

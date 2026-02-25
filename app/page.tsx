@@ -92,16 +92,6 @@ const intentLanes = [
     cta: "Review Crypto Project",
     icon: CircuitBoard,
   },
-  {
-    title: "Need Snow Removal in South Jersey",
-    detail: "Fast snow plowing and driveway clearing across Atlantic County, NJ with local response.",
-    href: "/snow-removal",
-    external: false,
-    conversionId: "open_services",
-    surface: "home:intent_lane",
-    cta: "Book Snow Removal",
-    icon: Wrench,
-  },
 ] as const;
 
 export default function Home() {
@@ -286,9 +276,6 @@ export default function Home() {
           </Link>
           <Link href="/portfolio" className="text-zinc-400 hover:text-white transition-colors uppercase text-xs font-bold tracking-widest">
             Portfolio
-          </Link>
-          <Link href="/snow-removal" className="text-zinc-400 hover:text-white transition-colors uppercase text-xs font-bold tracking-widest">
-            Snow Removal NJ
           </Link>
         </div>
       </section>

@@ -50,9 +50,6 @@ export const metadata = createPageMetadata({
     "south jersey app development",
     "local business website development",
     "remote technical support services",
-    "snow removal south jersey",
-    "snow plowing atlantic county",
-    "driveway snow removal new jersey",
   ],
 });
 
@@ -164,25 +161,6 @@ export default function ServicesPage() {
         <div className="mb-12">
           <ActionRail surface="services" />
         </div>
-
-        <section className="mb-12 rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-6 sm:p-8">
-          <h2 className="text-2xl font-bold text-white mb-3">
-            Looking for Snow Removal in South Jersey?
-          </h2>
-          <p className="text-gray-300 max-w-3xl mb-5">
-            We also offer dedicated local snow removal and snow plowing services across Atlantic County, NJ,
-            including Atlantic City, Egg Harbor Township, Hammonton, Pleasantville, and nearby areas.
-          </p>
-          <TrackedCtaLink
-            href="/snow-removal"
-            conversionId="open_services"
-            surface="services:snow_module"
-            className="theme-cta theme-cta--loud px-5 py-3"
-          >
-            Open Snow Removal Page
-            <ArrowRight className="w-5 h-5" />
-          </TrackedCtaLink>
-        </section>
 
         {/* Ad Placement */}
         <div className="mb-16">
