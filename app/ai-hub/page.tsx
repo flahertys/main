@@ -133,7 +133,7 @@ export default function AIHubPage() {
           />
         </div>
 
-        <div className="sticky top-2 sm:top-3 z-20 mb-10 rounded-xl border border-white/10 bg-black/50 p-3 shadow-[0_8px_30px_rgba(0,0,0,0.3)] backdrop-blur-sm sm:p-5">
+        <div className="sticky top-[max(0.5rem,env(safe-area-inset-top))] sm:top-3 z-20 mb-10 rounded-xl border border-white/10 bg-black/70 supports-[backdrop-filter]:bg-black/50 p-3 shadow-[0_8px_30px_rgba(0,0,0,0.3)] backdrop-blur-sm sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-300">Fast Navigation</p>
             <div className="flex flex-wrap gap-2">
@@ -475,17 +475,17 @@ export default function AIHubPage() {
           </div>
         </div>
 
-        <div className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 mx-auto w-[min(620px,calc(100%-1rem))] rounded-xl border border-white/15 bg-black/70 p-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
+        <div className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 mx-auto w-[min(620px,calc(100%-1rem))] rounded-xl border border-white/15 bg-black/85 supports-[backdrop-filter]:bg-black/70 p-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
           <div className="flex items-center gap-2">
             <Link
               href="#ai-chat"
-              className="flex-1 rounded-lg border border-emerald-300/35 bg-emerald-500/20 px-3 py-2 text-center text-xs font-semibold text-emerald-50"
+              className="flex-1 rounded-lg border border-emerald-300/35 bg-emerald-500/20 px-3 py-2.5 text-center text-xs font-semibold text-emerald-50"
             >
               Open AI Chat
             </Link>
             <Link
               href="/ai-hub?starter=new-user-setup#ai-chat"
-              className="flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-center text-xs font-semibold text-zinc-100"
+              className="flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-zinc-100"
             >
               New User Setup
             </Link>
@@ -561,7 +561,7 @@ function QuickStartCard({
   return (
     <Link href={href} className={`block rounded-xl border bg-black/30 p-4 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${toneStyles[tone]}`}>
       <h3 className="text-sm font-bold text-white">{title}</h3>
-      <p className="mt-1 text-xs text-gray-300">{description}</p>
+      <p className="mt-1 text-xs leading-relaxed text-gray-300">{description}</p>
       <p className="mt-3 text-[11px] font-semibold">{cta}</p>
     </Link>
   );

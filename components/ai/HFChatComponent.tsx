@@ -3,12 +3,12 @@
 import {
     Archive,
     ArrowUp,
-  Bot,
-  Keyboard,
+    Bot,
     Compass,
     Copy,
     FileJson,
     FileText,
+    Keyboard,
     Loader2,
     PanelLeft,
     Pencil,
@@ -1029,10 +1029,10 @@ export function HFChatComponent() {
   const filteredPinnedPrompts = pinnedPrompts.filter((item) => item.category === pinCategory);
 
   return (
-    <div className="theme-panel w-full h-[82vh] min-h-[640px] max-h-[980px] overflow-hidden rounded-2xl border border-emerald-400/20 bg-gradient-to-b from-black/65 via-black/50 to-black/70 shadow-[0_25px_80px_rgba(0,0,0,0.55)]">
+    <div className="theme-panel w-full h-[78vh] sm:h-[82vh] min-h-[560px] sm:min-h-[640px] max-h-[980px] overflow-hidden rounded-2xl border border-emerald-400/20 bg-gradient-to-b from-black/65 via-black/50 to-black/70 shadow-[0_25px_80px_rgba(0,0,0,0.55)]">
       <div className="grid h-full lg:grid-cols-[320px_1fr]">
         {showControlPanel && (
-          <aside className="border-b lg:border-b-0 lg:border-r border-emerald-500/20 bg-black/35 p-4 overflow-y-auto">
+          <aside className="border-b lg:border-b-0 lg:border-r border-emerald-500/20 bg-black/35 p-4 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
             <div className="mb-3 rounded border border-white/10 bg-white/[0.03] px-3 py-2">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[11px] uppercase tracking-wide text-emerald-200/80">Sessions</p>
@@ -1424,7 +1424,7 @@ export function HFChatComponent() {
             {storageWarning && <span className="text-amber-200 rounded-full border border-amber-300/25 bg-amber-500/10 px-2 py-1">{storageWarning}</span>}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 overscroll-contain [scrollbar-gutter:stable] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
             {messages.length === 0 && (
               <div className="flex items-center justify-center h-full text-emerald-200/50 text-center">
                 <div>
@@ -1459,7 +1459,7 @@ export function HFChatComponent() {
                       {new Date(msg.meta?.timestamp || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                  <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{msg.content}</p>
                   {msg.role === "assistant" && (
                     <div className="mt-3 rounded border border-cyan-400/25 bg-black/30 p-2 text-[11px]">
                       {(() => {
@@ -1542,7 +1542,7 @@ export function HFChatComponent() {
                 <button
                   key={action.label}
                   onClick={() => applyComposerQuickAction(action)}
-                  className="rounded-lg border border-white/15 bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-200 hover:bg-white/[0.08] hover:-translate-y-0.5 transition"
+                  className="rounded-lg border border-white/15 bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-200 hover:bg-white/[0.08] motion-safe:hover:-translate-y-0.5 transition"
                   title={action.prompt}
                 >
                   {action.label}
