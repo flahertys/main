@@ -1,7 +1,7 @@
 'use client';
 
+import { scheduleLinks } from '@/lib/booking';
 import { Calendar, Clock, Video } from 'lucide-react';
-import { bookingLinks } from '@/lib/booking';
 
 /**
  * Lesson booking component with Google Meet integration
@@ -9,13 +9,13 @@ import { bookingLinks } from '@/lib/booking';
  */
 export function LessonBooking() {
   const handleBooking = () => {
-    window.open(bookingLinks.guitarLessons, '_blank');
+    window.location.assign(scheduleLinks.guitarLessons);
   };
 
   return (
     <div className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-8">
       <h3 className="text-2xl font-bold text-white mb-6">Book Your Guitar Lesson</h3>
-      
+
       <div className="space-y-4 mb-6">
         <div className="flex items-start gap-3">
           <Calendar className="w-5 h-5 text-[#00FF41] flex-shrink-0 mt-1" />
@@ -24,7 +24,7 @@ export function LessonBooking() {
             <p className="text-gray-400 text-sm">Choose times that work for your schedule</p>
           </div>
         </div>
-        
+
         <div className="flex items-start gap-3">
           <Clock className="w-5 h-5 text-[#00FF41] flex-shrink-0 mt-1" />
           <div>
@@ -32,7 +32,7 @@ export function LessonBooking() {
             <p className="text-gray-400 text-sm">Full hour of one-on-one instruction</p>
           </div>
         </div>
-        
+
         <div className="flex items-start gap-3">
           <Video className="w-5 h-5 text-[#00FF41] flex-shrink-0 mt-1" />
           <div>
@@ -41,7 +41,7 @@ export function LessonBooking() {
           </div>
         </div>
       </div>
-      
+
       <button
         onClick={handleBooking}
         className="w-full px-6 py-3 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-[#FF6B35] transition-all font-semibold"

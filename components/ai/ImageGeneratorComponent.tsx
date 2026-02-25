@@ -1,6 +1,7 @@
 "use client";
 
 import { RotateCw, Sparkles, Wand2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface GeneratedImageResult {
@@ -16,6 +17,7 @@ interface GeneratedImageResult {
 }
 
 export function ImageGeneratorComponent() {
+  const searchParams = useSearchParams();
   const [userId, setUserId] = useState("");
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState<"trading" | "nft" | "hero" | "general">(
@@ -26,6 +28,7 @@ export function ImageGeneratorComponent() {
   const [generatedImage, setGeneratedImage] = useState<GeneratedImageResult | null>(null);
   const [error, setError] = useState("");
   const [safetyMode, setSafetyMode] = useState<"open" | "standard">("open");
+  const [mode, setMode] = useState<"simple" | "pro">("simple");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -35,6 +38,15 @@ export function ImageGeneratorComponent() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const starter = searchParams.get("starter");
+    if (starter === "content-engine") {
+      setPrompt("Design a clean social hero visual for a beginner trading education post with title-safe spacing");
+      setStyle("hero");
+      setMode("simple");
+    }
+  }, [searchParams]);
 
   const quickPrompts = [
     "A clean beginner trading dashboard with clear risk controls and green/red candles",
@@ -110,6 +122,31 @@ export function ImageGeneratorComponent() {
           3-step flow: pick a quick prompt, choose style, click <strong>Generate Image</strong>.
         </p>
 
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <button
+            onClick={() => setMode("simple")}
+            disabled={loading}
+            className={`rounded border px-3 py-2 text-xs font-semibold transition ${
+              mode === "simple"
+                ? "border-cyan-400/60 bg-cyan-500/20 text-cyan-100"
+                : "border-cyan-500/20 bg-black/30 text-cyan-100/75"
+            } disabled:opacity-50`}
+          >
+            Simple mode
+          </button>
+          <button
+            onClick={() => setMode("pro")}
+            disabled={loading}
+            className={`rounded border px-3 py-2 text-xs font-semibold transition ${
+              mode === "pro"
+                ? "border-fuchsia-400/60 bg-fuchsia-500/20 text-fuchsia-100"
+                : "border-cyan-500/20 bg-black/30 text-cyan-100/75"
+            } disabled:opacity-50`}
+          >
+            Pro controls
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 gap-2 mb-4">
           {quickPrompts.map((item) => (
             <button
@@ -124,7 +161,7 @@ export function ImageGeneratorComponent() {
         </div>
 
         <div className="space-y-4">
-          <div>
+          <div className={mode === "pro" ? "" : "hidden"}>
             <label className="block text-sm font-medium text-cyan-200 mb-2">Generation mode</label>
             <div className="grid grid-cols-2 gap-2">
               <button
