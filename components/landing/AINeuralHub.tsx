@@ -1,6 +1,7 @@
 "use client";
 
 import { WalletButton } from "@/components/counter/WalletButton";
+import { HubCapitalPreservationCircuit } from "@/components/landing/hub/HubCapitalPreservationCircuit";
 import { HubCommandPalette } from "@/components/landing/hub/HubCommandPalette";
 import { HubCompetitiveEdgeLab } from "@/components/landing/hub/HubCompetitiveEdgeLab";
 import { HubExecutionLatencyGuard } from "@/components/landing/hub/HubExecutionLatencyGuard";
@@ -2313,6 +2314,27 @@ export const AINeuralHub = () => {
     setChatStatus("Session drift governor brief saved to long-term memory.");
   }
 
+  function insertCapitalPreservationCircuitBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("Capital circuit brief is empty. Fill metrics first.");
+      return;
+    }
+    setActiveTab("CHAT");
+    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
+    setChatStatus("Capital preservation circuit brief inserted into chat input.");
+  }
+
+  function rememberCapitalPreservationCircuitBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("No capital circuit brief to store yet.");
+      return;
+    }
+    addMemoryCard("long", `Capital Circuit ${focusSymbol}`, safeBrief.slice(0, 160));
+    setChatStatus("Capital preservation circuit brief saved to long-term memory.");
+  }
+
   async function generateWebsiteAutopilotDraft() {
     const normalizedSource = normalizeVideoUrl(websiteSourceUrl);
     if (!normalizedSource) {
@@ -3532,6 +3554,14 @@ export const AINeuralHub = () => {
                           marketRegime={detectedMarketRegime}
                           onInjectBrief={insertSessionDriftGovernorBrief}
                           onStoreBrief={rememberSessionDriftGovernorBrief}
+                        />
+
+                        <HubCapitalPreservationCircuit
+                          focusSymbol={focusSymbol}
+                          riskStance={riskStance}
+                          marketRegime={detectedMarketRegime}
+                          onInjectBrief={insertCapitalPreservationCircuitBrief}
+                          onStoreBrief={rememberCapitalPreservationCircuitBrief}
                         />
 
                         <div className="rounded-xl border border-white/10 bg-[rgba(10,14,20,0.72)] px-3 py-3">
