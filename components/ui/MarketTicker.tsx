@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 export const MarketTicker = () => {
   const container = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const hideTickerForGame = pathname?.startsWith('/game') ?? false;
+  const hideTickerForGame = pathname === '/game' || pathname?.startsWith('/game/') || false;
 
   useEffect(() => {
     if (hideTickerForGame) {

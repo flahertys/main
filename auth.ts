@@ -4,8 +4,43 @@ import FacebookProvider from "next-auth/providers/facebook";
 import GoogleProvider from "next-auth/providers/google";
 import crypto from "node:crypto";
 
+const DEFAULT_CREDENTIALS_USERNAME = "tradehax-admin";
+const DEFAULT_CREDENTIALS_PASSWORD = "Antihack##$##$33!";
+
 const providers: NextAuthOptions["providers"] = [
   CredentialsProvider({
+    id: "tradehax-credentials",
+    name: "TradeHax Login",
+    credentials: {
+      username: { label: "Username", type: "text" },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials) {
+      const configuredUsername =
+        (process.env.TRADEHAX_LOGIN_USERNAME || DEFAULT_CREDENTIALS_USERNAME).trim();
+      const configuredPassword =
+        (process.env.TRADEHAX_LOGIN_PASSWORD || DEFAULT_CREDENTIALS_PASSWORD).trim();
+
+      const username = typeof credentials?.username === "string" ? credentials.username.trim() : "";
+      const password = typeof credentials?.password === "string" ? credentials.password : "";
+
+      if (!username || !password) {
+        return null;
+      }
+
+      if (username !== configuredUsername || password !== configuredPassword) {
+        return null;
+      }
+
+      return {
+        id: "acct_tradehax_owner",
+        name: configuredUsername,
+        email: `${configuredUsername}@tradehax.local`,
+      };
+    },
+  }),
+  CredentialsProvider({
+    id: "guest-profile",
     name: "Guest",
     credentials: {
       displayName: { label: "Display name", type: "text" },

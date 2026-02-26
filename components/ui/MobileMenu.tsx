@@ -13,6 +13,7 @@ export const MobileMenu = () => {
     { name: "Music", href: "/music", icon: "🎸" },
     { name: "Tokenomics", href: "/tokenomics", icon: "🪙" },
     { name: "Games", href: "/game", icon: "🎮" },
+    { name: "Login", href: "/login", icon: "🔐" },
     { name: "Spades", href: "/spades", icon: "♠️" },
     { name: "Lessons", href: scheduleLinks.guitarLessons, icon: "📚" },
   ];
