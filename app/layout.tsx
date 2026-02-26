@@ -177,6 +177,14 @@ export default function RootLayout({
                   {children}
                 </PageTransition>
               </div>
+              <a
+                href="/ai-hub"
+                aria-label="Open AI Hub quick launch"
+                className="fixed bottom-6 left-4 z-40 inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/20 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-cyan-100 shadow-[0_0_24px_rgba(6,182,212,0.35)] transition-all hover:bg-cyan-500/30 hover:text-white md:bottom-8 md:left-8"
+              >
+                <span aria-hidden>⚡</span>
+                <span>AI Quick Launch</span>
+              </a>
               <ConsentCenter />
               <SiteNavigatorWidget />
             </WalletProvider>
