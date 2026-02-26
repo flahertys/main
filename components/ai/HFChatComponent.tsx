@@ -340,8 +340,29 @@ function buildSessionTitle(messages: Message[], fallback = "New session") {
 
 function createEmptySession(overrides?: Partial<ChatSession>): ChatSession {
   const now = Date.now();
+  const generateSessionId = (timestamp: number): string => {
+    // Prefer built-in crypto.randomUUID when available
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return `session-${timestamp}-${crypto.randomUUID()}`;
+    }
+
+    // Fallback: use crypto.getRandomValues to generate a random hex string
+    if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+      const bytes = new Uint8Array(8);
+      crypto.getRandomValues(bytes);
+      const randomHex = Array.from(bytes)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      return `session-${timestamp}-${randomHex}`;
+    }
+
+    // Last-resort fallback (should rarely be hit, kept to avoid runtime errors)
+    const fallbackRand = Math.random().toString(36).slice(2, 10);
+    return `session-${timestamp}-${fallbackRand}`;
+  };
+
   return {
-    id: `session-${now}-${Math.random().toString(36).slice(2, 8)}`,
+    id: generateSessionId(now),
     title: "New session",
     updatedAt: now,
     archived: false,
