@@ -157,7 +157,6 @@ export default function RootLayout({
                     <a href="/billing" className="hover:text-white transition-colors uppercase">Billing</a>
                     <a href="/tokenomics" className="hover:text-white transition-colors uppercase">Tokenomics</a>
                     <a href="/games" className="hover:text-white transition-colors uppercase">Games</a>
-                    <a href="/login" className="hover:text-white transition-colors uppercase">Login</a>
                     <a href={scheduleLinks.guitarLessons} className="text-cyan-500 hover:text-white transition-colors uppercase">Lessons</a>
                     <a href="/tokenomics" className="hover:text-white transition-colors uppercase">Staking</a>
                   </div>

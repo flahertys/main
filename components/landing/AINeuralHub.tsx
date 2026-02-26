@@ -12,10 +12,16 @@ import { HubMetricsRail } from "@/components/landing/hub/HubMetricsRail";
 import { HubOpportunityCostRadar } from "@/components/landing/hub/HubOpportunityCostRadar";
 import { HubPostTradeForensics } from "@/components/landing/hub/HubPostTradeForensics";
 import { HubRegimeShiftSentinel } from "@/components/landing/hub/HubRegimeShiftSentinel";
+import { HubShell } from "@/components/landing/hub/HubShell";
 import { HubSessionDriftGovernor } from "@/components/landing/hub/HubSessionDriftGovernor";
 import { HubSitewideNeuralSmartness } from "@/components/landing/hub/HubSitewideNeuralSmartness";
 import { HubVideoAiInfusion } from "@/components/landing/hub/HubVideoAiInfusion";
 import { HubWebsiteSocialAutopilot } from "@/components/landing/hub/HubWebsiteSocialAutopilot";
+import { HubAutomationWorkspace } from "@/components/landing/hub/workspaces/HubAutomationWorkspace";
+import { HubChatWorkspace } from "@/components/landing/hub/workspaces/HubChatWorkspace";
+import { HubCreateWorkspace } from "@/components/landing/hub/workspaces/HubCreateWorkspace";
+import { HubLibraryWorkspace } from "@/components/landing/hub/workspaces/HubLibraryWorkspace";
+import { HubMarketWorkspaceView } from "@/components/landing/hub/workspaces/HubMarketWorkspaceView";
 import {
     exportLocalNeuralVault,
     getLocalNeuralVault,
@@ -50,7 +56,7 @@ import {
     TrendingUp,
     Zap
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type HubTab = "CHAT" | "IMAGE_GEN" | "MARKET";
 type ResponseStyle = "concise" | "coach" | "operator";
@@ -459,6 +465,16 @@ const NeuralBackground = () => (
 
 export const AINeuralHub = () => {
   const [activeTab, setActiveTab] = useState<HubTab>("CHAT");
+  const [beginnerFocusMode, setBeginnerFocusMode] = useState(true);
+  const [showOperatorDock, setShowOperatorDock] = useState(false);
+  const [latestReplyPulse, setLatestReplyPulse] = useState(false);
+  const [kidsModeEnabled, setKidsModeEnabled] = useState(false);
+  const [kidsModePin, setKidsModePin] = useState("");
+  const [kidsModePinDraft, setKidsModePinDraft] = useState("");
+  const [kidsModePinConfirm, setKidsModePinConfirm] = useState("");
+  const [kidsModeUnlockInput, setKidsModeUnlockInput] = useState("");
+  const [showKidsUnlockPrompt, setShowKidsUnlockPrompt] = useState(false);
+  const [kidsModePinError, setKidsModePinError] = useState("");
   const [usageCount, setUsageCount] = useState(0);
   const [isCharging, setIsOverLimit] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
@@ -567,6 +583,30 @@ export const AINeuralHub = () => {
     const storedPromptLibrary = localStorage.getItem("tradehax_ai_prompt_library_open");
     if (storedPromptLibrary === "true") {
       setIsPromptLibraryOpen(true);
+    }
+
+    const storedBeginnerFocus = localStorage.getItem("tradehax_ai_beginner_focus_mode");
+    if (storedBeginnerFocus === "false") {
+      setBeginnerFocusMode(false);
+      setShowOperatorDock(true);
+    }
+
+    const storedOperatorDock = localStorage.getItem("tradehax_ai_operator_dock_open");
+    if (storedOperatorDock === "true") {
+      setShowOperatorDock(true);
+    }
+
+    const storedKidsMode = localStorage.getItem("tradehax_ai_kids_mode_enabled");
+    if (storedKidsMode === "true") {
+      setKidsModeEnabled(true);
+      setOpenModeEnabled(false);
+      setBeginnerFocusMode(true);
+      setShowOperatorDock(false);
+    }
+
+    const storedKidsPin = localStorage.getItem("tradehax_ai_kids_mode_pin");
+    if (storedKidsPin && /^\d{4,8}$/.test(storedKidsPin)) {
+      setKidsModePin(storedKidsPin);
     }
 
     const storedCustomPrompts = localStorage.getItem("tradehax_ai_custom_prompt_packs");
@@ -849,6 +889,26 @@ export const AINeuralHub = () => {
   }, [isPromptLibraryOpen]);
 
   useEffect(() => {
+    localStorage.setItem("tradehax_ai_beginner_focus_mode", String(beginnerFocusMode));
+  }, [beginnerFocusMode]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_operator_dock_open", String(showOperatorDock));
+  }, [showOperatorDock]);
+
+  useEffect(() => {
+    localStorage.setItem("tradehax_ai_kids_mode_enabled", String(kidsModeEnabled));
+  }, [kidsModeEnabled]);
+
+  useEffect(() => {
+    if (kidsModePin) {
+      localStorage.setItem("tradehax_ai_kids_mode_pin", kidsModePin);
+    } else {
+      localStorage.removeItem("tradehax_ai_kids_mode_pin");
+    }
+  }, [kidsModePin]);
+
+  useEffect(() => {
     localStorage.setItem("tradehax_ai_custom_prompt_packs", JSON.stringify(customPromptPacks.slice(0, 24)));
   }, [customPromptPacks]);
 
@@ -1013,6 +1073,9 @@ export const AINeuralHub = () => {
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "Neural link established. How can I help with trading, build, or creative tasks today?" }
   ]);
+  const chatViewportRef = useRef<HTMLDivElement | null>(null);
+  const latestMessageAnchorRef = useRef<HTMLDivElement | null>(null);
+  const previousMessageCountRef = useRef(1);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatStatus, setChatStatus] = useState<string>("");
   const [workflowTask, setWorkflowTask] = useState<LlmWorkflowTask>("chat");
@@ -1025,6 +1088,19 @@ export const AINeuralHub = () => {
   const [marketFeedUpdatedAt, setMarketFeedUpdatedAt] = useState<string>("");
   const [marketTransport, setMarketTransport] = useState<"sse" | "polling" | "offline">("offline");
 
+  useEffect(() => {
+    if (activeTab !== "CHAT") return;
+
+    const hasNewMessage = messages.length > previousMessageCountRef.current;
+    previousMessageCountRef.current = messages.length;
+    if (!hasNewMessage) return;
+
+    latestMessageAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    setLatestReplyPulse(true);
+    const timeoutId = window.setTimeout(() => setLatestReplyPulse(false), 1800);
+    return () => window.clearTimeout(timeoutId);
+  }, [messages, activeTab]);
+
   const relationshipScore = Math.min(100, 18 + usageCount * 20 + Math.min(messages.length, 12) * 4);
   const relationshipTier = relationshipScore >= 85
     ? "INNER_CIRCLE"
@@ -1035,7 +1111,12 @@ export const AINeuralHub = () => {
         : "NEW_SEEKER";
 
   const secureSessionLabel = connected ? "Wallet-signed secure session" : "Anon sandbox session (privacy-first)";
-  const modeLabel = openModeEnabled ? "Mystic Open Mode" : "Guardian Standard Mode";
+  const effectiveOpenMode = openModeEnabled && !kidsModeEnabled;
+  const modeLabel = kidsModeEnabled
+    ? "Kids Mode Safety"
+    : effectiveOpenMode
+      ? "Mystic Open Mode"
+      : "Guardian Standard Mode";
   const selectedPersona = PERSONA_PRESETS.find((preset) => preset.id === personaPreset) || PERSONA_PRESETS[0];
   const selectedTheme = PERSONA_THEME[personaPreset];
   const shortMemoryCards = memoryCards.filter((card) => card.scope === "short").slice(0, 4);
@@ -1196,6 +1277,52 @@ export const AINeuralHub = () => {
     });
   }
 
+  function saveKidsModePin() {
+    const pin = kidsModePinDraft.trim();
+    const confirm = kidsModePinConfirm.trim();
+    if (!/^\d{4,8}$/.test(pin)) {
+      setKidsModePinError("PIN must be 4-8 digits.");
+      return;
+    }
+    if (pin !== confirm) {
+      setKidsModePinError("PIN confirmation does not match.");
+      return;
+    }
+    setKidsModePin(pin);
+    setKidsModePinDraft("");
+    setKidsModePinConfirm("");
+    setKidsModePinError("");
+    setChatStatus("Parent PIN saved for Kids Mode lock.");
+  }
+
+  function clearKidsModePin() {
+    setKidsModePin("");
+    setKidsModePinDraft("");
+    setKidsModePinConfirm("");
+    setKidsModeUnlockInput("");
+    setShowKidsUnlockPrompt(false);
+    setKidsModePinError("");
+    setChatStatus("Parent PIN removed.");
+  }
+
+  function attemptKidsModeUnlock() {
+    if (!kidsModePin) {
+      setKidsModeEnabled(false);
+      setShowKidsUnlockPrompt(false);
+      setKidsModeUnlockInput("");
+      return;
+    }
+    if (kidsModeUnlockInput.trim() !== kidsModePin) {
+      setKidsModePinError("Incorrect PIN.");
+      return;
+    }
+    setKidsModeEnabled(false);
+    setShowKidsUnlockPrompt(false);
+    setKidsModeUnlockInput("");
+    setKidsModePinError("");
+    setChatStatus("Kids Mode unlocked.");
+  }
+
   function buildAutopilotDraftBlock(draft: unknown) {
     if (!draft || typeof draft !== "object") return "";
     const draftObj = draft as Record<string, unknown>;
@@ -1276,6 +1403,9 @@ export const AINeuralHub = () => {
 
     return [
       `You are ${guideName}, the user's mystical-but-practical neural guide for TradeHax.`,
+      kidsModeEnabled
+        ? "Kids mode is enabled: use age-appropriate language, avoid explicit/adult content, avoid profanity, prioritize safe educational guidance, and explain ideas in short simple steps."
+        : "",
       `Persona: ${selectedPersona.label}. ${selectedPersona.prompt}`,
       "Build long-term trust: remember user preference cues from this session and keep tone calm, secure, and empowering.",
       styleInstruction,
@@ -1286,7 +1416,9 @@ export const AINeuralHub = () => {
       videoContext,
       memoryContext,
       "Never promise returns. Always include risk controls, invalidation logic, and one concrete next step.",
-      openModeEnabled
+      kidsModeEnabled
+        ? "Mode: Kids Safe. Keep it playful, clear, and educational while preserving safety and privacy."
+        : effectiveOpenMode
         ? "Mode: Mystic Open. Be direct and creative while preserving safety and privacy."
         : "Mode: Guardian Standard. Be conservative, compliance-friendly, and explicit about uncertainty.",
     ].join(" ");
@@ -2619,7 +2751,7 @@ export const AINeuralHub = () => {
             message: userMsg,
             userId: buildHubUserId(),
             model: selectedChatModel,
-            tier: openModeEnabled ? "UNCENSORED" : "STANDARD",
+            tier: kidsModeEnabled ? "KIDS" : effectiveOpenMode ? "UNCENSORED" : "STANDARD",
             systemPrompt: buildPremierSystemPrompt(),
             context: {
               relationshipTier,
@@ -2775,17 +2907,23 @@ export const AINeuralHub = () => {
     };
 
     const selectedRuntime = runtimeByModel[selectedModel] ?? { style: "general" as const, odinProfile: "standard" as const };
+    const runtime = kidsModeEnabled
+      ? { style: "general" as const, odinProfile: "standard" as const }
+      : selectedRuntime;
+    const safePrompt = kidsModeEnabled
+      ? `Kid-safe educational visual. No violence, no explicit content. ${imgPrompt}`
+      : imgPrompt;
 
     try {
       const res = await fetch("/api/ai/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: imgPrompt,
-          style: selectedRuntime.style,
-          odinProfile: selectedRuntime.odinProfile,
+          prompt: safePrompt,
+          style: runtime.style,
+          odinProfile: runtime.odinProfile,
           model: selectedModel,
-          safetyMode: openModeEnabled ? "open" : "standard",
+          safetyMode: kidsModeEnabled ? "standard" : effectiveOpenMode ? "open" : "standard",
         })
       });
       const data = await res.json();
@@ -2794,7 +2932,7 @@ export const AINeuralHub = () => {
         if (data?.fallback) {
           setImageStatus(`Preview mode: ${data?.warning || "provider unavailable"}`);
         } else if (typeof data?.model === "string") {
-          setImageStatus(`Generated with ${data.model} • profile ${selectedRuntime.style}`);
+          setImageStatus(`Generated with ${data.model} • profile ${runtime.style}${kidsModeEnabled ? " • kids-safe" : ""}`);
         }
         incrementUsage();
       } else {
@@ -2825,16 +2963,11 @@ export const AINeuralHub = () => {
   const selectedWorkspaceSnapshotDiff = selectedWorkspaceSnapshot
     ? getWorkspaceSnapshotDiff(selectedWorkspaceSnapshot)
     : null;
+  const latestAssistantReverseIndex = [...messages].reverse().findIndex((item) => item.role === "assistant");
+  const latestAssistantIndex = latestAssistantReverseIndex === -1 ? -1 : messages.length - 1 - latestAssistantReverseIndex;
 
   return (
-    <section className="py-24 bg-black relative overflow-hidden">
-      <NeuralBackground />
-      {/* Background Ambience */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[120px] pointer-events-none" />
-
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="max-w-5xl mx-auto">
+    <HubShell background={<NeuralBackground />}>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-12">
             <div>
@@ -2891,17 +3024,137 @@ export const AINeuralHub = () => {
 
               <button
                 onClick={() => setOpenModeEnabled((prev) => !prev)}
-                className="self-end rounded-full border border-fuchsia-500/30 bg-fuchsia-600/10 px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase text-fuchsia-200 hover:border-fuchsia-400/60"
-                title="Toggle uncensored open mode for chat and image generation"
+                disabled={kidsModeEnabled}
+                className="self-end rounded-full border border-fuchsia-500/30 bg-fuchsia-600/10 px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase text-fuchsia-200 hover:border-fuchsia-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                title={kidsModeEnabled ? "Kids Mode is enabled; uncensored mode is locked off" : "Toggle uncensored open mode for chat and image generation"}
               >
-                {openModeEnabled ? "UNCENSORED_ON" : "STANDARD_MODE"}
+                {kidsModeEnabled ? "KIDS_LOCKED" : effectiveOpenMode ? "UNCENSORED_ON" : "STANDARD_MODE"}
+              </button>
+
+              <button
+                onClick={() => {
+                  if (kidsModeEnabled) {
+                    if (kidsModePin) {
+                      setShowKidsUnlockPrompt(true);
+                      setKidsModePinError("");
+                      return;
+                    }
+                    setKidsModeEnabled(false);
+                    return;
+                  }
+
+                  setKidsModeEnabled(true);
+                  setOpenModeEnabled(false);
+                  setBeginnerFocusMode(true);
+                  setShowOperatorDock(false);
+                  setShowKidsUnlockPrompt(false);
+                  setKidsModeUnlockInput("");
+                  setKidsModePinError("");
+                }}
+                className={`self-end rounded-full border px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase transition-colors ${
+                  kidsModeEnabled
+                    ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+                    : "border-emerald-500/30 bg-emerald-600/10 text-emerald-200 hover:border-emerald-400/60"
+                }`}
+                title="Toggle kid-safe mode with extra safeguards and simple language"
+              >
+                {kidsModeEnabled ? "KIDS_MODE_ON" : "KIDS_MODE_OFF"}
               </button>
             </div>
           </div>
 
           <div className="mb-6 rounded-xl border border-cyan-500/25 bg-[rgba(8,14,20,0.75)] px-4 py-3 text-[11px] text-cyan-100/85">
             <p className="font-semibold uppercase tracking-wide">Quick start</p>
-            <p className="mt-1">1) Open <strong>AI_CHAT</strong>, 2) ask your goal in simple words, 3) use IMAGE_TOOL or MARKET_TOOLS as needed.</p>
+            <p className="mt-1">
+              1) Open <strong>AI_CHAT</strong>, 2) ask your goal in simple words, 3) use IMAGE_TOOL or MARKET_TOOLS as needed.
+              {kidsModeEnabled ? " Kids Mode is active: responses stay simpler and safety-first." : ""}
+            </p>
+
+            <div className="mt-3 rounded-lg border border-white/10 bg-black/35 px-3 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Kids Mode Parent Lock</p>
+                <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                  {kidsModePin ? "PIN_SET" : "NO_PIN"}
+                </span>
+              </div>
+
+              {!kidsModePin ? (
+                <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={kidsModePinDraft}
+                    onChange={(event) => setKidsModePinDraft(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                    placeholder="Set PIN (4-8 digits)"
+                    className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
+                  />
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={kidsModePinConfirm}
+                    onChange={(event) => setKidsModePinConfirm(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                    placeholder="Confirm PIN"
+                    className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
+                  />
+                  <button
+                    type="button"
+                    onClick={saveKidsModePin}
+                    className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
+                  >
+                    Save PIN
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={clearKidsModePin}
+                    className="rounded-full border border-rose-300/30 bg-rose-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-rose-100"
+                  >
+                    Remove PIN
+                  </button>
+                  <p className="text-[10px] text-zinc-400">Disabling Kids Mode now requires this PIN.</p>
+                </div>
+              )}
+
+              {showKidsUnlockPrompt && (
+                <div className="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto]">
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={kidsModeUnlockInput}
+                    onChange={(event) => setKidsModeUnlockInput(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                    placeholder="Enter PIN to disable Kids Mode"
+                    className="rounded-md border border-emerald-300/25 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                  />
+                  <button
+                    type="button"
+                    onClick={attemptKidsModeUnlock}
+                    className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                  >
+                    Unlock
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowKidsUnlockPrompt(false);
+                      setKidsModeUnlockInput("");
+                      setKidsModePinError("");
+                    }}
+                    className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-[10px] uppercase text-zinc-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {kidsModePinError && (
+                <p className="mt-2 text-[10px] text-rose-300">{kidsModePinError}</p>
+              )}
+            </div>
           </div>
 
           <div className={`mb-8 grid gap-3 rounded-2xl border ${selectedTheme.heroBorder} ${selectedTheme.heroGradient} p-4 md:grid-cols-[1.1fr_1fr]`}>
@@ -3101,14 +3354,15 @@ export const AINeuralHub = () => {
 
                 <AnimatePresence mode="wait">
                   {activeTab === "CHAT" && (
-                    <motion.div
-                      key="chat"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex-1 flex flex-col p-6 h-full"
-                    >
-                      <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2 custom-scrollbar">
+                    <HubChatWorkspace>
+                      <motion.div
+                        key="chat"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="flex-1 flex flex-col p-6 h-full"
+                      >
+                      <div ref={chatViewportRef} className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2 custom-scrollbar">
                         <div className="rounded-xl border border-white/10 bg-[rgba(10,14,18,0.75)] px-3 py-2">
                           <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono uppercase">
                             <span className="text-cyan-200">Guide: {guideName}</span>
@@ -3116,6 +3370,56 @@ export const AINeuralHub = () => {
                             <span className="text-emerald-200">Secure Layer: Active</span>
                           </div>
                         </div>
+
+                        <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-300">Experience Mode</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBeginnerFocusMode((prev) => !prev);
+                                  if (beginnerFocusMode) {
+                                    setShowOperatorDock(false);
+                                  } else {
+                                    setShowOperatorDock(true);
+                                  }
+                                }}
+                                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${
+                                  beginnerFocusMode
+                                    ? "border-cyan-300/35 bg-cyan-500/10 text-cyan-100"
+                                    : "border-fuchsia-300/35 bg-fuchsia-500/10 text-fuchsia-100"
+                                }`}
+                              >
+                                {beginnerFocusMode ? "Beginner Focus" : "Pro Operator"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setShowOperatorDock((prev) => !prev)}
+                                className="rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-[10px] font-semibold uppercase text-zinc-200"
+                                title="Open or close advanced operator panels"
+                              >
+                                {showOperatorDock ? "Hide Advanced" : "Show Advanced"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => latestMessageAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })}
+                                className="rounded-full border border-emerald-300/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                                title="Jump to latest assistant reply"
+                              >
+                                Jump to Reply
+                              </button>
+                            </div>
+                          </div>
+                          {beginnerFocusMode && !showOperatorDock && (
+                            <p className="mt-2 text-[11px] text-zinc-400">
+                              Beginner Focus keeps the conversation visible first. Use <strong>Show Advanced</strong> whenever you want full operator controls.
+                            </p>
+                          )}
+                        </div>
+
+                        {(!beginnerFocusMode || showOperatorDock) && (
+                          <>
 
                         {branchTrail.length > 0 && (
                           <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-2">
@@ -3539,37 +3843,39 @@ export const AINeuralHub = () => {
                           onStoreBrief={rememberVideoInstructionBrief}
                         />
 
-                        <HubWebsiteSocialAutopilot
-                          websiteSourceUrl={websiteSourceUrl}
-                          onWebsiteSourceUrlChange={setWebsiteSourceUrl}
-                          autopilotFocus={autopilotFocus}
-                          onAutopilotFocusChange={setAutopilotFocus}
-                          socialChannels={SOCIAL_AUTOPILOT_CHANNELS}
-                          autopilotChannels={autopilotChannels}
-                          onToggleAutopilotChannel={toggleAutopilotChannel}
-                          isGeneratingAutopilot={isGeneratingAutopilot}
-                          onGenerateDrafts={generateWebsiteAutopilotDraft}
-                          autopilotOpsLoading={autopilotOpsLoading}
-                          onSaveToOps={saveCurrentAutopilotDraftToOps}
-                          onRefreshOps={refreshAutopilotOps}
-                          autopilotOpsDraftId={autopilotOpsDraftId}
-                          onAutopilotOpsDraftIdChange={setAutopilotOpsDraftId}
-                          autopilotScheduleAt={autopilotScheduleAt}
-                          onAutopilotScheduleAtChange={setAutopilotScheduleAt}
-                          onSubmitApproval={submitAutopilotForApproval}
-                          onApproveDraft={approveAutopilotDraft}
-                          onScheduleQueue={scheduleAutopilotDraft}
-                          onPublishNow={publishAutopilotNow}
-                          onRunDueJobs={runDueAutopilotJobs}
-                          autopilotImpressions={autopilotImpressions}
-                          onAutopilotImpressionsChange={setAutopilotImpressions}
-                          autopilotEngagements={autopilotEngagements}
-                          onAutopilotEngagementsChange={setAutopilotEngagements}
-                          autopilotClicks={autopilotClicks}
-                          onAutopilotClicksChange={setAutopilotClicks}
-                          onSyncMetrics={syncAutopilotPerformance}
-                          autopilotOpsSnapshot={autopilotOpsSnapshot}
-                        />
+                        <HubAutomationWorkspace>
+                          <HubWebsiteSocialAutopilot
+                            websiteSourceUrl={websiteSourceUrl}
+                            onWebsiteSourceUrlChange={setWebsiteSourceUrl}
+                            autopilotFocus={autopilotFocus}
+                            onAutopilotFocusChange={setAutopilotFocus}
+                            socialChannels={SOCIAL_AUTOPILOT_CHANNELS}
+                            autopilotChannels={autopilotChannels}
+                            onToggleAutopilotChannel={toggleAutopilotChannel}
+                            isGeneratingAutopilot={isGeneratingAutopilot}
+                            onGenerateDrafts={generateWebsiteAutopilotDraft}
+                            autopilotOpsLoading={autopilotOpsLoading}
+                            onSaveToOps={saveCurrentAutopilotDraftToOps}
+                            onRefreshOps={refreshAutopilotOps}
+                            autopilotOpsDraftId={autopilotOpsDraftId}
+                            onAutopilotOpsDraftIdChange={setAutopilotOpsDraftId}
+                            autopilotScheduleAt={autopilotScheduleAt}
+                            onAutopilotScheduleAtChange={setAutopilotScheduleAt}
+                            onSubmitApproval={submitAutopilotForApproval}
+                            onApproveDraft={approveAutopilotDraft}
+                            onScheduleQueue={scheduleAutopilotDraft}
+                            onPublishNow={publishAutopilotNow}
+                            onRunDueJobs={runDueAutopilotJobs}
+                            autopilotImpressions={autopilotImpressions}
+                            onAutopilotImpressionsChange={setAutopilotImpressions}
+                            autopilotEngagements={autopilotEngagements}
+                            onAutopilotEngagementsChange={setAutopilotEngagements}
+                            autopilotClicks={autopilotClicks}
+                            onAutopilotClicksChange={setAutopilotClicks}
+                            onSyncMetrics={syncAutopilotPerformance}
+                            autopilotOpsSnapshot={autopilotOpsSnapshot}
+                          />
+                        </HubAutomationWorkspace>
 
                         <HubCompetitiveEdgeLab
                           focusSymbol={focusSymbol}
@@ -3745,12 +4051,17 @@ export const AINeuralHub = () => {
                           )}
                         </div>
 
-                        {messages.map((msg, i) => (
+                          </>
+                        )}
+
+                        {messages.map((msg, i) => {
+                          const isLatestAssistant = msg.role === "assistant" && i === latestAssistantIndex;
+                          return (
                           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${
                               msg.role === 'user'
                                 ? "bg-cyan-500/10 border border-cyan-500/20 text-cyan-100"
-                                : "bg-zinc-900/80 border border-white/5 text-zinc-300"
+                                : `bg-zinc-900/80 border ${isLatestAssistant && latestReplyPulse ? "border-cyan-300/60 shadow-[0_0_20px_rgba(34,211,238,0.25)]" : "border-white/5"} text-zinc-300`
                             }`}>
                               <div className="mb-1 flex items-center justify-between gap-2">
                                 <p className="font-mono text-[10px] opacity-50 uppercase tracking-widest">{msg.role === "assistant" ? `${guideName}_guide` : msg.role}</p>
@@ -3846,7 +4157,8 @@ export const AINeuralHub = () => {
                               )}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                         {isChatLoading && (
                           <div className="flex justify-start">
                             <div className="bg-zinc-900/80 border border-white/5 p-4 rounded-2xl">
@@ -3858,6 +4170,7 @@ export const AINeuralHub = () => {
                             </div>
                           </div>
                         )}
+                        <div ref={latestMessageAnchorRef} />
                       </div>
 
                       <div className="mb-3 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100/85">
@@ -3965,6 +4278,7 @@ export const AINeuralHub = () => {
                       </div>
 
                       {isPromptLibraryOpen && (
+                        <HubLibraryWorkspace>
                         <div className="mb-3 rounded-xl border border-cyan-400/20 bg-[rgba(6,10,16,0.84)] px-3 py-3">
                           <div className="mb-2 flex items-center justify-between gap-2">
                             <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-cyan-200">Prompt Library</p>
@@ -4074,6 +4388,7 @@ export const AINeuralHub = () => {
                             </div>
                           )}
                         </div>
+                        </HubLibraryWorkspace>
                       )}
 
                       <div className="mb-3 flex flex-wrap gap-2">
@@ -4196,31 +4511,36 @@ export const AINeuralHub = () => {
                           </div>
                         </div>
                       )}
-                    </motion.div>
+                      </motion.div>
+                    </HubChatWorkspace>
                   )}
 
                   {activeTab === "IMAGE_GEN" && (
-                    <HubImageWorkspace
-                      imageModels={imageModels}
-                      selectedModel={selectedModel}
-                      onSelectModel={setSelectedModel}
-                      imgPrompt={imgPrompt}
-                      onImgPromptChange={setImgPrompt}
-                      onGenerateImage={handleGenerateImage}
-                      isImgLoading={isImgLoading}
-                      generatedImg={generatedImg}
-                      imageStatus={imageStatus}
-                    />
+                    <HubCreateWorkspace>
+                      <HubImageWorkspace
+                        imageModels={imageModels}
+                        selectedModel={selectedModel}
+                        onSelectModel={setSelectedModel}
+                        imgPrompt={imgPrompt}
+                        onImgPromptChange={setImgPrompt}
+                        onGenerateImage={handleGenerateImage}
+                        isImgLoading={isImgLoading}
+                        generatedImg={generatedImg}
+                        imageStatus={imageStatus}
+                      />
+                    </HubCreateWorkspace>
                   )}
 
                   {activeTab === "MARKET" && (
-                    <HubMarketWorkspace
-                      watchlist={watchlist}
-                      marketTransport={marketTransport}
-                      marketStatus={marketStatus}
-                      marketFeedUpdatedAt={marketFeedUpdatedAt}
-                      focusSymbol={focusSymbol}
-                    />
+                    <HubMarketWorkspaceView>
+                      <HubMarketWorkspace
+                        watchlist={watchlist}
+                        marketTransport={marketTransport}
+                        marketStatus={marketStatus}
+                        marketFeedUpdatedAt={marketFeedUpdatedAt}
+                        focusSymbol={focusSymbol}
+                      />
+                    </HubMarketWorkspaceView>
                   )}
                 </AnimatePresence>
               </div>
@@ -4232,9 +4552,6 @@ export const AINeuralHub = () => {
             </div>
           </div>
 
-        </div>
-      </div>
-
       <HubCommandPalette
         isOpen={isCommandPaletteOpen}
         commandQuery={commandQuery}
@@ -4245,6 +4562,6 @@ export const AINeuralHub = () => {
         onRunCommand={runPaletteCommand}
         onSetSelectionIndex={setCommandSelectionIndex}
       />
-    </section>
+    </HubShell>
   );
 };
