@@ -2,6 +2,7 @@
  * Hugging Face Server-Side Configuration
  */
 
+import { resolveHfApiToken } from "./env-tokens";
 import { HFLLMClient, type LLMConfig } from "./hf-client";
 
 let llmClient: HFLLMClient | null = null;
@@ -32,10 +33,10 @@ function normalizeOptionalNumber(value: unknown) {
 }
 
 function getResolvedConfig(overrides?: LLMClientOverrides): LLMConfig {
-  const token = process.env.HF_API_TOKEN;
+  const token = resolveHfApiToken();
   if (!token) {
     throw new Error(
-      "HF_API_TOKEN not set. Set it in .env.local or environment variables.",
+      "HF token not set. Configure HF_API_TOKEN (or HUGGINGFACE_API_TOKEN / HUGGING_FACE_HUB_TOKEN).",
     );
   }
 

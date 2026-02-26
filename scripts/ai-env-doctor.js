@@ -163,6 +163,30 @@ function checkCanaryGovernance() {
   }
 }
 
+function checkOptionalProviderTokens() {
+  const providers = [
+    ["Hugging Face", ["HF_API_TOKEN", "HUGGINGFACE_API_TOKEN", "HUGGING_FACE_HUB_TOKEN"]],
+    ["OpenAI", ["OPENAI_API_KEY"]],
+    ["Azure OpenAI", ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT"]],
+    ["GitHub Models", ["GITHUB_TOKEN"]],
+    ["Anthropic", ["ANTHROPIC_API_KEY"]],
+    ["Groq", ["GROQ_API_KEY"]],
+    ["Together", ["TOGETHER_API_KEY"]],
+    ["Cohere", ["COHERE_API_KEY"]],
+    ["Mistral", ["MISTRAL_API_KEY"]],
+    ["DeepSeek", ["DEEPSEEK_API_KEY"]],
+  ];
+
+  for (const [label, keys] of providers) {
+    const connected = keys.some((key) => has(key));
+    if (connected) {
+      print("PASS", `${label}_TOKEN_CONNECTION`, "configured (masked)");
+    } else {
+      print("WARN", `${label}_TOKEN_CONNECTION`, `Not configured. Expected one of: ${keys.join(", ")}`);
+    }
+  }
+}
+
 function main() {
   console.log("\n🧪 TradeHax AI Environment Doctor\n");
 
@@ -206,6 +230,9 @@ function main() {
 
   console.log("\n[5/5] Safety + mode checks");
   checkOpenModeGuardrails();
+
+  console.log("\n[extra] Optional provider token connections");
+  checkOptionalProviderTokens();
 
   const total = state.pass + state.warn + state.fail;
   console.log(`\nSummary: ${state.pass} pass, ${state.warn} warn, ${state.fail} fail (${total} checks).`);
