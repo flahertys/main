@@ -1,5 +1,6 @@
 "use client";
 
+import { HubBloombergTerminalDesk } from "@/components/landing/hub/HubBloombergTerminalDesk";
 import { motion } from "framer-motion";
 import { Plus, Sparkles, TrendingUp, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -19,6 +20,7 @@ type HubMarketWorkspaceProps = {
   marketTransport: "sse" | "polling" | "offline";
   marketStatus: string;
   marketFeedUpdatedAt: string;
+  focusSymbol?: string;
 };
 
 function formatMarketPrice(value: number) {
@@ -55,6 +57,7 @@ export function HubMarketWorkspace({
   marketTransport,
   marketStatus,
   marketFeedUpdatedAt,
+  focusSymbol,
 }: HubMarketWorkspaceProps) {
   const [tickerQuery, setTickerQuery] = useState("");
 
@@ -66,6 +69,14 @@ export function HubMarketWorkspace({
       asset.symbol.toLowerCase().includes(query) || asset.pair.toLowerCase().includes(query),
     );
   }, [tickerQuery, watchlist]);
+
+  const chartDefaultSymbol = useMemo(() => {
+    const fromFocus = (focusSymbol || "").trim().toUpperCase();
+    if (fromFocus) return `BINANCE:${fromFocus}USDT`;
+
+    const first = filteredWatchlist[0]?.pair || watchlist[0]?.pair || "BTCUSDT";
+    return `BINANCE:${first}`;
+  }, [focusSymbol, filteredWatchlist, watchlist]);
 
   return (
     <motion.div
@@ -148,6 +159,10 @@ export function HubMarketWorkspace({
             Fetch_Alpha
           </button>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <HubBloombergTerminalDesk defaultSymbol={chartDefaultSymbol} />
       </div>
     </motion.div>
   );

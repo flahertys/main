@@ -4,10 +4,12 @@ import { WalletButton } from "@/components/counter/WalletButton";
 import { HubCapitalPreservationCircuit } from "@/components/landing/hub/HubCapitalPreservationCircuit";
 import { HubCommandPalette } from "@/components/landing/hub/HubCommandPalette";
 import { HubCompetitiveEdgeLab } from "@/components/landing/hub/HubCompetitiveEdgeLab";
+import { HubConvictionCalibrationEngine } from "@/components/landing/hub/HubConvictionCalibrationEngine";
 import { HubExecutionLatencyGuard } from "@/components/landing/hub/HubExecutionLatencyGuard";
 import { HubImageWorkspace } from "@/components/landing/hub/HubImageWorkspace";
 import { HubMarketWorkspace } from "@/components/landing/hub/HubMarketWorkspace";
 import { HubMetricsRail } from "@/components/landing/hub/HubMetricsRail";
+import { HubOpportunityCostRadar } from "@/components/landing/hub/HubOpportunityCostRadar";
 import { HubPostTradeForensics } from "@/components/landing/hub/HubPostTradeForensics";
 import { HubRegimeShiftSentinel } from "@/components/landing/hub/HubRegimeShiftSentinel";
 import { HubSessionDriftGovernor } from "@/components/landing/hub/HubSessionDriftGovernor";
@@ -2335,6 +2337,48 @@ export const AINeuralHub = () => {
     setChatStatus("Capital preservation circuit brief saved to long-term memory.");
   }
 
+  function insertOpportunityCostRadarBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("Opportunity cost brief is empty. Fill metrics first.");
+      return;
+    }
+    setActiveTab("CHAT");
+    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
+    setChatStatus("Opportunity cost radar brief inserted into chat input.");
+  }
+
+  function rememberOpportunityCostRadarBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("No opportunity cost brief to store yet.");
+      return;
+    }
+    addMemoryCard("long", `Opportunity Cost ${focusSymbol}`, safeBrief.slice(0, 160));
+    setChatStatus("Opportunity cost radar brief saved to long-term memory.");
+  }
+
+  function insertConvictionCalibrationBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("Calibration brief is empty. Fill metrics first.");
+      return;
+    }
+    setActiveTab("CHAT");
+    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
+    setChatStatus("Conviction calibration brief inserted into chat input.");
+  }
+
+  function rememberConvictionCalibrationBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("No calibration brief to store yet.");
+      return;
+    }
+    addMemoryCard("long", `Calibration ${focusSymbol}`, safeBrief.slice(0, 160));
+    setChatStatus("Conviction calibration brief saved to long-term memory.");
+  }
+
   async function generateWebsiteAutopilotDraft() {
     const normalizedSource = normalizeVideoUrl(websiteSourceUrl);
     if (!normalizedSource) {
@@ -3564,6 +3608,22 @@ export const AINeuralHub = () => {
                           onStoreBrief={rememberCapitalPreservationCircuitBrief}
                         />
 
+                        <HubOpportunityCostRadar
+                          focusSymbol={focusSymbol}
+                          riskStance={riskStance}
+                          marketRegime={detectedMarketRegime}
+                          onInjectBrief={insertOpportunityCostRadarBrief}
+                          onStoreBrief={rememberOpportunityCostRadarBrief}
+                        />
+
+                        <HubConvictionCalibrationEngine
+                          focusSymbol={focusSymbol}
+                          riskStance={riskStance}
+                          marketRegime={detectedMarketRegime}
+                          onInjectBrief={insertConvictionCalibrationBrief}
+                          onStoreBrief={rememberConvictionCalibrationBrief}
+                        />
+
                         <div className="rounded-xl border border-white/10 bg-[rgba(10,14,20,0.72)] px-3 py-3">
                           <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-wide text-zinc-300">
                             <BookOpen className="h-3.5 w-3.5 text-cyan-300" />
@@ -4148,6 +4208,7 @@ export const AINeuralHub = () => {
                       marketTransport={marketTransport}
                       marketStatus={marketStatus}
                       marketFeedUpdatedAt={marketFeedUpdatedAt}
+                      focusSymbol={focusSymbol}
                     />
                   )}
                 </AnimatePresence>
