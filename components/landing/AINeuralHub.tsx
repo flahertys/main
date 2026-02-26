@@ -22,6 +22,7 @@ import { HubChatWorkspace } from "@/components/landing/hub/workspaces/HubChatWor
 import { HubCreateWorkspace } from "@/components/landing/hub/workspaces/HubCreateWorkspace";
 import { HubLibraryWorkspace } from "@/components/landing/hub/workspaces/HubLibraryWorkspace";
 import { HubMarketWorkspaceView } from "@/components/landing/hub/workspaces/HubMarketWorkspaceView";
+import { useKidsModeLock } from "@/components/landing/hub/hooks/useKidsModeLock";
 import {
     exportLocalNeuralVault,
     getLocalNeuralVault,
@@ -468,18 +469,32 @@ export const AINeuralHub = () => {
   const [beginnerFocusMode, setBeginnerFocusMode] = useState(true);
   const [showOperatorDock, setShowOperatorDock] = useState(false);
   const [latestReplyPulse, setLatestReplyPulse] = useState(false);
-  const [kidsModeEnabled, setKidsModeEnabled] = useState(false);
-  const [kidsModePin, setKidsModePin] = useState("");
-  const [kidsModePinDraft, setKidsModePinDraft] = useState("");
-  const [kidsModePinConfirm, setKidsModePinConfirm] = useState("");
-  const [kidsModeUnlockInput, setKidsModeUnlockInput] = useState("");
-  const [showKidsUnlockPrompt, setShowKidsUnlockPrompt] = useState(false);
-  const [kidsModePinError, setKidsModePinError] = useState("");
   const [usageCount, setUsageCount] = useState(0);
   const [isCharging, setIsOverLimit] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [selectedChatModel, setSelectedChatModel] = useState<string>(CHAT_MODELS[0].id);
   const [openModeEnabled, setOpenModeEnabled] = useState(true);
+  const {
+    kidsModeEnabled,
+    kidsModePin,
+    kidsModePinDraft,
+    setKidsModePinDraft,
+    kidsModePinConfirm,
+    setKidsModePinConfirm,
+    kidsModeUnlockInput,
+    setKidsModeUnlockInput,
+    showKidsUnlockPrompt,
+    kidsModePinError,
+    saveKidsModePin,
+    clearKidsModePin,
+    attemptKidsModeUnlock,
+    cancelKidsModeUnlock,
+    toggleKidsMode,
+  } = useKidsModeLock({
+    setOpenModeEnabled,
+    setBeginnerFocusMode,
+    setShowOperatorDock,
+  });
   const [guideName, setGuideName] = useState("Trader");
   const [responseStyle, setResponseStyle] = useState<ResponseStyle>("coach");
   const [riskStance, setRiskStance] = useState<RiskStance>("balanced");
@@ -594,19 +609,6 @@ export const AINeuralHub = () => {
     const storedOperatorDock = localStorage.getItem("tradehax_ai_operator_dock_open");
     if (storedOperatorDock === "true") {
       setShowOperatorDock(true);
-    }
-
-    const storedKidsMode = localStorage.getItem("tradehax_ai_kids_mode_enabled");
-    if (storedKidsMode === "true") {
-      setKidsModeEnabled(true);
-      setOpenModeEnabled(false);
-      setBeginnerFocusMode(true);
-      setShowOperatorDock(false);
-    }
-
-    const storedKidsPin = localStorage.getItem("tradehax_ai_kids_mode_pin");
-    if (storedKidsPin && /^\d{4,8}$/.test(storedKidsPin)) {
-      setKidsModePin(storedKidsPin);
     }
 
     const storedCustomPrompts = localStorage.getItem("tradehax_ai_custom_prompt_packs");
@@ -895,18 +897,6 @@ export const AINeuralHub = () => {
   useEffect(() => {
     localStorage.setItem("tradehax_ai_operator_dock_open", String(showOperatorDock));
   }, [showOperatorDock]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_kids_mode_enabled", String(kidsModeEnabled));
-  }, [kidsModeEnabled]);
-
-  useEffect(() => {
-    if (kidsModePin) {
-      localStorage.setItem("tradehax_ai_kids_mode_pin", kidsModePin);
-    } else {
-      localStorage.removeItem("tradehax_ai_kids_mode_pin");
-    }
-  }, [kidsModePin]);
 
   useEffect(() => {
     localStorage.setItem("tradehax_ai_custom_prompt_packs", JSON.stringify(customPromptPacks.slice(0, 24)));
@@ -1275,52 +1265,6 @@ export const AINeuralHub = () => {
       }
       return [...prev, channelId].slice(0, 8);
     });
-  }
-
-  function saveKidsModePin() {
-    const pin = kidsModePinDraft.trim();
-    const confirm = kidsModePinConfirm.trim();
-    if (!/^\d{4,8}$/.test(pin)) {
-      setKidsModePinError("PIN must be 4-8 digits.");
-      return;
-    }
-    if (pin !== confirm) {
-      setKidsModePinError("PIN confirmation does not match.");
-      return;
-    }
-    setKidsModePin(pin);
-    setKidsModePinDraft("");
-    setKidsModePinConfirm("");
-    setKidsModePinError("");
-    setChatStatus("Parent PIN saved for Kids Mode lock.");
-  }
-
-  function clearKidsModePin() {
-    setKidsModePin("");
-    setKidsModePinDraft("");
-    setKidsModePinConfirm("");
-    setKidsModeUnlockInput("");
-    setShowKidsUnlockPrompt(false);
-    setKidsModePinError("");
-    setChatStatus("Parent PIN removed.");
-  }
-
-  function attemptKidsModeUnlock() {
-    if (!kidsModePin) {
-      setKidsModeEnabled(false);
-      setShowKidsUnlockPrompt(false);
-      setKidsModeUnlockInput("");
-      return;
-    }
-    if (kidsModeUnlockInput.trim() !== kidsModePin) {
-      setKidsModePinError("Incorrect PIN.");
-      return;
-    }
-    setKidsModeEnabled(false);
-    setShowKidsUnlockPrompt(false);
-    setKidsModeUnlockInput("");
-    setKidsModePinError("");
-    setChatStatus("Kids Mode unlocked.");
   }
 
   function buildAutopilotDraftBlock(draft: unknown) {
@@ -3033,23 +2977,8 @@ export const AINeuralHub = () => {
 
               <button
                 onClick={() => {
-                  if (kidsModeEnabled) {
-                    if (kidsModePin) {
-                      setShowKidsUnlockPrompt(true);
-                      setKidsModePinError("");
-                      return;
-                    }
-                    setKidsModeEnabled(false);
-                    return;
-                  }
-
-                  setKidsModeEnabled(true);
-                  setOpenModeEnabled(false);
-                  setBeginnerFocusMode(true);
-                  setShowOperatorDock(false);
-                  setShowKidsUnlockPrompt(false);
-                  setKidsModeUnlockInput("");
-                  setKidsModePinError("");
+                  const status = toggleKidsMode();
+                  if (status) setChatStatus(status);
                 }}
                 className={`self-end rounded-full border px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase transition-colors ${
                   kidsModeEnabled
@@ -3100,7 +3029,10 @@ export const AINeuralHub = () => {
                   />
                   <button
                     type="button"
-                    onClick={saveKidsModePin}
+                    onClick={() => {
+                      const status = saveKidsModePin();
+                      if (status) setChatStatus(status);
+                    }}
                     className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
                   >
                     Save PIN
@@ -3110,7 +3042,7 @@ export const AINeuralHub = () => {
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={clearKidsModePin}
+                    onClick={() => setChatStatus(clearKidsModePin())}
                     className="rounded-full border border-rose-300/30 bg-rose-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-rose-100"
                   >
                     Remove PIN
@@ -3132,18 +3064,17 @@ export const AINeuralHub = () => {
                   />
                   <button
                     type="button"
-                    onClick={attemptKidsModeUnlock}
+                    onClick={() => {
+                      const status = attemptKidsModeUnlock();
+                      if (status) setChatStatus(status);
+                    }}
                     className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100"
                   >
                     Unlock
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowKidsUnlockPrompt(false);
-                      setKidsModeUnlockInput("");
-                      setKidsModePinError("");
-                    }}
+                    onClick={cancelKidsModeUnlock}
                     className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-[10px] uppercase text-zinc-300"
                   >
                     Cancel
