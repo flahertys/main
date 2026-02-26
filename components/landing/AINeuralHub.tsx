@@ -3,11 +3,13 @@
 import { WalletButton } from "@/components/counter/WalletButton";
 import { HubCommandPalette } from "@/components/landing/hub/HubCommandPalette";
 import { HubCompetitiveEdgeLab } from "@/components/landing/hub/HubCompetitiveEdgeLab";
+import { HubExecutionLatencyGuard } from "@/components/landing/hub/HubExecutionLatencyGuard";
 import { HubImageWorkspace } from "@/components/landing/hub/HubImageWorkspace";
 import { HubMarketWorkspace } from "@/components/landing/hub/HubMarketWorkspace";
 import { HubMetricsRail } from "@/components/landing/hub/HubMetricsRail";
 import { HubPostTradeForensics } from "@/components/landing/hub/HubPostTradeForensics";
 import { HubRegimeShiftSentinel } from "@/components/landing/hub/HubRegimeShiftSentinel";
+import { HubSessionDriftGovernor } from "@/components/landing/hub/HubSessionDriftGovernor";
 import { HubSitewideNeuralSmartness } from "@/components/landing/hub/HubSitewideNeuralSmartness";
 import { HubVideoAiInfusion } from "@/components/landing/hub/HubVideoAiInfusion";
 import { HubWebsiteSocialAutopilot } from "@/components/landing/hub/HubWebsiteSocialAutopilot";
@@ -2269,6 +2271,48 @@ export const AINeuralHub = () => {
     setChatStatus("Regime sentinel brief saved to long-term memory.");
   }
 
+  function insertExecutionLatencyGuardBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("Latency guard brief is empty. Fill metrics first.");
+      return;
+    }
+    setActiveTab("CHAT");
+    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
+    setChatStatus("Execution latency guard brief inserted into chat input.");
+  }
+
+  function rememberExecutionLatencyGuardBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("No latency guard brief to store yet.");
+      return;
+    }
+    addMemoryCard("long", `Latency Guard ${focusSymbol}`, safeBrief.slice(0, 160));
+    setChatStatus("Execution latency guard brief saved to long-term memory.");
+  }
+
+  function insertSessionDriftGovernorBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("Session drift brief is empty. Fill metrics first.");
+      return;
+    }
+    setActiveTab("CHAT");
+    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
+    setChatStatus("Session drift governor brief inserted into chat input.");
+  }
+
+  function rememberSessionDriftGovernorBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("No session drift brief to store yet.");
+      return;
+    }
+    addMemoryCard("long", `Session Drift ${focusSymbol}`, safeBrief.slice(0, 160));
+    setChatStatus("Session drift governor brief saved to long-term memory.");
+  }
+
   async function generateWebsiteAutopilotDraft() {
     const normalizedSource = normalizeVideoUrl(websiteSourceUrl);
     if (!normalizedSource) {
@@ -3472,6 +3516,22 @@ export const AINeuralHub = () => {
                           marketRegime={detectedMarketRegime}
                           onInjectBrief={insertRegimeShiftSentinelBrief}
                           onStoreBrief={rememberRegimeShiftSentinelBrief}
+                        />
+
+                        <HubExecutionLatencyGuard
+                          focusSymbol={focusSymbol}
+                          riskStance={riskStance}
+                          marketRegime={detectedMarketRegime}
+                          onInjectBrief={insertExecutionLatencyGuardBrief}
+                          onStoreBrief={rememberExecutionLatencyGuardBrief}
+                        />
+
+                        <HubSessionDriftGovernor
+                          focusSymbol={focusSymbol}
+                          riskStance={riskStance}
+                          marketRegime={detectedMarketRegime}
+                          onInjectBrief={insertSessionDriftGovernorBrief}
+                          onStoreBrief={rememberSessionDriftGovernorBrief}
                         />
 
                         <div className="rounded-xl border border-white/10 bg-[rgba(10,14,20,0.72)] px-3 py-3">
