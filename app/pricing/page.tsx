@@ -8,10 +8,11 @@ import Link from "next/link";
 export const metadata = createPageMetadata({
   title: "Pricing and Plans | TradeHax AI Services",
   description:
-    "Transparent pricing for tech repair, guitar lessons, and digital/Web3 development support for local and remote clients.",
+    "Transparent AI pricing tiers with 30 minutes of free AI use every week for all users.",
   path: "/pricing",
   keywords: [
     "service pricing tradehax ai",
+    "free ai minutes weekly",
     "web development pricing",
     "guitar lesson pricing",
     "tech repair pricing philadelphia",
@@ -54,7 +55,7 @@ export default function PricingPage() {
             Subscription Plans for AI + Trading + Game Access
           </h1>
           <p className="theme-subtitle">
-            Choose your launch tier and upgrade anytime from the billing console.
+            Everyone gets 30 minutes of free AI use each week. Choose a paid tier anytime for higher limits and premium lanes.
           </p>
         </section>
 

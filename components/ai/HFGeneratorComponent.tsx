@@ -12,7 +12,7 @@ export function HFGeneratorComponent() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [mode, setMode] = useState<"simple" | "pro">("simple");
-  const [model, setModel] = useState("mistralai/Mistral-7B-Instruct-v0.1");
+  const [model, setModel] = useState("Qwen/Qwen2.5-7B-Instruct");
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(512);
 

@@ -10,6 +10,7 @@ import {
 } from "@/lib/ai/credit-system";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { resolveHfApiToken } from "@/lib/ai/env-tokens";
+import { applyOdinImageTuning, resolveOdinRuntimeProfile } from "@/lib/ai/odin-profile";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
 import {
     enforceRateLimit,
@@ -24,6 +25,7 @@ import { NextRequest, NextResponse } from "next/server";
 interface ImageRequest {
   prompt: string;
   model?: string;
+  odinProfile?: "standard" | "alpha" | "overclock";
   negativePrompt?: string;
   style?: "trading" | "nft" | "hero" | "general";
   width?: number;
@@ -32,14 +34,14 @@ interface ImageRequest {
   userId?: string;
 }
 
-const DEFAULT_IMAGE_MODEL = "stabilityai/stable-diffusion-2-1";
+const DEFAULT_IMAGE_MODEL = "stabilityai/stable-diffusion-xl-base-1.0";
 const DEFAULT_STANDARD_NEGATIVE =
   "blurry, low quality, watermark, logo, text overlay, disfigured, deformed";
 
 const IMAGE_MODEL_ALIASES: Record<string, string> = {
-  NEURAL_DIFF_V4: "stabilityai/stable-diffusion-2-1",
+  NEURAL_DIFF_V4: "stabilityai/stable-diffusion-xl-base-1.0",
   FLUX_CORE_X: "black-forest-labs/FLUX.1-schnell",
-  ASTRA_LINK: "stabilityai/stable-diffusion-xl-base-1.0",
+  ASTRA_LINK: "black-forest-labs/FLUX.1-dev",
 };
 
 export const runtime = "nodejs";
@@ -178,9 +180,26 @@ export async function POST(request: NextRequest) {
     const style = body.style ?? "general";
     const width = normalizeDimension(body.width, style === "hero" ? 1536 : 1024);
     const height = normalizeDimension(body.height, style === "hero" ? 864 : 1024);
+    const odinProfile = resolveOdinRuntimeProfile({
+      request,
+      requestedProfile: body.odinProfile,
+    });
     const requestedSafetyMode = body.safetyMode === "standard" ? "standard" : "open";
-    const openMode =
+    const baseOpenMode =
       requestedSafetyMode === "open" && process.env.TRADEHAX_IMAGE_OPEN_MODE !== "false";
+    const guidanceScaleRaw = Number.parseFloat(process.env.HF_IMAGE_GUIDANCE_SCALE || "6.5");
+    const baseGuidanceScale = Number.isFinite(guidanceScaleRaw) ? guidanceScaleRaw : 6.5;
+
+    const stepsRaw = Number.parseInt(process.env.HF_IMAGE_STEPS || "30", 10);
+    const baseNumInferenceSteps = Number.isFinite(stepsRaw) ? Math.max(10, Math.min(60, stepsRaw)) : 30;
+    const odinTunedImage = applyOdinImageTuning(odinProfile, {
+      guidanceScale: baseGuidanceScale,
+      numInferenceSteps: baseNumInferenceSteps,
+      openMode: baseOpenMode,
+    });
+    const guidanceScale = odinTunedImage.guidanceScale;
+    const numInferenceSteps = odinTunedImage.numInferenceSteps;
+    const openMode = odinTunedImage.openMode;
 
     const negativePromptRaw =
       typeof body.negativePrompt === "string" ? sanitizePlainText(body.negativePrompt, 500) : "";
@@ -213,12 +232,6 @@ export async function POST(request: NextRequest) {
       );
     }
     const styledPrompt = createStyledPrompt(prompt, style);
-
-    const guidanceScaleRaw = Number.parseFloat(process.env.HF_IMAGE_GUIDANCE_SCALE || "6.5");
-    const guidanceScale = Number.isFinite(guidanceScaleRaw) ? guidanceScaleRaw : 6.5;
-
-    const stepsRaw = Number.parseInt(process.env.HF_IMAGE_STEPS || "30", 10);
-    const numInferenceSteps = Number.isFinite(stepsRaw) ? Math.max(10, Math.min(60, stepsRaw)) : 30;
     let imageBuffer: Buffer;
     let mimeType = "image/png";
 
@@ -296,6 +309,9 @@ export async function POST(request: NextRequest) {
           width,
           height,
           open_mode: openMode,
+          odin_profile: odinProfile.id,
+          guidance_scale: guidanceScale,
+          num_inference_steps: numInferenceSteps,
         },
         consent: {
           analytics: true,
@@ -332,6 +348,7 @@ export async function POST(request: NextRequest) {
       height,
       mimeType,
       model,
+      odinProfile: odinProfile.id,
       openMode,
       safetyMode: openMode ? "open" : "standard",
       credits: {

@@ -1,7 +1,8 @@
 import { buildTradeHaxSystemPrompt } from "@/lib/ai/custom-llm/system-prompt";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { getLLMClient } from "@/lib/ai/hf-server";
-import { canConsumeFeature, consumeFeatureUsage } from "@/lib/monetization/engine";
+import { buildLiveMarketContext } from "@/lib/ai/market-freshness";
+import { canConsumeFeature, tryConsumeFeatureUsageSecure } from "@/lib/monetization/engine";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
 import {
     enforceRateLimit,
@@ -34,7 +35,12 @@ type LlmRequest = {
   messages?: LlmMessage[];
 };
 
-const DEFAULT_MODEL = process.env.HF_MODEL_ID || "mistralai/Mistral-7B-Instruct-v0.1";
+function appendLiveMarketContext(prompt: string, liveMarketSummary: string) {
+  if (!liveMarketSummary) return prompt;
+  return `${prompt}\n\nLive market context:\n${liveMarketSummary}\n\nInstruction: Use this live market context as freshest reference for prices and regime framing. If unavailable, explicitly say so and avoid fabricated real-time claims.`;
+}
+
+const DEFAULT_MODEL = process.env.HF_MODEL_ID || "Qwen/Qwen2.5-7B-Instruct";
 
 function normalizeTask(task: unknown): LlmTask {
   if (task === "generate" || task === "summarize" || task === "qa" || task === "chat") {
@@ -200,6 +206,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const liveMarket = await buildLiveMarketContext({
+      inputMessage: prepared.originalInput,
+      context: body.context,
+    });
+
+    const effectivePrompt =
+      liveMarket.enabled && liveMarket.summary
+        ? appendLiveMarketContext(prepared.prompt, liveMarket.summary)
+        : prepared.prompt;
+
     const userId = await resolveRequestUserId(request, body.userId);
     const allowance = canConsumeFeature(userId, "ai_chat", 1);
     if (!allowance.allowed) {
@@ -219,7 +235,7 @@ export async function POST(request: NextRequest) {
     const topP = numberInRange(body.topP, 0.1, 1);
 
     const client = getLLMClient({ modelId, temperature, maxTokens, topP });
-    const generated = await client.generate(prepared.prompt, {
+    const generated = await client.generate(effectivePrompt, {
       modelId,
       temperature,
       maxTokens,
@@ -238,6 +254,9 @@ export async function POST(request: NextRequest) {
           route: "/api/llm",
           task,
           model: modelId,
+          market_freshness_enabled: liveMarket.enabled,
+          market_freshness_generated_at: liveMarket.generatedAt,
+          market_freshness_sources: liveMarket.sources.join(","),
         },
         consent: {
           analytics: true,
@@ -248,10 +267,26 @@ export async function POST(request: NextRequest) {
       console.warn("LLM route ingestion skipped:", ingestionError);
     }
 
-    consumeFeatureUsage(userId, "ai_chat", 1, "api:llm", {
-      task,
-      model: modelId,
+    const idempotencyKey = request.headers.get("x-idempotency-key") || "";
+    const usageCommit = tryConsumeFeatureUsageSecure(userId, "ai_chat", 1, {
+      source: "api:llm",
+      metadata: {
+        task,
+        model: modelId,
+      },
+      idempotencyKey,
+      idempotencyScope: `llm:${task}:${modelId}:${prepared.originalInput}`,
     });
+    if (!usageCommit.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: usageCommit.allowance.reason ?? "Usage limit reached.",
+          allowance: usageCommit.allowance,
+        },
+        { status: 429, headers: rateLimit.headers },
+      );
+    }
 
     return NextResponse.json(
       {
@@ -267,7 +302,11 @@ export async function POST(request: NextRequest) {
         },
         usage: {
           feature: "ai_chat",
-          remainingToday: allowance.remainingToday,
+          remainingToday: usageCommit.allowance.remainingToday,
+          remainingThisWeek: usageCommit.allowance.remainingThisWeek ?? null,
+          weeklyLimit: usageCommit.allowance.weeklyLimit ?? null,
+          usedThisWeek: usageCommit.allowance.usedThisWeek ?? null,
+          replayed: usageCommit.replayed,
         },
       },
       { headers: rateLimit.headers },

@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     switch (task) {
       case 'text-generation':
         result = await hf.textGeneration({
-          model: process.env.HF_MODEL_ID || 'mistralai/Mistral-7B-Instruct-v0.1',
+          model: process.env.HF_MODEL_ID || 'Qwen/Qwen2.5-7B-Instruct',
           inputs: prompt,
           parameters: {
             max_new_tokens: (parameters as any).max_length || parseInt(process.env.LLM_MAX_LENGTH || '768'),
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
         break;
       case 'image-generation':
         result = await hf.textToImage({
-          model: process.env.HF_IMAGE_MODEL_ID || 'stabilityai/stable-diffusion-2-1',
+          model: process.env.HF_IMAGE_MODEL_ID || 'stabilityai/stable-diffusion-xl-base-1.0',
           inputs: prompt,
           parameters: {
             num_inference_steps: (parameters as any).steps || parseInt(process.env.HF_IMAGE_STEPS || '30'),

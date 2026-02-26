@@ -50,6 +50,7 @@ type PipelineMemory = {
 
 type ResponseStyle = "concise" | "coach" | "operator";
 type FreedomMode = "uncensored" | "standard";
+type AssistantProfileId = "beginner" | "trader" | "creator" | "developer";
 type LlmPresetId =
   | "navigator_fast"
   | "operator_exec"
@@ -84,6 +85,9 @@ type ChatSession = {
 const PIPELINE_MEMORY_KEY = "tradehax-ai-pipeline-memory-v1";
 const CHAT_SESSIONS_KEY = "tradehax-ai-chat-sessions-v1";
 const PINNED_PROMPTS_KEY = "tradehax-ai-pinned-prompts-v1";
+const OPEN_MODE_NOTICE_KEY = "tradehax-ai-open-mode-notice-v1";
+const ASSISTANT_PROFILE_KEY = "tradehax-ai-assistant-profile-v1";
+const FIRST_RUN_NUDGE_KEY = "tradehax-ai-first-run-nudge-v1";
 
 const MODE_META: Record<
   ChatMode,
@@ -118,28 +122,28 @@ const LLM_PRESET_META: Record<
   }
 > = {
   navigator_fast: {
-    label: "Navigator Fast",
-    description: "Low-latency route guidance and next-click decisions.",
+    label: "Quick Thinker",
+    description: "Best for fast route guidance and practical next clicks.",
   },
   operator_exec: {
-    label: "Operator / Execution",
-    description: "Checklist-heavy execution, SOPs, and implementation flow.",
+    label: "Execution Coach",
+    description: "Best for step-by-step checklists and workflow execution.",
   },
   analyst_risk: {
-    label: "Analyst / Risk",
-    description: "Conservative framing with explicit risk controls.",
+    label: "Risk Analyst",
+    description: "Best for conservative analysis with explicit risk controls.",
   },
   creative_growth: {
-    label: "Creative / Growth",
-    description: "Content ideation, hooks, and campaign expansion.",
+    label: "Growth Writer",
+    description: "Best for content ideas, hooks, and campaign expansion.",
   },
   deep_research: {
-    label: "Deep Research",
-    description: "Long-form tradeoff analysis and comparative reasoning.",
+    label: "Deep Researcher",
+    description: "Best for long-form analysis, tradeoffs, and comparisons.",
   },
   fallback_safe: {
-    label: "Fallback Safe",
-    description: "Stable fallback lane when providers degrade.",
+    label: "Safe Backup",
+    description: "Stable fallback lane when external providers are degraded.",
   },
 };
 
@@ -151,6 +155,66 @@ const LLM_PRESET_IDS: LlmPresetId[] = [
   "deep_research",
   "fallback_safe",
 ];
+
+const ASSISTANT_PROFILE_META: Record<
+  AssistantProfileId,
+  {
+    label: string;
+    description: string;
+    mode: ChatMode;
+    responseStyle: ResponseStyle;
+    preset: LlmPresetId;
+    selectedStep: number;
+    freedomMode: FreedomMode;
+    objective: string;
+    prompt: string;
+  }
+> = {
+  beginner: {
+    label: "Beginner",
+    description: "Simple, guided setup and clear next actions.",
+    mode: "navigator",
+    responseStyle: "coach",
+    preset: "navigator_fast",
+    selectedStep: 0,
+    freedomMode: "standard",
+    objective: "Get a beginner-safe crypto + stocks plan with clear next steps",
+    prompt: "I am new. Give me a simple 10-minute setup checklist and the first page I should open.",
+  },
+  trader: {
+    label: "Trader",
+    description: "Risk-aware planning and execution support.",
+    mode: "custom",
+    responseStyle: "operator",
+    preset: "analyst_risk",
+    selectedStep: 1,
+    freedomMode: "standard",
+    objective: "Build a risk-aware crypto + stocks execution plan",
+    prompt: "Build a risk-aware trading plan with position sizing, invalidation, and exact next steps.",
+  },
+  creator: {
+    label: "Creator",
+    description: "Content and campaign outputs from one objective.",
+    mode: "chat",
+    responseStyle: "coach",
+    preset: "creative_growth",
+    selectedStep: 2,
+    freedomMode: "standard",
+    objective: "Create a weekly content engine for crypto and stocks",
+    prompt: "Create a one-week content plan with 3 hooks, post drafts, and CTA variants for crypto + stocks.",
+  },
+  developer: {
+    label: "Developer",
+    description: "Deep analysis, integrations, and implementation flow.",
+    mode: "chat",
+    responseStyle: "operator",
+    preset: "deep_research",
+    selectedStep: 2,
+    freedomMode: "uncensored",
+    objective: "Implement an API/integration workflow with clear build steps",
+    prompt: "Design an implementation plan for integrating TradeHax AI endpoints with retries, fallbacks, and monitoring.",
+  },
+};
 
 function isLlmPresetId(value: unknown): value is LlmPresetId {
   return typeof value === "string" && LLM_PRESET_IDS.includes(value as LlmPresetId);
@@ -380,6 +444,12 @@ export function HFChatComponent() {
   const [autoFallback, setAutoFallback] = useState(true);
   const [freedomMode, setFreedomMode] = useState<FreedomMode>("uncensored");
   const [showControlPanel, setShowControlPanel] = useState(true);
+  const [activeProfile, setActiveProfile] = useState<AssistantProfileId>("beginner");
+  const [showFirstRunNudge, setShowFirstRunNudge] = useState(false);
+  const [showAdvancedControls, setShowAdvancedControls] = useState(false);
+  const [showOpenModeNotice, setShowOpenModeNotice] = useState(false);
+  const [responseLoadProgress, setResponseLoadProgress] = useState(0);
+  const [responseLoadSeconds, setResponseLoadSeconds] = useState(0);
   const [copied, setCopied] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -489,7 +559,77 @@ export function HFChatComponent() {
     } catch {
       // Ignore malformed memory payloads
     }
+
+    try {
+      const savedProfile = window.localStorage.getItem(ASSISTANT_PROFILE_KEY);
+      if (
+        savedProfile === "beginner" ||
+        savedProfile === "trader" ||
+        savedProfile === "creator" ||
+        savedProfile === "developer"
+      ) {
+        setActiveProfile(savedProfile);
+      }
+    } catch {
+      // ignore malformed profile state
+    }
+
+    try {
+      const firstRunSeen = window.localStorage.getItem(FIRST_RUN_NUDGE_KEY) === "1";
+      setShowFirstRunNudge(!firstRunSeen);
+    } catch {
+      setShowFirstRunNudge(true);
+    }
+
   }, [applySession]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(ASSISTANT_PROFILE_KEY, activeProfile);
+    } catch {
+      // ignore profile persistence failure
+    }
+  }, [activeProfile]);
+
+  useEffect(() => {
+    if (!loading) {
+      setResponseLoadProgress(0);
+      setResponseLoadSeconds(0);
+      return;
+    }
+
+    const start = Date.now();
+    const timer = window.setInterval(() => {
+      const elapsedSeconds = Math.floor((Date.now() - start) / 1000);
+      setResponseLoadSeconds(elapsedSeconds);
+      setResponseLoadProgress((prev) => {
+        const next = prev + 9;
+        return next >= 92 ? 92 : next;
+      });
+    }, 350);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [loading]);
+
+  useEffect(() => {
+    if (freedomMode !== "uncensored") {
+      setShowOpenModeNotice(false);
+      return;
+    }
+    if (typeof window === "undefined") {
+      setShowOpenModeNotice(true);
+      return;
+    }
+    try {
+      const acknowledged = window.localStorage.getItem(OPEN_MODE_NOTICE_KEY) === "1";
+      setShowOpenModeNotice(!acknowledged);
+    } catch {
+      setShowOpenModeNotice(true);
+    }
+  }, [freedomMode]);
 
   useEffect(() => {
     if (sessions.length > 0 || activeSessionId) return;
@@ -512,21 +652,55 @@ export function HFChatComponent() {
 
   useEffect(() => {
     const starter = searchParams.get("starter");
+    const profileParam = searchParams.get("profile");
+
+    const applyProfile = (profileId: AssistantProfileId, seedInput = true) => {
+      const profile = ASSISTANT_PROFILE_META[profileId];
+      setActiveProfile(profileId);
+      setMode(profile.mode);
+      setResponseStyle(profile.responseStyle);
+      setLlmPreset(profile.preset);
+      setSelectedStep(profile.selectedStep);
+      setFreedomMode(profile.freedomMode);
+      setObjective(profile.objective);
+      if (seedInput) {
+        setInput(profile.prompt);
+      }
+      setShowAdvancedControls(profileId === "developer");
+      setShowFirstRunNudge(false);
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem(FIRST_RUN_NUDGE_KEY, "1");
+        } catch {
+          // no-op
+        }
+      }
+    };
+
+    if (
+      profileParam === "beginner" ||
+      profileParam === "trader" ||
+      profileParam === "creator" ||
+      profileParam === "developer"
+    ) {
+      applyProfile(profileParam, true);
+      return;
+    }
+
     if (!starter) return;
 
     if (starter === "new-user-setup") {
-      setMode("navigator");
-      setSelectedStep(0);
-      setObjective("Get fully onboarded as a new user with clear first actions");
-      setInput("I am brand new. Give me a 10-minute setup checklist and the first page I should open.");
+      applyProfile("beginner", true);
       return;
     }
 
     if (starter === "first-trade-plan") {
-      setMode("custom");
-      setSelectedStep(1);
-      setObjective("Build a beginner-safe first trade plan with risk limits");
-      setInput("Create my first beginner trade plan with risk controls and exact step-by-step actions.");
+      applyProfile("trader", true);
+      return;
+    }
+
+    if (starter === "content-engine") {
+      applyProfile("creator", true);
     }
   }, [searchParams]);
 
@@ -1011,6 +1185,19 @@ export function HFChatComponent() {
   })();
 
   const lastAssistantMessage = [...messages].reverse().find((msg) => msg.role === "assistant");
+  const nextActionSignals = lastAssistantMessage
+    ? scoreAssistantResponse(lastAssistantMessage.content, selectedStep, mode)
+    : null;
+
+  const dismissOpenModeNotice = () => {
+    setShowOpenModeNotice(false);
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(OPEN_MODE_NOTICE_KEY, "1");
+    } catch {
+      // ignore storage failures
+    }
+  };
 
   const copyLastAssistant = async () => {
     if (!lastAssistantMessage?.content || typeof window === "undefined") return;
@@ -1170,6 +1357,49 @@ export function HFChatComponent() {
               <p className="mt-1 text-cyan-100/75">Pick a quick prompt, send it, then follow the 4-step flow.</p>
             </div>
 
+            <div className="mb-3 rounded border border-emerald-500/20 bg-emerald-600/10 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-emerald-200/80">Assistant profile</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {(Object.keys(ASSISTANT_PROFILE_META) as AssistantProfileId[]).map((profileId) => {
+                  const active = activeProfile === profileId;
+                  const profile = ASSISTANT_PROFILE_META[profileId];
+                  return (
+                    <button
+                      key={profileId}
+                      onClick={() => {
+                        setActiveProfile(profileId);
+                        setMode(profile.mode);
+                        setResponseStyle(profile.responseStyle);
+                        setLlmPreset(profile.preset);
+                        setSelectedStep(profile.selectedStep);
+                        setFreedomMode(profile.freedomMode);
+                        setObjective(profile.objective);
+                        setInput(profile.prompt);
+                        setShowAdvancedControls(profileId === "developer");
+                        setShowFirstRunNudge(false);
+                        if (typeof window !== "undefined") {
+                          try {
+                            window.localStorage.setItem(FIRST_RUN_NUDGE_KEY, "1");
+                          } catch {
+                            // no-op
+                          }
+                        }
+                      }}
+                      title={profile.description}
+                      className={`rounded border px-2 py-2 text-left text-[11px] transition ${
+                        active
+                          ? "border-emerald-300/50 bg-emerald-500/20 text-emerald-50"
+                          : "border-emerald-500/20 bg-black/30 text-emerald-100/85 hover:border-emerald-300/40"
+                      }`}
+                    >
+                      <p className="font-semibold">{profile.label}</p>
+                      <p className="mt-0.5 opacity-80 line-clamp-2">{profile.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="mb-3">
               <label className="block text-[11px] uppercase tracking-wide text-emerald-200/70 mb-1">
                 Objective memory
@@ -1247,143 +1477,153 @@ export function HFChatComponent() {
               </div>
             </div>
 
-            <div className="mb-3 rounded border border-fuchsia-500/20 bg-fuchsia-600/10 p-2">
-              <label className="block text-[11px] uppercase tracking-wide text-fuchsia-100/80 mb-1">
-                Pinned prompts
-              </label>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <input
-                  value={pinLabel}
-                  onChange={(e) => setPinLabel(e.target.value)}
-                  placeholder="Label (optional)"
-                  className="rounded border border-fuchsia-500/30 bg-black/35 px-2 py-1 text-[11px] text-fuchsia-100 outline-none"
-                />
-                <select
-                  title="Pinned prompt category"
-                  aria-label="Pinned prompt category"
-                  value={pinCategory}
-                  onChange={(e) => setPinCategory(e.target.value as PromptCategory)}
-                  className="rounded border border-fuchsia-500/30 bg-black/35 px-2 py-1 text-[11px] text-fuchsia-100 outline-none"
-                >
-                  <option value="onboarding">Onboarding</option>
-                  <option value="trading">Trading</option>
-                  <option value="content">Content</option>
-                  <option value="ops">Ops</option>
-                </select>
-              </div>
-              <div className="flex gap-2 mb-2">
-                <input
-                  value={pinInput}
-                  onChange={(e) => setPinInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addPinnedPrompt();
-                    }
-                  }}
-                  placeholder="Add reusable prompt"
-                  className="flex-1 rounded border border-fuchsia-500/30 bg-black/35 px-2 py-1 text-[11px] text-fuchsia-100 outline-none"
-                />
-                <button
-                  onClick={addPinnedPrompt}
-                  title="Pin prompt"
-                  aria-label="Pin prompt"
-                  className="rounded border border-fuchsia-400/40 bg-fuchsia-500/20 px-2 py-1 text-[11px] text-fuchsia-100"
-                >
-                  <Pin className="w-3 h-3" />
-                </button>
-              </div>
-              <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                {filteredPinnedPrompts.length === 0 && (
-                  <p className="text-[11px] text-fuchsia-100/60">No pinned prompts yet.</p>
-                )}
-                {filteredPinnedPrompts.map((prompt) => (
-                  <div key={prompt.id} className="flex items-start gap-1 rounded border border-fuchsia-500/20 bg-black/25 px-2 py-1">
-                    <button
-                      onClick={() => setInput(prompt.prompt)}
-                      className="flex-1 text-left text-[11px] text-fuchsia-100/90 hover:text-fuchsia-50"
-                    >
-                      <span className="font-semibold">{prompt.label}</span>
-                      <span className="block opacity-80">{prompt.prompt}</span>
-                    </button>
-                    <button
-                      onClick={() => removePinnedPrompt(prompt.id)}
-                      className="text-fuchsia-100/70 hover:text-fuchsia-50"
-                      title="Remove pinned prompt"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <details
+              className="rounded border border-white/10 bg-white/[0.03] p-2"
+              open={showAdvancedControls}
+              onToggle={(e) => setShowAdvancedControls((e.currentTarget as HTMLDetailsElement).open)}
+            >
+              <summary className="cursor-pointer list-none text-[11px] uppercase tracking-wide text-emerald-200/80">
+                Customize assistant (advanced)
+              </summary>
 
-            <div className="grid grid-cols-1 gap-2">
-              <div className="rounded border border-cyan-500/20 bg-cyan-600/10 p-2">
-                <label htmlFor="llm-preset" className="block text-[11px] font-semibold text-cyan-100/90 mb-1">
-                  LLM preset
+              <div className="mt-2 mb-3 rounded border border-fuchsia-500/20 bg-fuchsia-600/10 p-2">
+                <label className="block text-[11px] uppercase tracking-wide text-fuchsia-100/80 mb-1">
+                  Pinned prompts
                 </label>
-                <select
-                  id="llm-preset"
-                  value={llmPreset}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (isLlmPresetId(value)) {
-                      setLlmPreset(value);
-                    }
-                  }}
-                  className="w-full rounded border border-cyan-500/30 bg-black/40 px-2 py-1 text-xs text-cyan-100 outline-none"
-                >
-                  {LLM_PRESET_IDS.map((presetId) => (
-                    <option key={presetId} value={presetId}>
-                      {LLM_PRESET_META[presetId].label}
-                    </option>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <input
+                    value={pinLabel}
+                    onChange={(e) => setPinLabel(e.target.value)}
+                    placeholder="Label (optional)"
+                    className="rounded border border-fuchsia-500/30 bg-black/35 px-2 py-1 text-[11px] text-fuchsia-100 outline-none"
+                  />
+                  <select
+                    title="Pinned prompt category"
+                    aria-label="Pinned prompt category"
+                    value={pinCategory}
+                    onChange={(e) => setPinCategory(e.target.value as PromptCategory)}
+                    className="rounded border border-fuchsia-500/30 bg-black/35 px-2 py-1 text-[11px] text-fuchsia-100 outline-none"
+                  >
+                    <option value="onboarding">Onboarding</option>
+                    <option value="trading">Trading</option>
+                    <option value="content">Content</option>
+                    <option value="ops">Ops</option>
+                  </select>
+                </div>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    value={pinInput}
+                    onChange={(e) => setPinInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addPinnedPrompt();
+                      }
+                    }}
+                    placeholder="Add reusable prompt"
+                    className="flex-1 rounded border border-fuchsia-500/30 bg-black/35 px-2 py-1 text-[11px] text-fuchsia-100 outline-none"
+                  />
+                  <button
+                    onClick={addPinnedPrompt}
+                    title="Pin prompt"
+                    aria-label="Pin prompt"
+                    className="rounded border border-fuchsia-400/40 bg-fuchsia-500/20 px-2 py-1 text-[11px] text-fuchsia-100"
+                  >
+                    <Pin className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                  {filteredPinnedPrompts.length === 0 && (
+                    <p className="text-[11px] text-fuchsia-100/60">No pinned prompts yet.</p>
+                  )}
+                  {filteredPinnedPrompts.map((prompt) => (
+                    <div key={prompt.id} className="flex items-start gap-1 rounded border border-fuchsia-500/20 bg-black/25 px-2 py-1">
+                      <button
+                        onClick={() => setInput(prompt.prompt)}
+                        className="flex-1 text-left text-[11px] text-fuchsia-100/90 hover:text-fuchsia-50"
+                      >
+                        <span className="font-semibold">{prompt.label}</span>
+                        <span className="block opacity-80">{prompt.prompt}</span>
+                      </button>
+                      <button
+                        onClick={() => removePinnedPrompt(prompt.id)}
+                        className="text-fuchsia-100/70 hover:text-fuchsia-50"
+                        title="Remove pinned prompt"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   ))}
-                </select>
-                <p className="mt-1 text-[11px] text-cyan-100/70">{LLM_PRESET_META[llmPreset].description}</p>
+                </div>
               </div>
 
-              <div className="rounded border border-emerald-500/20 bg-black/30 p-2">
-                <label htmlFor="response-style" className="block text-[11px] font-semibold text-emerald-100/80 mb-1">
-                  Response style
+              <div className="grid grid-cols-1 gap-2">
+                <div className="rounded border border-cyan-500/20 bg-cyan-600/10 p-2">
+                  <label htmlFor="llm-preset" className="block text-[11px] font-semibold text-cyan-100/90 mb-1">
+                    Assistant preset
+                  </label>
+                  <select
+                    id="llm-preset"
+                    value={llmPreset}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (isLlmPresetId(value)) {
+                        setLlmPreset(value);
+                      }
+                    }}
+                    className="w-full rounded border border-cyan-500/30 bg-black/40 px-2 py-1 text-xs text-cyan-100 outline-none"
+                  >
+                    {LLM_PRESET_IDS.map((presetId) => (
+                      <option key={presetId} value={presetId}>
+                        {LLM_PRESET_META[presetId].label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-cyan-100/70">{LLM_PRESET_META[llmPreset].description}</p>
+                </div>
+
+                <div className="rounded border border-emerald-500/20 bg-black/30 p-2">
+                  <label htmlFor="response-style" className="block text-[11px] font-semibold text-emerald-100/80 mb-1">
+                    Response style
+                  </label>
+                  <select
+                    id="response-style"
+                    value={responseStyle}
+                    onChange={(e) => setResponseStyle((e.target.value as ResponseStyle) || "coach")}
+                    className="w-full rounded border border-emerald-500/30 bg-black/40 px-2 py-1 text-xs text-emerald-100 outline-none"
+                  >
+                    <option value="concise">Concise</option>
+                    <option value="coach">Coach</option>
+                    <option value="operator">Operator</option>
+                  </select>
+                </div>
+
+                <label className="rounded border border-emerald-500/20 bg-black/30 p-2 flex items-center gap-2 text-xs text-emerald-100/85">
+                  <input
+                    type="checkbox"
+                    checked={autoFallback}
+                    onChange={(e) => setAutoFallback(e.target.checked)}
+                    className="accent-emerald-400"
+                  />
+                  Auto-fallback to General Chat
                 </label>
-                <select
-                  id="response-style"
-                  value={responseStyle}
-                  onChange={(e) => setResponseStyle((e.target.value as ResponseStyle) || "coach")}
-                  className="w-full rounded border border-emerald-500/30 bg-black/40 px-2 py-1 text-xs text-emerald-100 outline-none"
-                >
-                  <option value="concise">Concise</option>
-                  <option value="coach">Coach</option>
-                  <option value="operator">Operator</option>
-                </select>
-              </div>
 
-              <label className="rounded border border-emerald-500/20 bg-black/30 p-2 flex items-center gap-2 text-xs text-emerald-100/85">
-                <input
-                  type="checkbox"
-                  checked={autoFallback}
-                  onChange={(e) => setAutoFallback(e.target.checked)}
-                  className="accent-emerald-400"
-                />
-                Auto-fallback to General Chat
-              </label>
-
-              <div className="rounded border border-fuchsia-500/20 bg-fuchsia-600/10 p-2">
-                <label htmlFor="freedom-mode" className="block text-[11px] font-semibold text-fuchsia-100/90 mb-1">
-                  Freedom mode
-                </label>
-                <select
-                  id="freedom-mode"
-                  value={freedomMode}
-                  onChange={(e) => setFreedomMode((e.target.value as FreedomMode) || "uncensored")}
-                  className="w-full rounded border border-fuchsia-500/30 bg-black/40 px-2 py-1 text-xs text-fuchsia-100 outline-none"
-                >
-                  <option value="uncensored">Uncensored</option>
-                  <option value="standard">Standard</option>
-                </select>
+                <div className="rounded border border-fuchsia-500/20 bg-fuchsia-600/10 p-2">
+                  <label htmlFor="freedom-mode" className="block text-[11px] font-semibold text-fuchsia-100/90 mb-1">
+                    Freedom mode
+                  </label>
+                  <select
+                    id="freedom-mode"
+                    value={freedomMode}
+                    onChange={(e) => setFreedomMode((e.target.value as FreedomMode) || "uncensored")}
+                    className="w-full rounded border border-fuchsia-500/30 bg-black/40 px-2 py-1 text-xs text-fuchsia-100 outline-none"
+                  >
+                    <option value="uncensored">Uncensored</option>
+                    <option value="standard">Standard</option>
+                  </select>
+                </div>
               </div>
-            </div>
+            </details>
           </aside>
         )}
 
@@ -1426,12 +1666,57 @@ export function HFChatComponent() {
             <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">Style: {responseStyle}</span>
             <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">Preset: {LLM_PRESET_META[llmPreset].label}</span>
             <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1">{freedomMode === "uncensored" ? "Uncensored lane" : "Standard lane"}</span>
+            <button
+              onClick={() => setFreedomMode((prev) => (prev === "uncensored" ? "standard" : "uncensored"))}
+              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-2 py-1 text-fuchsia-100 hover:border-fuchsia-200/50"
+              title="Toggle assistant lane"
+            >
+              Switch lane
+            </button>
             <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] px-2 py-1"><Keyboard className="w-3 h-3" />Enter send • Shift+Enter newline</span>
             {copied && <span className="text-cyan-200 rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2 py-1">Copied last response.</span>}
             {storageWarning && <span className="text-amber-200 rounded-full border border-amber-300/25 bg-amber-500/10 px-2 py-1">{storageWarning}</span>}
           </div>
 
+          {showOpenModeNotice && (
+            <div className="mx-4 mt-2 rounded border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100 flex items-center justify-between gap-3">
+              <p>
+                Open lane is active. Responses are less filtered — verify facts and risk-sensitive details before action.
+              </p>
+              <button
+                onClick={dismissOpenModeNotice}
+                className="rounded border border-amber-200/40 bg-amber-500/10 px-2 py-1 text-[10px] uppercase tracking-wide"
+              >
+                Got it
+              </button>
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 overscroll-contain [scrollbar-gutter:stable] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
+            {showFirstRunNudge && messages.length === 0 && (
+              <div className="rounded-lg border border-emerald-300/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                <p className="font-semibold">Welcome — choose your lane in one click</p>
+                <p className="mt-1 text-emerald-100/80 text-xs">
+                  Pick a profile in the left panel to auto-configure chat mode, style, and prompt starter.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowFirstRunNudge(false);
+                    if (typeof window !== "undefined") {
+                      try {
+                        window.localStorage.setItem(FIRST_RUN_NUDGE_KEY, "1");
+                      } catch {
+                        // no-op
+                      }
+                    }
+                  }}
+                  className="mt-2 rounded border border-emerald-300/40 bg-black/25 px-2 py-1 text-[11px] font-semibold text-emerald-100"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
             {messages.length === 0 && (
               <div className="flex items-center justify-center h-full text-emerald-200/50 text-center">
                 <div>
@@ -1519,9 +1804,22 @@ export function HFChatComponent() {
 
             {loading && (
               <div className="flex gap-3 justify-start">
-                <div className="bg-cyan-600/20 border border-cyan-500/20 rounded-lg px-4 py-2 flex items-center gap-2 text-cyan-100">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Thinking...</span>
+                <div className="w-full max-w-xl bg-cyan-600/20 border border-cyan-500/20 rounded-lg px-4 py-3 text-cyan-100">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="font-medium">Generating response</span>
+                    <span className="inline-flex items-center gap-1 ml-1 text-cyan-100/80">
+                      <span className="h-1.5 w-1.5 rounded-full bg-cyan-200 animate-pulse" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-cyan-200 animate-pulse [animation-delay:120ms]" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-cyan-200 animate-pulse [animation-delay:240ms]" />
+                    </span>
+                  </div>
+                  <progress
+                    className="mt-2 h-1.5 w-full overflow-hidden rounded bg-cyan-950/50 [&::-webkit-progress-bar]:bg-cyan-950/50 [&::-webkit-progress-value]:bg-cyan-300/80 [&::-moz-progress-bar]:bg-cyan-300/80"
+                    value={loading ? responseLoadProgress : 100}
+                    max={100}
+                  />
+                  <p className="mt-1 text-[11px] text-cyan-100/80">{Math.min(responseLoadProgress, 99)}% • {responseLoadSeconds}s elapsed</p>
                 </div>
               </div>
             )}
@@ -1543,6 +1841,32 @@ export function HFChatComponent() {
             )}
             {autoAdvanceMessage && (
               <div className="mb-2 text-[11px] text-emerald-200/80">{autoAdvanceMessage}</div>
+            )}
+            {nextActionSignals && (
+              <div className="mb-2 rounded-lg border border-cyan-400/25 bg-cyan-600/10 p-2.5">
+                <p className="text-[11px] text-cyan-100/75 uppercase tracking-wide">Next best action</p>
+                <p className="mt-1 text-sm text-cyan-50">{nextActionSignals.nextAction}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setInput(`Expand this into a 3-step execution plan:\n\n${nextActionSignals.nextAction}`)}
+                    className="rounded border border-cyan-300/30 bg-cyan-500/10 px-2 py-1 text-[11px] text-cyan-100"
+                  >
+                    Build plan
+                  </button>
+                  <button
+                    onClick={() => setInput(`Risk-check this recommendation before I execute:\n\n${nextActionSignals.nextAction}`)}
+                    className="rounded border border-cyan-300/30 bg-cyan-500/10 px-2 py-1 text-[11px] text-cyan-100"
+                  >
+                    Risk-check
+                  </button>
+                  <button
+                    onClick={() => setInput(`Give me a concise message template based on this action:\n\n${nextActionSignals.nextAction}`)}
+                    className="rounded border border-cyan-300/30 bg-cyan-500/10 px-2 py-1 text-[11px] text-cyan-100"
+                  >
+                    Draft message
+                  </button>
+                </div>
+              </div>
             )}
             <div className="mb-2 flex flex-wrap gap-2">
               {COMPOSER_QUICK_ACTIONS.map((action) => (

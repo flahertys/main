@@ -80,6 +80,11 @@ export type UsageSummary = {
   usedToday: number;
   dailyLimit: number;
   remainingToday: number;
+  usedThisWeek?: number;
+  weeklyLimit?: number;
+  remainingThisWeek?: number;
+  weeklyMinutes?: number;
+  unitDurationSeconds?: number;
 };
 
 export type MonetizationSnapshot = {
@@ -96,6 +101,11 @@ export type AllowanceResult = {
   usedToday: number;
   dailyLimit: number;
   remainingToday: number;
+  usedThisWeek?: number;
+  weeklyLimit?: number;
+  remainingThisWeek?: number;
+  unitDurationSeconds?: number;
+  weeklyMinutes?: number;
   reason?: string;
 };
 

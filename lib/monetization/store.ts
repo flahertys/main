@@ -1,11 +1,11 @@
-import { getPlanDefinition, getFeatureDailyLimit, planOrder } from "@/lib/monetization/plans";
+import { getFeatureDailyLimit, getPlanDefinition, planOrder } from "@/lib/monetization/plans";
 import {
-  MonetizationMetrics,
-  SubscriptionRecord,
-  SubscriptionTier,
-  UsageEvent,
-  UsageFeature,
-  UsageSummary,
+    MonetizationMetrics,
+    SubscriptionRecord,
+    SubscriptionTier,
+    UsageEvent,
+    UsageFeature,
+    UsageSummary,
 } from "@/lib/monetization/types";
 
 type UserRecord = {
@@ -20,6 +20,17 @@ type MonetizationStore = {
   subscriptions: Map<string, SubscriptionRecord>;
   usageEvents: UsageEvent[];
 };
+
+const DEFAULT_FREE_AI_WEEKLY_MINUTES = 30;
+const DEFAULT_AI_UNIT_SECONDS = 20;
+
+function parsePositiveIntEnv(value: string | undefined, fallback: number) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
+}
 
 function getStore(): MonetizationStore {
   const globalRef = globalThis as typeof globalThis & {
@@ -183,6 +194,17 @@ function getUtcDayBounds(date = new Date()) {
   return { start, end };
 }
 
+function getUtcWeekBounds(date = new Date()) {
+  const dayStart = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
+  const dayOfWeek = dayStart.getUTCDay();
+  const offsetToMonday = (dayOfWeek + 6) % 7;
+  const start = new Date(dayStart.getTime() - offsetToMonday * 24 * 60 * 60_000);
+  const end = new Date(start.getTime() + 7 * 24 * 60 * 60_000);
+  return { start, end };
+}
+
 export function getUsageCountForToday(userId: string, feature: UsageFeature): number {
   const store = getStore();
   const { start, end } = getUtcDayBounds();
@@ -200,6 +222,43 @@ export function getUsageCountForToday(userId: string, feature: UsageFeature): nu
     .reduce((total, event) => total + event.units, 0);
 }
 
+export function getUsageCountForCurrentWeek(userId: string, feature: UsageFeature): number {
+  const store = getStore();
+  const { start, end } = getUtcWeekBounds();
+  const startMs = start.getTime();
+  const endMs = end.getTime();
+
+  return store.usageEvents
+    .filter((event) => {
+      if (event.userId !== userId || event.feature !== feature) {
+        return false;
+      }
+      const ts = Date.parse(event.timestamp);
+      return ts >= startMs && ts < endMs;
+    })
+    .reduce((total, event) => total + event.units, 0);
+}
+
+export function getUsageCountForRecentWindow(
+  userId: string,
+  feature: UsageFeature,
+  windowMs: number,
+): number {
+  const safeWindowMs = Math.max(1_000, Math.floor(windowMs));
+  const startMs = Date.now() - safeWindowMs;
+  const store = getStore();
+
+  return store.usageEvents
+    .filter((event) => {
+      if (event.userId !== userId || event.feature !== feature) {
+        return false;
+      }
+      const ts = Date.parse(event.timestamp);
+      return ts >= startMs;
+    })
+    .reduce((total, event) => total + event.units, 0);
+}
+
 export function getUsageSummaryForUser(userId: string): UsageSummary[] {
   const subscription = getSubscription(userId);
   const tier = subscription.tier;
@@ -213,6 +272,32 @@ export function getUsageSummaryForUser(userId: string): UsageSummary[] {
   return features.map((feature) => {
     const usedToday = getUsageCountForToday(userId, feature);
     const dailyLimit = getFeatureDailyLimit(tier, feature);
+
+    if (tier === "free" && feature === "ai_chat") {
+      const weeklyMinutes = parsePositiveIntEnv(
+        process.env.TRADEHAX_FREE_AI_MINUTES_WEEKLY,
+        DEFAULT_FREE_AI_WEEKLY_MINUTES,
+      );
+      const unitDurationSeconds = parsePositiveIntEnv(
+        process.env.TRADEHAX_AI_EST_SECONDS_PER_REQUEST,
+        DEFAULT_AI_UNIT_SECONDS,
+      );
+      const weeklyLimit = Math.max(1, Math.floor((weeklyMinutes * 60) / unitDurationSeconds));
+      const usedThisWeek = getUsageCountForCurrentWeek(userId, feature);
+
+      return {
+        feature,
+        usedToday,
+        dailyLimit,
+        remainingToday: Math.max(0, dailyLimit - usedToday),
+        usedThisWeek,
+        weeklyLimit,
+        remainingThisWeek: Math.max(0, weeklyLimit - usedThisWeek),
+        weeklyMinutes,
+        unitDurationSeconds,
+      };
+    }
+
     return {
       feature,
       usedToday,

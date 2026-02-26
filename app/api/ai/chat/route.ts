@@ -4,6 +4,8 @@ import { buildTradeHaxSystemPrompt } from "@/lib/ai/custom-llm/system-prompt";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { getLLMClient } from "@/lib/ai/hf-server";
 import { NeuralQuery, processNeuralCommand } from "@/lib/ai/kernel";
+import { buildLiveMarketContext } from "@/lib/ai/market-freshness";
+import { applyOdinChatTuning, resolveOdinRuntimeProfile } from "@/lib/ai/odin-profile";
 import {
     inferPredictionDomain,
     recordPredictionTelemetry,
@@ -11,7 +13,7 @@ import {
     resolvePredictionModel,
 } from "@/lib/ai/prediction-routing";
 import { formatRetrievalContext, retrieveRelevantContext } from "@/lib/ai/retriever";
-import { canConsumeFeature, consumeFeatureUsage, tierSupportsNeuralMode } from "@/lib/monetization/engine";
+import { canConsumeFeature, tierSupportsNeuralMode, tryConsumeFeatureUsageSecure } from "@/lib/monetization/engine";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
 import { getSubscription } from "@/lib/monetization/store";
 import { enforceRateLimit, enforceTrustedOrigin, sanitizePlainText } from "@/lib/security";
@@ -37,7 +39,7 @@ type ChatRequestBody = {
 
 type ResponseStyle = "concise" | "coach" | "operator";
 
-const DEFAULT_CHAT_MODEL = process.env.HF_MODEL_ID || "mistralai/Mistral-7B-Instruct-v0.1";
+const DEFAULT_CHAT_MODEL = process.env.HF_MODEL_ID || "Qwen/Qwen2.5-7B-Instruct";
 
 const COMMAND_PREFIXES = [
   "HELP",
@@ -270,6 +272,11 @@ export async function POST(req: NextRequest) {
     const mergedContext = mergeContext(body.context, retrievalContext);
     const consent = await resolveServerConsent(userId, body.consent);
     const domainSignal = inferPredictionDomain(inputMessage, mergedContext);
+    const liveMarket = await buildLiveMarketContext({
+      inputMessage,
+      context: mergedContext,
+      domain: domainSignal.domain,
+    });
     const preset = resolveLlmPreset({
       inputMessage,
       context: mergedContext,
@@ -280,17 +287,35 @@ export async function POST(req: NextRequest) {
       typeof body.model === "string" && body.model.trim().length > 0
         ? sanitizeModelId(body.model)
         : sanitizeModelId(preset.modelId || resolvePredictionModel(domainSignal.domain));
+    const odinProfile = resolveOdinRuntimeProfile({
+      request: req,
+      requestedProfile:
+        body.context && typeof body.context === "object" && !Array.isArray(body.context)
+          ? (body.context as Record<string, unknown>).odinProfile
+          : undefined,
+    });
+    const tunedPreset = applyOdinChatTuning(odinProfile, {
+      temperature: preset.temperature,
+      maxTokens: preset.maxTokens,
+      topP: preset.topP,
+    });
 
     const promptContext =
       mergedContext && typeof mergedContext === "object" && !Array.isArray(mergedContext)
         ? {
             ...(mergedContext as Record<string, unknown>),
+            market_freshness_context: liveMarket.enabled ? liveMarket.summary : undefined,
+            market_freshness_generated_at: liveMarket.enabled ? liveMarket.generatedAt : undefined,
+            market_freshness_sources: liveMarket.enabled ? liveMarket.sources : undefined,
             responseStyle:
               (mergedContext as Record<string, unknown>).responseStyle || preset.responseStyle,
             llmPreset: preset.id,
           }
         : {
             provided_context: mergedContext,
+            market_freshness_context: liveMarket.enabled ? liveMarket.summary : undefined,
+            market_freshness_generated_at: liveMarket.enabled ? liveMarket.generatedAt : undefined,
+            market_freshness_sources: liveMarket.enabled ? liveMarket.sources : undefined,
             responseStyle: preset.responseStyle,
             llmPreset: preset.id,
           };
@@ -379,9 +404,9 @@ export async function POST(req: NextRequest) {
         });
         const hfResponse = await client.generate(prompt, {
           modelId: requestedModel,
-          temperature: preset.temperature,
-          maxTokens: preset.maxTokens,
-          topP: preset.topP,
+          temperature: tunedPreset.temperature,
+          maxTokens: tunedPreset.maxTokens,
+          topP: tunedPreset.topP,
         });
         if (hfResponse.text.trim().length > 0) {
           response = hfResponse.text.trim();
@@ -429,6 +454,10 @@ export async function POST(req: NextRequest) {
           llm_preset_temp: preset.temperature,
           llm_preset_max_tokens: preset.maxTokens,
           llm_preset_top_p: preset.topP,
+          odin_profile: odinProfile.id,
+          odin_preset_temp: tunedPreset.temperature,
+          odin_preset_max_tokens: tunedPreset.maxTokens,
+          odin_preset_top_p: tunedPreset.topP,
           provider,
           fallback_reason: fallbackReason,
           retrieved_chunks: retrievalChunks.length,
@@ -436,6 +465,9 @@ export async function POST(req: NextRequest) {
           prediction_domain: domainSignal.domain,
           prediction_confidence: domainSignal.confidence,
           prediction_reasons: domainSignal.reasons.join(","),
+          market_freshness_enabled: liveMarket.enabled,
+          market_freshness_generated_at: liveMarket.generatedAt,
+          market_freshness_sources: liveMarket.sources.join(","),
         },
         consent,
       });
@@ -443,27 +475,55 @@ export async function POST(req: NextRequest) {
       console.warn("AI chat ingestion skipped:", ingestionError);
     }
 
-    // 4. Deduct Credits
-    const debit = await deductCredits(userId, neuralTier);
-    if (!debit.success) {
+    const idempotencyKey = req.headers.get("x-idempotency-key") || "";
+    const usageCommit = tryConsumeFeatureUsageSecure(userId, "ai_chat", 1, {
+      source: "api:ai:chat",
+      metadata: {
+        tier: neuralTier,
+      },
+      idempotencyKey,
+      idempotencyScope: `chat:${neuralTier}:${requestedModel}:${inputMessage}`,
+    });
+    if (!usageCommit.ok) {
       return NextResponse.json(
         {
           ok: false,
-          error: "INSUFFICIENT_CREDITS",
-          message: "Credits were depleted before this response could be finalized.",
-          credits: await getCreditSnapshot(userId),
-          billing: {
-            topUpPath: "/billing",
-            creditsPath: "/api/monetization/ai-credits",
-          },
+          error: "USAGE_LIMIT_REACHED",
+          message: usageCommit.allowance.reason,
+          allowance: usageCommit.allowance,
         },
-        { status: 402, headers: rateLimit.headers },
+        { status: 429, headers: rateLimit.headers },
       );
     }
-    consumeFeatureUsage(userId, "ai_chat", 1, "api:ai:chat", {
-      tier: neuralTier,
-    });
 
+    // 4. Deduct Credits (or reuse previous charge for idempotent replay)
+    let debitCost = 0;
+    let debitRemaining = 0;
+
+    if (!usageCommit.replayed) {
+      const debit = await deductCredits(userId, neuralTier);
+      if (!debit.success) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "INSUFFICIENT_CREDITS",
+            message: "Credits were depleted before this response could be finalized.",
+            credits: await getCreditSnapshot(userId),
+            billing: {
+              topUpPath: "/billing",
+              creditsPath: "/api/monetization/ai-credits",
+            },
+          },
+          { status: 402, headers: rateLimit.headers },
+        );
+      }
+      debitCost = debit.cost;
+      debitRemaining = debit.remaining;
+    } else {
+      const snapshot = await getCreditSnapshot(userId);
+      debitCost = 0;
+      debitRemaining = snapshot.balance;
+    }
     // Simulated latency for realism
     await new Promise(resolve => setTimeout(resolve, 800));
 
@@ -481,6 +541,10 @@ export async function POST(req: NextRequest) {
         id: preset.id,
         label: preset.label,
         modeSource: preset.modeSource,
+        odinProfile: odinProfile.id,
+        temperature: tunedPreset.temperature,
+        maxTokens: tunedPreset.maxTokens,
+        topP: tunedPreset.topP,
       },
       prediction: {
         domain: domainSignal.domain,
@@ -490,11 +554,15 @@ export async function POST(req: NextRequest) {
       warning: fallbackReason || undefined,
       usage: {
         feature: "ai_chat",
-        remainingToday: allowance.remainingToday,
+        remainingToday: usageCommit.allowance.remainingToday,
+        remainingThisWeek: usageCommit.allowance.remainingThisWeek ?? null,
+        weeklyLimit: usageCommit.allowance.weeklyLimit ?? null,
+        usedThisWeek: usageCommit.allowance.usedThisWeek ?? null,
+        replayed: usageCommit.replayed,
       },
       credits: {
-        spent: debit.cost,
-        remaining: debit.remaining,
+        spent: debitCost,
+        remaining: debitRemaining,
       },
       timestamp: new Date().toISOString()
     }, { headers: rateLimit.headers });

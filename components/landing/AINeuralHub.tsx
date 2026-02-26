@@ -1,45 +1,48 @@
 "use client";
 
 import { WalletButton } from "@/components/counter/WalletButton";
+import { HubCommandPalette } from "@/components/landing/hub/HubCommandPalette";
+import { HubCompetitiveEdgeLab } from "@/components/landing/hub/HubCompetitiveEdgeLab";
+import { HubImageWorkspace } from "@/components/landing/hub/HubImageWorkspace";
+import { HubMarketWorkspace } from "@/components/landing/hub/HubMarketWorkspace";
+import { HubMetricsRail } from "@/components/landing/hub/HubMetricsRail";
+import { HubPostTradeForensics } from "@/components/landing/hub/HubPostTradeForensics";
+import { HubSitewideNeuralSmartness } from "@/components/landing/hub/HubSitewideNeuralSmartness";
+import { HubVideoAiInfusion } from "@/components/landing/hub/HubVideoAiInfusion";
+import { HubWebsiteSocialAutopilot } from "@/components/landing/hub/HubWebsiteSocialAutopilot";
 import {
-  exportLocalNeuralVault,
-  getLocalNeuralVault,
-  saveDatasetArtifact,
-  saveLearningEnvironmentArtifact,
-  saveTickerBehaviorArtifact,
-  saveUserBehaviorArtifact,
+    exportLocalNeuralVault,
+    getLocalNeuralVault,
+    saveDatasetArtifact,
+    saveLearningEnvironmentArtifact,
+    saveTickerBehaviorArtifact,
+    saveUserBehaviorArtifact,
 } from "@/lib/ai/site-neural-memory";
 import { HAX_TOKEN_CONFIG } from "@/lib/trading/hax-token";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BadgeCheck,
-  Bookmark,
-  BookOpen,
-  Brain,
-  Coins,
-  Command,
-  Copy,
-  Cpu,
-  Download,
-  Eraser,
-  List,
-  Lock,
-  Pencil,
-  Plus,
-  RotateCcw,
-  RotateCw,
-  Search,
-  Send,
-  ShieldAlert,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
-  Trash2,
-  TrendingUp,
-  Video,
-  Wand2,
-  Zap
+    Bookmark,
+    BookOpen,
+    Brain,
+    Coins,
+    Command,
+    Copy,
+    Cpu,
+    Download,
+    Eraser,
+    List,
+    Lock,
+    Pencil,
+    RotateCcw,
+    RotateCw,
+    Send,
+    ShieldAlert,
+    ShieldCheck,
+    SlidersHorizontal,
+    Trash2,
+    TrendingUp,
+    Zap
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -193,6 +196,16 @@ interface SocialOpsSnapshot {
   }>;
 }
 
+interface MarketAsset {
+  symbol: string;
+  pair: string;
+  price: number;
+  changePercent: number;
+  trend: "up" | "down" | "flat";
+  source: string;
+  updatedAt: string;
+}
+
 const FREE_USAGE_LIMIT = 3;
 const PAYMENT_AMOUNT_SOL = 0.05;
 const PAYMENT_AMOUNT_HAX = 100;
@@ -200,19 +213,19 @@ const TREASURY_WALLET = "6v6iK8kS1DqXhP9P8s7W6zX5B9Q4p7L3k2j1i0h9g8f7";
 
 const CHAT_MODELS = [
   {
-    id: "mistralai/Mistral-7B-Instruct-v0.1",
-    label: "🧠 Mistral 7B",
-    hint: "Fast instruction model for general market + planning prompts",
-  },
-  {
-    id: "meta-llama/Llama-3.1-8B-Instruct",
-    label: "⚡ Llama 3.1 8B",
-    hint: "Balanced latency and reasoning depth",
-  },
-  {
     id: "Qwen/Qwen2.5-7B-Instruct",
     label: "🔮 Qwen 2.5 7B",
     hint: "Strong structured output for workflows",
+  },
+  {
+    id: "meta-llama/Llama-3.3-70B-Instruct",
+    label: "⚡ Llama 3.3 70B",
+    hint: "Higher-capability reasoning and synthesis",
+  },
+  {
+    id: "microsoft/Phi-4-mini-instruct",
+    label: "🧠 Phi-4 mini",
+    hint: "Fast low-latency copilot-style responses",
   },
 ] as const;
 
@@ -1001,6 +1014,10 @@ export const AINeuralHub = () => {
   const [workflowCreativity, setWorkflowCreativity] = useState(65);
   const [workflowContext, setWorkflowContext] = useState("");
   const [qualitySnapshot, setQualitySnapshot] = useState<ResponseQualitySnapshot | null>(null);
+  const [watchlist, setWatchlist] = useState<MarketAsset[]>([]);
+  const [marketStatus, setMarketStatus] = useState<string>("Connecting to live market feed...");
+  const [marketFeedUpdatedAt, setMarketFeedUpdatedAt] = useState<string>("");
+  const [marketTransport, setMarketTransport] = useState<"sse" | "polling" | "offline">("offline");
 
   const relationshipScore = Math.min(100, 18 + usageCount * 20 + Math.min(messages.length, 12) * 4);
   const relationshipTier = relationshipScore >= 85
@@ -1017,6 +1034,134 @@ export const AINeuralHub = () => {
   const selectedTheme = PERSONA_THEME[personaPreset];
   const shortMemoryCards = memoryCards.filter((card) => card.scope === "short").slice(0, 4);
   const longMemoryCards = memoryCards.filter((card) => card.scope === "long").slice(0, 4);
+
+  useEffect(() => {
+    let disposed = false;
+    let eventSource: EventSource | null = null;
+    let fallbackIntervalId: number | null = null;
+    let fallbackStarted = false;
+
+    const hydrateItems = (payload: { items?: unknown; generatedAt?: unknown; source?: unknown }) => {
+      if (!Array.isArray(payload.items)) return;
+
+      const items = payload.items
+        .map((item: Partial<MarketAsset>) => {
+          const trend: MarketAsset["trend"] = item.trend === "down" || item.trend === "flat" ? item.trend : "up";
+          return {
+            symbol: String(item.symbol || ""),
+            pair: String(item.pair || ""),
+            price: Number(item.price),
+            changePercent: Number(item.changePercent),
+            trend,
+            source: String(item.source || "Binance 24h ticker"),
+            updatedAt: String(item.updatedAt || new Date().toISOString()),
+          };
+        })
+        .filter(
+          (item: MarketAsset) =>
+            item.symbol.length > 0
+            && Number.isFinite(item.price)
+            && Number.isFinite(item.changePercent),
+        );
+
+      if (items.length > 0 && !disposed) {
+        setWatchlist(items);
+        setMarketFeedUpdatedAt(String(payload.generatedAt || new Date().toISOString()));
+        return items.length;
+      }
+
+      return 0;
+    };
+
+    const loadLiveMarketHttp = async () => {
+      try {
+        const response = await fetch("/api/ai/market?symbols=SOLUSDT,BTCUSDT,ETHUSDT", {
+          cache: "no-store",
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload?.ok || !Array.isArray(payload?.items)) {
+          throw new Error(typeof payload?.error === "string" ? payload.error : "live_market_feed_unavailable");
+        }
+
+        const count = hydrateItems(payload);
+        if (count > 0 && !disposed) {
+          setMarketTransport("polling");
+          setMarketStatus(`Live feed (HTTP): ${String(payload.source || "market provider")} • ${count} assets`);
+        }
+      } catch (error) {
+        if (disposed) return;
+        setMarketTransport("offline");
+        setMarketStatus(
+          error instanceof Error
+            ? `Live feed unavailable (${error.message}). Retrying...`
+            : "Live feed unavailable. Retrying...",
+        );
+      }
+    };
+
+    const startHttpFallback = () => {
+      if (fallbackStarted || disposed) return;
+      fallbackStarted = true;
+      setMarketStatus("Stream interrupted. Switching to HTTP fallback...");
+      void loadLiveMarketHttp();
+      fallbackIntervalId = window.setInterval(loadLiveMarketHttp, 10000);
+    };
+
+    if (typeof window !== "undefined" && "EventSource" in window) {
+      eventSource = new EventSource("/api/ai/market/stream?symbols=SOLUSDT,BTCUSDT,ETHUSDT&intervalMs=5000");
+
+      eventSource.addEventListener("ready", (event) => {
+        if (disposed) return;
+        try {
+          const payload = JSON.parse((event as MessageEvent<string>).data) as { source?: unknown };
+          setMarketTransport("sse");
+          setMarketStatus(`Live feed (stream): ${String(payload.source || "market provider")}`);
+        } catch {
+          setMarketTransport("sse");
+          setMarketStatus("Live feed (stream): connected");
+        }
+      });
+
+      eventSource.addEventListener("market", (event) => {
+        if (disposed) return;
+        try {
+          const payload = JSON.parse((event as MessageEvent<string>).data) as {
+            items?: unknown;
+            generatedAt?: unknown;
+            source?: unknown;
+          };
+          const count = hydrateItems(payload);
+          if (count > 0) {
+            setMarketTransport("sse");
+            setMarketStatus(`Live feed (stream): ${String(payload.source || "market provider")} • ${count} assets`);
+          }
+        } catch {
+          // ignore malformed stream packet
+        }
+      });
+
+      eventSource.addEventListener("error", () => {
+        if (disposed) return;
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        startHttpFallback();
+      });
+    } else {
+      startHttpFallback();
+    }
+
+    return () => {
+      disposed = true;
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (fallbackIntervalId !== null) {
+        window.clearInterval(fallbackIntervalId);
+      }
+    };
+  }, []);
 
   function normalizeGuideName(value: string) {
     const cleaned = value.replace(/[^a-zA-Z0-9 _-]/g, "").trim();
@@ -2060,6 +2205,48 @@ export const AINeuralHub = () => {
     setChatStatus("Stored video instruction brief in long-term memory.");
   }
 
+  function insertCompetitiveEdgeBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("Edge brief is empty. Adjust inputs and retry.");
+      return;
+    }
+    setActiveTab("CHAT");
+    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
+    setChatStatus("Competitive edge brief inserted into chat input.");
+  }
+
+  function rememberCompetitiveEdgeBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("Nothing to save yet. Build an edge brief first.");
+      return;
+    }
+    addMemoryCard("long", `Edge Brief ${focusSymbol}`, safeBrief.slice(0, 160));
+    setChatStatus("Competitive edge brief saved to long-term memory.");
+  }
+
+  function insertPostTradeForensicsBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("Forensics brief is empty. Fill post-trade inputs first.");
+      return;
+    }
+    setActiveTab("CHAT");
+    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
+    setChatStatus("Post-trade forensics brief inserted into chat input.");
+  }
+
+  function rememberPostTradeForensicsBrief(brief: string) {
+    const safeBrief = brief.trim();
+    if (!safeBrief) {
+      setChatStatus("Nothing to store yet. Generate a forensics brief first.");
+      return;
+    }
+    addMemoryCard("long", `Forensics ${focusSymbol}`, safeBrief.slice(0, 160));
+    setChatStatus("Post-trade recovery brief saved to long-term memory.");
+  }
+
   async function generateWebsiteAutopilotDraft() {
     const normalizedSource = normalizeVideoUrl(websiteSourceUrl);
     if (!normalizedSource) {
@@ -2480,13 +2667,10 @@ export const AINeuralHub = () => {
   };
 
   // --- MARKET LOGIC ---
-  const [watchlist, setWatchlist] = useState([
-    { symbol: "SOL", price: "142.50", change: "+4.2%", trend: "up" },
-    { symbol: "HAX", price: "0.082", change: "+12.5%", trend: "up" },
-    { symbol: "BTC", price: "64,210", change: "-1.2%", trend: "down" },
-  ]);
-
-  const marketTrendScore = watchlist.reduce((score, asset) => score + (asset.trend === "up" ? 1 : -1), 0);
+  const marketTrendScore = watchlist.reduce(
+    (score, asset) => score + (asset.trend === "up" ? 1 : asset.trend === "down" ? -1 : 0),
+    0,
+  );
   const detectedMarketRegime: "BULLISH" | "BEARISH" | "MIXED" = marketTrendScore >= 2 ? "BULLISH" : marketTrendScore <= -2 ? "BEARISH" : "MIXED";
   const activePromptPack = PERSONA_PROMPT_PACKS[personaPreset][detectedMarketRegime];
   const branchGraphEntries = branchTrail.slice(0, 8).reverse();
@@ -3174,452 +3358,91 @@ export const AINeuralHub = () => {
                           )}
                         </div>
 
-                        <div className="rounded-xl border border-emerald-400/20 bg-[rgba(8,16,14,0.84)] px-3 py-3">
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-emerald-200">Phase 6 · Sitewide Neural Smartness</p>
-                            <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
-                              Vault {neuralVaultCount}
-                            </span>
-                          </div>
+                        <HubSitewideNeuralSmartness
+                          neuralVaultCount={neuralVaultCount}
+                          datasetName={datasetName}
+                          onDatasetNameChange={setDatasetName}
+                          datasetRows={datasetRows}
+                          onDatasetRowsChange={setDatasetRows}
+                          datasetNotes={datasetNotes}
+                          onDatasetNotesChange={setDatasetNotes}
+                          onSaveDataset={saveDatasetNeuralArtifact}
+                          behaviorLabel={behaviorLabel}
+                          onBehaviorLabelChange={setBehaviorLabel}
+                          behaviorObservation={behaviorObservation}
+                          onBehaviorObservationChange={setBehaviorObservation}
+                          onSaveBehavior={saveUserBehaviorNeuralArtifact}
+                          tickerBehaviorSymbol={tickerBehaviorSymbol}
+                          onTickerBehaviorSymbolChange={setTickerBehaviorSymbol}
+                          tickerBehaviorPattern={tickerBehaviorPattern}
+                          onTickerBehaviorPatternChange={setTickerBehaviorPattern}
+                          onSaveTickerPattern={saveTickerBehaviorNeuralArtifact}
+                          learningEnvironmentName={learningEnvironmentName}
+                          onLearningEnvironmentNameChange={setLearningEnvironmentName}
+                          learningEnvironmentHypothesis={learningEnvironmentHypothesis}
+                          onLearningEnvironmentHypothesisChange={setLearningEnvironmentHypothesis}
+                          onSaveEnvironment={saveLearningEnvironmentNeuralArtifact}
+                          onExportNeuralVault={exportNeuralVaultDataset}
+                        />
 
-                          <p className="mb-2 text-[10px] text-zinc-400">
-                            Save datasets, user patterns, ticker behavior, and learning environments in one reusable neural memory layer ready for sitewide integration.
-                          </p>
+                        <HubVideoAiInfusion
+                          videoSourceUrl={videoSourceUrl}
+                          onVideoSourceUrlChange={setVideoSourceUrl}
+                          videoInstructionGoal={videoInstructionGoal}
+                          onVideoInstructionGoalChange={setVideoInstructionGoal}
+                          videoCue={videoCue}
+                          onVideoCueChange={setVideoCue}
+                          onInsertBrief={insertVideoInstructionBrief}
+                          onStoreBrief={rememberVideoInstructionBrief}
+                        />
 
-                          <div className="space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
-                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Dataset Artifact</p>
-                            <div className="grid gap-2 md:grid-cols-[1.2fr_120px]">
-                              <input
-                                value={datasetName}
-                                onChange={(event) => setDatasetName(event.target.value.slice(0, 80))}
-                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                                placeholder="Dataset name"
-                              />
-                              <input
-                                value={datasetRows}
-                                onChange={(event) => setDatasetRows(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                                placeholder="Rows"
-                              />
-                            </div>
-                            <input
-                              value={datasetNotes}
-                              onChange={(event) => setDatasetNotes(event.target.value.slice(0, 220))}
-                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                              placeholder="Optional dataset note"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void saveDatasetNeuralArtifact();
-                              }}
-                              className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100"
-                            >
-                              Save Dataset
-                            </button>
-                          </div>
+                        <HubWebsiteSocialAutopilot
+                          websiteSourceUrl={websiteSourceUrl}
+                          onWebsiteSourceUrlChange={setWebsiteSourceUrl}
+                          autopilotFocus={autopilotFocus}
+                          onAutopilotFocusChange={setAutopilotFocus}
+                          socialChannels={SOCIAL_AUTOPILOT_CHANNELS}
+                          autopilotChannels={autopilotChannels}
+                          onToggleAutopilotChannel={toggleAutopilotChannel}
+                          isGeneratingAutopilot={isGeneratingAutopilot}
+                          onGenerateDrafts={generateWebsiteAutopilotDraft}
+                          autopilotOpsLoading={autopilotOpsLoading}
+                          onSaveToOps={saveCurrentAutopilotDraftToOps}
+                          onRefreshOps={refreshAutopilotOps}
+                          autopilotOpsDraftId={autopilotOpsDraftId}
+                          onAutopilotOpsDraftIdChange={setAutopilotOpsDraftId}
+                          autopilotScheduleAt={autopilotScheduleAt}
+                          onAutopilotScheduleAtChange={setAutopilotScheduleAt}
+                          onSubmitApproval={submitAutopilotForApproval}
+                          onApproveDraft={approveAutopilotDraft}
+                          onScheduleQueue={scheduleAutopilotDraft}
+                          onPublishNow={publishAutopilotNow}
+                          onRunDueJobs={runDueAutopilotJobs}
+                          autopilotImpressions={autopilotImpressions}
+                          onAutopilotImpressionsChange={setAutopilotImpressions}
+                          autopilotEngagements={autopilotEngagements}
+                          onAutopilotEngagementsChange={setAutopilotEngagements}
+                          autopilotClicks={autopilotClicks}
+                          onAutopilotClicksChange={setAutopilotClicks}
+                          onSyncMetrics={syncAutopilotPerformance}
+                          autopilotOpsSnapshot={autopilotOpsSnapshot}
+                        />
 
-                          <div className="mt-2 space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
-                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">User Behavior Pattern</p>
-                            <input
-                              value={behaviorLabel}
-                              onChange={(event) => setBehaviorLabel(event.target.value.slice(0, 100))}
-                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                              placeholder="Behavior label"
-                            />
-                            <input
-                              value={behaviorObservation}
-                              onChange={(event) => setBehaviorObservation(event.target.value.slice(0, 240))}
-                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                              placeholder="Observed behavior"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void saveUserBehaviorNeuralArtifact();
-                              }}
-                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
-                            >
-                              Save Behavior
-                            </button>
-                          </div>
+                        <HubCompetitiveEdgeLab
+                          focusSymbol={focusSymbol}
+                          riskStance={riskStance}
+                          marketRegime={detectedMarketRegime}
+                          onInjectBrief={insertCompetitiveEdgeBrief}
+                          onStoreBrief={rememberCompetitiveEdgeBrief}
+                        />
 
-                          <div className="mt-2 space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
-                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Ticker Behavior Pattern</p>
-                            <div className="grid gap-2 md:grid-cols-[120px_1fr]">
-                              <input
-                                value={tickerBehaviorSymbol}
-                                onChange={(event) => setTickerBehaviorSymbol(event.target.value.slice(0, 20).toUpperCase())}
-                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                                placeholder="Ticker"
-                              />
-                              <input
-                                value={tickerBehaviorPattern}
-                                onChange={(event) => setTickerBehaviorPattern(event.target.value.slice(0, 240))}
-                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                                placeholder="Pattern and context"
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void saveTickerBehaviorNeuralArtifact();
-                              }}
-                              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
-                            >
-                              Save Ticker Pattern
-                            </button>
-                          </div>
-
-                          <div className="mt-2 space-y-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2">
-                            <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Learning Environment</p>
-                            <input
-                              value={learningEnvironmentName}
-                              onChange={(event) => setLearningEnvironmentName(event.target.value.slice(0, 120))}
-                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                              placeholder="Environment name"
-                            />
-                            <input
-                              value={learningEnvironmentHypothesis}
-                              onChange={(event) => setLearningEnvironmentHypothesis(event.target.value.slice(0, 260))}
-                              className="w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                              placeholder="Hypothesis / learning note"
-                            />
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  void saveLearningEnvironmentNeuralArtifact();
-                                }}
-                                className="rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-amber-100"
-                              >
-                                Save Environment
-                              </button>
-                              <button
-                                type="button"
-                                onClick={exportNeuralVaultDataset}
-                                className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100"
-                              >
-                                Export Neural Vault
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="rounded-xl border border-white/10 bg-[rgba(9,12,18,0.72)] px-3 py-3">
-                          <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-wide text-zinc-300">
-                            <Video className="h-3.5 w-3.5 text-cyan-300" />
-                            Video AI Infusion
-                          </div>
-
-                          <div className="grid gap-2 md:grid-cols-2">
-                            <div>
-                              <label className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="video-source-url-input">
-                                Video URL
-                              </label>
-                              <input
-                                id="video-source-url-input"
-                                value={videoSourceUrl}
-                                onChange={(event) => setVideoSourceUrl(event.target.value.slice(0, 300))}
-                                className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300/60"
-                                placeholder="https://youtube.com/..."
-                                maxLength={300}
-                              />
-                            </div>
-
-                            <div>
-                              <label className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="video-goal-input">
-                                Objective
-                              </label>
-                              <input
-                                id="video-goal-input"
-                                value={videoInstructionGoal}
-                                onChange={(event) => setVideoInstructionGoal(event.target.value.slice(0, 140))}
-                                className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300/60"
-                                placeholder="Extract actionable steps"
-                                maxLength={140}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="mt-2">
-                            <label className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="video-cue-input">
-                              Focus cue (optional)
-                            </label>
-                            <input
-                              id="video-cue-input"
-                              value={videoCue}
-                              onChange={(event) => setVideoCue(event.target.value.slice(0, 140))}
-                              className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300/60"
-                              placeholder="e.g. Timestamp 03:20 risk management section"
-                              maxLength={140}
-                            />
-                          </div>
-
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={insertVideoInstructionBrief}
-                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
-                              title="Insert video instruction brief into chat input"
-                            >
-                              Insert Brief
-                            </button>
-                            <button
-                              type="button"
-                              onClick={rememberVideoInstructionBrief}
-                              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
-                              title="Store video instruction brief in long-term memory"
-                            >
-                              Store Brief
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="rounded-xl border border-white/10 bg-[rgba(7,11,17,0.74)] px-3 py-3">
-                          <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-wide text-zinc-300">
-                            <Cpu className="h-3.5 w-3.5 text-emerald-300" />
-                            Website → Social Autopilot
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="website-source-url-input">
-                              Website URL
-                            </label>
-                            <input
-                              id="website-source-url-input"
-                              value={websiteSourceUrl}
-                              onChange={(event) => setWebsiteSourceUrl(event.target.value.slice(0, 300))}
-                              className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                              placeholder="https://tradehax.net/blog/your-post"
-                              maxLength={300}
-                            />
-                          </div>
-
-                          <div className="mt-2">
-                            <label className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="autopilot-focus-input">
-                              Autopilot focus
-                            </label>
-                            <input
-                              id="autopilot-focus-input"
-                              value={autopilotFocus}
-                              onChange={(event) => setAutopilotFocus(event.target.value.slice(0, 80))}
-                              className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                              placeholder="cross-platform brand growth"
-                              maxLength={80}
-                            />
-                          </div>
-
-                          <div className="mt-2">
-                            <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400">Channels</p>
-                            <div className="mt-1 flex flex-wrap gap-2">
-                              {SOCIAL_AUTOPILOT_CHANNELS.map((channel) => {
-                                const enabled = autopilotChannels.includes(channel.id);
-                                return (
-                                  <button
-                                    key={channel.id}
-                                    type="button"
-                                    onClick={() => toggleAutopilotChannel(channel.id)}
-                                    className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-                                      enabled
-                                        ? "border-emerald-300/35 bg-emerald-500/10 text-emerald-100"
-                                        : "border-white/15 bg-black/40 text-zinc-300"
-                                    }`}
-                                    title={`Toggle ${channel.label}`}
-                                  >
-                                    {channel.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={generateWebsiteAutopilotDraft}
-                              disabled={isGeneratingAutopilot}
-                              className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100 disabled:opacity-60"
-                              title="Generate multi-platform social drafts from website content"
-                            >
-                              {isGeneratingAutopilot ? "Generating..." : "Generate Drafts"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={saveCurrentAutopilotDraftToOps}
-                              disabled={autopilotOpsLoading}
-                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100 disabled:opacity-60"
-                              title="Create a managed social ops draft from the generated content"
-                            >
-                              Save to Ops
-                            </button>
-                            <button
-                              type="button"
-                              onClick={refreshAutopilotOps}
-                              disabled={autopilotOpsLoading}
-                              className="rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-semibold uppercase text-zinc-200 disabled:opacity-60"
-                              title="Refresh queue, calendar, and connector status"
-                            >
-                              Refresh Ops
-                            </button>
-                          </div>
-
-                          <div className="mt-2 grid gap-2 md:grid-cols-2">
-                            <div>
-                              <label className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="autopilot-ops-draft-id-input">
-                                Social Ops Draft ID
-                              </label>
-                              <input
-                                id="autopilot-ops-draft-id-input"
-                                value={autopilotOpsDraftId}
-                                onChange={(event) => setAutopilotOpsDraftId(event.target.value.slice(0, 80))}
-                                className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300/60"
-                                placeholder="draft_..."
-                                maxLength={80}
-                              />
-                            </div>
-
-                            <div>
-                              <label className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="autopilot-schedule-at-input">
-                                Schedule (calendar)
-                              </label>
-                              <input
-                                id="autopilot-schedule-at-input"
-                                type="datetime-local"
-                                value={autopilotScheduleAt}
-                                onChange={(event) => setAutopilotScheduleAt(event.target.value)}
-                                className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300/60"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={submitAutopilotForApproval}
-                              disabled={autopilotOpsLoading}
-                              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-fuchsia-100 disabled:opacity-60"
-                              title="Move draft into pending approval"
-                            >
-                              Submit Approval
-                            </button>
-                            <button
-                              type="button"
-                              onClick={approveAutopilotDraft}
-                              disabled={autopilotOpsLoading}
-                              className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100 disabled:opacity-60"
-                              title="Approve draft for publishing"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              type="button"
-                              onClick={scheduleAutopilotDraft}
-                              disabled={autopilotOpsLoading}
-                              className="rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-amber-100 disabled:opacity-60"
-                              title="Schedule channel queue jobs"
-                            >
-                              Schedule Queue
-                            </button>
-                            <button
-                              type="button"
-                              onClick={publishAutopilotNow}
-                              disabled={autopilotOpsLoading}
-                              className="rounded-full border border-red-300/30 bg-red-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-red-100 disabled:opacity-60"
-                              title="Publish now through configured connectors"
-                            >
-                              Publish Now
-                            </button>
-                            <button
-                              type="button"
-                              onClick={runDueAutopilotJobs}
-                              disabled={autopilotOpsLoading}
-                              className="rounded-full border border-blue-300/30 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-blue-100 disabled:opacity-60"
-                              title="Run due queue jobs manually"
-                            >
-                              Run Due Jobs
-                            </button>
-                          </div>
-
-                          <div className="mt-2 rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
-                            <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400">Feedback loop</p>
-                            <div className="mt-1 grid gap-2 md:grid-cols-4">
-                              <input
-                                value={autopilotImpressions}
-                                onChange={(event) => setAutopilotImpressions(event.target.value.replace(/\D/g, "").slice(0, 9))}
-                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300/60"
-                                placeholder="Impressions"
-                              />
-                              <input
-                                value={autopilotEngagements}
-                                onChange={(event) => setAutopilotEngagements(event.target.value.replace(/\D/g, "").slice(0, 9))}
-                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300/60"
-                                placeholder="Engagements"
-                              />
-                              <input
-                                value={autopilotClicks}
-                                onChange={(event) => setAutopilotClicks(event.target.value.replace(/\D/g, "").slice(0, 9))}
-                                className="rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300/60"
-                                placeholder="Clicks"
-                              />
-                              <button
-                                type="button"
-                                onClick={syncAutopilotPerformance}
-                                disabled={autopilotOpsLoading}
-                                className="rounded-md border border-emerald-300/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold uppercase text-emerald-100 disabled:opacity-60"
-                              >
-                                Sync Metrics
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="mt-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-[10px] text-zinc-300">
-                            <p className="font-mono uppercase tracking-wide text-zinc-400">Connector status</p>
-                            <div className="mt-1 flex flex-wrap gap-1.5">
-                              {SOCIAL_AUTOPILOT_CHANNELS.map((channel) => {
-                                const configured = Boolean(autopilotOpsSnapshot?.connectors?.[channel.id]);
-                                return (
-                                  <span
-                                    key={`connector-${channel.id}`}
-                                    className={`rounded-full border px-2 py-0.5 ${configured ? "border-emerald-300/35 bg-emerald-500/10 text-emerald-100" : "border-white/15 bg-black/40 text-zinc-400"}`}
-                                  >
-                                    {channel.label}: {configured ? "ON" : "OFF"}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                            <div className="mt-2 grid gap-2 md:grid-cols-2">
-                              <div>
-                                <p className="font-mono uppercase tracking-wide text-zinc-400">Calendar</p>
-                                <div className="mt-1 max-h-24 space-y-1 overflow-auto pr-1">
-                                  {(autopilotOpsSnapshot?.calendar || []).slice(0, 4).map((entry) => (
-                                    <div key={`${entry.draftId}_${entry.runAt || "na"}`} className="rounded border border-white/10 bg-black/35 px-1.5 py-1">
-                                      <p className="text-zinc-200">{entry.focus}</p>
-                                      <p className="text-zinc-500">{entry.runAt ? new Date(entry.runAt).toLocaleString() : "unscheduled"} • {entry.status}</p>
-                                    </div>
-                                  ))}
-                                  {(autopilotOpsSnapshot?.calendar || []).length === 0 && (
-                                    <p className="text-zinc-500">No scheduled calendar entries yet.</p>
-                                  )}
-                                </div>
-                              </div>
-                              <div>
-                                <p className="font-mono uppercase tracking-wide text-zinc-400">Queue</p>
-                                <div className="mt-1 max-h-24 space-y-1 overflow-auto pr-1">
-                                  {(autopilotOpsSnapshot?.queue || []).slice(0, 5).map((job) => (
-                                    <div key={job.id} className="rounded border border-white/10 bg-black/35 px-1.5 py-1 text-zinc-200">
-                                      <p>{job.channel.toUpperCase()} • {job.status}</p>
-                                      <p className="text-zinc-500">{new Date(job.runAt).toLocaleString()}</p>
-                                    </div>
-                                  ))}
-                                  {(autopilotOpsSnapshot?.queue || []).length === 0 && (
-                                    <p className="text-zinc-500">Queue is idle.</p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                        <HubPostTradeForensics
+                          focusSymbol={focusSymbol}
+                          riskStance={riskStance}
+                          marketRegime={detectedMarketRegime}
+                          onInjectBrief={insertPostTradeForensicsBrief}
+                          onStoreBrief={rememberPostTradeForensicsBrief}
+                        />
 
                         <div className="rounded-xl border border-white/10 bg-[rgba(10,14,20,0.72)] px-3 py-3">
                           <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-wide text-zinc-300">
@@ -4186,158 +4009,26 @@ export const AINeuralHub = () => {
                   )}
 
                   {activeTab === "IMAGE_GEN" && (
-                    <motion.div
-                      key="img"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="p-6 h-full flex flex-col gap-6"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {imageModels.map((model) => (
-                          <button
-                            key={model.id}
-                            onClick={() => setSelectedModel(model.id)}
-                            className={`p-4 rounded-2xl border text-left transition-all ${
-                              selectedModel === model.id
-                                ? "bg-cyan-500/10 border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.1)]"
-                                : "bg-zinc-900/50 border-white/5 hover:border-white/10"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <Cpu className={`w-4 h-4 ${selectedModel === model.id ? 'text-cyan-400' : 'text-zinc-600'}`} />
-                              <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${
-                                selectedModel === model.id ? 'border-cyan-500/30 text-cyan-400' : 'border-white/5 text-zinc-600'
-                              }`}>
-                                {model.label}
-                              </span>
-                            </div>
-                            <p className="text-xs font-black text-white uppercase italic">{model.name}</p>
-                            <p className="text-[10px] text-zinc-500 font-mono mt-1">{model.provider}</p>
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="relative">
-                        <textarea
-                          value={imgPrompt}
-                          onChange={(e) => setImgPrompt(e.target.value)}
-                          placeholder="Describe the image you want in one simple sentence..."
-                          className="w-full h-32 bg-zinc-900/50 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-cyan-500/50 transition-all resize-none"
-                        />
-                        <button
-                          onClick={handleGenerateImage}
-                          disabled={isImgLoading || !imgPrompt.trim()}
-                          className="absolute bottom-4 right-4 px-6 py-2 bg-cyan-500 text-black font-black text-xs rounded-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100 flex items-center gap-2 uppercase italic"
-                        >
-                          {isImgLoading ? <RotateCw className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                          Visualize
-                        </button>
-                      </div>
-
-                      <div className="flex-1 min-h-[200px] rounded-2xl border border-white/5 bg-zinc-950/50 flex items-center justify-center relative overflow-hidden">
-                        {generatedImg ? (
-                          <motion.img
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            src={generatedImg}
-                            className="w-full h-full object-cover"
-                            alt="Generated neural construct"
-                          />
-                        ) : (
-                          <div className="text-center">
-                            <Sparkles className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
-                            <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Awaiting_Neural_Input</p>
-                          </div>
-                        )}
-                        {isImgLoading && (
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm">
-                            <div className="flex flex-col items-center gap-4">
-                              <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
-                              <p className="text-[10px] font-mono text-cyan-500 uppercase animate-pulse">Processing_Diffusion_Steps</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      {imageStatus && (
-                        <p className="text-[11px] text-cyan-300/80 font-mono">{imageStatus}</p>
-                      )}
-                    </motion.div>
+                    <HubImageWorkspace
+                      imageModels={imageModels}
+                      selectedModel={selectedModel}
+                      onSelectModel={setSelectedModel}
+                      imgPrompt={imgPrompt}
+                      onImgPromptChange={setImgPrompt}
+                      onGenerateImage={handleGenerateImage}
+                      isImgLoading={isImgLoading}
+                      generatedImg={generatedImg}
+                      imageStatus={imageStatus}
+                    />
                   )}
 
                   {activeTab === "MARKET" && (
-                    <motion.div
-                      key="market"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="p-6 h-full flex flex-col"
-                    >
-                      <div className="flex items-center justify-between mb-8">
-                        <div>
-                          <h3 className="text-lg font-black text-white italic uppercase">Market Picker</h3>
-                          <p className="text-[10px] font-mono text-zinc-500">REAL-TIME_ASSET_DISCOVERY</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="relative">
-                            <input
-                              type="text"
-                              placeholder="Search_Ticker..."
-                              className="bg-zinc-900 border border-white/10 rounded-lg px-4 py-1.5 text-[10px] text-white focus:border-cyan-500 outline-none w-40"
-                            />
-                          </div>
-                          <button className="flex min-h-[44px] items-center gap-2 px-4 py-1.5 rounded-lg bg-cyan-500 text-black text-[10px] font-black uppercase italic hover:scale-105 transition-transform">
-                            <Plus className="w-3 h-3" /> Add
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                        {watchlist.map((asset) => (
-                          <div key={asset.symbol} className="flex items-center justify-between p-5 rounded-2xl bg-zinc-900/40 border border-white/5 hover:border-cyan-500/30 hover:bg-zinc-900/60 transition-all group cursor-pointer">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center font-black text-sm text-white border border-white/5 shadow-xl group-hover:scale-110 transition-transform">
-                                {asset.symbol[0]}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-black text-white uppercase italic">{asset.symbol}</p>
-                                  {asset.symbol === "HAX" && <Sparkles className="w-3 h-3 text-cyan-400" />}
-                                </div>
-                                <p className="text-[10px] text-zinc-600 font-mono">SECURE_SETTLEMENT</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-mono text-white mb-1">${asset.price}</p>
-                              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono ${asset.trend === 'up' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                                {asset.trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
-                                {asset.change}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="mt-8 p-6 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-2xl relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-2">
-                          <Zap className="w-4 h-4 text-emerald-500 opacity-20 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                        <div className="flex items-center justify-between gap-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
-                              <Zap className="w-6 h-6 text-emerald-400" />
-                            </div>
-                            <div>
-                              <p className="text-xs text-emerald-500 uppercase font-black italic mb-1 tracking-widest">Neural Alpha Picker</p>
-                              <p className="text-xs text-zinc-400 max-w-[280px]">New institutional signal for <span className="text-white font-bold italic">$HAX/SOL</span> detected with 94% confidence.</p>
-                            </div>
-                          </div>
-                          <button className="px-8 py-3 bg-emerald-500 text-black text-[10px] font-black rounded-xl uppercase italic hover:bg-white transition-all shadow-lg">
-                            Fetch_Alpha
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
+                    <HubMarketWorkspace
+                      watchlist={watchlist}
+                      marketTransport={marketTransport}
+                      marketStatus={marketStatus}
+                      marketFeedUpdatedAt={marketFeedUpdatedAt}
+                    />
                   )}
                 </AnimatePresence>
               </div>
@@ -4345,138 +4036,23 @@ export const AINeuralHub = () => {
 
             {/* Right Column: AI Metrics & State */}
             <div className="lg:col-span-4 space-y-6">
-              <div className="theme-panel p-6 border-cyan-500/20">
-                <h3 className="text-xs font-mono text-cyan-500 uppercase tracking-[0.2em] mb-6">Neural_Environment</h3>
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between text-[10px] font-mono text-zinc-500 mb-2 uppercase">
-                      <span>Compute Load</span>
-                      <span className="text-cyan-400">42.8%</span>
-                    </div>
-                    <div className="h-1 bg-zinc-900 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: "42.8%" }}
-                        className="h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-[10px] font-mono text-zinc-500 mb-2 uppercase">
-                      <span>Context Memory</span>
-                      <span className="text-purple-400">98.2%</span>
-                    </div>
-                    <div className="h-1 bg-zinc-900 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: "98.2%" }}
-                        className="h-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-10 space-y-4">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/50 border border-white/5">
-                    <ShieldAlert className="w-4 h-4 text-zinc-600" />
-                    <span className="text-[10px] font-mono text-zinc-300 uppercase">Open Responses: On</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/50 border border-white/5">
-                    <BadgeCheck className="w-4 h-4 text-emerald-400" />
-                    <span className="text-[10px] font-mono text-zinc-300 uppercase">Trust Profile: {relationshipTier}</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/50 border border-white/5">
-                    <Sparkles className="w-4 h-4 text-zinc-600" />
-                    <span className="text-[10px] font-mono text-zinc-300 uppercase">Creative Tools: On</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="theme-panel p-6 bg-gradient-to-br from-cyan-500/10 to-transparent border-cyan-500/30">
-                <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 flex items-center justify-center mb-4">
-                  <TrendingUp className="w-6 h-6 text-cyan-400" />
-                </div>
-                <h3 className="text-lg font-black text-white uppercase italic mb-2">Power User Access</h3>
-                <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-                  Unlock unlimited neural generations, HFT signals, and custom fine-tuned models by staking $HAX tokens.
-                </p>
-                <button className="w-full py-3 bg-cyan-500 text-black font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-white transition-colors">
-                  Review_Staking_Options
-                </button>
-              </div>
+              <HubMetricsRail isCharging={isCharging} relationshipTier={relationshipTier} />
             </div>
           </div>
 
         </div>
       </div>
 
-      <AnimatePresence>
-        {isCommandPaletteOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[120] flex items-start justify-center bg-black/65 px-4 pt-24 backdrop-blur-sm"
-            onClick={() => setIsCommandPaletteOpen(false)}
-          >
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -14, opacity: 0 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-              className="w-full max-w-2xl rounded-2xl border border-cyan-400/25 bg-[rgba(8,12,18,0.96)] shadow-[0_0_40px_rgba(34,211,238,0.12)]"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
-                <Search className="h-4 w-4 text-cyan-300" />
-                <input
-                  value={commandQuery}
-                  onChange={(event) => setCommandQuery(event.target.value.slice(0, 80))}
-                  placeholder="Search commands..."
-                  className="w-full bg-transparent text-sm text-white placeholder:text-zinc-500 outline-none"
-                  autoFocus
-                />
-                <span className="rounded-md border border-white/10 bg-black/30 px-1.5 py-0.5 text-[9px] uppercase text-zinc-400">
-                  Esc
-                </span>
-              </div>
-
-              <div className="max-h-[360px] overflow-y-auto p-2">
-                {filteredCommandPaletteEntries.length > 0 ? (
-                  filteredCommandPaletteEntries.map((entry, index) => (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      onClick={() => runPaletteCommand(entry.id)}
-                      onMouseEnter={() => setCommandSelectionIndex(index)}
-                      className={`mb-1 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors ${
-                        commandSelectionIndex === index
-                          ? "border-cyan-300/45 bg-cyan-500/10"
-                          : "border-white/10 bg-black/35 hover:border-cyan-300/35"
-                      }`}
-                    >
-                      <div>
-                        <p className="text-[11px] font-semibold text-cyan-100">{entry.label}</p>
-                        <p className="text-[10px] text-zinc-400">{entry.hint}</p>
-                      </div>
-                      <Command className="h-3.5 w-3.5 text-zinc-500" />
-                    </button>
-                  ))
-                ) : (
-                  <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-4 text-center text-[11px] text-zinc-500">
-                    No commands match your query.
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between border-t border-white/10 px-3 py-2 text-[10px] text-zinc-400">
-                <span>Tip: press Ctrl/Cmd + K any time</span>
-                <span>Phase 3 Operator Palette</span>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <HubCommandPalette
+        isOpen={isCommandPaletteOpen}
+        commandQuery={commandQuery}
+        setCommandQuery={setCommandQuery}
+        commandSelectionIndex={commandSelectionIndex}
+        filteredEntries={filteredCommandPaletteEntries}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onRunCommand={runPaletteCommand}
+        onSetSelectionIndex={setCommandSelectionIndex}
+      />
     </section>
   );
 };

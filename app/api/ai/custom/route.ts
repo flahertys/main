@@ -1,7 +1,8 @@
-import { getLLMClient } from "@/lib/ai/hf-server";
 import { buildTradeHaxPrompt } from "@/lib/ai/custom-llm/system-prompt";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
-import { canConsumeFeature, consumeFeatureUsage } from "@/lib/monetization/engine";
+import { getLLMClient } from "@/lib/ai/hf-server";
+import { buildLiveMarketContext } from "@/lib/ai/market-freshness";
+import { canConsumeFeature, tryConsumeFeatureUsageSecure } from "@/lib/monetization/engine";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
 import { enforceRateLimit, enforceTrustedOrigin, isJsonContentType } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
@@ -55,9 +56,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const liveMarket = await buildLiveMarketContext({
+      inputMessage: message,
+      context: body.context,
+    });
+
+    const resolvedContext =
+      liveMarket.enabled && liveMarket.summary
+        ? `${body.context ? `${body.context}\n\n` : ""}${liveMarket.summary}`
+        : body.context;
+
     const prompt = buildTradeHaxPrompt({
       message,
-      context: body.context,
+      context: resolvedContext,
       lane: body.lane,
     });
 
@@ -75,6 +86,9 @@ export async function POST(request: NextRequest) {
         metadata: {
           route: "/api/ai/custom",
           lane: body.lane ?? "general",
+          market_freshness_enabled: liveMarket.enabled,
+          market_freshness_generated_at: liveMarket.generatedAt,
+          market_freshness_sources: liveMarket.sources.join(","),
         },
         consent: {
           analytics: true,
@@ -85,9 +99,25 @@ export async function POST(request: NextRequest) {
       console.warn("Custom AI ingestion skipped:", ingestionError);
     }
 
-    consumeFeatureUsage(userId, "ai_chat", 1, "api:ai:custom", {
-      lane: body.lane ?? "general",
+    const idempotencyKey = request.headers.get("x-idempotency-key") || "";
+    const usageCommit = tryConsumeFeatureUsageSecure(userId, "ai_chat", 1, {
+      source: "api:ai:custom",
+      metadata: {
+        lane: body.lane ?? "general",
+      },
+      idempotencyKey,
+      idempotencyScope: `custom:${body.lane ?? "general"}:${message}`,
     });
+    if (!usageCommit.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: usageCommit.allowance.reason ?? "Usage limit reached.",
+          allowance: usageCommit.allowance,
+        },
+        { status: 429, headers: rateLimit.headers },
+      );
+    }
 
     return NextResponse.json(
       {
@@ -96,7 +126,11 @@ export async function POST(request: NextRequest) {
         response: generated.text,
         usage: {
           feature: "ai_chat",
-          remainingToday: allowance.remainingToday,
+          remainingToday: usageCommit.allowance.remainingToday,
+          remainingThisWeek: usageCommit.allowance.remainingThisWeek ?? null,
+          weeklyLimit: usageCommit.allowance.weeklyLimit ?? null,
+          usedThisWeek: usageCommit.allowance.usedThisWeek ?? null,
+          replayed: usageCommit.replayed,
         },
       },
       { headers: rateLimit.headers },

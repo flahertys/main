@@ -45,7 +45,7 @@ function getResolvedConfig(overrides?: LLMClientOverrides): LLMConfig {
   const envTopP = parseEnvFloat(process.env.LLM_TOP_P, 0.95, 0.1, 1);
 
   return {
-    modelId: overrides?.modelId || process.env.HF_MODEL_ID || "mistralai/Mistral-7B-Instruct-v0.1",
+    modelId: overrides?.modelId || process.env.HF_MODEL_ID || "Qwen/Qwen2.5-7B-Instruct",
     apiToken: token,
     useLocal: process.env.HF_USE_LOCAL_MODEL === "true",
     temperature: normalizeOptionalNumber(overrides?.temperature) ?? envTemperature,

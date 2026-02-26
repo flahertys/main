@@ -24,11 +24,11 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 export const metadata = createPageMetadata({
-  title: "TradeHax AI Hub - Beginner Friendly AI Assistant",
+  title: "TradeHax AI Hub - Beginner Friendly Crypto + Stocks Assistant",
   description:
-    "A clear, beginner-friendly AI hub for chat, text creation, image generation, and guided trading workflows.",
+    "A clear, beginner-friendly AI hub for crypto and stock workflows: chat, content creation, image generation, and guided next steps.",
   path: "/ai-hub",
-  keywords: ["ai trading", "smart environment", "image generation", "ai assistants"],
+  keywords: ["ai trading", "crypto ai", "stock ai", "smart environment", "image generation", "ai assistants"],
 });
 
 export default function AIHubPage() {
@@ -78,7 +78,7 @@ export default function AIHubPage() {
 
           <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
             Get clear help in plain language: ask questions, generate content, create images,
-            and follow guided next steps even if you&apos;re brand new.
+            and follow guided next steps for crypto and stocks—even if you&apos;re brand new.
           </p>
 
           <div className="mb-8 flex flex-wrap items-center justify-center gap-3">
@@ -131,6 +131,21 @@ export default function AIHubPage() {
             href="/ai-hub?starter=content-engine#ai-chat"
             tone="cyan"
           />
+        </div>
+
+        <div className="mb-8 rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-indigo-100">Need API keys, webhooks, or model endpoints?</p>
+              <p className="text-xs text-indigo-100/75 mt-1">Beginner flow stays here. Developer and integration workflows are in Dev Hub.</p>
+            </div>
+            <Link
+              href="/dev-hub"
+              className="rounded border border-indigo-300/40 bg-black/25 px-3 py-1.5 text-xs font-semibold text-indigo-100 hover:bg-black/35 transition"
+            >
+              Open Dev Hub
+            </Link>
+          </div>
         </div>
 
         <div className="sticky top-[max(0.5rem,env(safe-area-inset-top))] sm:top-3 z-20 mb-10 rounded-xl border border-white/10 bg-black/70 supports-[backdrop-filter]:bg-black/50 p-3 shadow-[0_8px_30px_rgba(0,0,0,0.3)] backdrop-blur-sm sm:p-5">
@@ -330,7 +345,7 @@ export default function AIHubPage() {
               <CapabilityItem
                 icon={<Wand2 className="w-5 h-5" />}
                 title="Image Generation"
-                description="Create trading charts, NFT artwork, and hero images with AI"
+                description="Create trading charts, market visuals, and hero images with AI"
               />
               <CapabilityItem
                 icon={<MessageSquare className="w-5 h-5" />}
@@ -419,7 +434,7 @@ export default function AIHubPage() {
                 name="Stable Diffusion 2.1"
                 type="Image Generation"
                 size="1B+ parameters"
-                use="Trading charts, NFT art, UI"
+                use="Trading charts, market visuals, UI"
               />
               <ModelCard
                 name="Meta-Llama-3-8B-Instruct"

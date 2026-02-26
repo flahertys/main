@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   try {
     if (task === "text-generation") {
       const result = await hf.textGeneration({
-        model: process.env.HF_MODEL_ID || "mistralai/Mistral-7B-Instruct-v0.1",
+        model: process.env.HF_MODEL_ID || "Qwen/Qwen2.5-7B-Instruct",
         inputs: prompt,
         parameters: {
           max_new_tokens: Number(parameters.max_length ?? process.env.LLM_MAX_LENGTH ?? "768"),
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     if (task === "image-generation") {
       const result = await hf.textToImage({
-        model: process.env.HF_IMAGE_MODEL_ID || "stabilityai/stable-diffusion-2-1",
+        model: process.env.HF_IMAGE_MODEL_ID || "stabilityai/stable-diffusion-xl-base-1.0",
         inputs: prompt,
         parameters: {
           num_inference_steps: Number(parameters.steps ?? process.env.HF_IMAGE_STEPS ?? "30"),

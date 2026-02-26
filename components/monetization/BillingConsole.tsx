@@ -45,6 +45,11 @@ type Snapshot = {
     usedToday: number;
     dailyLimit: number;
     remainingToday: number;
+    usedThisWeek?: number;
+    weeklyLimit?: number;
+    remainingThisWeek?: number;
+    weeklyMinutes?: number;
+    unitDurationSeconds?: number;
   }>;
 };
 
@@ -154,6 +159,21 @@ export function BillingConsole() {
   }, [userId]);
 
   const currentTier = snapshot?.subscription.tier ?? "free";
+  const freeAiWeekly = snapshot?.usage.find((item) => item.feature === "ai_chat");
+
+  const freeAiWeeklyResetText = useMemo(() => {
+    const now = new Date();
+    const utcDay = now.getUTCDay();
+    const daysUntilNextMonday = utcDay === 1 ? 7 : (8 - utcDay) % 7;
+    const nextMonday = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + daysUntilNextMonday,
+      ),
+    );
+    return `Resets Monday (UTC) · ${nextMonday.toLocaleDateString()}`;
+  }, []);
 
   const renewalText = useMemo(() => {
     if (!snapshot?.subscription.currentPeriodEnd) return "No billing cycle active";
@@ -361,17 +381,36 @@ export function BillingConsole() {
                       {item.usedToday} / {item.dailyLimit}
                     </span>
                   </div>
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full bg-cyan-400"
-                      style={{
-                        width: `${item.dailyLimit > 0 ? Math.min(100, (item.usedToday / item.dailyLimit) * 100) : 100}%`,
-                      }}
-                    />
-                  </div>
+                  <progress
+                    className="mt-2 h-1.5 w-full overflow-hidden rounded bg-cyan-950/50 [&::-webkit-progress-bar]:bg-cyan-950/50 [&::-webkit-progress-value]:bg-cyan-300/80 [&::-moz-progress-bar]:bg-cyan-300/80"
+                    value={item.dailyLimit > 0 ? Math.min(item.usedToday, item.dailyLimit) : 1}
+                    max={Math.max(1, item.dailyLimit)}
+                  />
                 </div>
               ))}
             </div>
+
+            {currentTier === "free" &&
+            typeof freeAiWeekly?.weeklyLimit === "number" &&
+            typeof freeAiWeekly?.usedThisWeek === "number" ? (
+              <div className="mt-3 rounded-xl border border-emerald-300/25 bg-emerald-500/10 px-3 py-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-emerald-100">Free AI this week</span>
+                  <span className="text-white">
+                    {freeAiWeekly.usedThisWeek} / {freeAiWeekly.weeklyLimit} requests
+                  </span>
+                </div>
+                <progress
+                  className="mt-2 h-1.5 w-full overflow-hidden rounded bg-emerald-950/50 [&::-webkit-progress-bar]:bg-emerald-950/50 [&::-webkit-progress-value]:bg-emerald-300/80 [&::-moz-progress-bar]:bg-emerald-300/80"
+                  value={Math.min(freeAiWeekly.usedThisWeek, freeAiWeekly.weeklyLimit)}
+                  max={Math.max(1, freeAiWeekly.weeklyLimit)}
+                />
+                <p className="mt-1 text-xs text-emerald-100/85">
+                  {freeAiWeekly.remainingThisWeek ?? 0} requests left this week ({freeAiWeekly.weeklyMinutes ?? 30} min allowance)
+                </p>
+                <p className="mt-1 text-[11px] text-emerald-100/70">{freeAiWeeklyResetText}</p>
+              </div>
+            ) : null}
           </article>
 
           <article className="theme-grid-card">

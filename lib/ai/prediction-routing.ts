@@ -180,7 +180,7 @@ function isPresetId(value: unknown): value is LlmPresetId {
 }
 
 function buildPresetCatalog(): Record<LlmPresetId, LlmPresetConfig> {
-  const fallbackModel = process.env.HF_MODEL_ID || "mistralai/Mistral-7B-Instruct-v0.1";
+  const fallbackModel = process.env.HF_MODEL_ID || "Qwen/Qwen2.5-7B-Instruct";
 
   return {
     navigator_fast: {
@@ -658,7 +658,7 @@ function resolveDomainGovernance(domain: PredictionDomain): DomainRoutingGoverna
 }
 
 function resolveStablePredictionModel(domain: PredictionDomain): string {
-  const fallback = process.env.HF_MODEL_ID || "mistralai/Mistral-7B-Instruct-v0.1";
+  const fallback = process.env.HF_MODEL_ID || "Qwen/Qwen2.5-7B-Instruct";
 
   if (domain === "stock") {
     return process.env.TRADEHAX_MODEL_STOCK || fallback;
@@ -872,11 +872,11 @@ export function getPredictionRoutingOverrides() {
 }
 
 export type {
-  DomainRoutingGovernance, DomainRoutingOverrideMode, DomainSignal,
-  LlmPresetConfig,
-  LlmPresetId,
-  LlmPresetResolution,
-  PredictionDomain,
-  PredictionTelemetrySummary
+    DomainRoutingGovernance, DomainRoutingOverrideMode, DomainSignal,
+    LlmPresetConfig,
+    LlmPresetId,
+    LlmPresetResolution,
+    PredictionDomain,
+    PredictionTelemetrySummary
 };
 

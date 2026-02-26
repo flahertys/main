@@ -6,15 +6,16 @@ const planCatalog: Record<SubscriptionTier, PlanDefinition> = {
     name: "Free",
     monthlyPriceUsd: 0,
     yearlyPriceUsd: 0,
-    description: "Starter access for portfolio views, AI previews, and daily game activity.",
+    description: "Starter access with 30 minutes of free AI usage each week, plus core platform features.",
     features: [
       "Basic portfolio dashboard",
+      "30 minutes of AI usage per week",
       "5 Hax Runner plays/day",
       "Daily AI sentiment teaser",
       "Community updates",
     ],
     limits: {
-      aiChatDaily: 15,
+      aiChatDaily: 500,
       haxRunnerDaily: 5,
       signalAlertsDaily: 3,
       botCreatesDaily: 0,
