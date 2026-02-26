@@ -9,6 +9,7 @@ import {
     getCreditSnapshot,
 } from "@/lib/ai/credit-system";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
+import { resolveHfApiToken } from "@/lib/ai/env-tokens";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
 import {
     enforceRateLimit,
@@ -172,7 +173,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = process.env.HF_API_TOKEN;
+    const token = resolveHfApiToken();
 
     const style = body.style ?? "general";
     const width = normalizeDimension(body.width, style === "hero" ? 1536 : 1024);
@@ -205,7 +206,8 @@ export async function POST(request: NextRequest) {
           openMode,
           safetyMode: openMode ? "open" : "standard",
           fallback: true,
-          warning: "HF_API_TOKEN missing; returned local preview image.",
+          warning:
+            "Hugging Face token missing (HF_API_TOKEN or alias); returned local preview image.",
         },
         { headers: rateLimit.headers },
       );

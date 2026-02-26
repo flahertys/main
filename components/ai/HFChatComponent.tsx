@@ -383,6 +383,13 @@ export function HFChatComponent() {
   const [copied, setCopied] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      setShowControlPanel(false);
+    }
+  }, []);
+
   const applySession = useCallback((session: ChatSession) => {
     setMessages(session.messages);
     setObjective(session.objective);
@@ -1029,7 +1036,7 @@ export function HFChatComponent() {
   const filteredPinnedPrompts = pinnedPrompts.filter((item) => item.category === pinCategory);
 
   return (
-    <div className="theme-panel w-full h-[78vh] sm:h-[82vh] min-h-[560px] sm:min-h-[640px] max-h-[980px] overflow-hidden rounded-2xl border border-emerald-400/20 bg-gradient-to-b from-black/65 via-black/50 to-black/70 shadow-[0_25px_80px_rgba(0,0,0,0.55)]">
+    <div className="theme-panel w-full h-[78dvh] sm:h-[82dvh] min-h-[560px] sm:min-h-[640px] [@media(max-height:820px)]:min-h-[520px] [@media(max-height:700px)]:min-h-[460px] max-h-[980px] overflow-hidden rounded-2xl border border-emerald-400/20 bg-gradient-to-b from-black/65 via-black/50 to-black/70 shadow-[0_25px_80px_rgba(0,0,0,0.55)]">
       <div className="grid h-full lg:grid-cols-[320px_1fr]">
         {showControlPanel && (
           <aside className="border-b lg:border-b-0 lg:border-r border-emerald-500/20 bg-black/35 p-4 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">

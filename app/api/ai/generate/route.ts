@@ -5,10 +5,10 @@
 
 import { getLLMClient } from "@/lib/ai/hf-server";
 import {
-  enforceRateLimit,
-  enforceTrustedOrigin,
-  isJsonContentType,
-  sanitizePlainText,
+    enforceRateLimit,
+    enforceTrustedOrigin,
+    isJsonContentType,
+    sanitizePlainText,
 } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -99,14 +99,14 @@ export async function POST(request: NextRequest) {
     console.error("Generate API error:", error);
 
     const message = error instanceof Error ? error.message : "Generation failed";
-    const missingConfig = message.includes("HF_API_TOKEN not set");
+    const missingConfig = /hf_api_token not set|hf token not set|hugging face token missing/i.test(message);
 
     return NextResponse.json(
       {
         ok: false,
         error: message,
         hint: missingConfig
-          ? "Set HF_API_TOKEN in environment variables to enable live model generation."
+          ? "Set HF_API_TOKEN (or HUGGINGFACE_API_TOKEN / HUGGING_FACE_HUB_TOKEN) to enable live model generation."
           : undefined,
       },
       { status: missingConfig ? 503 : 500 },

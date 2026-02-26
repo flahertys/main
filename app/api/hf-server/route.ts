@@ -1,7 +1,14 @@
+import { resolveHfApiToken } from "@/lib/ai/env-tokens";
 import { HfInference } from "@huggingface/inference";
 import { NextRequest, NextResponse } from "next/server";
 
-const hf = new HfInference(process.env.HF_API_TOKEN);
+function getHfClient() {
+  const token = resolveHfApiToken();
+  if (!token) {
+    return null;
+  }
+  return new HfInference(token);
+}
 
 type HFTask = "text-generation" | "image-generation";
 
@@ -19,6 +26,16 @@ export async function POST(req: NextRequest) {
 
   const task: HFTask = body.task || "text-generation";
   const parameters = body.parameters || {};
+  const hf = getHfClient();
+  if (!hf) {
+    return NextResponse.json(
+      {
+        error:
+          "Hugging Face token missing. Set HF_API_TOKEN (or HUGGINGFACE_API_TOKEN / HUGGING_FACE_HUB_TOKEN).",
+      },
+      { status: 503 },
+    );
+  }
 
   try {
     if (task === "text-generation") {
