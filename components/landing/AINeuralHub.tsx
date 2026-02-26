@@ -2758,6 +2758,7 @@ export const AINeuralHub = () => {
     { id: "NEURAL_DIFF_V4", name: "Neural Diff V4", provider: "SDXL", label: "UNCENSORED" },
     { id: "FLUX_CORE_X", name: "Flux Core X", provider: "FLUX.1", label: "HIGH_FIDELITY" },
     { id: "ASTRA_LINK", name: "Astra Link", provider: "MIDJ-V6", label: "CREATIVE" },
+    { id: "GROK_X_VISION", name: "Grok X Vision", provider: "xAI-inspired", label: "REASON+VISUAL" },
   ];
 
   const handleGenerateImage = async () => {
@@ -2766,13 +2767,23 @@ export const AINeuralHub = () => {
     setGeneratedImg(null);
     setImageStatus("");
 
+    const runtimeByModel: Record<string, { style: "general" | "trading" | "nft" | "hero" | "xai_grok"; odinProfile?: "standard" | "alpha" | "overclock" }> = {
+      NEURAL_DIFF_V4: { style: "general", odinProfile: "standard" },
+      FLUX_CORE_X: { style: "hero", odinProfile: "alpha" },
+      ASTRA_LINK: { style: "nft", odinProfile: "alpha" },
+      GROK_X_VISION: { style: "xai_grok", odinProfile: "overclock" },
+    };
+
+    const selectedRuntime = runtimeByModel[selectedModel] ?? { style: "general" as const, odinProfile: "standard" as const };
+
     try {
       const res = await fetch("/api/ai/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: imgPrompt,
-          style: "general",
+          style: selectedRuntime.style,
+          odinProfile: selectedRuntime.odinProfile,
           model: selectedModel,
           safetyMode: openModeEnabled ? "open" : "standard",
         })
@@ -2783,7 +2794,7 @@ export const AINeuralHub = () => {
         if (data?.fallback) {
           setImageStatus(`Preview mode: ${data?.warning || "provider unavailable"}`);
         } else if (typeof data?.model === "string") {
-          setImageStatus(`Generated with ${data.model}`);
+          setImageStatus(`Generated with ${data.model} • profile ${selectedRuntime.style}`);
         }
         incrementUsage();
       } else {

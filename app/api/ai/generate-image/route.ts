@@ -27,7 +27,7 @@ interface ImageRequest {
   model?: string;
   odinProfile?: "standard" | "alpha" | "overclock";
   negativePrompt?: string;
-  style?: "trading" | "nft" | "hero" | "general";
+  style?: "trading" | "nft" | "hero" | "general" | "xai_grok";
   width?: number;
   height?: number;
   safetyMode?: "open" | "standard";
@@ -42,6 +42,7 @@ const IMAGE_MODEL_ALIASES: Record<string, string> = {
   NEURAL_DIFF_V4: "stabilityai/stable-diffusion-xl-base-1.0",
   FLUX_CORE_X: "black-forest-labs/FLUX.1-schnell",
   ASTRA_LINK: "black-forest-labs/FLUX.1-dev",
+  GROK_X_VISION: "black-forest-labs/FLUX.1-dev",
 };
 
 export const runtime = "nodejs";
@@ -64,6 +65,8 @@ function createStyledPrompt(prompt: string, style: ImageRequest["style"]) {
       return `Original high-detail cyberpunk NFT artwork: ${cleaned}. vibrant color palette, studio quality, collectible-grade composition.`;
     case "hero":
       return `Website hero background art for TradeHax: ${cleaned}. dramatic depth, dark futuristic aesthetic, no readable text, 8k.`;
+    case "xai_grok":
+      return `xAI/Grok-inspired analytical visual intelligence render: ${cleaned}. truth-seeking composition, crisp evidence-style visual hierarchy, premium dark fintech aesthetic, cinematic contrast, high-detail geometry, no readable text or logos, 8k.`;
     default:
       return cleaned;
   }

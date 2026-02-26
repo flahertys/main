@@ -115,6 +115,28 @@ const DATASET_ASSETS = [
     description: "External market seed rows (Kalshi-style events) used for strategy bootstrapping.",
   },
   {
+    repo: "tradehax-xai-grok-image-capabilities",
+    files: [
+      {
+        sourcePath: path.join(ROOT, "data", "external-datasets", "xai-grok-image-capabilities.jsonl"),
+        targetPath: "xai-grok-image-capabilities.jsonl",
+      },
+    ],
+    title: "TradeHax xAI/Grok Image Capabilities",
+    description: "Capability-alignment prompts and responses for xAI/Grok-inspired visual generation behavior.",
+  },
+  {
+    repo: "tradehax-xai-grok-trading-visual-prompts",
+    files: [
+      {
+        sourcePath: path.join(ROOT, "data", "external-datasets", "xai-grok-trading-visual-prompts.jsonl"),
+        targetPath: "xai-grok-trading-visual-prompts.jsonl",
+      },
+    ],
+    title: "TradeHax xAI/Grok Trading Visual Prompts",
+    description: "Curated trading-scene image prompts and negative prompts tuned for xAI/Grok-inspired visual style.",
+  },
+  {
     repo: "tradehax-tradebot-training",
     files: [
       {
