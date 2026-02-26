@@ -149,11 +149,70 @@ The product can support “open” experiences while remaining clear and respons
   - shared `HubState` (context/reducer or store)
 - Move persistence and side effects into dedicated hooks.
 
-### Phase 3 (2-3 weeks): Intelligent guidance
+### Phase 3 (3-5 weeks): Differentiated intelligence layer
 
-- Add “next best action” recommender cards.
-- Add adaptive onboarding by user profile (new/intermediate/power).
-- Add coach walkthrough overlay on first 3 sessions.
+Goal: ship the capabilities users consistently miss in mainstream AI products — reliability under pressure, grounded reasoning, role-aware guidance, and privacy-controlled memory.
+
+#### Phase 3 feature set (must include)
+
+- **Next-best-action engine (context + confidence aware):** Recommend 1-3 concrete next moves after each response, show confidence band (`high`, `medium`, `low`) with rationale, and provide a fallback action when confidence is low.
+- **Adaptive cognitive layer (age/skill/intent aware):** Dynamically shape outputs by profile (`new`, `intermediate`, `power`) and behavior; auto-adjust between simple step plans and operator-depth detail; include one-click “Explain like I’m new” rewrites.
+- **Grounded reasoning + source integrity rail:** Add source badges with freshness timestamps, separate facts vs assumptions vs hypotheses, and flag contradictions when sources conflict.
+- **Memory with user sovereignty controls:** Support `session`, `workspace`, and `personal vault` memory classes with per-item visibility controls, one-click revoke/delete, and a “why this was remembered” line.
+- **Multi-model orchestration (quality + latency routing):** Route by task type (chat, summarize, generate, analyze), include retry/fallback ladders for provider degradation, and show human-readable route metadata in the response footer.
+- **Operator-grade quality loop (self-critique + repair):** Add optional second-pass self-check for high-stakes prompts, structured partial-output recovery, and one-click post-processing actions (`tighten`, `verify`, `simplify`).
+- **Automation copilot with safety checkpoints:** Enforce draft → approve → schedule flows, add guardrails for irreversible actions, and require preview diffs before execution.
+- **Coach overlay v2 (first 3 sessions + contextual recurrence):** Trigger guided overlays based on confusion signals (retries, abandonments, idle time) and track milestone completion memory.
+
+#### ODIN lane (superuser capabilities, mandatory)
+
+- **Mission Control console:** One surface to orchestrate multi-step objectives (research → draft → verify → publish) with explicit stage state, retries, and rollback.
+- **Agentic runbooks + macros:** Save repeatable workflows as named runbooks (inputs, tools, checks, outputs) and execute with one command.
+- **Reasoning trace controls:** Toggle concise/expanded rationale views with provenance links and confidence deltas between revisions.
+- **Deterministic mode for critical tasks:** Re-runs with fixed parameters should produce stable outputs within bounded variance and explicit drift notes.
+- **Policy simulator + preflight checks:** Simulate policy/risk outcomes before sensitive actions and block unsafe execution without override permissions.
+- **Multi-model arbitration panel:** Compare model candidates side-by-side (quality, latency, cost, reliability), then auto-route by policy.
+- **Tool execution sandbox:** Require scoped permissions for privileged actions, with approval checkpoints and auditable action logs.
+- **Live recovery and self-healing:** Detect failed tool steps, auto-suggest repair paths, and preserve partial progress instead of hard resets.
+- **Memory graph explorer:** Query what the system knows, why it knows it, and remove or relabel nodes with immediate propagation.
+- **Superuser command palette:** Natural-language plus slash-command control for routing, debugging, replay, and runbook invocation.
+
+#### Market-void coverage map (what others often miss)
+
+- **Black-box answers** → solve with source integrity rail + assumptions split.
+- **Weak personalization** → solve with adaptive cognitive layer + profile-aware outputs.
+- **Memory distrust** → solve with user sovereignty controls + revoke transparency.
+- **Provider fragility/outages** → solve with multi-model routing + fallback ladder.
+- **Hallucination under ambiguity** → solve with confidence bands + low-confidence fallback actions.
+- **Beginner abandonment** → solve with coach overlay + “new-user rewrite” control.
+- **Power-user frustration** → solve with operator-grade quality loop + advanced action post-processing.
+
+#### Acceptance criteria (Phase 3 exit gates)
+
+- 95%+ of grounded responses include source timestamp metadata when sources are used.
+- 90%+ of responses include at least one actionable next step.
+- 99.5% automation actions show a pre-execution preview.
+- 100% memories are user-visible and user-removable from UI.
+- 25% reduction in “I don’t know what to do next” feedback events.
+- 20% reduction in first-week abandonment for new users.
+
+#### ODIN exit gates (superuser readiness)
+
+- 95%+ of runbook executions complete with full stage-level logs and replay support.
+- 99%+ privileged tool actions require explicit permission context and are audit-recorded.
+- 90%+ failed automation/tool runs surface at least one actionable auto-repair option.
+- Deterministic mode re-run variance stays within defined thresholds for supported task classes.
+- 100% memory graph entries are inspectable for source/provenance and user-removable.
+- 30% reduction in power-user multi-step task completion time vs pre-ODIN baseline.
+
+#### Implementation notes
+
+- Build behind feature flags (`hub_phase3_*`) for controlled rollout.
+- Use experiment cohorts for onboarding and recommendation variants.
+- Log recommendation acceptance/rejection and fallback usage for tuning.
+- Gate superuser features by role/capability flags (`hub_odin_*`) with progressive rollout.
+- Maintain dual UX lanes: beginner-safe defaults, superuser console opt-in.
+- Emit structured telemetry for runbook success, arbitration choices, and repair path outcomes.
 
 ### Phase 4 (1-2 weeks): polish + experiments
 
