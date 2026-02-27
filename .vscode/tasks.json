@@ -81,6 +81,24 @@
       "problemMatcher": []
     },
     {
+      "label": "TradeHax: IDE Sync (Quick)",
+      "type": "npm",
+      "script": "ide:sync",
+      "problemMatcher": []
+    },
+    {
+      "label": "TradeHax: IDE Sync (Full)",
+      "type": "npm",
+      "script": "ide:sync:full",
+      "problemMatcher": []
+    },
+    {
+      "label": "TradeHax: IDE Sync (Deploy Ready)",
+      "type": "npm",
+      "script": "ide:sync:deploy-ready",
+      "problemMatcher": []
+    },
+    {
       "label": "TradeHax: Extension Build",
       "type": "npm",
       "path": ".vscode-extension",
