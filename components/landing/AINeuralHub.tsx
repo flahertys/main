@@ -783,6 +783,7 @@ export const AINeuralHub = () => {
   }, [messages, activeTab]);
 
   const relationshipScore = Math.min(100, 18 + usageCount * 20 + Math.min(messages.length, 12) * 4);
+  const hasUserMessages = messages.some((msg) => msg.role === "user");
   const relationshipTier = relationshipScore >= 85
     ? "INNER_CIRCLE"
     : relationshipScore >= 60
@@ -2808,6 +2809,73 @@ export const AINeuralHub = () => {
                               ? "Summarize mode tip: paste the full source text for stronger compression quality."
                               : "Q&A mode tip: add context below so answers stay grounded and factual."}
                       </div>
+
+                      {!hasUserMessages && !isChatLoading && (
+                        <div className="mb-3 rounded-xl border border-emerald-400/20 bg-[rgba(6,18,14,0.75)] px-3 py-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-emerald-200">Quick Start Actions</p>
+                            <span className="rounded-full border border-white/15 bg-black/30 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                              1-click setup
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("CHAT");
+                                setWorkflowTask("chat");
+                                setChatInput("I&apos;m new to trading. Build a beginner-safe 7-day plan with strict risk limits and one daily checklist.");
+                                setChatStatus("Starter plan loaded. Press send when ready.");
+                              }}
+                              className="rounded-full border border-emerald-300/35 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-semibold text-emerald-100"
+                            >
+                              Start with Chat Plan
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("IMAGE_GEN");
+                                setImgPrompt("Create a clean, modern crypto market dashboard hero image with neon cyan accents and clear readability.");
+                              }}
+                              className="rounded-full border border-cyan-300/35 bg-cyan-500/15 px-2.5 py-1 text-[10px] font-semibold text-cyan-100"
+                            >
+                              Open Image Tool
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("MARKET");
+                                setChatStatus("Switched to Market Tools.");
+                              }}
+                              className="rounded-full border border-fuchsia-300/35 bg-fuchsia-500/15 px-2.5 py-1 text-[10px] font-semibold text-fuchsia-100"
+                            >
+                              Open Market Tools
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("CHAT");
+                                setIsPromptLibraryOpen(true);
+                                setChatStatus("Prompt Library opened.");
+                              }}
+                              className="rounded-full border border-amber-300/35 bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-100"
+                            >
+                              Browse Prompt Library
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("CHAT");
+                                setChatInput("/help");
+                                setChatStatus("Slash help ready. Press send.");
+                              }}
+                              className="rounded-full border border-white/20 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-zinc-200"
+                            >
+                              Show Slash Help
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="mb-3 rounded-xl border border-white/10 bg-[rgba(8,12,18,0.82)] px-3 py-3">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
