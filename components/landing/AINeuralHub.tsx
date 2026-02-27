@@ -3,6 +3,7 @@
 import { WalletButton } from "@/components/counter/WalletButton";
 import { useKidsModeLock } from "@/components/landing/hub/hooks/useKidsModeLock";
 import { useMarketFeed } from "@/components/landing/hub/hooks/useMarketFeed";
+import { useUsageLimit } from "@/components/landing/hub/hooks/useUsageLimit";
 import { HubCapitalPreservationCircuit } from "@/components/landing/hub/HubCapitalPreservationCircuit";
 import { HubCommandPalette } from "@/components/landing/hub/HubCommandPalette";
 import { HubCompetitiveEdgeLab } from "@/components/landing/hub/HubCompetitiveEdgeLab";
@@ -460,8 +461,7 @@ export const AINeuralHub = () => {
   const [beginnerFocusMode, setBeginnerFocusMode] = useState(true);
   const [showOperatorDock, setShowOperatorDock] = useState(false);
   const [latestReplyPulse, setLatestReplyPulse] = useState(false);
-  const [usageCount, setUsageCount] = useState(0);
-  const [isCharging, setIsOverLimit] = useState(false);
+  const { usageCount, isCharging, incrementUsage, resetUsage } = useUsageLimit(FREE_USAGE_LIMIT);
   const [isPaying, setIsPaying] = useState(false);
   const [selectedChatModel, setSelectedChatModel] = useState<string>(CHAT_MODELS[0].id);
   const [openModeEnabled, setOpenModeEnabled] = useState(true);
@@ -544,13 +544,6 @@ export const AINeuralHub = () => {
 
   // Usage Tracking
   useEffect(() => {
-    const stored = localStorage.getItem("tradehax_ai_usage");
-    if (stored) {
-      const count = parseInt(stored);
-      setUsageCount(count);
-      if (count >= FREE_USAGE_LIMIT) setIsOverLimit(true);
-    }
-
     const storedModel = localStorage.getItem("tradehax_ai_chat_model");
     if (storedModel && CHAT_MODELS.some((model) => model.id === storedModel)) {
       setSelectedChatModel(storedModel);
@@ -1023,13 +1016,6 @@ export const AINeuralHub = () => {
     return () => window.clearInterval(intervalId);
   }, []);
 
-  const incrementUsage = () => {
-    const newCount = usageCount + 1;
-    setUsageCount(newCount);
-    localStorage.setItem("tradehax_ai_usage", newCount.toString());
-    if (newCount >= FREE_USAGE_LIMIT) setIsOverLimit(true);
-  };
-
   const handlePayment = async () => {
     if (!connected || !publicKey) return;
     setIsPaying(true);
@@ -1038,9 +1024,7 @@ export const AINeuralHub = () => {
       // For now we mock success after a delay to show UI flow
       await new Promise(r => setTimeout(r, 2000));
 
-      localStorage.setItem("tradehax_ai_usage", "0");
-      setUsageCount(0);
-      setIsOverLimit(false);
+      resetUsage();
       // In a real app, you'd verify the transaction on-chain
     } catch (err) {
       console.error("Payment failed", err);
