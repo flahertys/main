@@ -151,13 +151,18 @@ export default function RootLayout({
                     <GlitchText text="TRADEHAX" />
                   </div>
                   <div className="hidden md:flex gap-8 text-xs font-bold tracking-widest text-zinc-400">
+                    <a
+                      href="/ai-hub"
+                      className="rounded-full border border-cyan-400/50 bg-cyan-500/15 px-3 py-1 text-cyan-200 hover:bg-cyan-500/25 hover:text-white transition-colors uppercase"
+                    >
+                      AI Hub
+                    </a>
                     <a href="/about" className="hover:text-white transition-colors uppercase">About</a>
                     <a href="/music" className="hover:text-white transition-colors uppercase">Music</a>
                     <a href="/intelligence" className="hover:text-white transition-colors uppercase">Intelligence</a>
                     <a href="/billing" className="hover:text-white transition-colors uppercase">Billing</a>
                     <a href="/tokenomics" className="hover:text-white transition-colors uppercase">Tokenomics</a>
                     <a href="/games" className="hover:text-white transition-colors uppercase">Games</a>
-                    <a href="/login" className="hover:text-white transition-colors uppercase">Login</a>
                     <a href={scheduleLinks.guitarLessons} className="text-cyan-500 hover:text-white transition-colors uppercase">Lessons</a>
                     <a href="/tokenomics" className="hover:text-white transition-colors uppercase">Staking</a>
                   </div>
@@ -172,6 +177,14 @@ export default function RootLayout({
                   {children}
                 </PageTransition>
               </div>
+              <a
+                href="/ai-hub"
+                aria-label="Open AI Hub quick launch"
+                className="fixed bottom-6 left-4 z-40 inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/20 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-cyan-100 shadow-[0_0_24px_rgba(6,182,212,0.35)] transition-all hover:bg-cyan-500/30 hover:text-white md:bottom-8 md:left-8"
+              >
+                <span aria-hidden>⚡</span>
+                <span>AI Quick Launch</span>
+              </a>
               <ConsentCenter />
               <SiteNavigatorWidget />
             </WalletProvider>
