@@ -1,7 +1,9 @@
-import crypto from "node:crypto";
+import { getToken } from "next-auth/jwt";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import crypto from "node:crypto";
 
-type AdminMode = "admin_key" | "superuser_code" | "dev_fallback";
+type AdminMode = "admin_key" | "superuser_code" | "dev_fallback" | "session_admin";
 
 export type AdminAccessResult = {
   allowed: boolean;
@@ -56,6 +58,61 @@ export function requireAdminAccess(
   headers?: HeadersInit,
 ) {
   const access = resolveAdminAccess(request);
+  if (access.allowed) {
+    return {
+      access,
+      response: null,
+    };
+  }
+
+  return {
+    access,
+    response: NextResponse.json(
+      {
+        ok: false,
+        error: access.reason || "Unauthorized.",
+      },
+      {
+        status: 403,
+        headers,
+      },
+    ),
+  };
+}
+
+export async function resolveAdminAccessWithSession(request: NextRequest): Promise<AdminAccessResult> {
+  const direct = resolveAdminAccess(request);
+  if (direct.allowed) {
+    return direct;
+  }
+
+  try {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET ?? process.env.JWT_SECRET,
+    });
+
+    const role = typeof token?.role === "string" ? token.role : "";
+    const sub = typeof token?.sub === "string" ? token.sub : "";
+
+    if (role === "admin_owner" || sub === "acct_tradehax_owner") {
+      return { allowed: true, mode: "session_admin" };
+    }
+  } catch {
+    // ignore and return denied
+  }
+
+  return {
+    allowed: false,
+    reason: "Unauthorized admin access.",
+  };
+}
+
+export async function requireAdminAccessWithSession(
+  request: NextRequest,
+  headers?: HeadersInit,
+) {
+  const access = await resolveAdminAccessWithSession(request);
   if (access.allowed) {
     return {
       access,

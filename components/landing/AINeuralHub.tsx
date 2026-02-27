@@ -1,6 +1,24 @@
 "use client";
 
 import { WalletButton } from "@/components/counter/WalletButton";
+import { useArtifactPreferences } from "@/components/landing/hub/hooks/useArtifactPreferences";
+import { useBranchReplayControls } from "@/components/landing/hub/hooks/useBranchReplayControls";
+import { useChatCommandControls } from "@/components/landing/hub/hooks/useChatCommandControls";
+import { useChatUtilityActions } from "@/components/landing/hub/hooks/useChatUtilityActions";
+import { useBriefComposerActions } from "@/components/landing/hub/hooks/useBriefComposerActions";
+import { useCommandPaletteControls } from "@/components/landing/hub/hooks/useCommandPaletteControls";
+import { useCorePreferences } from "@/components/landing/hub/hooks/useCorePreferences";
+import { useKidsModeLock } from "@/components/landing/hub/hooks/useKidsModeLock";
+import { useMarketFeed } from "@/components/landing/hub/hooks/useMarketFeed";
+import { useMemoryCardControls } from "@/components/landing/hub/hooks/useMemoryCardControls";
+import { useMessageBranchControls } from "@/components/landing/hub/hooks/useMessageBranchControls";
+import { useNeuralArtifactWorkflows } from "@/components/landing/hub/hooks/useNeuralArtifactWorkflows";
+import { useNeuralSessionPersistence } from "@/components/landing/hub/hooks/useNeuralSessionPersistence";
+import { useNeuralVaultCount } from "@/components/landing/hub/hooks/useNeuralVaultCount";
+import { useSessionContinuityControls } from "@/components/landing/hub/hooks/useSessionContinuityControls";
+import { useUsageLimit } from "@/components/landing/hub/hooks/useUsageLimit";
+import { useWebsiteAutopilotWorkflows } from "@/components/landing/hub/hooks/useWebsiteAutopilotWorkflows";
+import { useWorkspaceTimelinePersistence } from "@/components/landing/hub/hooks/useWorkspaceTimelinePersistence";
 import { HubCapitalPreservationCircuit } from "@/components/landing/hub/HubCapitalPreservationCircuit";
 import { HubCommandPalette } from "@/components/landing/hub/HubCommandPalette";
 import { HubCompetitiveEdgeLab } from "@/components/landing/hub/HubCompetitiveEdgeLab";
@@ -13,16 +31,18 @@ import { HubOpportunityCostRadar } from "@/components/landing/hub/HubOpportunity
 import { HubPostTradeForensics } from "@/components/landing/hub/HubPostTradeForensics";
 import { HubRegimeShiftSentinel } from "@/components/landing/hub/HubRegimeShiftSentinel";
 import { HubSessionDriftGovernor } from "@/components/landing/hub/HubSessionDriftGovernor";
+import { HubShell } from "@/components/landing/hub/HubShell";
 import { HubSitewideNeuralSmartness } from "@/components/landing/hub/HubSitewideNeuralSmartness";
 import { HubVideoAiInfusion } from "@/components/landing/hub/HubVideoAiInfusion";
 import { HubWebsiteSocialAutopilot } from "@/components/landing/hub/HubWebsiteSocialAutopilot";
+import { parseImportedSessionSnapshot } from "@/components/landing/hub/utils/sessionSnapshotParser";
+import { HubAutomationWorkspace } from "@/components/landing/hub/workspaces/HubAutomationWorkspace";
+import { HubChatWorkspace } from "@/components/landing/hub/workspaces/HubChatWorkspace";
+import { HubCreateWorkspace } from "@/components/landing/hub/workspaces/HubCreateWorkspace";
+import { HubLibraryWorkspace } from "@/components/landing/hub/workspaces/HubLibraryWorkspace";
+import { HubMarketWorkspaceView } from "@/components/landing/hub/workspaces/HubMarketWorkspaceView";
 import {
-    exportLocalNeuralVault,
     getLocalNeuralVault,
-    saveDatasetArtifact,
-    saveLearningEnvironmentArtifact,
-    saveTickerBehaviorArtifact,
-    saveUserBehaviorArtifact,
 } from "@/lib/ai/site-neural-memory";
 import { HAX_TOKEN_CONFIG } from "@/lib/trading/hax-token";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -50,7 +70,7 @@ import {
     TrendingUp,
     Zap
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type HubTab = "CHAT" | "IMAGE_GEN" | "MARKET";
 type ResponseStyle = "concise" | "coach" | "operator";
@@ -131,13 +151,6 @@ type PromptLibraryItem = {
   value: string;
 };
 
-type SlashCommand = {
-  id: string;
-  label: string;
-  description: string;
-  execute: () => void;
-};
-
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -202,16 +215,6 @@ interface SocialOpsSnapshot {
   }>;
 }
 
-interface MarketAsset {
-  symbol: string;
-  pair: string;
-  price: number;
-  changePercent: number;
-  trend: "up" | "down" | "flat";
-  source: string;
-  updatedAt: string;
-}
-
 const FREE_USAGE_LIMIT = 3;
 const PAYMENT_AMOUNT_SOL = 0.05;
 const PAYMENT_AMOUNT_HAX = 100;
@@ -234,6 +237,8 @@ const CHAT_MODELS = [
     hint: "Fast low-latency copilot-style responses",
   },
 ] as const;
+
+const CHAT_MODEL_IDS = CHAT_MODELS.map((model) => model.id);
 
 const QUICK_RITUAL_PROMPTS = [
   {
@@ -427,6 +432,8 @@ const SOCIAL_AUTOPILOT_CHANNELS: Array<{ id: SocialChannel; label: string }> = [
   { id: "tiktok", label: "TikTok" },
 ];
 
+const SOCIAL_AUTOPILOT_CHANNEL_IDS = SOCIAL_AUTOPILOT_CHANNELS.map((channel) => channel.id);
+
 const NeuralBackground = () => (
   <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
     <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -459,11 +466,34 @@ const NeuralBackground = () => (
 
 export const AINeuralHub = () => {
   const [activeTab, setActiveTab] = useState<HubTab>("CHAT");
-  const [usageCount, setUsageCount] = useState(0);
-  const [isCharging, setIsOverLimit] = useState(false);
+  const [beginnerFocusMode, setBeginnerFocusMode] = useState(true);
+  const [showOperatorDock, setShowOperatorDock] = useState(false);
+  const [latestReplyPulse, setLatestReplyPulse] = useState(false);
+  const { usageCount, isCharging, incrementUsage, resetUsage } = useUsageLimit(FREE_USAGE_LIMIT);
   const [isPaying, setIsPaying] = useState(false);
   const [selectedChatModel, setSelectedChatModel] = useState<string>(CHAT_MODELS[0].id);
   const [openModeEnabled, setOpenModeEnabled] = useState(true);
+  const {
+    kidsModeEnabled,
+    kidsModePin,
+    kidsModePinDraft,
+    setKidsModePinDraft,
+    kidsModePinConfirm,
+    setKidsModePinConfirm,
+    kidsModeUnlockInput,
+    setKidsModeUnlockInput,
+    showKidsUnlockPrompt,
+    kidsModePinError,
+    saveKidsModePin,
+    clearKidsModePin,
+    attemptKidsModeUnlock,
+    cancelKidsModeUnlock,
+    toggleKidsMode,
+  } = useKidsModeLock({
+    setOpenModeEnabled,
+    setBeginnerFocusMode,
+    setShowOperatorDock,
+  });
   const [guideName, setGuideName] = useState("Trader");
   const [responseStyle, setResponseStyle] = useState<ResponseStyle>("coach");
   const [riskStance, setRiskStance] = useState<RiskStance>("balanced");
@@ -485,14 +515,34 @@ export const AINeuralHub = () => {
   const [autopilotClicks, setAutopilotClicks] = useState("0");
   const [autopilotOpsLoading, setAutopilotOpsLoading] = useState(false);
   const [autopilotOpsSnapshot, setAutopilotOpsSnapshot] = useState<SocialOpsSnapshot | null>(null);
-  const [memoryCards, setMemoryCards] = useState<MemoryCard[]>([]);
-  const [branchTrail, setBranchTrail] = useState<BranchTrailEntry[]>([]);
-  const [editingMemoryId, setEditingMemoryId] = useState<string | null>(null);
-  const [editingMemoryTitle, setEditingMemoryTitle] = useState("");
-  const [editingMemoryContent, setEditingMemoryContent] = useState("");
-  const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null);
-  const [editingMessageDraft, setEditingMessageDraft] = useState("");
-  const [replayCursor, setReplayCursor] = useState(0);
+  const {
+    memoryCards,
+    setMemoryCards,
+    editingMemoryId,
+    editingMemoryTitle,
+    setEditingMemoryTitle,
+    editingMemoryContent,
+    setEditingMemoryContent,
+    addMemoryCard,
+    beginEditMemory,
+    cancelEditMemory,
+    saveEditMemory,
+    deleteMemoryCard,
+    toggleMemoryScope,
+    boostMemoryCard,
+  } = useMemoryCardControls();
+  const {
+    branchTrail,
+    setBranchTrail,
+    clearBranchTrail,
+    editingMessageIndex,
+    editingMessageDraft,
+    setEditingMessageDraft,
+    beginEditMessage,
+    cancelEditMessage,
+    pruneConversationAtUser,
+    logBranch,
+  } = useMessageBranchControls();
   const [timeTick, setTimeTick] = useState(Date.now());
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
@@ -517,463 +567,166 @@ export const AINeuralHub = () => {
   const [tickerBehaviorPattern, setTickerBehaviorPattern] = useState("");
   const [learningEnvironmentName, setLearningEnvironmentName] = useState("macro event drill");
   const [learningEnvironmentHypothesis, setLearningEnvironmentHypothesis] = useState("");
-  const [neuralVaultCount, setNeuralVaultCount] = useState(0);
   const { connected, publicKey, sendTransaction } = useWallet();
+  const { neuralVaultCount, refreshNeuralVaultCount } = useNeuralVaultCount(getLocalNeuralVault);
 
-  // Usage Tracking
-  useEffect(() => {
-    const stored = localStorage.getItem("tradehax_ai_usage");
-    if (stored) {
-      const count = parseInt(stored);
-      setUsageCount(count);
-      if (count >= FREE_USAGE_LIMIT) setIsOverLimit(true);
-    }
+  useCorePreferences({
+    validModelIds: CHAT_MODEL_IDS,
+    values: {
+      selectedChatModel,
+      guideName,
+      responseStyle,
+      riskStance,
+      focusSymbol,
+      sessionIntent,
+      personaPreset,
+      isPromptLibraryOpen,
+      beginnerFocusMode,
+      showOperatorDock,
+    },
+    setters: {
+      setSelectedChatModel,
+      setGuideName,
+      setResponseStyle,
+      setRiskStance,
+      setFocusSymbol,
+      setSessionIntent,
+      setPersonaPreset,
+      setIsPromptLibraryOpen,
+      setBeginnerFocusMode,
+      setShowOperatorDock,
+    },
+  });
 
-    const storedModel = localStorage.getItem("tradehax_ai_chat_model");
-    if (storedModel && CHAT_MODELS.some((model) => model.id === storedModel)) {
-      setSelectedChatModel(storedModel);
-    }
+  useCommandPaletteControls({
+    commandQuery,
+    isCommandPaletteOpen,
+    setCommandSelectionIndex,
+    onOpenPalette: () => {
+      setActiveTab("CHAT");
+      setCommandQuery("");
+      setIsCommandPaletteOpen(true);
+    },
+    onClosePalette: () => {
+      setIsCommandPaletteOpen(false);
+    },
+  });
 
-    const storedGuideName = localStorage.getItem("tradehax_ai_guide_name");
-    if (storedGuideName && storedGuideName.trim()) {
-      setGuideName(storedGuideName.trim().slice(0, 24));
-    }
+  useArtifactPreferences({
+    values: {
+      datasetName,
+      datasetRows,
+      datasetNotes,
+      behaviorLabel,
+      behaviorObservation,
+      tickerBehaviorSymbol,
+      tickerBehaviorPattern,
+      learningEnvironmentName,
+      learningEnvironmentHypothesis,
+    },
+    setters: {
+      setDatasetName,
+      setDatasetRows,
+      setDatasetNotes,
+      setBehaviorLabel,
+      setBehaviorObservation,
+      setTickerBehaviorSymbol,
+      setTickerBehaviorPattern,
+      setLearningEnvironmentName,
+      setLearningEnvironmentHypothesis,
+    },
+  });
 
-    const storedStyle = localStorage.getItem("tradehax_ai_response_style");
-    if (storedStyle === "concise" || storedStyle === "coach" || storedStyle === "operator") {
-      setResponseStyle(storedStyle);
-    }
-
-    const storedRisk = localStorage.getItem("tradehax_ai_risk_stance");
-    if (storedRisk === "guarded" || storedRisk === "balanced" || storedRisk === "aggressive") {
-      setRiskStance(storedRisk);
-    }
-
-    const storedFocusSymbol = localStorage.getItem("tradehax_ai_focus_symbol");
-    if (storedFocusSymbol && storedFocusSymbol.trim()) {
-      setFocusSymbol(storedFocusSymbol.trim().slice(0, 12).toUpperCase());
-    }
-
-    const storedIntent = localStorage.getItem("tradehax_ai_session_intent");
-    if (storedIntent && storedIntent.trim()) {
-      setSessionIntent(storedIntent.trim().slice(0, 72));
-    }
-
-    const storedPersona = localStorage.getItem("tradehax_ai_persona_preset");
-    if (storedPersona === "mystic" || storedPersona === "analyst" || storedPersona === "mentor") {
-      setPersonaPreset(storedPersona);
-    }
-
-    const storedPromptLibrary = localStorage.getItem("tradehax_ai_prompt_library_open");
-    if (storedPromptLibrary === "true") {
-      setIsPromptLibraryOpen(true);
-    }
-
-    const storedCustomPrompts = localStorage.getItem("tradehax_ai_custom_prompt_packs");
-    if (storedCustomPrompts) {
-      try {
-        const parsed = JSON.parse(storedCustomPrompts) as Array<Partial<PromptLibraryItem>>;
-        if (Array.isArray(parsed)) {
-          setCustomPromptPacks(
-            parsed
-              .slice(0, 24)
-              .map((item) => ({
-                id: typeof item.id === "string" ? item.id : `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-                title: String(item.title ?? "Custom Prompt").slice(0, 40),
-                category: item.category === "trading" || item.category === "content" || item.category === "ops" ? item.category : "ops",
-                value: String(item.value ?? "").slice(0, 500),
-              }))
-              .filter((item) => item.value.trim().length > 0),
-          );
-        }
-      } catch {
-        // ignore malformed prompt pack payload
+  const hydrateMemoryCardsFromStorage = useCallback((storedCards: string) => {
+    try {
+      const parsed = JSON.parse(storedCards) as Array<Partial<MemoryCard>>;
+      if (Array.isArray(parsed)) {
+        setMemoryCards(
+          parsed
+            .slice(0, 12)
+            .map<MemoryCard>((card) => ({
+              id: typeof card.id === "string" ? card.id : `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+              scope: card.scope === "long" ? "long" : "short",
+              title: String(card.title ?? "Memory").slice(0, 40),
+              content: String(card.content ?? "").slice(0, 160),
+              updatedAt: typeof card.updatedAt === "number" ? card.updatedAt : Date.now(),
+              confidence: typeof card.confidence === "number" ? Math.min(100, Math.max(1, card.confidence)) : 70,
+            }))
+            .filter((card) => card.content.trim().length > 0),
+        );
       }
-    }
-
-    const storedSessionPresets = localStorage.getItem("tradehax_ai_session_presets");
-    if (storedSessionPresets) {
-      try {
-        const parsed = JSON.parse(storedSessionPresets) as Array<Partial<SessionPreset>>;
-        if (Array.isArray(parsed)) {
-          setSessionPresets(
-            parsed
-              .slice(0, 20)
-              .map((preset) => ({
-                id: typeof preset.id === "string" ? preset.id : `preset_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-                name: String(preset.name ?? "Session Preset").slice(0, 42),
-                createdAt: typeof preset.createdAt === "number" ? preset.createdAt : Date.now(),
-                updatedAt: typeof preset.updatedAt === "number" ? preset.updatedAt : Date.now(),
-                guideName: String(preset.guideName ?? "Trader").slice(0, 24),
-                responseStyle: preset.responseStyle === "concise" || preset.responseStyle === "coach" || preset.responseStyle === "operator"
-                  ? preset.responseStyle
-                  : "coach",
-                riskStance: preset.riskStance === "guarded" || preset.riskStance === "balanced" || preset.riskStance === "aggressive"
-                  ? preset.riskStance
-                  : "balanced",
-                focusSymbol: String(preset.focusSymbol ?? "SOL").slice(0, 12),
-                sessionIntent: String(preset.sessionIntent ?? "Build disciplined consistency").slice(0, 72),
-                personaPreset: preset.personaPreset === "mystic" || preset.personaPreset === "analyst" || preset.personaPreset === "mentor"
-                  ? preset.personaPreset
-                  : "mystic",
-                workflowTask: preset.workflowTask === "chat" || preset.workflowTask === "generate" || preset.workflowTask === "summarize" || preset.workflowTask === "qa"
-                  ? preset.workflowTask
-                  : "chat",
-                workflowDepth: preset.workflowDepth === "quick" || preset.workflowDepth === "balanced" || preset.workflowDepth === "deep"
-                  ? preset.workflowDepth
-                  : "balanced",
-                workflowCreativity:
-                  typeof preset.workflowCreativity === "number"
-                    ? Math.max(20, Math.min(100, Math.round(preset.workflowCreativity)))
-                    : 65,
-              }))
-              .sort((a, b) => b.updatedAt - a.updatedAt),
-          );
-        }
-      } catch {
-        // ignore malformed preset payload
-      }
-    }
-
-    const storedWorkspaceSnapshots = localStorage.getItem("tradehax_ai_workspace_timeline");
-    if (storedWorkspaceSnapshots) {
-      try {
-        const parsed = JSON.parse(storedWorkspaceSnapshots) as Array<Partial<WorkspaceSnapshot>>;
-        if (Array.isArray(parsed)) {
-          const hydrated = parsed
-            .slice(0, 16)
-            .filter((item) =>
-              Boolean(item)
-              && typeof item.id === "string"
-              && typeof item.name === "string"
-              && typeof item.version === "number"
-              && typeof item.createdAt === "number"
-              && typeof item.payload === "object"
-              && item.payload !== null,
-            )
-            .map((item) => item as WorkspaceSnapshot)
-            .sort((a, b) => b.createdAt - a.createdAt);
-          setWorkspaceSnapshots(hydrated);
-          if (hydrated[0]?.id) {
-            setSelectedWorkspaceSnapshotId(hydrated[0].id);
-          }
-        }
-      } catch {
-        // ignore malformed timeline payload
-      }
-    }
-
-    const storedDatasetName = localStorage.getItem("tradehax_ai_dataset_name");
-    if (storedDatasetName && storedDatasetName.trim()) {
-      setDatasetName(storedDatasetName.trim().slice(0, 80));
-    }
-
-    const storedDatasetRows = localStorage.getItem("tradehax_ai_dataset_rows");
-    if (storedDatasetRows && /^\d{1,6}$/.test(storedDatasetRows)) {
-      setDatasetRows(storedDatasetRows);
-    }
-
-    const storedDatasetNotes = localStorage.getItem("tradehax_ai_dataset_notes");
-    if (storedDatasetNotes && storedDatasetNotes.trim()) {
-      setDatasetNotes(storedDatasetNotes.trim().slice(0, 220));
-    }
-
-    const storedBehaviorLabel = localStorage.getItem("tradehax_ai_behavior_label");
-    if (storedBehaviorLabel && storedBehaviorLabel.trim()) {
-      setBehaviorLabel(storedBehaviorLabel.trim().slice(0, 100));
-    }
-
-    const storedBehaviorObservation = localStorage.getItem("tradehax_ai_behavior_observation");
-    if (storedBehaviorObservation && storedBehaviorObservation.trim()) {
-      setBehaviorObservation(storedBehaviorObservation.trim().slice(0, 240));
-    }
-
-    const storedTickerBehaviorSymbol = localStorage.getItem("tradehax_ai_ticker_behavior_symbol");
-    if (storedTickerBehaviorSymbol && storedTickerBehaviorSymbol.trim()) {
-      setTickerBehaviorSymbol(storedTickerBehaviorSymbol.trim().slice(0, 20).toUpperCase());
-    }
-
-    const storedTickerBehaviorPattern = localStorage.getItem("tradehax_ai_ticker_behavior_pattern");
-    if (storedTickerBehaviorPattern && storedTickerBehaviorPattern.trim()) {
-      setTickerBehaviorPattern(storedTickerBehaviorPattern.trim().slice(0, 240));
-    }
-
-    const storedLearningEnvironmentName = localStorage.getItem("tradehax_ai_learning_environment_name");
-    if (storedLearningEnvironmentName && storedLearningEnvironmentName.trim()) {
-      setLearningEnvironmentName(storedLearningEnvironmentName.trim().slice(0, 120));
-    }
-
-    const storedLearningEnvironmentHypothesis = localStorage.getItem("tradehax_ai_learning_environment_hypothesis");
-    if (storedLearningEnvironmentHypothesis && storedLearningEnvironmentHypothesis.trim()) {
-      setLearningEnvironmentHypothesis(storedLearningEnvironmentHypothesis.trim().slice(0, 260));
-    }
-
-    setNeuralVaultCount(getLocalNeuralVault().length);
-
-    const storedVideoUrl = localStorage.getItem("tradehax_ai_video_source_url");
-    if (storedVideoUrl && storedVideoUrl.trim()) {
-      setVideoSourceUrl(storedVideoUrl.trim().slice(0, 300));
-    }
-
-    const storedVideoGoal = localStorage.getItem("tradehax_ai_video_instruction_goal");
-    if (storedVideoGoal && storedVideoGoal.trim()) {
-      setVideoInstructionGoal(storedVideoGoal.trim().slice(0, 140));
-    }
-
-    const storedVideoCue = localStorage.getItem("tradehax_ai_video_cue");
-    if (storedVideoCue && storedVideoCue.trim()) {
-      setVideoCue(storedVideoCue.trim().slice(0, 140));
-    }
-
-    const storedWebsiteSourceUrl = localStorage.getItem("tradehax_ai_website_source_url");
-    if (storedWebsiteSourceUrl && storedWebsiteSourceUrl.trim()) {
-      setWebsiteSourceUrl(storedWebsiteSourceUrl.trim().slice(0, 300));
-    }
-
-    const storedAutopilotFocus = localStorage.getItem("tradehax_ai_autopilot_focus");
-    if (storedAutopilotFocus && storedAutopilotFocus.trim()) {
-      setAutopilotFocus(storedAutopilotFocus.trim().slice(0, 80));
-    }
-
-    const storedChannels = localStorage.getItem("tradehax_ai_autopilot_channels");
-    if (storedChannels) {
-      try {
-        const parsed = JSON.parse(storedChannels) as string[];
-        const valid = Array.isArray(parsed)
-          ? parsed
-              .map((item) => String(item).toLowerCase())
-              .filter((item): item is SocialChannel =>
-                SOCIAL_AUTOPILOT_CHANNELS.some((channel) => channel.id === item),
-              )
-          : [];
-        if (valid.length > 0) {
-          setAutopilotChannels(Array.from(new Set(valid)).slice(0, 8));
-        }
-      } catch {
-        // ignore malformed storage payload
-      }
-    }
-
-    const storedOpsDraftId = localStorage.getItem("tradehax_ai_autopilot_ops_draft_id");
-    if (storedOpsDraftId && storedOpsDraftId.trim()) {
-      setAutopilotOpsDraftId(storedOpsDraftId.trim().slice(0, 80));
-    }
-
-    const storedScheduleAt = localStorage.getItem("tradehax_ai_autopilot_schedule_at");
-    if (storedScheduleAt && storedScheduleAt.trim()) {
-      setAutopilotScheduleAt(storedScheduleAt.trim().slice(0, 40));
-    }
-
-    const storedImpressions = localStorage.getItem("tradehax_ai_autopilot_impressions");
-    if (storedImpressions && /^\d{1,9}$/.test(storedImpressions)) {
-      setAutopilotImpressions(storedImpressions);
-    }
-
-    const storedEngagements = localStorage.getItem("tradehax_ai_autopilot_engagements");
-    if (storedEngagements && /^\d{1,9}$/.test(storedEngagements)) {
-      setAutopilotEngagements(storedEngagements);
-    }
-
-    const storedClicks = localStorage.getItem("tradehax_ai_autopilot_clicks");
-    if (storedClicks && /^\d{1,9}$/.test(storedClicks)) {
-      setAutopilotClicks(storedClicks);
-    }
-
-    const storedCards = localStorage.getItem("tradehax_ai_memory_cards");
-    if (storedCards) {
-      try {
-        const parsed = JSON.parse(storedCards) as Array<Partial<MemoryCard>>;
-        if (Array.isArray(parsed)) {
-          setMemoryCards(
-            parsed
-              .slice(0, 12)
-              .map<MemoryCard>((card) => ({
-                id: typeof card.id === "string" ? card.id : `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-                scope: card.scope === "long" ? "long" : "short",
-                title: String(card.title ?? "Memory").slice(0, 40),
-                content: String(card.content ?? "").slice(0, 160),
-                updatedAt: typeof card.updatedAt === "number" ? card.updatedAt : Date.now(),
-                confidence: typeof card.confidence === "number" ? Math.min(100, Math.max(1, card.confidence)) : 70,
-              }))
-              .filter((card) => card.content.trim().length > 0),
-          );
-        }
-      } catch {
-        // ignore malformed local storage payload
-      }
-    }
-
-    const storedBranches = localStorage.getItem("tradehax_ai_branch_trail");
-    if (storedBranches) {
-      try {
-        const parsed = JSON.parse(storedBranches) as BranchTrailEntry[];
-        if (Array.isArray(parsed)) {
-          setBranchTrail(parsed.slice(0, 18));
-        }
-      } catch {
-        // ignore malformed local storage payload
-      }
+    } catch {
+      // ignore malformed local storage payload
     }
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_chat_model", selectedChatModel);
-  }, [selectedChatModel]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_guide_name", guideName.trim() || "Trader");
-  }, [guideName]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_response_style", responseStyle);
-  }, [responseStyle]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_risk_stance", riskStance);
-  }, [riskStance]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_focus_symbol", focusSymbol);
-  }, [focusSymbol]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_session_intent", sessionIntent);
-  }, [sessionIntent]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_persona_preset", personaPreset);
-  }, [personaPreset]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_prompt_library_open", String(isPromptLibraryOpen));
-  }, [isPromptLibraryOpen]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_custom_prompt_packs", JSON.stringify(customPromptPacks.slice(0, 24)));
-  }, [customPromptPacks]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_session_presets", JSON.stringify(sessionPresets.slice(0, 20)));
-  }, [sessionPresets]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_workspace_timeline", JSON.stringify(workspaceSnapshots.slice(0, 16)));
-  }, [workspaceSnapshots]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_dataset_name", datasetName.slice(0, 80));
-  }, [datasetName]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_dataset_rows", datasetRows.replace(/\D/g, "").slice(0, 6) || "0");
-  }, [datasetRows]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_dataset_notes", datasetNotes.slice(0, 220));
-  }, [datasetNotes]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_behavior_label", behaviorLabel.slice(0, 100));
-  }, [behaviorLabel]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_behavior_observation", behaviorObservation.slice(0, 240));
-  }, [behaviorObservation]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_ticker_behavior_symbol", tickerBehaviorSymbol.slice(0, 20).toUpperCase());
-  }, [tickerBehaviorSymbol]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_ticker_behavior_pattern", tickerBehaviorPattern.slice(0, 240));
-  }, [tickerBehaviorPattern]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_learning_environment_name", learningEnvironmentName.slice(0, 120));
-  }, [learningEnvironmentName]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_learning_environment_hypothesis", learningEnvironmentHypothesis.slice(0, 260));
-  }, [learningEnvironmentHypothesis]);
-
-  useEffect(() => {
-    setCommandSelectionIndex(0);
-  }, [commandQuery, isCommandPaletteOpen]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const isMetaCommand = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k";
-      if (isMetaCommand) {
-        event.preventDefault();
-        setActiveTab("CHAT");
-        setIsCommandPaletteOpen(true);
-        return;
+  const hydrateBranchTrailFromStorage = useCallback((storedBranches: string) => {
+    try {
+      const parsed = JSON.parse(storedBranches) as BranchTrailEntry[];
+      if (Array.isArray(parsed)) {
+        setBranchTrail(parsed.slice(0, 18));
       }
-
-      if (event.key === "Escape") {
-        setIsCommandPaletteOpen(false);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    } catch {
+      // ignore malformed local storage payload
+    }
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_video_source_url", videoSourceUrl);
-  }, [videoSourceUrl]);
+  useNeuralSessionPersistence({
+    values: {
+      videoSourceUrl,
+      videoInstructionGoal,
+      videoCue,
+      websiteSourceUrl,
+      autopilotFocus,
+      autopilotChannels,
+      autopilotOpsDraftId,
+      autopilotScheduleAt,
+      autopilotImpressions,
+      autopilotEngagements,
+      autopilotClicks,
+      memoryCards,
+      branchTrail,
+    },
+    setters: {
+      setVideoSourceUrl,
+      setVideoInstructionGoal,
+      setVideoCue,
+      setWebsiteSourceUrl,
+      setAutopilotFocus,
+      setAutopilotChannels,
+      setAutopilotOpsDraftId,
+      setAutopilotScheduleAt,
+      setAutopilotImpressions,
+      setAutopilotEngagements,
+      setAutopilotClicks,
+    },
+    socialChannelIds: SOCIAL_AUTOPILOT_CHANNEL_IDS,
+    onHydrateMemoryCards: hydrateMemoryCardsFromStorage,
+    onHydrateBranchTrail: hydrateBranchTrailFromStorage,
+  });
 
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_video_instruction_goal", videoInstructionGoal);
-  }, [videoInstructionGoal]);
+  useWorkspaceTimelinePersistence({
+    values: {
+      customPromptPacks,
+      sessionPresets,
+      workspaceSnapshots,
+    },
+    setters: {
+      setCustomPromptPacks,
+      setSessionPresets,
+      setWorkspaceSnapshots,
+      setSelectedWorkspaceSnapshotId,
+    },
+  });
 
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_video_cue", videoCue);
-  }, [videoCue]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_website_source_url", websiteSourceUrl);
-  }, [websiteSourceUrl]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_autopilot_focus", autopilotFocus);
-  }, [autopilotFocus]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_autopilot_channels", JSON.stringify(autopilotChannels));
-  }, [autopilotChannels]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_autopilot_ops_draft_id", autopilotOpsDraftId);
-  }, [autopilotOpsDraftId]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_autopilot_schedule_at", autopilotScheduleAt);
-  }, [autopilotScheduleAt]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_autopilot_impressions", autopilotImpressions.replace(/\D/g, "").slice(0, 9) || "0");
-  }, [autopilotImpressions]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_autopilot_engagements", autopilotEngagements.replace(/\D/g, "").slice(0, 9) || "0");
-  }, [autopilotEngagements]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_autopilot_clicks", autopilotClicks.replace(/\D/g, "").slice(0, 9) || "0");
-  }, [autopilotClicks]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_memory_cards", JSON.stringify(memoryCards.slice(0, 12)));
-  }, [memoryCards]);
-
-  useEffect(() => {
-    localStorage.setItem("tradehax_ai_branch_trail", JSON.stringify(branchTrail.slice(0, 18)));
-  }, [branchTrail]);
-
-  useEffect(() => {
-    setReplayCursor((prev) => Math.min(prev, Math.max(0, branchTrail.length - 1)));
-  }, [branchTrail]);
+  const { replayCursor, replayEntries, activeReplayEntry, stepReplay, restoreReplayEntry } = useBranchReplayControls({
+    branchTrail,
+    onRestoreEntry: (entry) => {
+      setActiveTab("CHAT");
+      setChatInput(entry.preview);
+      setChatStatus(`Loaded ${entry.kind === "edit-retry" ? "edited" : "retry"} branch #${entry.fromIndex + 1} into input.`);
+    },
+  });
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -981,13 +734,6 @@ export const AINeuralHub = () => {
     }, 60000);
     return () => window.clearInterval(intervalId);
   }, []);
-
-  const incrementUsage = () => {
-    const newCount = usageCount + 1;
-    setUsageCount(newCount);
-    localStorage.setItem("tradehax_ai_usage", newCount.toString());
-    if (newCount >= FREE_USAGE_LIMIT) setIsOverLimit(true);
-  };
 
   const handlePayment = async () => {
     if (!connected || !publicKey) return;
@@ -997,9 +743,7 @@ export const AINeuralHub = () => {
       // For now we mock success after a delay to show UI flow
       await new Promise(r => setTimeout(r, 2000));
 
-      localStorage.setItem("tradehax_ai_usage", "0");
-      setUsageCount(0);
-      setIsOverLimit(false);
+      resetUsage();
       // In a real app, you'd verify the transaction on-chain
     } catch (err) {
       console.error("Payment failed", err);
@@ -1013,6 +757,9 @@ export const AINeuralHub = () => {
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "Neural link established. How can I help with trading, build, or creative tasks today?" }
   ]);
+  const chatViewportRef = useRef<HTMLDivElement | null>(null);
+  const latestMessageAnchorRef = useRef<HTMLDivElement | null>(null);
+  const previousMessageCountRef = useRef(1);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatStatus, setChatStatus] = useState<string>("");
   const [workflowTask, setWorkflowTask] = useState<LlmWorkflowTask>("chat");
@@ -1020,12 +767,23 @@ export const AINeuralHub = () => {
   const [workflowCreativity, setWorkflowCreativity] = useState(65);
   const [workflowContext, setWorkflowContext] = useState("");
   const [qualitySnapshot, setQualitySnapshot] = useState<ResponseQualitySnapshot | null>(null);
-  const [watchlist, setWatchlist] = useState<MarketAsset[]>([]);
-  const [marketStatus, setMarketStatus] = useState<string>("Connecting to live market feed...");
-  const [marketFeedUpdatedAt, setMarketFeedUpdatedAt] = useState<string>("");
-  const [marketTransport, setMarketTransport] = useState<"sse" | "polling" | "offline">("offline");
+  const { watchlist, marketStatus, marketFeedUpdatedAt, marketTransport } = useMarketFeed();
+
+  useEffect(() => {
+    if (activeTab !== "CHAT") return;
+
+    const hasNewMessage = messages.length > previousMessageCountRef.current;
+    previousMessageCountRef.current = messages.length;
+    if (!hasNewMessage) return;
+
+    latestMessageAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    setLatestReplyPulse(true);
+    const timeoutId = window.setTimeout(() => setLatestReplyPulse(false), 1800);
+    return () => window.clearTimeout(timeoutId);
+  }, [messages, activeTab]);
 
   const relationshipScore = Math.min(100, 18 + usageCount * 20 + Math.min(messages.length, 12) * 4);
+  const hasUserMessages = messages.some((msg) => msg.role === "user");
   const relationshipTier = relationshipScore >= 85
     ? "INNER_CIRCLE"
     : relationshipScore >= 60
@@ -1035,139 +793,16 @@ export const AINeuralHub = () => {
         : "NEW_SEEKER";
 
   const secureSessionLabel = connected ? "Wallet-signed secure session" : "Anon sandbox session (privacy-first)";
-  const modeLabel = openModeEnabled ? "Mystic Open Mode" : "Guardian Standard Mode";
+  const effectiveOpenMode = openModeEnabled && !kidsModeEnabled;
+  const modeLabel = kidsModeEnabled
+    ? "Kids Mode Safety"
+    : effectiveOpenMode
+      ? "Mystic Open Mode"
+      : "Guardian Standard Mode";
   const selectedPersona = PERSONA_PRESETS.find((preset) => preset.id === personaPreset) || PERSONA_PRESETS[0];
   const selectedTheme = PERSONA_THEME[personaPreset];
   const shortMemoryCards = memoryCards.filter((card) => card.scope === "short").slice(0, 4);
   const longMemoryCards = memoryCards.filter((card) => card.scope === "long").slice(0, 4);
-
-  useEffect(() => {
-    let disposed = false;
-    let eventSource: EventSource | null = null;
-    let fallbackIntervalId: number | null = null;
-    let fallbackStarted = false;
-
-    const hydrateItems = (payload: { items?: unknown; generatedAt?: unknown; source?: unknown }) => {
-      if (!Array.isArray(payload.items)) return;
-
-      const items = payload.items
-        .map((item: Partial<MarketAsset>) => {
-          const trend: MarketAsset["trend"] = item.trend === "down" || item.trend === "flat" ? item.trend : "up";
-          return {
-            symbol: String(item.symbol || ""),
-            pair: String(item.pair || ""),
-            price: Number(item.price),
-            changePercent: Number(item.changePercent),
-            trend,
-            source: String(item.source || "Binance 24h ticker"),
-            updatedAt: String(item.updatedAt || new Date().toISOString()),
-          };
-        })
-        .filter(
-          (item: MarketAsset) =>
-            item.symbol.length > 0
-            && Number.isFinite(item.price)
-            && Number.isFinite(item.changePercent),
-        );
-
-      if (items.length > 0 && !disposed) {
-        setWatchlist(items);
-        setMarketFeedUpdatedAt(String(payload.generatedAt || new Date().toISOString()));
-        return items.length;
-      }
-
-      return 0;
-    };
-
-    const loadLiveMarketHttp = async () => {
-      try {
-        const response = await fetch("/api/ai/market?symbols=SOLUSDT,BTCUSDT,ETHUSDT", {
-          cache: "no-store",
-        });
-        const payload = await response.json();
-        if (!response.ok || !payload?.ok || !Array.isArray(payload?.items)) {
-          throw new Error(typeof payload?.error === "string" ? payload.error : "live_market_feed_unavailable");
-        }
-
-        const count = hydrateItems(payload);
-        if (count > 0 && !disposed) {
-          setMarketTransport("polling");
-          setMarketStatus(`Live feed (HTTP): ${String(payload.source || "market provider")} • ${count} assets`);
-        }
-      } catch (error) {
-        if (disposed) return;
-        setMarketTransport("offline");
-        setMarketStatus(
-          error instanceof Error
-            ? `Live feed unavailable (${error.message}). Retrying...`
-            : "Live feed unavailable. Retrying...",
-        );
-      }
-    };
-
-    const startHttpFallback = () => {
-      if (fallbackStarted || disposed) return;
-      fallbackStarted = true;
-      setMarketStatus("Stream interrupted. Switching to HTTP fallback...");
-      void loadLiveMarketHttp();
-      fallbackIntervalId = window.setInterval(loadLiveMarketHttp, 10000);
-    };
-
-    if (typeof window !== "undefined" && "EventSource" in window) {
-      eventSource = new EventSource("/api/ai/market/stream?symbols=SOLUSDT,BTCUSDT,ETHUSDT&intervalMs=5000");
-
-      eventSource.addEventListener("ready", (event) => {
-        if (disposed) return;
-        try {
-          const payload = JSON.parse((event as MessageEvent<string>).data) as { source?: unknown };
-          setMarketTransport("sse");
-          setMarketStatus(`Live feed (stream): ${String(payload.source || "market provider")}`);
-        } catch {
-          setMarketTransport("sse");
-          setMarketStatus("Live feed (stream): connected");
-        }
-      });
-
-      eventSource.addEventListener("market", (event) => {
-        if (disposed) return;
-        try {
-          const payload = JSON.parse((event as MessageEvent<string>).data) as {
-            items?: unknown;
-            generatedAt?: unknown;
-            source?: unknown;
-          };
-          const count = hydrateItems(payload);
-          if (count > 0) {
-            setMarketTransport("sse");
-            setMarketStatus(`Live feed (stream): ${String(payload.source || "market provider")} • ${count} assets`);
-          }
-        } catch {
-          // ignore malformed stream packet
-        }
-      });
-
-      eventSource.addEventListener("error", () => {
-        if (disposed) return;
-        if (eventSource) {
-          eventSource.close();
-          eventSource = null;
-        }
-        startHttpFallback();
-      });
-    } else {
-      startHttpFallback();
-    }
-
-    return () => {
-      disposed = true;
-      if (eventSource) {
-        eventSource.close();
-      }
-      if (fallbackIntervalId !== null) {
-        window.clearInterval(fallbackIntervalId);
-      }
-    };
-  }, []);
 
   function normalizeGuideName(value: string) {
     const cleaned = value.replace(/[^a-zA-Z0-9 _-]/g, "").trim();
@@ -1276,6 +911,9 @@ export const AINeuralHub = () => {
 
     return [
       `You are ${guideName}, the user's mystical-but-practical neural guide for TradeHax.`,
+      kidsModeEnabled
+        ? "Kids mode is enabled: use age-appropriate language, avoid explicit/adult content, avoid profanity, prioritize safe educational guidance, and explain ideas in short simple steps."
+        : "",
       `Persona: ${selectedPersona.label}. ${selectedPersona.prompt}`,
       "Build long-term trust: remember user preference cues from this session and keep tone calm, secure, and empowering.",
       styleInstruction,
@@ -1286,7 +924,9 @@ export const AINeuralHub = () => {
       videoContext,
       memoryContext,
       "Never promise returns. Always include risk controls, invalidation logic, and one concrete next step.",
-      openModeEnabled
+      kidsModeEnabled
+        ? "Mode: Kids Safe. Keep it playful, clear, and educational while preserving safety and privacy."
+        : effectiveOpenMode
         ? "Mode: Mystic Open. Be direct and creative while preserving safety and privacy."
         : "Mode: Guardian Standard. Be conservative, compliance-friendly, and explicit about uncertainty.",
     ].join(" ");
@@ -1388,13 +1028,18 @@ export const AINeuralHub = () => {
     setCustomPromptPacks((prev) => prev.filter((item) => item.id !== id));
   }
 
-  function createSessionPreset() {
-    const cleanedName = sessionPresetName.trim().slice(0, 42) || `${personaPreset.toUpperCase()} • ${focusSymbol}`;
-    const preset: SessionPreset = {
-      id: `preset_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      name: cleanedName,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+  const {
+    createSessionPreset,
+    applySessionPreset,
+    deleteSessionPreset,
+    createWorkspaceSnapshot,
+    restoreWorkspaceSnapshot,
+    restorePreviousWorkspaceSnapshot,
+    deleteWorkspaceSnapshot,
+    selectedWorkspaceSnapshot,
+    selectedWorkspaceSnapshotDiff,
+  } = useSessionContinuityControls({
+    settings: {
       guideName,
       responseStyle,
       riskStance,
@@ -1404,126 +1049,36 @@ export const AINeuralHub = () => {
       workflowTask,
       workflowDepth,
       workflowCreativity,
-    };
-
-    setSessionPresets((prev) => [preset, ...prev].slice(0, 20));
-    setSessionPresetName("");
-    setChatStatus(`Saved session preset: ${cleanedName}`);
-  }
-
-  function applySessionPreset(preset: SessionPreset) {
-    setGuideName(preset.guideName);
-    setResponseStyle(preset.responseStyle);
-    setRiskStance(preset.riskStance);
-    setFocusSymbol(normalizeSymbol(preset.focusSymbol) || "SOL");
-    setSessionIntent(preset.sessionIntent);
-    setPersonaPreset(preset.personaPreset);
-    setWorkflowTask(preset.workflowTask);
-    setWorkflowDepth(preset.workflowDepth);
-    setWorkflowCreativity(Math.max(20, Math.min(100, Math.round(preset.workflowCreativity))));
-    setSessionPresets((prev) =>
-      prev.map((item) =>
-        item.id === preset.id
-          ? {
-              ...item,
-              updatedAt: Date.now(),
-            }
-          : item,
-      ).sort((a, b) => b.updatedAt - a.updatedAt),
-    );
-    setActiveTab("CHAT");
-    setChatStatus(`Applied preset: ${preset.name}`);
-  }
-
-  function deleteSessionPreset(id: string) {
-    setSessionPresets((prev) => prev.filter((item) => item.id !== id));
-    setChatStatus("Session preset removed.");
-  }
-
-  function buildWorkspaceSettingsSnapshot(): WorkspaceSettingsSnapshot {
-    return {
-      guideName,
-      responseStyle,
-      riskStance,
-      focusSymbol,
-      sessionIntent,
-      personaPreset,
-      workflowTask,
-      workflowDepth,
-      workflowCreativity,
-    };
-  }
-
-  function createWorkspaceSnapshot(customName?: string) {
-    const nextVersion = (workspaceSnapshots[0]?.version ?? 0) + 1;
-    const snapshotName = (customName ?? workspaceSnapshotName).trim().slice(0, 56) || `Workspace v${nextVersion}`;
-    const snapshot: WorkspaceSnapshot = {
-      id: `ws_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      name: snapshotName,
-      version: nextVersion,
-      createdAt: Date.now(),
-      payload: {
-        settings: buildWorkspaceSettingsSnapshot(),
-        customPromptPacks: customPromptPacks.slice(0, 24),
-        memoryCards: memoryCards.slice(0, 12),
-        sessionPresets: sessionPresets.slice(0, 20),
-      },
-    };
-
-    setWorkspaceSnapshots((prev) => [snapshot, ...prev].slice(0, 16));
-    setSelectedWorkspaceSnapshotId(snapshot.id);
-    setWorkspaceSnapshotName("");
-    setChatStatus(`Workspace snapshot saved: ${snapshot.name}`);
-  }
-
-  function restoreWorkspaceSnapshot(snapshot: WorkspaceSnapshot) {
-    const settings = snapshot.payload.settings;
-    setGuideName(settings.guideName);
-    setResponseStyle(settings.responseStyle);
-    setRiskStance(settings.riskStance);
-    setFocusSymbol(normalizeSymbol(settings.focusSymbol) || "SOL");
-    setSessionIntent(settings.sessionIntent.slice(0, 72));
-    setPersonaPreset(settings.personaPreset);
-    setWorkflowTask(settings.workflowTask);
-    setWorkflowDepth(settings.workflowDepth);
-    setWorkflowCreativity(Math.max(20, Math.min(100, Math.round(settings.workflowCreativity))));
-    setCustomPromptPacks(snapshot.payload.customPromptPacks.slice(0, 24));
-    setMemoryCards(snapshot.payload.memoryCards.slice(0, 12));
-    setSessionPresets(snapshot.payload.sessionPresets.slice(0, 20));
-    setSelectedWorkspaceSnapshotId(snapshot.id);
-    setActiveTab("CHAT");
-    setChatStatus(`Restored workspace snapshot: ${snapshot.name}`);
-  }
-
-  function restorePreviousWorkspaceSnapshot() {
-    if (workspaceSnapshots.length < 2) {
-      setChatStatus("No previous workspace snapshot available.");
-      return;
-    }
-    restoreWorkspaceSnapshot(workspaceSnapshots[1]);
-  }
-
-  function deleteWorkspaceSnapshot(id: string) {
-    setWorkspaceSnapshots((prev) => prev.filter((item) => item.id !== id));
-    if (selectedWorkspaceSnapshotId === id) {
-      setSelectedWorkspaceSnapshotId(null);
-    }
-    setChatStatus("Workspace snapshot deleted.");
-  }
-
-  function getWorkspaceSnapshotDiff(snapshot: WorkspaceSnapshot) {
-    const currentSettings = buildWorkspaceSettingsSnapshot();
-    const incomingSettings = snapshot.payload.settings;
-    const changedSettings = (Object.keys(currentSettings) as Array<keyof WorkspaceSettingsSnapshot>)
-      .filter((key) => currentSettings[key] !== incomingSettings[key]);
-
-    return {
-      changedSettings,
-      customPromptDelta: snapshot.payload.customPromptPacks.length - customPromptPacks.length,
-      memoryDelta: snapshot.payload.memoryCards.length - memoryCards.length,
-      presetsDelta: snapshot.payload.sessionPresets.length - sessionPresets.length,
-    };
-  }
+    },
+    customPromptPacks,
+    memoryCards,
+    sessionPresets,
+    sessionPresetName,
+    workspaceSnapshots,
+    workspaceSnapshotName,
+    selectedWorkspaceSnapshotId,
+    setSessionPresets,
+    setSessionPresetName,
+    setWorkspaceSnapshots,
+    setWorkspaceSnapshotName,
+    setSelectedWorkspaceSnapshotId,
+    setCustomPromptPacks,
+    setMemoryCards,
+    sessionSetters: {
+      setGuideName,
+      setResponseStyle,
+      setRiskStance,
+      setFocusSymbol,
+      setSessionIntent,
+      setPersonaPreset,
+      setWorkflowTask,
+      setWorkflowDepth,
+      setWorkflowCreativity,
+    },
+    normalizeSymbol,
+    onActivateChat: () => setActiveTab("CHAT"),
+    setChatStatus,
+  });
 
   function exportSessionSnapshot() {
     const snapshot = {
@@ -1557,384 +1112,120 @@ export const AINeuralHub = () => {
     setChatStatus("Session snapshot exported.");
   }
 
-  async function saveDatasetNeuralArtifact() {
-    const rows = Number(datasetRows.replace(/\D/g, "") || "0");
-    if (!datasetName.trim()) {
-      setChatStatus("Dataset name is required.");
-      return;
-    }
-
-    const result = await saveDatasetArtifact({
-      name: datasetName,
-      rows,
-      notes: datasetNotes,
-      userId: buildHubUserId(),
-      source: "system",
-      route: "/",
-      consent: {
-        analytics: true,
-        training: true,
-      },
-    });
-
-    setNeuralVaultCount(getLocalNeuralVault().length);
-    setChatStatus(result.ok ? "Dataset artifact saved to neural memory." : "Dataset saved locally. Network sync pending.");
-  }
-
-  async function saveUserBehaviorNeuralArtifact() {
-    if (!behaviorLabel.trim() || !behaviorObservation.trim()) {
-      setChatStatus("Behavior and observation are required.");
-      return;
-    }
-
-    const result = await saveUserBehaviorArtifact({
-      behavior: behaviorLabel,
-      observation: behaviorObservation,
-      userId: buildHubUserId(),
-      source: "system",
-      route: "/",
-      consent: {
-        analytics: true,
-        training: true,
-      },
-    });
-
-    setNeuralVaultCount(getLocalNeuralVault().length);
-    setChatStatus(result.ok ? "User behavior pattern saved." : "Behavior saved locally. Network sync pending.");
-  }
-
-  async function saveTickerBehaviorNeuralArtifact() {
-    if (!tickerBehaviorSymbol.trim() || !tickerBehaviorPattern.trim()) {
-      setChatStatus("Ticker symbol and pattern are required.");
-      return;
-    }
-
-    const result = await saveTickerBehaviorArtifact({
-      ticker: tickerBehaviorSymbol,
-      pattern: tickerBehaviorPattern,
-      userId: buildHubUserId(),
-      source: "system",
-      route: "/",
-      consent: {
-        analytics: true,
-        training: true,
-      },
-    });
-
-    setNeuralVaultCount(getLocalNeuralVault().length);
-    setChatStatus(result.ok ? "Ticker behavior pattern saved." : "Ticker behavior saved locally. Network sync pending.");
-  }
-
-  async function saveLearningEnvironmentNeuralArtifact() {
-    if (!learningEnvironmentName.trim() || !learningEnvironmentHypothesis.trim()) {
-      setChatStatus("Environment and hypothesis are required.");
-      return;
-    }
-
-    const result = await saveLearningEnvironmentArtifact({
-      environment: learningEnvironmentName,
-      hypothesis: learningEnvironmentHypothesis,
-      userId: buildHubUserId(),
-      source: "system",
-      route: "/",
-      consent: {
-        analytics: true,
-        training: true,
-      },
-    });
-
-    setNeuralVaultCount(getLocalNeuralVault().length);
-    setChatStatus(result.ok ? "Learning environment saved." : "Learning environment saved locally. Network sync pending.");
-  }
-
-  function exportNeuralVaultDataset() {
-    const result = exportLocalNeuralVault();
-    if (!result.ok) {
-      setChatStatus("Unable to export neural vault in this environment.");
-      return;
-    }
-    setChatStatus(`Exported neural vault with ${result.count} records.`);
-  }
+  const {
+    saveDatasetNeuralArtifact,
+    saveUserBehaviorNeuralArtifact,
+    saveTickerBehaviorNeuralArtifact,
+    saveLearningEnvironmentNeuralArtifact,
+    exportNeuralVaultDataset,
+  } = useNeuralArtifactWorkflows({
+    datasetName,
+    datasetRows,
+    datasetNotes,
+    behaviorLabel,
+    behaviorObservation,
+    tickerBehaviorSymbol,
+    tickerBehaviorPattern,
+    learningEnvironmentName,
+    learningEnvironmentHypothesis,
+    buildHubUserId,
+    refreshNeuralVaultCount,
+    setChatStatus,
+  });
 
   function importSessionSnapshotFromPrompt() {
     const raw = window.prompt("Paste exported session snapshot JSON:");
     if (!raw || !raw.trim()) return;
 
-    try {
-      const parsed = JSON.parse(raw) as {
-        settings?: Partial<SessionPreset>;
-        customPromptPacks?: Array<Partial<PromptLibraryItem>>;
-        memoryCards?: Array<Partial<MemoryCard>>;
-        sessionPresets?: Array<Partial<SessionPreset>>;
-      };
-
-      if (parsed.settings) {
-        const settings = parsed.settings;
-        if (typeof settings.guideName === "string" && settings.guideName.trim()) {
-          setGuideName(settings.guideName.trim().slice(0, 24));
-        }
-        if (settings.responseStyle === "concise" || settings.responseStyle === "coach" || settings.responseStyle === "operator") {
-          setResponseStyle(settings.responseStyle);
-        }
-        if (settings.riskStance === "guarded" || settings.riskStance === "balanced" || settings.riskStance === "aggressive") {
-          setRiskStance(settings.riskStance);
-        }
-        if (typeof settings.focusSymbol === "string") {
-          setFocusSymbol(normalizeSymbol(settings.focusSymbol) || "SOL");
-        }
-        if (typeof settings.sessionIntent === "string") {
-          setSessionIntent(settings.sessionIntent.slice(0, 72));
-        }
-        if (settings.personaPreset === "mystic" || settings.personaPreset === "analyst" || settings.personaPreset === "mentor") {
-          setPersonaPreset(settings.personaPreset);
-        }
-        if (settings.workflowTask === "chat" || settings.workflowTask === "generate" || settings.workflowTask === "summarize" || settings.workflowTask === "qa") {
-          setWorkflowTask(settings.workflowTask);
-        }
-        if (settings.workflowDepth === "quick" || settings.workflowDepth === "balanced" || settings.workflowDepth === "deep") {
-          setWorkflowDepth(settings.workflowDepth);
-        }
-        if (typeof settings.workflowCreativity === "number") {
-          setWorkflowCreativity(Math.max(20, Math.min(100, Math.round(settings.workflowCreativity))));
-        }
-      }
-
-      if (Array.isArray(parsed.customPromptPacks)) {
-        setCustomPromptPacks(
-          parsed.customPromptPacks
-            .slice(0, 24)
-            .map((item) => ({
-              id: typeof item.id === "string" ? item.id : `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-              title: String(item.title ?? "Custom Prompt").slice(0, 40),
-              category: item.category === "trading" || item.category === "content" || item.category === "ops" ? item.category : "ops",
-              value: String(item.value ?? "").slice(0, 500),
-            }))
-            .filter((item) => item.value.trim().length > 0),
-        );
-      }
-
-      if (Array.isArray(parsed.memoryCards)) {
-        setMemoryCards(
-          parsed.memoryCards
-            .slice(0, 12)
-            .map<MemoryCard>((card) => ({
-              id: typeof card.id === "string" ? card.id : `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-              scope: card.scope === "long" ? "long" : "short",
-              title: String(card.title ?? "Memory").slice(0, 40),
-              content: String(card.content ?? "").slice(0, 160),
-              updatedAt: typeof card.updatedAt === "number" ? card.updatedAt : Date.now(),
-              confidence: typeof card.confidence === "number" ? Math.min(100, Math.max(1, card.confidence)) : 70,
-            }))
-            .filter((card) => card.content.trim().length > 0),
-        );
-      }
-
-      if (Array.isArray(parsed.sessionPresets)) {
-        setSessionPresets(
-          parsed.sessionPresets
-            .slice(0, 20)
-            .map((preset) => ({
-              id: typeof preset.id === "string" ? preset.id : `preset_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-              name: String(preset.name ?? "Session Preset").slice(0, 42),
-              createdAt: typeof preset.createdAt === "number" ? preset.createdAt : Date.now(),
-              updatedAt: typeof preset.updatedAt === "number" ? preset.updatedAt : Date.now(),
-              guideName: String(preset.guideName ?? "Trader").slice(0, 24),
-              responseStyle: preset.responseStyle === "concise" || preset.responseStyle === "coach" || preset.responseStyle === "operator"
-                ? preset.responseStyle
-                : "coach",
-              riskStance: preset.riskStance === "guarded" || preset.riskStance === "balanced" || preset.riskStance === "aggressive"
-                ? preset.riskStance
-                : "balanced",
-              focusSymbol: String(preset.focusSymbol ?? "SOL").slice(0, 12),
-              sessionIntent: String(preset.sessionIntent ?? "Build disciplined consistency").slice(0, 72),
-              personaPreset: preset.personaPreset === "mystic" || preset.personaPreset === "analyst" || preset.personaPreset === "mentor"
-                ? preset.personaPreset
-                : "mystic",
-              workflowTask: preset.workflowTask === "chat" || preset.workflowTask === "generate" || preset.workflowTask === "summarize" || preset.workflowTask === "qa"
-                ? preset.workflowTask
-                : "chat",
-              workflowDepth: preset.workflowDepth === "quick" || preset.workflowDepth === "balanced" || preset.workflowDepth === "deep"
-                ? preset.workflowDepth
-                : "balanced",
-              workflowCreativity:
-                typeof preset.workflowCreativity === "number"
-                  ? Math.max(20, Math.min(100, Math.round(preset.workflowCreativity)))
-                  : 65,
-            }))
-            .sort((a, b) => b.updatedAt - a.updatedAt),
-        );
-      }
-
-      setChatStatus("Session snapshot imported.");
-    } catch {
+    const parsed = parseImportedSessionSnapshot(raw);
+    if (!parsed) {
       setChatStatus("Invalid snapshot JSON. Import aborted.");
+      return;
     }
+
+    if (parsed.settings) {
+      const settings = parsed.settings;
+      if (settings.guideName) {
+        setGuideName(settings.guideName);
+      }
+      if (settings.responseStyle) {
+        setResponseStyle(settings.responseStyle);
+      }
+      if (settings.riskStance) {
+        setRiskStance(settings.riskStance);
+      }
+      if (settings.focusSymbol) {
+        setFocusSymbol(normalizeSymbol(settings.focusSymbol) || "SOL");
+      }
+      if (settings.sessionIntent) {
+        setSessionIntent(settings.sessionIntent);
+      }
+      if (settings.personaPreset) {
+        setPersonaPreset(settings.personaPreset);
+      }
+      if (settings.workflowTask) {
+        setWorkflowTask(settings.workflowTask);
+      }
+      if (settings.workflowDepth) {
+        setWorkflowDepth(settings.workflowDepth);
+      }
+      if (typeof settings.workflowCreativity === "number") {
+        setWorkflowCreativity(settings.workflowCreativity);
+      }
+    }
+
+    if (parsed.customPromptPacks) {
+      setCustomPromptPacks(parsed.customPromptPacks);
+    }
+
+    if (parsed.memoryCards) {
+      setMemoryCards(parsed.memoryCards);
+    }
+
+    if (parsed.sessionPresets) {
+      setSessionPresets(parsed.sessionPresets);
+    }
+
+    setChatStatus("Session snapshot imported.");
   }
 
-  const promptLibraryEntries = [...PROMPT_LIBRARY, ...customPromptPacks];
-
-  const slashCommands: SlashCommand[] = [
-    {
-      id: "new",
-      label: "/new",
-      description: "Start a new secure chat session",
-      execute: () => startNewChat(),
-    },
-    {
-      id: "palette",
-      label: "/palette",
-      description: "Open command palette",
-      execute: () => setIsCommandPaletteOpen(true),
-    },
-    {
-      id: "library",
-      label: "/library",
-      description: "Toggle prompt library drawer",
-      execute: () => setIsPromptLibraryOpen((prev) => !prev),
-    },
-    {
-      id: "task-chat",
-      label: "/chat",
-      description: "Switch to Neural Chat task",
-      execute: () => setWorkflowTask("chat"),
-    },
-    {
-      id: "task-generate",
-      label: "/generate",
-      description: "Switch to Generate task",
-      execute: () => setWorkflowTask("generate"),
-    },
-    {
-      id: "task-summarize",
-      label: "/summarize",
-      description: "Switch to Summarize task",
-      execute: () => setWorkflowTask("summarize"),
-    },
-    {
-      id: "task-qa",
-      label: "/qa",
-      description: "Switch to QA task",
-      execute: () => setWorkflowTask("qa"),
-    },
-    {
-      id: "save-preset",
-      label: "/savepreset",
-      description: "Save current settings as a session preset",
-      execute: () => createSessionPreset(),
-    },
-    {
-      id: "export-session",
-      label: "/exportsession",
-      description: "Export full session snapshot",
-      execute: () => exportSessionSnapshot(),
-    },
-    {
-      id: "import-session",
-      label: "/importsession",
-      description: "Import a session snapshot JSON",
-      execute: () => importSessionSnapshotFromPrompt(),
-    },
-    {
-      id: "snapshot",
-      label: "/snapshot",
-      description: "Capture workspace timeline snapshot",
-      execute: () => createWorkspaceSnapshot(),
-    },
-    {
-      id: "undo-snapshot",
-      label: "/undo",
-      description: "Restore previous workspace snapshot",
-      execute: () => restorePreviousWorkspaceSnapshot(),
-    },
-  ];
-
-  const commandPaletteEntries: Array<{ id: string; label: string; hint: string; action: () => void }> = [
-    { id: "new-chat", label: "New Chat", hint: "Start a fresh secure session", action: () => startNewChat() },
-    { id: "toggle-library", label: "Toggle Prompt Library", hint: "Open/close curated prompt drawer", action: () => setIsPromptLibraryOpen((prev) => !prev) },
-    { id: "task-chat", label: "Mode: Neural Chat", hint: "Relationship-aware assistant mode", action: () => setWorkflowTask("chat") },
-    { id: "task-generate", label: "Mode: Generate", hint: "Draft long-form or short-form output", action: () => setWorkflowTask("generate") },
-    { id: "task-summarize", label: "Mode: Summarize", hint: "Compress dense source into action summary", action: () => setWorkflowTask("summarize") },
-    { id: "task-qa", label: "Mode: Q&A", hint: "Ground answers in explicit context", action: () => setWorkflowTask("qa") },
-    { id: "save-preset", label: "Save Session Preset", hint: "Store current operator setup", action: () => createSessionPreset() },
-    { id: "export-session", label: "Export Session Snapshot", hint: "Download settings, memory, and presets JSON", action: () => exportSessionSnapshot() },
-    { id: "import-session", label: "Import Session Snapshot", hint: "Paste JSON to restore a saved workspace", action: () => importSessionSnapshotFromPrompt() },
-    { id: "capture-workspace", label: "Capture Workspace Snapshot", hint: "Save full timeline snapshot of current state", action: () => createWorkspaceSnapshot() },
-    { id: "undo-workspace", label: "Undo to Previous Snapshot", hint: "Rewind workspace to prior saved state", action: () => restorePreviousWorkspaceSnapshot() },
-    { id: "copy-last", label: "Copy Last Reply", hint: "Copy latest assistant output", action: () => { void copyLastReply(); } },
-    { id: "export", label: "Export Transcript", hint: "Download current session transcript", action: () => exportTranscript() },
-  ];
-
-  const slashQuery = chatInput.startsWith("/") ? chatInput.slice(1).trim().toLowerCase() : "";
-  const filteredSlashCommands = chatInput.startsWith("/")
-    ? slashCommands.filter((command) =>
-        command.label.replace(/^\//, "").includes(slashQuery) || command.description.toLowerCase().includes(slashQuery),
-      )
-    : [];
-  const filteredCommandPaletteEntries = commandPaletteEntries.filter((entry) => {
-    const query = commandQuery.trim().toLowerCase();
-    if (!query) return true;
-    return entry.label.toLowerCase().includes(query) || entry.hint.toLowerCase().includes(query);
+  const { startNewChat, copyLastReply, rememberLastPrompt, pinCurrentFocus } = useChatUtilityActions({
+    guideName,
+    sessionIntent,
+    focusSymbol,
+    messages,
+    setMessages,
+    setChatInput,
+    setChatStatus,
+    clearBranchTrail,
+    cancelEditMessage,
+    addMemoryCard,
   });
 
-  useEffect(() => {
-    if (!isCommandPaletteOpen) return;
-
-    const onPaletteKeyDown = (event: KeyboardEvent) => {
-      if (filteredCommandPaletteEntries.length === 0) return;
-
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        setCommandSelectionIndex((prev) => (prev + 1) % filteredCommandPaletteEntries.length);
-        return;
-      }
-
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        setCommandSelectionIndex((prev) =>
-          prev <= 0 ? filteredCommandPaletteEntries.length - 1 : prev - 1,
-        );
-        return;
-      }
-
-      if (event.key === "Enter") {
-        event.preventDefault();
-        const selected = filteredCommandPaletteEntries[Math.min(commandSelectionIndex, filteredCommandPaletteEntries.length - 1)];
-        if (selected) {
-          runPaletteCommand(selected.id);
-        }
-      }
-    };
-
-    window.addEventListener("keydown", onPaletteKeyDown);
-    return () => window.removeEventListener("keydown", onPaletteKeyDown);
-  }, [isCommandPaletteOpen, filteredCommandPaletteEntries, commandSelectionIndex]);
-
-  function applySlashCommand(command: SlashCommand) {
-    command.execute();
-    setChatInput("");
-    setChatStatus(`Executed ${command.label}`);
-  }
-
-  function tryExecuteSlashInput(input: string) {
-    if (!input.startsWith("/")) return false;
-    const slashToken = input.split(/\s+/)[0].trim().toLowerCase();
-    const command = slashCommands.find((item) => item.label === slashToken);
-    if (!command) {
-      setChatStatus("Unknown slash command. Try /palette, /library, /chat, /generate, /summarize, /qa, /savepreset, /exportsession, /importsession, /snapshot, /undo.");
-      return true;
-    }
-
-    applySlashCommand(command);
-    return true;
-  }
-
-  function runPaletteCommand(id: string) {
-    const match = commandPaletteEntries.find((entry) => entry.id === id);
-    if (!match) return;
-    match.action();
-    setIsCommandPaletteOpen(false);
-    setCommandQuery("");
-  }
+  const promptLibraryEntries = [...PROMPT_LIBRARY, ...customPromptPacks];
+  const { filteredSlashCommands, filteredCommandPaletteEntries, applySlashCommand, runPaletteCommand, tryExecuteSlashInput } =
+    useChatCommandControls({
+      chatInput,
+      commandQuery,
+      commandSelectionIndex,
+      isCommandPaletteOpen,
+      setCommandSelectionIndex,
+      setChatInput,
+      setChatStatus,
+      setIsCommandPaletteOpen,
+      setCommandQuery,
+      onStartNewChat: startNewChat,
+      onTogglePromptLibrary: () => setIsPromptLibraryOpen((prev) => !prev),
+      onSetWorkflowTask: setWorkflowTask,
+      onSetActiveTab: setActiveTab,
+      onSaveSessionPreset: createSessionPreset,
+      onExportSession: exportSessionSnapshot,
+      onImportSession: importSessionSnapshotFromPrompt,
+      onCreateWorkspaceSnapshot: createWorkspaceSnapshot,
+      onRestorePreviousWorkspaceSnapshot: restorePreviousWorkspaceSnapshot,
+      onCopyLastReply: copyLastReply,
+      onExportTranscript: exportTranscript,
+    });
 
   async function transformAssistantMessage(index: number, mode: "improve" | "rewrite" | "shorten") {
     if (isChatLoading || isCharging) return;
@@ -1972,596 +1263,84 @@ export const AINeuralHub = () => {
     return `landing_hub_${(normalizeGuideName(guideName) || "trader").toLowerCase().replace(/\s+/g, "_")}`;
   }
 
-  function addMemoryCard(scope: MemoryScope, title: string, content: string) {
-    const trimmedTitle = title.trim().slice(0, 40);
-    const trimmedContent = content.trim().slice(0, 160);
-    if (!trimmedTitle || !trimmedContent) return;
-
-    setMemoryCards((prev) => {
-      const next = [
-        {
-          id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          scope,
-          title: trimmedTitle,
-          content: trimmedContent,
-          updatedAt: Date.now(),
-          confidence: scope === "long" ? 84 : 72,
-        },
-        ...prev,
-      ];
-
-      const shorts = next.filter((card) => card.scope === "short").slice(0, 6);
-      const longs = next.filter((card) => card.scope === "long").slice(0, 6);
-      return [...longs, ...shorts].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 12);
-    });
+  function applyMemoryToInput(card: MemoryCard) {
+    const suffix = card.scope === "long" ? "(pinned memory)" : "(session memory)";
+    setChatInput((prev) => `${prev.trim()} ${card.content} ${suffix}`.trim().slice(0, 500));
+    boostMemoryCard(card.id);
+    setActiveTab("CHAT");
   }
 
-  function beginEditMemory(card: MemoryCard) {
-    setEditingMemoryId(card.id);
-    setEditingMemoryTitle(card.title);
-    setEditingMemoryContent(card.content);
-  }
-
-  function cancelEditMemory() {
-    setEditingMemoryId(null);
-    setEditingMemoryTitle("");
-    setEditingMemoryContent("");
-  }
-
-  function saveEditMemory(id: string) {
-    const title = editingMemoryTitle.trim().slice(0, 40);
-    const content = editingMemoryContent.trim().slice(0, 160);
-    if (!title || !content) {
+  function handleSaveEditMemory(id: string) {
+    const ok = saveEditMemory(id);
+    if (!ok) {
       setChatStatus("Memory title and content are required.");
       return;
     }
-
-    setMemoryCards((prev) =>
-      prev.map((card) =>
-        card.id === id
-          ? {
-              ...card,
-              title,
-              content,
-              updatedAt: Date.now(),
-              confidence: Math.min(100, card.confidence + 4),
-            }
-          : card,
-      ),
-    );
-    cancelEditMemory();
     setChatStatus("Memory card updated.");
   }
 
-  function deleteMemoryCard(id: string) {
-    setMemoryCards((prev) => prev.filter((card) => card.id !== id));
-  }
+  const {
+    insertVideoInstructionBrief,
+    rememberVideoInstructionBrief,
+    insertCompetitiveEdgeBrief,
+    rememberCompetitiveEdgeBrief,
+    insertPostTradeForensicsBrief,
+    rememberPostTradeForensicsBrief,
+    insertRegimeShiftSentinelBrief,
+    rememberRegimeShiftSentinelBrief,
+    insertExecutionLatencyGuardBrief,
+    rememberExecutionLatencyGuardBrief,
+    insertSessionDriftGovernorBrief,
+    rememberSessionDriftGovernorBrief,
+    insertCapitalPreservationCircuitBrief,
+    rememberCapitalPreservationCircuitBrief,
+    insertOpportunityCostRadarBrief,
+    rememberOpportunityCostRadarBrief,
+    insertConvictionCalibrationBrief,
+    rememberConvictionCalibrationBrief,
+  } = useBriefComposerActions({
+    focusSymbol,
+    videoSourceUrl,
+    setChatInput,
+    setChatStatus,
+    onActivateChat: () => setActiveTab("CHAT"),
+    addMemoryCard,
+    normalizeVideoUrl,
+    buildVideoInstructionBrief,
+  });
 
-  function toggleMemoryScope(id: string) {
-    setMemoryCards((prev) =>
-      prev.map((card) =>
-        card.id === id
-          ? {
-              ...card,
-              scope: card.scope === "long" ? "short" : "long",
-              updatedAt: Date.now(),
-              confidence: Math.min(100, card.confidence + 2),
-            }
-          : card,
-      ),
-    );
-  }
-
-  function applyMemoryToInput(card: MemoryCard) {
-    const suffix = card.scope === "long" ? "(pinned memory)" : "(session memory)";
-    const stitched = `${chatInput.trim()} ${card.content} ${suffix}`.trim();
-    setChatInput(stitched.slice(0, 500));
-    setMemoryCards((prev) =>
-      prev.map((entry) =>
-        entry.id === card.id
-          ? {
-              ...entry,
-              updatedAt: Date.now(),
-              confidence: Math.min(100, entry.confidence + 8),
-            }
-          : entry,
-      ),
-    );
-    setActiveTab("CHAT");
-  }
-
-  function beginEditMessage(index: number) {
-    const target = messages[index];
-    if (!target || target.role !== "user") return;
-    setEditingMessageIndex(index);
-    setEditingMessageDraft(target.content);
-  }
-
-  function cancelEditMessage() {
-    setEditingMessageIndex(null);
-    setEditingMessageDraft("");
-  }
-
-  function pruneConversationAtUser(index: number, replacementContent?: string) {
-    const target = messages[index];
-    if (!target || target.role !== "user") return "";
-
-    const updatedUserContent = (replacementContent ?? target.content).trim();
-    if (!updatedUserContent) return "";
-
-    const nextHistory = messages.slice(0, index + 1).map((entry, entryIdx) =>
-      entryIdx === index
-        ? {
-            ...entry,
-            content: updatedUserContent,
-          }
-        : entry,
-    );
-    setMessages(nextHistory);
-    return updatedUserContent;
-  }
-
-  function logBranch(kind: "retry" | "edit-retry", fromIndex: number, preview: string) {
-    const safePreview = preview.trim().slice(0, 120);
-    if (!safePreview) return;
-
-    setBranchTrail((prev) => [
-      {
-        id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        kind,
-        fromIndex,
-        preview: safePreview,
-        createdAt: Date.now(),
-      },
-      ...prev,
-    ].slice(0, 18));
-  }
-
-  function stepReplay(delta: number) {
-    setReplayCursor((prev) => {
-      const next = prev + delta;
-      if (next < 0) return 0;
-      if (next >= branchTrail.length) return Math.max(0, branchTrail.length - 1);
-      return next;
-    });
-  }
-
-  function restoreReplayEntry(entry: BranchTrailEntry | null) {
-    if (!entry) return;
-    setActiveTab("CHAT");
-    setChatInput(entry.preview);
-    setChatStatus(`Loaded ${entry.kind === "edit-retry" ? "edited" : "retry"} branch #${entry.fromIndex + 1} into input.`);
-  }
-
-  function startNewChat() {
-    setMessages([
-      {
-        role: "assistant",
-        content: `${guideName} is synced. Intent locked: ${sessionIntent}. Focus: ${focusSymbol}. Say the word and we begin.`,
-      },
-    ]);
-    setBranchTrail([]);
-    setChatInput("");
-    cancelEditMessage();
-    setChatStatus("Started a fresh secure session.");
-  }
-
-  function getLastAssistantReply() {
-    for (let i = messages.length - 1; i >= 0; i -= 1) {
-      if (messages[i].role === "assistant") {
-        return messages[i].content;
-      }
-    }
-    return "";
-  }
-
-  async function copyLastReply() {
-    const text = getLastAssistantReply();
-    if (!text) {
-      setChatStatus("No assistant reply to copy yet.");
-      return;
-    }
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-      }
-      setChatStatus("Copied last reply to clipboard.");
-    } catch {
-      setChatStatus("Copy failed. Try selecting text manually.");
-    }
-  }
-
-  function rememberLastPrompt() {
-    const lastUser = [...messages].reverse().find((item) => item.role === "user")?.content || "";
-    if (!lastUser) {
-      setChatStatus("No recent user prompt to store.");
-      return;
-    }
-    addMemoryCard("short", `Prompt ${new Date().toLocaleTimeString()}`, lastUser);
-    setChatStatus("Stored latest prompt in session memory.");
-  }
-
-  function pinCurrentFocus() {
-    addMemoryCard("long", `Focus ${focusSymbol}`, `${sessionIntent} • Symbol: ${focusSymbol}`);
-    setChatStatus("Pinned current focus into long-term memory.");
-  }
-
-  function insertVideoInstructionBrief() {
-    const safeUrl = normalizeVideoUrl(videoSourceUrl);
-    if (!safeUrl) {
-      setChatStatus("Add a video URL first to infuse instructions.");
-      return;
-    }
-
-    const brief = buildVideoInstructionBrief();
-    const stitched = `${chatInput.trim()}\n\n${brief}`.trim();
-    setActiveTab("CHAT");
-    setChatInput(stitched.slice(0, 1500));
-    setChatStatus("Video AI instruction brief inserted into chat input.");
-  }
-
-  function rememberVideoInstructionBrief() {
-    const safeUrl = normalizeVideoUrl(videoSourceUrl);
-    if (!safeUrl) {
-      setChatStatus("Cannot store video brief without a URL.");
-      return;
-    }
-
-    addMemoryCard("long", "Video Instruction Brief", buildVideoInstructionBrief());
-    setChatStatus("Stored video instruction brief in long-term memory.");
-  }
-
-  function insertCompetitiveEdgeBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("Edge brief is empty. Adjust inputs and retry.");
-      return;
-    }
-    setActiveTab("CHAT");
-    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
-    setChatStatus("Competitive edge brief inserted into chat input.");
-  }
-
-  function rememberCompetitiveEdgeBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("Nothing to save yet. Build an edge brief first.");
-      return;
-    }
-    addMemoryCard("long", `Edge Brief ${focusSymbol}`, safeBrief.slice(0, 160));
-    setChatStatus("Competitive edge brief saved to long-term memory.");
-  }
-
-  function insertPostTradeForensicsBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("Forensics brief is empty. Fill post-trade inputs first.");
-      return;
-    }
-    setActiveTab("CHAT");
-    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
-    setChatStatus("Post-trade forensics brief inserted into chat input.");
-  }
-
-  function rememberPostTradeForensicsBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("Nothing to store yet. Generate a forensics brief first.");
-      return;
-    }
-    addMemoryCard("long", `Forensics ${focusSymbol}`, safeBrief.slice(0, 160));
-    setChatStatus("Post-trade recovery brief saved to long-term memory.");
-  }
-
-  function insertRegimeShiftSentinelBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("Regime sentinel brief is empty. Fill metrics first.");
-      return;
-    }
-    setActiveTab("CHAT");
-    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
-    setChatStatus("Regime shift sentinel brief inserted into chat input.");
-  }
-
-  function rememberRegimeShiftSentinelBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("No regime brief to store yet.");
-      return;
-    }
-    addMemoryCard("long", `Regime Sentinel ${focusSymbol}`, safeBrief.slice(0, 160));
-    setChatStatus("Regime sentinel brief saved to long-term memory.");
-  }
-
-  function insertExecutionLatencyGuardBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("Latency guard brief is empty. Fill metrics first.");
-      return;
-    }
-    setActiveTab("CHAT");
-    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
-    setChatStatus("Execution latency guard brief inserted into chat input.");
-  }
-
-  function rememberExecutionLatencyGuardBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("No latency guard brief to store yet.");
-      return;
-    }
-    addMemoryCard("long", `Latency Guard ${focusSymbol}`, safeBrief.slice(0, 160));
-    setChatStatus("Execution latency guard brief saved to long-term memory.");
-  }
-
-  function insertSessionDriftGovernorBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("Session drift brief is empty. Fill metrics first.");
-      return;
-    }
-    setActiveTab("CHAT");
-    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
-    setChatStatus("Session drift governor brief inserted into chat input.");
-  }
-
-  function rememberSessionDriftGovernorBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("No session drift brief to store yet.");
-      return;
-    }
-    addMemoryCard("long", `Session Drift ${focusSymbol}`, safeBrief.slice(0, 160));
-    setChatStatus("Session drift governor brief saved to long-term memory.");
-  }
-
-  function insertCapitalPreservationCircuitBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("Capital circuit brief is empty. Fill metrics first.");
-      return;
-    }
-    setActiveTab("CHAT");
-    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
-    setChatStatus("Capital preservation circuit brief inserted into chat input.");
-  }
-
-  function rememberCapitalPreservationCircuitBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("No capital circuit brief to store yet.");
-      return;
-    }
-    addMemoryCard("long", `Capital Circuit ${focusSymbol}`, safeBrief.slice(0, 160));
-    setChatStatus("Capital preservation circuit brief saved to long-term memory.");
-  }
-
-  function insertOpportunityCostRadarBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("Opportunity cost brief is empty. Fill metrics first.");
-      return;
-    }
-    setActiveTab("CHAT");
-    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
-    setChatStatus("Opportunity cost radar brief inserted into chat input.");
-  }
-
-  function rememberOpportunityCostRadarBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("No opportunity cost brief to store yet.");
-      return;
-    }
-    addMemoryCard("long", `Opportunity Cost ${focusSymbol}`, safeBrief.slice(0, 160));
-    setChatStatus("Opportunity cost radar brief saved to long-term memory.");
-  }
-
-  function insertConvictionCalibrationBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("Calibration brief is empty. Fill metrics first.");
-      return;
-    }
-    setActiveTab("CHAT");
-    setChatInput((prev) => `${safeBrief}\n\n${prev.trim()}`.trim().slice(0, 3500));
-    setChatStatus("Conviction calibration brief inserted into chat input.");
-  }
-
-  function rememberConvictionCalibrationBrief(brief: string) {
-    const safeBrief = brief.trim();
-    if (!safeBrief) {
-      setChatStatus("No calibration brief to store yet.");
-      return;
-    }
-    addMemoryCard("long", `Calibration ${focusSymbol}`, safeBrief.slice(0, 160));
-    setChatStatus("Conviction calibration brief saved to long-term memory.");
-  }
-
-  async function generateWebsiteAutopilotDraft() {
-    const normalizedSource = normalizeVideoUrl(websiteSourceUrl);
-    if (!normalizedSource) {
-      setChatStatus("Add a website URL first for social autopilot.");
-      return;
-    }
-
-    setIsGeneratingAutopilot(true);
-    setChatStatus("Generating cross-platform social drafts from website content...");
-
-    try {
-      const response = await fetch("/api/intelligence/content/repurpose", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          websiteUrl: normalizedSource,
-          focus: autopilotFocus,
-          channels: autopilotChannels,
-        }),
-      });
-
-      const payload = await response.json();
-      if (!response.ok || !payload?.ok) {
-        setChatStatus(typeof payload?.error === "string" ? payload.error : "Failed to generate social drafts.");
-        return;
-      }
-
-      const block = buildAutopilotDraftBlock(payload.draft);
-      if (!block) {
-        setChatStatus("Draft generation returned empty content.");
-        return;
-      }
-
-      setLatestAutopilotDraft(payload.draft as Record<string, unknown>);
-      setActiveTab("CHAT");
-      setChatInput((prev) => `${prev.trim()}\n\n${block}`.trim().slice(0, 3500));
-      addMemoryCard("long", "Website Social Autopilot", block.slice(0, 160));
-      setChatStatus("Social autopilot drafts inserted into chat input. Save it to ops when ready.");
-    } catch (error) {
-      setChatStatus(error instanceof Error ? error.message : "Social autopilot request failed.");
-    } finally {
-      setIsGeneratingAutopilot(false);
-    }
-  }
-
-  async function refreshAutopilotOps() {
-    try {
-      const response = await fetch("/api/intelligence/content/autopilot", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-      const payload = await response.json();
-      if (!response.ok || !payload?.ok) {
-        setChatStatus(typeof payload?.error === "string" ? payload.error : "Failed to refresh social ops status.");
-        return;
-      }
-      setAutopilotOpsSnapshot(payload as SocialOpsSnapshot);
-      if (!autopilotOpsDraftId && Array.isArray(payload?.drafts) && payload.drafts[0]?.id) {
-        setAutopilotOpsDraftId(String(payload.drafts[0].id));
-      }
-    } catch (error) {
-      setChatStatus(error instanceof Error ? error.message : "Could not refresh social ops state.");
-    }
-  }
-
-  async function performAutopilotAction(action: string, extra: Record<string, unknown> = {}) {
-    setAutopilotOpsLoading(true);
-    try {
-      const response = await fetch("/api/intelligence/content/autopilot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...extra }),
-      });
-      const payload = await response.json();
-      if (!response.ok || !payload?.ok) {
-        setChatStatus(typeof payload?.error === "string" ? payload.error : `Autopilot action failed: ${action}`);
-        return null;
-      }
-      await refreshAutopilotOps();
-      return payload as Record<string, unknown>;
-    } catch (error) {
-      setChatStatus(error instanceof Error ? error.message : `Autopilot action failed: ${action}`);
-      return null;
-    } finally {
-      setAutopilotOpsLoading(false);
-    }
-  }
-
-  async function saveCurrentAutopilotDraftToOps() {
-    if (!latestAutopilotDraft) {
-      setChatStatus("Generate drafts first, then save to Social Ops.");
-      return;
-    }
-
-    const response = await performAutopilotAction("create_draft", {
-      sourceUrl: String(latestAutopilotDraft.sourceUrl || normalizeVideoUrl(websiteSourceUrl) || ""),
-      focus: String(latestAutopilotDraft.focus || autopilotFocus || "cross-platform brand growth"),
-      channels: autopilotChannels,
-      content: (latestAutopilotDraft.channels && typeof latestAutopilotDraft.channels === "object")
-        ? (latestAutopilotDraft.channels as Record<string, unknown>)
-        : {},
-    });
-
-    const draft = response?.draft as { id?: string } | undefined;
-    if (draft?.id) {
-      setAutopilotOpsDraftId(String(draft.id));
-      setChatStatus(`Saved draft to social ops: ${draft.id}`);
-    }
-  }
-
-  async function submitAutopilotForApproval() {
-    if (!autopilotOpsDraftId.trim()) {
-      setChatStatus("Enter or save a Social Ops draft ID first.");
-      return;
-    }
-    const response = await performAutopilotAction("submit_for_approval", { draftId: autopilotOpsDraftId.trim() });
-    if (response) setChatStatus("Draft submitted for approval.");
-  }
-
-  async function approveAutopilotDraft() {
-    if (!autopilotOpsDraftId.trim()) {
-      setChatStatus("Enter or save a Social Ops draft ID first.");
-      return;
-    }
-    const response = await performAutopilotAction("approve_draft", { draftId: autopilotOpsDraftId.trim() });
-    if (response) setChatStatus("Draft approved and ready to publish.");
-  }
-
-  async function scheduleAutopilotDraft() {
-    if (!autopilotOpsDraftId.trim()) {
-      setChatStatus("Enter or save a Social Ops draft ID first.");
-      return;
-    }
-    if (!autopilotScheduleAt.trim()) {
-      setChatStatus("Pick a schedule datetime first.");
-      return;
-    }
-
-    const response = await performAutopilotAction("schedule_draft", {
-      draftId: autopilotOpsDraftId.trim(),
-      runAt: autopilotScheduleAt,
-      channels: autopilotChannels,
-    });
-    if (response) setChatStatus("Draft scheduled and queued by channel.");
-  }
-
-  async function publishAutopilotNow() {
-    if (!autopilotOpsDraftId.trim()) {
-      setChatStatus("Enter or save a Social Ops draft ID first.");
-      return;
-    }
-    const response = await performAutopilotAction("publish_now", {
-      draftId: autopilotOpsDraftId.trim(),
-      channels: autopilotChannels,
-    });
-    if (response) setChatStatus("Publish now executed. Check queue results and connector status.");
-  }
-
-  async function runDueAutopilotJobs() {
-    const response = await performAutopilotAction("run_due_jobs");
-    if (response) setChatStatus("Processed due queued jobs.");
-  }
-
-  async function syncAutopilotPerformance() {
-    if (!autopilotOpsDraftId.trim()) {
-      setChatStatus("Enter or save a Social Ops draft ID first.");
-      return;
-    }
-
-    const impressions = Number(autopilotImpressions.replace(/\D/g, "") || "0");
-    const engagements = Number(autopilotEngagements.replace(/\D/g, "") || "0");
-    const clicks = Number(autopilotClicks.replace(/\D/g, "") || "0");
-
-    const response = await performAutopilotAction("update_performance", {
-      draftId: autopilotOpsDraftId.trim(),
-      metrics: {
-        impressions,
-        engagements,
-        clicks,
-      },
-    });
-    if (response) setChatStatus("Performance metrics synced to calendar feedback loop.");
-  }
+  const {
+    generateWebsiteAutopilotDraft,
+    refreshAutopilotOps,
+    saveCurrentAutopilotDraftToOps,
+    submitAutopilotForApproval,
+    approveAutopilotDraft,
+    scheduleAutopilotDraft,
+    publishAutopilotNow,
+    runDueAutopilotJobs,
+    syncAutopilotPerformance,
+  } = useWebsiteAutopilotWorkflows({
+    websiteSourceUrl,
+    autopilotFocus,
+    autopilotChannels,
+    latestAutopilotDraft,
+    autopilotOpsDraftId,
+    autopilotScheduleAt,
+    autopilotImpressions,
+    autopilotEngagements,
+    autopilotClicks,
+    setIsGeneratingAutopilot,
+    setLatestAutopilotDraft,
+    setAutopilotOpsLoading,
+    setAutopilotOpsSnapshot,
+    setAutopilotOpsDraftId,
+    setChatInput,
+    setChatStatus,
+    onActivateChat: () => setActiveTab("CHAT"),
+    addMemoryCard,
+    normalizeVideoUrl,
+    buildAutopilotDraftBlock,
+  });
 
   function exportTranscript() {
     if (messages.length === 0) {
@@ -2619,7 +1398,7 @@ export const AINeuralHub = () => {
             message: userMsg,
             userId: buildHubUserId(),
             model: selectedChatModel,
-            tier: openModeEnabled ? "UNCENSORED" : "STANDARD",
+            tier: kidsModeEnabled ? "KIDS" : effectiveOpenMode ? "UNCENSORED" : "STANDARD",
             systemPrompt: buildPremierSystemPrompt(),
             context: {
               relationshipTier,
@@ -2713,7 +1492,7 @@ export const AINeuralHub = () => {
 
   async function retryFromMessageIndex(index: number) {
     if (isChatLoading || isCharging) return;
-    const retryMessage = pruneConversationAtUser(index);
+    const retryMessage = pruneConversationAtUser(messages, index, undefined, setMessages);
     if (!retryMessage) {
       setChatStatus("Could not retry from that message.");
       return;
@@ -2724,7 +1503,7 @@ export const AINeuralHub = () => {
 
   async function saveEditAndRetry() {
     if (editingMessageIndex === null || isChatLoading || isCharging) return;
-    const updated = pruneConversationAtUser(editingMessageIndex, editingMessageDraft);
+    const updated = pruneConversationAtUser(messages, editingMessageIndex, editingMessageDraft, setMessages);
     if (!updated) {
       setChatStatus("Edited prompt is empty. Please add text before retrying.");
       return;
@@ -2775,17 +1554,23 @@ export const AINeuralHub = () => {
     };
 
     const selectedRuntime = runtimeByModel[selectedModel] ?? { style: "general" as const, odinProfile: "standard" as const };
+    const runtime = kidsModeEnabled
+      ? { style: "general" as const, odinProfile: "standard" as const }
+      : selectedRuntime;
+    const safePrompt = kidsModeEnabled
+      ? `Kid-safe educational visual. No violence, no explicit content. ${imgPrompt}`
+      : imgPrompt;
 
     try {
       const res = await fetch("/api/ai/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: imgPrompt,
-          style: selectedRuntime.style,
-          odinProfile: selectedRuntime.odinProfile,
+          prompt: safePrompt,
+          style: runtime.style,
+          odinProfile: runtime.odinProfile,
           model: selectedModel,
-          safetyMode: openModeEnabled ? "open" : "standard",
+          safetyMode: kidsModeEnabled ? "standard" : effectiveOpenMode ? "open" : "standard",
         })
       });
       const data = await res.json();
@@ -2794,7 +1579,7 @@ export const AINeuralHub = () => {
         if (data?.fallback) {
           setImageStatus(`Preview mode: ${data?.warning || "provider unavailable"}`);
         } else if (typeof data?.model === "string") {
-          setImageStatus(`Generated with ${data.model} • profile ${selectedRuntime.style}`);
+          setImageStatus(`Generated with ${data.model} • profile ${runtime.style}${kidsModeEnabled ? " • kids-safe" : ""}`);
         }
         incrementUsage();
       } else {
@@ -2817,24 +1602,11 @@ export const AINeuralHub = () => {
   const detectedMarketRegime: "BULLISH" | "BEARISH" | "MIXED" = marketTrendScore >= 2 ? "BULLISH" : marketTrendScore <= -2 ? "BEARISH" : "MIXED";
   const activePromptPack = PERSONA_PROMPT_PACKS[personaPreset][detectedMarketRegime];
   const branchGraphEntries = branchTrail.slice(0, 8).reverse();
-  const replayEntries = branchTrail;
-  const activeReplayEntry = replayEntries.length > 0 ? replayEntries[Math.min(replayCursor, replayEntries.length - 1)] : null;
-  const selectedWorkspaceSnapshot = selectedWorkspaceSnapshotId
-    ? workspaceSnapshots.find((item) => item.id === selectedWorkspaceSnapshotId) ?? null
-    : workspaceSnapshots[0] ?? null;
-  const selectedWorkspaceSnapshotDiff = selectedWorkspaceSnapshot
-    ? getWorkspaceSnapshotDiff(selectedWorkspaceSnapshot)
-    : null;
+  const latestAssistantReverseIndex = [...messages].reverse().findIndex((item) => item.role === "assistant");
+  const latestAssistantIndex = latestAssistantReverseIndex === -1 ? -1 : messages.length - 1 - latestAssistantReverseIndex;
 
   return (
-    <section className="py-24 bg-black relative overflow-hidden">
-      <NeuralBackground />
-      {/* Background Ambience */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[120px] pointer-events-none" />
-
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="max-w-5xl mx-auto">
+    <HubShell background={<NeuralBackground />}>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-12">
             <div>
@@ -2891,17 +1663,124 @@ export const AINeuralHub = () => {
 
               <button
                 onClick={() => setOpenModeEnabled((prev) => !prev)}
-                className="self-end rounded-full border border-fuchsia-500/30 bg-fuchsia-600/10 px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase text-fuchsia-200 hover:border-fuchsia-400/60"
-                title="Toggle uncensored open mode for chat and image generation"
+                disabled={kidsModeEnabled}
+                className="self-end rounded-full border border-fuchsia-500/30 bg-fuchsia-600/10 px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase text-fuchsia-200 hover:border-fuchsia-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                title={kidsModeEnabled ? "Kids Mode is enabled; uncensored mode is locked off" : "Toggle uncensored open mode for chat and image generation"}
               >
-                {openModeEnabled ? "UNCENSORED_ON" : "STANDARD_MODE"}
+                {kidsModeEnabled ? "KIDS_LOCKED" : effectiveOpenMode ? "UNCENSORED_ON" : "STANDARD_MODE"}
+              </button>
+
+              <button
+                onClick={() => {
+                  const status = toggleKidsMode();
+                  if (status) setChatStatus(status);
+                }}
+                className={`self-end rounded-full border px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase transition-colors ${
+                  kidsModeEnabled
+                    ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+                    : "border-emerald-500/30 bg-emerald-600/10 text-emerald-200 hover:border-emerald-400/60"
+                }`}
+                title="Toggle kid-safe mode with extra safeguards and simple language"
+              >
+                {kidsModeEnabled ? "KIDS_MODE_ON" : "KIDS_MODE_OFF"}
               </button>
             </div>
           </div>
 
           <div className="mb-6 rounded-xl border border-cyan-500/25 bg-[rgba(8,14,20,0.75)] px-4 py-3 text-[11px] text-cyan-100/85">
             <p className="font-semibold uppercase tracking-wide">Quick start</p>
-            <p className="mt-1">1) Open <strong>AI_CHAT</strong>, 2) ask your goal in simple words, 3) use IMAGE_TOOL or MARKET_TOOLS as needed.</p>
+            <p className="mt-1">
+              1) Open <strong>AI_CHAT</strong>, 2) ask your goal in simple words, 3) use IMAGE_TOOL or MARKET_TOOLS as needed.
+              {kidsModeEnabled ? " Kids Mode is active: responses stay simpler and safety-first." : ""}
+            </p>
+
+            <div className="mt-3 rounded-lg border border-white/10 bg-black/35 px-3 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Kids Mode Parent Lock</p>
+                <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                  {kidsModePin ? "PIN_SET" : "NO_PIN"}
+                </span>
+              </div>
+
+              {!kidsModePin ? (
+                <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={kidsModePinDraft}
+                    onChange={(event) => setKidsModePinDraft(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                    placeholder="Set PIN (4-8 digits)"
+                    className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
+                  />
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={kidsModePinConfirm}
+                    onChange={(event) => setKidsModePinConfirm(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                    placeholder="Confirm PIN"
+                    className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const status = saveKidsModePin();
+                      if (status) setChatStatus(status);
+                    }}
+                    className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
+                  >
+                    Save PIN
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setChatStatus(clearKidsModePin())}
+                    className="rounded-full border border-rose-300/30 bg-rose-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-rose-100"
+                  >
+                    Remove PIN
+                  </button>
+                  <p className="text-[10px] text-zinc-400">Disabling Kids Mode now requires this PIN.</p>
+                </div>
+              )}
+
+              {showKidsUnlockPrompt && (
+                <div className="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto]">
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={kidsModeUnlockInput}
+                    onChange={(event) => setKidsModeUnlockInput(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                    placeholder="Enter PIN to disable Kids Mode"
+                    className="rounded-md border border-emerald-300/25 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-emerald-300/60"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const status = attemptKidsModeUnlock();
+                      if (status) setChatStatus(status);
+                    }}
+                    className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                  >
+                    Unlock
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelKidsModeUnlock}
+                    className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-[10px] uppercase text-zinc-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {kidsModePinError && (
+                <p className="mt-2 text-[10px] text-rose-300">{kidsModePinError}</p>
+              )}
+            </div>
           </div>
 
           <div className={`mb-8 grid gap-3 rounded-2xl border ${selectedTheme.heroBorder} ${selectedTheme.heroGradient} p-4 md:grid-cols-[1.1fr_1fr]`}>
@@ -3101,14 +1980,15 @@ export const AINeuralHub = () => {
 
                 <AnimatePresence mode="wait">
                   {activeTab === "CHAT" && (
-                    <motion.div
-                      key="chat"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex-1 flex flex-col p-6 h-full"
-                    >
-                      <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2 custom-scrollbar">
+                    <HubChatWorkspace>
+                      <motion.div
+                        key="chat"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="flex-1 flex flex-col p-6 h-full"
+                      >
+                      <div ref={chatViewportRef} className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2 custom-scrollbar">
                         <div className="rounded-xl border border-white/10 bg-[rgba(10,14,18,0.75)] px-3 py-2">
                           <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono uppercase">
                             <span className="text-cyan-200">Guide: {guideName}</span>
@@ -3117,13 +1997,63 @@ export const AINeuralHub = () => {
                           </div>
                         </div>
 
+                        <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-300">Experience Mode</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBeginnerFocusMode((prev) => !prev);
+                                  if (beginnerFocusMode) {
+                                    setShowOperatorDock(false);
+                                  } else {
+                                    setShowOperatorDock(true);
+                                  }
+                                }}
+                                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${
+                                  beginnerFocusMode
+                                    ? "border-cyan-300/35 bg-cyan-500/10 text-cyan-100"
+                                    : "border-fuchsia-300/35 bg-fuchsia-500/10 text-fuchsia-100"
+                                }`}
+                              >
+                                {beginnerFocusMode ? "Beginner Focus" : "Pro Operator"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setShowOperatorDock((prev) => !prev)}
+                                className="rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-[10px] font-semibold uppercase text-zinc-200"
+                                title="Open or close advanced operator panels"
+                              >
+                                {showOperatorDock ? "Hide Advanced" : "Show Advanced"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => latestMessageAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })}
+                                className="rounded-full border border-emerald-300/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                                title="Jump to latest assistant reply"
+                              >
+                                Jump to Reply
+                              </button>
+                            </div>
+                          </div>
+                          {beginnerFocusMode && !showOperatorDock && (
+                            <p className="mt-2 text-[11px] text-zinc-400">
+                              Beginner Focus keeps the conversation visible first. Use <strong>Show Advanced</strong> whenever you want full operator controls.
+                            </p>
+                          )}
+                        </div>
+
+                        {(!beginnerFocusMode || showOperatorDock) && (
+                          <>
+
                         {branchTrail.length > 0 && (
                           <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-2">
                             <div className="mb-2 flex items-center justify-between gap-2">
                               <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-300">Branch Timeline</p>
                               <button
                                 type="button"
-                                onClick={() => setBranchTrail([])}
+                                onClick={clearBranchTrail}
                                 className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-400 hover:border-red-300/30"
                                 title="Clear branch history"
                               >
@@ -3298,6 +2228,7 @@ export const AINeuralHub = () => {
                             <button
                               type="button"
                               onClick={() => {
+                                setCommandQuery("");
                                 setIsCommandPaletteOpen(true);
                                 setActiveTab("CHAT");
                               }}
@@ -3539,37 +2470,39 @@ export const AINeuralHub = () => {
                           onStoreBrief={rememberVideoInstructionBrief}
                         />
 
-                        <HubWebsiteSocialAutopilot
-                          websiteSourceUrl={websiteSourceUrl}
-                          onWebsiteSourceUrlChange={setWebsiteSourceUrl}
-                          autopilotFocus={autopilotFocus}
-                          onAutopilotFocusChange={setAutopilotFocus}
-                          socialChannels={SOCIAL_AUTOPILOT_CHANNELS}
-                          autopilotChannels={autopilotChannels}
-                          onToggleAutopilotChannel={toggleAutopilotChannel}
-                          isGeneratingAutopilot={isGeneratingAutopilot}
-                          onGenerateDrafts={generateWebsiteAutopilotDraft}
-                          autopilotOpsLoading={autopilotOpsLoading}
-                          onSaveToOps={saveCurrentAutopilotDraftToOps}
-                          onRefreshOps={refreshAutopilotOps}
-                          autopilotOpsDraftId={autopilotOpsDraftId}
-                          onAutopilotOpsDraftIdChange={setAutopilotOpsDraftId}
-                          autopilotScheduleAt={autopilotScheduleAt}
-                          onAutopilotScheduleAtChange={setAutopilotScheduleAt}
-                          onSubmitApproval={submitAutopilotForApproval}
-                          onApproveDraft={approveAutopilotDraft}
-                          onScheduleQueue={scheduleAutopilotDraft}
-                          onPublishNow={publishAutopilotNow}
-                          onRunDueJobs={runDueAutopilotJobs}
-                          autopilotImpressions={autopilotImpressions}
-                          onAutopilotImpressionsChange={setAutopilotImpressions}
-                          autopilotEngagements={autopilotEngagements}
-                          onAutopilotEngagementsChange={setAutopilotEngagements}
-                          autopilotClicks={autopilotClicks}
-                          onAutopilotClicksChange={setAutopilotClicks}
-                          onSyncMetrics={syncAutopilotPerformance}
-                          autopilotOpsSnapshot={autopilotOpsSnapshot}
-                        />
+                        <HubAutomationWorkspace>
+                          <HubWebsiteSocialAutopilot
+                            websiteSourceUrl={websiteSourceUrl}
+                            onWebsiteSourceUrlChange={setWebsiteSourceUrl}
+                            autopilotFocus={autopilotFocus}
+                            onAutopilotFocusChange={setAutopilotFocus}
+                            socialChannels={SOCIAL_AUTOPILOT_CHANNELS}
+                            autopilotChannels={autopilotChannels}
+                            onToggleAutopilotChannel={toggleAutopilotChannel}
+                            isGeneratingAutopilot={isGeneratingAutopilot}
+                            onGenerateDrafts={generateWebsiteAutopilotDraft}
+                            autopilotOpsLoading={autopilotOpsLoading}
+                            onSaveToOps={saveCurrentAutopilotDraftToOps}
+                            onRefreshOps={refreshAutopilotOps}
+                            autopilotOpsDraftId={autopilotOpsDraftId}
+                            onAutopilotOpsDraftIdChange={setAutopilotOpsDraftId}
+                            autopilotScheduleAt={autopilotScheduleAt}
+                            onAutopilotScheduleAtChange={setAutopilotScheduleAt}
+                            onSubmitApproval={submitAutopilotForApproval}
+                            onApproveDraft={approveAutopilotDraft}
+                            onScheduleQueue={scheduleAutopilotDraft}
+                            onPublishNow={publishAutopilotNow}
+                            onRunDueJobs={runDueAutopilotJobs}
+                            autopilotImpressions={autopilotImpressions}
+                            onAutopilotImpressionsChange={setAutopilotImpressions}
+                            autopilotEngagements={autopilotEngagements}
+                            onAutopilotEngagementsChange={setAutopilotEngagements}
+                            autopilotClicks={autopilotClicks}
+                            onAutopilotClicksChange={setAutopilotClicks}
+                            onSyncMetrics={syncAutopilotPerformance}
+                            autopilotOpsSnapshot={autopilotOpsSnapshot}
+                          />
+                        </HubAutomationWorkspace>
 
                         <HubCompetitiveEdgeLab
                           focusSymbol={focusSymbol}
@@ -3675,7 +2608,7 @@ export const AINeuralHub = () => {
                                         <div className="flex items-center gap-2">
                                           <button
                                             type="button"
-                                            onClick={() => saveEditMemory(card.id)}
+                                            onClick={() => handleSaveEditMemory(card.id)}
                                             className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1 text-[9px] uppercase text-cyan-100"
                                           >
                                             Save
@@ -3745,12 +2678,17 @@ export const AINeuralHub = () => {
                           )}
                         </div>
 
-                        {messages.map((msg, i) => (
+                          </>
+                        )}
+
+                        {messages.map((msg, i) => {
+                          const isLatestAssistant = msg.role === "assistant" && i === latestAssistantIndex;
+                          return (
                           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${
                               msg.role === 'user'
                                 ? "bg-cyan-500/10 border border-cyan-500/20 text-cyan-100"
-                                : "bg-zinc-900/80 border border-white/5 text-zinc-300"
+                                : `bg-zinc-900/80 border ${isLatestAssistant && latestReplyPulse ? "border-cyan-300/60 shadow-[0_0_20px_rgba(34,211,238,0.25)]" : "border-white/5"} text-zinc-300`
                             }`}>
                               <div className="mb-1 flex items-center justify-between gap-2">
                                 <p className="font-mono text-[10px] opacity-50 uppercase tracking-widest">{msg.role === "assistant" ? `${guideName}_guide` : msg.role}</p>
@@ -3758,7 +2696,7 @@ export const AINeuralHub = () => {
                                   <div className="flex items-center gap-1.5">
                                     <button
                                       type="button"
-                                      onClick={() => beginEditMessage(i)}
+                                      onClick={() => beginEditMessage(messages, i)}
                                       className="rounded-full border border-white/15 bg-black/30 px-2 py-0.5 text-[9px] uppercase text-zinc-300 hover:border-cyan-300/40"
                                       title="Edit this prompt"
                                     >
@@ -3846,7 +2784,8 @@ export const AINeuralHub = () => {
                               )}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                         {isChatLoading && (
                           <div className="flex justify-start">
                             <div className="bg-zinc-900/80 border border-white/5 p-4 rounded-2xl">
@@ -3858,6 +2797,7 @@ export const AINeuralHub = () => {
                             </div>
                           </div>
                         )}
+                        <div ref={latestMessageAnchorRef} />
                       </div>
 
                       <div className="mb-3 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100/85">
@@ -3869,6 +2809,73 @@ export const AINeuralHub = () => {
                               ? "Summarize mode tip: paste the full source text for stronger compression quality."
                               : "Q&A mode tip: add context below so answers stay grounded and factual."}
                       </div>
+
+                      {!hasUserMessages && !isChatLoading && (
+                        <div className="mb-3 rounded-xl border border-emerald-400/20 bg-[rgba(6,18,14,0.75)] px-3 py-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-emerald-200">Quick Start Actions</p>
+                            <span className="rounded-full border border-white/15 bg-black/30 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                              1-click setup
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("CHAT");
+                                setWorkflowTask("chat");
+                                setChatInput("I&apos;m new to trading. Build a beginner-safe 7-day plan with strict risk limits and one daily checklist.");
+                                setChatStatus("Starter plan loaded. Press send when ready.");
+                              }}
+                              className="rounded-full border border-emerald-300/35 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-semibold text-emerald-100"
+                            >
+                              Start with Chat Plan
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("IMAGE_GEN");
+                                setImgPrompt("Create a clean, modern crypto market dashboard hero image with neon cyan accents and clear readability.");
+                              }}
+                              className="rounded-full border border-cyan-300/35 bg-cyan-500/15 px-2.5 py-1 text-[10px] font-semibold text-cyan-100"
+                            >
+                              Open Image Tool
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("MARKET");
+                                setChatStatus("Switched to Market Tools.");
+                              }}
+                              className="rounded-full border border-fuchsia-300/35 bg-fuchsia-500/15 px-2.5 py-1 text-[10px] font-semibold text-fuchsia-100"
+                            >
+                              Open Market Tools
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("CHAT");
+                                setIsPromptLibraryOpen(true);
+                                setChatStatus("Prompt Library opened.");
+                              }}
+                              className="rounded-full border border-amber-300/35 bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-100"
+                            >
+                              Browse Prompt Library
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("CHAT");
+                                setChatInput("/help");
+                                setChatStatus("Slash help ready. Press send.");
+                              }}
+                              className="rounded-full border border-white/20 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-zinc-200"
+                            >
+                              Show Slash Help
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="mb-3 rounded-xl border border-white/10 bg-[rgba(8,12,18,0.82)] px-3 py-3">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -3965,6 +2972,7 @@ export const AINeuralHub = () => {
                       </div>
 
                       {isPromptLibraryOpen && (
+                        <HubLibraryWorkspace>
                         <div className="mb-3 rounded-xl border border-cyan-400/20 bg-[rgba(6,10,16,0.84)] px-3 py-3">
                           <div className="mb-2 flex items-center justify-between gap-2">
                             <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-cyan-200">Prompt Library</p>
@@ -4074,6 +3082,7 @@ export const AINeuralHub = () => {
                             </div>
                           )}
                         </div>
+                        </HubLibraryWorkspace>
                       )}
 
                       <div className="mb-3 flex flex-wrap gap-2">
@@ -4196,31 +3205,36 @@ export const AINeuralHub = () => {
                           </div>
                         </div>
                       )}
-                    </motion.div>
+                      </motion.div>
+                    </HubChatWorkspace>
                   )}
 
                   {activeTab === "IMAGE_GEN" && (
-                    <HubImageWorkspace
-                      imageModels={imageModels}
-                      selectedModel={selectedModel}
-                      onSelectModel={setSelectedModel}
-                      imgPrompt={imgPrompt}
-                      onImgPromptChange={setImgPrompt}
-                      onGenerateImage={handleGenerateImage}
-                      isImgLoading={isImgLoading}
-                      generatedImg={generatedImg}
-                      imageStatus={imageStatus}
-                    />
+                    <HubCreateWorkspace>
+                      <HubImageWorkspace
+                        imageModels={imageModels}
+                        selectedModel={selectedModel}
+                        onSelectModel={setSelectedModel}
+                        imgPrompt={imgPrompt}
+                        onImgPromptChange={setImgPrompt}
+                        onGenerateImage={handleGenerateImage}
+                        isImgLoading={isImgLoading}
+                        generatedImg={generatedImg}
+                        imageStatus={imageStatus}
+                      />
+                    </HubCreateWorkspace>
                   )}
 
                   {activeTab === "MARKET" && (
-                    <HubMarketWorkspace
-                      watchlist={watchlist}
-                      marketTransport={marketTransport}
-                      marketStatus={marketStatus}
-                      marketFeedUpdatedAt={marketFeedUpdatedAt}
-                      focusSymbol={focusSymbol}
-                    />
+                    <HubMarketWorkspaceView>
+                      <HubMarketWorkspace
+                        watchlist={watchlist}
+                        marketTransport={marketTransport}
+                        marketStatus={marketStatus}
+                        marketFeedUpdatedAt={marketFeedUpdatedAt}
+                        focusSymbol={focusSymbol}
+                      />
+                    </HubMarketWorkspaceView>
                   )}
                 </AnimatePresence>
               </div>
@@ -4232,9 +3246,6 @@ export const AINeuralHub = () => {
             </div>
           </div>
 
-        </div>
-      </div>
-
       <HubCommandPalette
         isOpen={isCommandPaletteOpen}
         commandQuery={commandQuery}
@@ -4245,6 +3256,6 @@ export const AINeuralHub = () => {
         onRunCommand={runPaletteCommand}
         onSetSelectionIndex={setCommandSelectionIndex}
       />
-    </section>
+    </HubShell>
   );
 };

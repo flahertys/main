@@ -56,6 +56,7 @@
     "hf:pipeline:strict": "npm run hf:pipeline && npm run pipeline:local",
     "social:setup": "node ./scripts/setup-social-apis.js",
     "social:check": "node ./scripts/check-social-api-config.js",
+    "auth:hash-password": "node ./scripts/generate-admin-password-hash.js",
     "snow:env:check": "node ./scripts/check-snow-removal-env.js",
     "snow:env:check:strict": "node ./scripts/check-snow-removal-env.js --strict",
     "discord:register-commands": "node ./scripts/discord/register-commands.mjs",
