@@ -1,0 +1,118 @@
+name: Deploy to Namecheap VPS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      NAMECHEAP_VPS_HOST: ${{ secrets.NAMECHEAP_VPS_HOST }}
+      NAMECHEAP_VPS_USER: ${{ secrets.NAMECHEAP_VPS_USER }}
+      NAMECHEAP_VPS_SSH_KEY: ${{ secrets.NAMECHEAP_VPS_SSH_KEY }}
+      NAMECHEAP_VPS_PORT: ${{ secrets.NAMECHEAP_VPS_PORT }}
+      NAMECHEAP_APP_ROOT: ${{ secrets.NAMECHEAP_APP_ROOT }}
+      NAMECHEAP_APP_PORT: ${{ secrets.NAMECHEAP_APP_PORT }}
+
+    steps:
+      - name: Precheck required secrets
+        id: precheck
+        shell: bash
+        run: |
+          if [[ -n "${NAMECHEAP_VPS_HOST}" && -n "${NAMECHEAP_VPS_USER}" && -n "${NAMECHEAP_VPS_SSH_KEY}" ]]; then
+            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.precheck.outputs.can_deploy == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: steps.precheck.outputs.can_deploy == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install deps
+        if: steps.precheck.outputs.can_deploy == 'true'
+        run: npm ci
+
+      - name: Quality checks
+        if: steps.precheck.outputs.can_deploy == 'true'
+        run: npm run lint && npm run type-check
+
+      - name: Build
+        if: steps.precheck.outputs.can_deploy == 'true'
+        run: npm run build
+
+      - name: Prepare release metadata
+        if: steps.precheck.outputs.can_deploy == 'true'
+        id: meta
+        run: |
+          echo "release_id=${GITHUB_SHA::12}" >> $GITHUB_OUTPUT
+          if [[ -n "${NAMECHEAP_APP_ROOT}" ]]; then
+            echo "app_root=${NAMECHEAP_APP_ROOT}" >> $GITHUB_OUTPUT
+          else
+            echo "app_root=/var/www/tradehax" >> $GITHUB_OUTPUT
+          fi
+          if [[ -n "${NAMECHEAP_APP_PORT}" ]]; then
+            echo "app_port=${NAMECHEAP_APP_PORT}" >> $GITHUB_OUTPUT
+          else
+            echo "app_port=3000" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup SSH key
+        if: steps.precheck.outputs.can_deploy == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${NAMECHEAP_VPS_SSH_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          PORT="${NAMECHEAP_VPS_PORT:-22}"
+          ssh-keyscan -p "$PORT" -H "${NAMECHEAP_VPS_HOST}" >> ~/.ssh/known_hosts
+
+      - name: Sync release to server
+        if: steps.precheck.outputs.can_deploy == 'true'
+        run: |
+          APP_ROOT="${{ steps.meta.outputs.app_root }}"
+          RELEASE_ID="${{ steps.meta.outputs.release_id }}"
+          REMOTE="${NAMECHEAP_VPS_USER}@${NAMECHEAP_VPS_HOST}"
+          PORT="${NAMECHEAP_VPS_PORT:-22}"
+
+          ssh -p "$PORT" "$REMOTE" "mkdir -p $APP_ROOT/releases/$RELEASE_ID"
+
+          rsync -az --delete \
+            --exclude .git \
+            --exclude node_modules \
+            --exclude .next \
+            -e "ssh -p $PORT" \
+            ./ "$REMOTE:$APP_ROOT/releases/$RELEASE_ID/"
+
+      - name: Run remote deploy script
+        if: steps.precheck.outputs.can_deploy == 'true'
+        run: |
+          APP_ROOT="${{ steps.meta.outputs.app_root }}"
+          APP_PORT="${{ steps.meta.outputs.app_port }}"
+          RELEASE_ID="${{ steps.meta.outputs.release_id }}"
+          REMOTE="${NAMECHEAP_VPS_USER}@${NAMECHEAP_VPS_HOST}"
+          PORT="${NAMECHEAP_VPS_PORT:-22}"
+
+          ssh -p "$PORT" "$REMOTE" \
+            "chmod +x $APP_ROOT/releases/$RELEASE_ID/deploy/namecheap/deploy-remote.sh && \
+             APP_ROOT=$APP_ROOT APP_PORT=$APP_PORT RELEASE_ID=$RELEASE_ID RELEASE_SOURCE=$APP_ROOT/releases/$RELEASE_ID \
+             bash $APP_ROOT/releases/$RELEASE_ID/deploy/namecheap/deploy-remote.sh"
+
+      - name: Deployment summary
+        if: steps.precheck.outputs.can_deploy == 'true'
+        run: |
+          echo "✅ Deployed release ${{ steps.meta.outputs.release_id }} to Namecheap VPS"
+
+      - name: Missing secrets summary
+        if: steps.precheck.outputs.can_deploy != 'true'
+        run: |
+          echo "Namecheap VPS deploy skipped: required secrets are missing."
+          echo "Set NAMECHEAP_VPS_HOST, NAMECHEAP_VPS_USER, NAMECHEAP_VPS_SSH_KEY to enable automation."

@@ -26,6 +26,7 @@
     "deploy:one-click:strict-dns": "node ./scripts/one-button-deploy.js --prod --strict-dns",
     "deploy:one-click:preview": "node ./scripts/one-button-deploy.js --preview",
     "deploy:one-click:preview:strict-dns": "node ./scripts/one-button-deploy.js --preview --strict-dns",
+    "deploy:namecheap:check": "node ./scripts/check-namecheap-deploy-config.js",
     "llm:prepare-dataset": "node ./scripts/prepare-custom-llm-dataset.js",
     "llm:validate-dataset": "node ./scripts/validate-custom-llm-dataset.js",
     "llm:check": "node ./scripts/check-llm-config.js",
