@@ -47,6 +47,7 @@
   "exclude": [
     "node_modules",
     "program",
+    "archive/legacy-code/program/tests",
     "archive",
     "tradehax-fresh"
   ]
