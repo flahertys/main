@@ -2,116 +2,148 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "TradeHax: Dev Server",
-      "type": "npm",
-      "script": "dev",
-      "problemMatcher": [],
-      "detail": "Run Next.js dev server for tradehax.net"
-    },
-    {
-      "label": "TradeHax: Lint",
-      "type": "npm",
-      "script": "lint",
-      "problemMatcher": []
-    },
-    {
-      "label": "TradeHax: Type Check",
-      "type": "npm",
-      "script": "type-check",
-      "problemMatcher": [
-        "$tsc"
-      ]
-    },
-    {
-      "label": "TradeHax: Local Pipeline",
-      "type": "npm",
-      "script": "pipeline:local",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "TradeHax: Deploy Preflight",
-      "type": "npm",
-      "script": "pipeline:deploy-checks",
-      "problemMatcher": []
-    },
-    {
-      "label": "TradeHax: One-Button Deploy (Prod)",
-      "type": "npm",
-      "script": "deploy:one-click",
-      "problemMatcher": []
-    },
-    {
-      "label": "TradeHax: One-Button Deploy (Preview)",
-      "type": "npm",
-      "script": "deploy:one-click:preview",
-      "problemMatcher": []
-    },
-    {
-      "label": "TradeHax: Social API Setup",
-      "type": "npm",
-      "script": "social:setup",
-      "problemMatcher": []
-    },
-    {
-      "label": "TradeHax: Social API Check",
-      "type": "npm",
-      "script": "social:check",
-      "problemMatcher": []
-    },
-    {
-      "label": "TradeHax: Install Git Hooks",
-      "type": "npm",
-      "script": "hooks:install",
-      "problemMatcher": []
-    },
-    {
-      "label": "TradeHax: Repo Status",
-      "type": "npm",
-      "script": "repo:status",
-      "problemMatcher": []
-    },
-    {
-      "label": "TradeHax: Sync Mirror",
-      "type": "npm",
-      "script": "repo:sync-mirror",
-      "problemMatcher": []
-    },
-    {
       "label": "TradeHax: IDE Sync (Quick)",
       "type": "npm",
       "script": "ide:sync",
-      "problemMatcher": []
+      "problemMatcher": {
+        "pattern": [
+          {
+            "regexp": "^(error|warning|ERROR|WARNING).*$",
+            "severity": "warning"
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Starting.*sync.*$",
+          "endsPattern": "^.*Sync.*complete.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "showReuseMessage": false
+      },
+      "runOptions": {
+        "runOn": "default"
+      }
     },
     {
       "label": "TradeHax: IDE Sync (Full)",
       "type": "npm",
       "script": "ide:sync:full",
-      "problemMatcher": []
+      "problemMatcher": {
+        "pattern": [
+          {
+            "regexp": "^(error|warning|ERROR|WARNING).*$",
+            "severity": "warning"
+          }
+        ]
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "showReuseMessage": false
+      }
     },
     {
       "label": "TradeHax: IDE Sync (Deploy Ready)",
       "type": "npm",
       "script": "ide:sync:deploy-ready",
-      "problemMatcher": []
+      "problemMatcher": {
+        "pattern": [
+          {
+            "regexp": "^(error|warning|ERROR|WARNING).*$",
+            "severity": "warning"
+          }
+        ]
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "showReuseMessage": false,
+        "panel": "dedicated"
+      }
     },
     {
-      "label": "TradeHax: Extension Build",
+      "label": "TradeHax: Lint",
       "type": "npm",
-      "path": ".vscode-extension",
-      "script": "esbuild",
-      "problemMatcher": []
+      "script": "lint",
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^\\s*(.*?)\\s+(\\d+):(\\d+)\\s+(error|warning)\\s+(.*)$",
+          "file": 1,
+          "location": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
     },
     {
-      "label": "TradeHax: Extension Watch",
+      "label": "TradeHax: Type Check",
       "type": "npm",
-      "path": ".vscode-extension",
-      "script": "esbuild-watch",
+      "script": "type-check",
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "TradeHax: Build",
+      "type": "npm",
+      "script": "build",
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "TradeHax: Dev Server",
+      "type": "npm",
+      "script": "dev",
       "isBackground": true,
-      "problemMatcher": []
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*error.*)$",
+          "severity": "error"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*ready.*$",
+          "endsPattern": "^(?!.*ready.*).*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "showReuseMessage": false
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    },
+    {
+      "label": "TradeHax: Deploy to Namecheap",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "scripts/deploy-to-namecheap.sh"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "showReuseMessage": false
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
     }
   ]
 }
