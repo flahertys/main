@@ -68,7 +68,10 @@
     "repo:sync-mirror": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-mirror-from-canonical.ps1",
     "ide:sync": "node ./scripts/ide-sync-pipeline.js",
     "ide:sync:full": "node ./scripts/ide-sync-pipeline.js --install --build --namecheap",
-    "ide:sync:deploy-ready": "node ./scripts/ide-sync-pipeline.js --install --build --namecheap --strict-namecheap"
+    "ide:sync:deploy-ready": "node ./scripts/ide-sync-pipeline.js --install --build --namecheap --strict-namecheap",
+    "deploy:launch": "node ./scripts/launch-website-deploy.js",
+    "deploy:launch:dry-run": "node ./scripts/launch-website-deploy.js --dry-run",
+    "deploy:launch:no-watch": "node ./scripts/launch-website-deploy.js --no-watch"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

@@ -35,6 +35,21 @@ Add these repository secrets:
 
 Then run workflow: **Deploy to Namecheap VPS**.
 
+## One-command deploy launch from local machine
+
+After completing one-time server setup and adding required GitHub secrets, you can launch deployment automation from this repo:
+
+```bash
+npm run deploy:launch
+```
+
+Useful variants:
+
+- `npm run deploy:launch:dry-run` → show what would run without making changes
+- `npm run deploy:launch:no-watch` → trigger workflow without waiting for completion
+
+The launcher performs deploy-readiness checks first (`ide:sync:deploy-ready`), then triggers `.github/workflows/namecheap-vps-deploy.yml`, and watches the run to completion.
+
 ## Replace Vercel cron
 
 On server, run:
