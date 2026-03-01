@@ -301,7 +301,7 @@ export default function AccountPage() {
             />
           </label>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
+          <div id="consent-controls" className="mt-5 grid gap-3 md:grid-cols-2 scroll-mt-32">
             <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-3 text-sm text-zinc-300">
               <input
                 type="checkbox"

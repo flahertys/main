@@ -5,7 +5,6 @@ import Script from "next/script";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-import { ConsentCenter } from "@/components/ai/ConsentCenter";
 import { SiteNavigatorWidget } from "@/components/ai/SiteNavigatorWidget";
 import { SolanaProvider } from "@/components/counter/provider/Solana";
 import { HyperboreaIntroOverlay } from "@/components/intro/HyperboreaIntroOverlay";
@@ -185,7 +184,6 @@ export default function RootLayout({
                 <span aria-hidden>⚡</span>
                 <span>AI Quick Launch</span>
               </a>
-              <ConsentCenter />
               <SiteNavigatorWidget />
             </WalletProvider>
           </SolanaProvider>
@@ -223,6 +221,7 @@ export default function RootLayout({
                 <ul className="text-zinc-500 text-sm space-y-2">
                   <li><a href="/services" className="hover:text-white transition-colors">Services</a></li>
                   <li><a href="/billing" className="hover:text-white transition-colors">Billing</a></li>
+                  <li><a href="/account#consent-controls" className="hover:text-white transition-colors">Privacy &amp; Consent</a></li>
                   <li><a href="/portfolio" className="hover:text-white transition-colors">Portfolio</a></li>
                   <li><a href={scheduleLinks.guitarLessons} className="hover:text-white transition-colors">Book Lessons</a></li>
                   <li><a href={businessProfile.contactLinks.email} className="hover:text-white transition-colors">{businessProfile.contactEmail}</a></li>
