@@ -29,6 +29,9 @@ type StreamStatusData = {
   provider?: string;
   model?: string;
   preset?: string;
+  sloProfile?: "latency" | "balanced" | "quality";
+  sloTargetLatencyMs?: number;
+  sloMaxTokens?: number;
   tier?: string;
   policyMode?: string;
   lawfulOnly?: boolean;
@@ -59,6 +62,7 @@ export function ChatStreamPanel() {
   const [responseStyle, setResponseStyle] = useState<"concise" | "coach" | "operator">("operator");
   const [freedomMode, setFreedomMode] = useState<"uncensored" | "standard">("uncensored");
   const [preset, setPreset] = useState("operator_exec");
+  const [sloProfile, setSloProfile] = useState<"latency" | "balanced" | "quality">("balanced");
   const [xLoading, setXLoading] = useState(false);
   const [xError, setXError] = useState("");
   const [localError, setLocalError] = useState("");
@@ -79,6 +83,7 @@ export function ChatStreamPanel() {
         responseStyle,
         freedomMode,
         preset,
+        sloProfile,
         context: {
           xSearchQuery: xQuery.trim() || undefined,
         },
@@ -229,7 +234,7 @@ export function ChatStreamPanel() {
         />
       </div>
 
-      <div className="mb-3 grid gap-2 sm:grid-cols-3">
+      <div className="mb-3 grid gap-2 sm:grid-cols-4">
         <select
           value={responseStyle}
           onChange={(e) => setResponseStyle(e.target.value as "concise" | "coach" | "operator")}
@@ -266,6 +271,18 @@ export function ChatStreamPanel() {
           <option value="creative_growth">Growth Writer</option>
           <option value="deep_research">Deep Researcher</option>
           <option value="fallback_safe">Safe Backup</option>
+        </select>
+
+        <select
+          value={sloProfile}
+          onChange={(e) => setSloProfile(e.target.value as "latency" | "balanced" | "quality")}
+          title="SLO profile"
+          aria-label="SLO profile"
+          className="rounded-lg border border-amber-400/35 bg-black/35 px-3 py-2 text-sm text-amber-100 outline-none"
+        >
+          <option value="latency">Latency-first</option>
+          <option value="balanced">Balanced</option>
+          <option value="quality">Quality-first</option>
         </select>
       </div>
 
@@ -312,7 +329,9 @@ export function ChatStreamPanel() {
         <div className="rounded-lg border border-cyan-500/20 bg-black/30 px-3 py-2 text-xs text-cyan-100/85">
           <p className="text-[10px] uppercase tracking-wider text-cyan-300/70">Model / Preset</p>
           <p className="mt-1 font-semibold truncate">{latestStatusData?.model || "auto"}</p>
-          <p className="truncate text-[11px] opacity-80">{latestStatusData?.preset || preset}</p>
+          <p className="truncate text-[11px] opacity-80">
+            {latestStatusData?.preset || preset} · SLO {(latestStatusData?.sloProfile || sloProfile).toUpperCase()}
+          </p>
         </div>
         <div className="rounded-lg border border-fuchsia-500/20 bg-black/30 px-3 py-2 text-xs text-fuchsia-100/85">
           <p className="text-[10px] uppercase tracking-wider text-fuchsia-300/70">Tier / Domain</p>
@@ -322,13 +341,16 @@ export function ChatStreamPanel() {
           </p>
         </div>
         <div className="rounded-lg border border-amber-500/20 bg-black/30 px-3 py-2 text-xs text-amber-100/85">
-          <p className="text-[10px] uppercase tracking-wider text-amber-300/70">Usage / Credits</p>
+          <p className="text-[10px] uppercase tracking-wider text-amber-300/70">Usage / Credits / SLO</p>
           <p className="mt-1 font-semibold">
             D{latestStatusData?.usage?.remainingToday ?? "-"}
             {" "}· W{latestStatusData?.usage?.remainingThisWeek ?? "-"}
           </p>
           <p className="text-[11px] opacity-80">
             -{latestStatusData?.credits?.spent ?? 0} / {latestStatusData?.credits?.remaining ?? "-"} left
+          </p>
+          <p className="text-[11px] opacity-80">
+            {latestStatusData?.sloTargetLatencyMs ?? "-"}ms target · {latestStatusData?.sloMaxTokens ?? "-"} max tokens
           </p>
         </div>
       </div>

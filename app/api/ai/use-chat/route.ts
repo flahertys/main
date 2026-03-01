@@ -43,6 +43,7 @@ type UseChatRequest = {
   context?: unknown;
   preset?: string;
   model?: string;
+  sloProfile?: SloProfile;
   responseStyle?: "concise" | "coach" | "operator";
   freedomMode?: "uncensored" | "standard";
   objective?: string;
@@ -60,6 +61,15 @@ type QualitySummary = {
   score: number;
   classification: "elite" | "strong" | "moderate" | "weak";
 };
+
+type SloProfile = "latency" | "balanced" | "quality";
+
+function parseSloProfile(value: unknown): SloProfile {
+  if (value === "latency" || value === "quality" || value === "balanced") {
+    return value;
+  }
+  return "balanced";
+}
 
 function sanitizeModelId(value: unknown, fallback: string) {
   if (typeof value !== "string") {
@@ -253,7 +263,59 @@ function parseFallbackModels() {
     .slice(0, 8);
 }
 
-function rankModelCandidates(primaryModel: string, domainModel: string) {
+function modelLatencyHint(modelId: string) {
+  const normalized = modelId.toLowerCase();
+  let score = 0;
+
+  if (/\b(70b|72b|65b|34b)\b/.test(normalized)) score += 22;
+  if (/\b(13b|14b|15b)\b/.test(normalized)) score += 12;
+  if (/\b(7b|8b)\b/.test(normalized)) score -= 3;
+  if (/mini|small|flash|fast|turbo|schnell/.test(normalized)) score -= 8;
+
+  return score;
+}
+
+function modelQualityHint(modelId: string) {
+  const normalized = modelId.toLowerCase();
+  let score = 0;
+
+  if (/\b(70b|72b|65b|34b)\b/.test(normalized)) score -= 20;
+  if (/\b(13b|14b|15b)\b/.test(normalized)) score -= 10;
+  if (/\b(7b|8b)\b/.test(normalized)) score += 3;
+  if (/instruct|chat/.test(normalized)) score -= 4;
+  if (/mini|small|flash|fast/.test(normalized)) score += 7;
+
+  return score;
+}
+
+function applySloPreset(profile: SloProfile, presetValues: { temperature: number; maxTokens: number; topP: number }) {
+  if (profile === "latency") {
+    return {
+      temperature: Math.max(0.35, Math.min(0.65, presetValues.temperature * 0.85)),
+      topP: Math.max(0.8, Math.min(0.9, presetValues.topP * 0.9)),
+      maxTokens: Math.max(280, Math.min(520, Math.floor(presetValues.maxTokens * 0.55))),
+      targetLatencyMs: 1800,
+    };
+  }
+
+  if (profile === "quality") {
+    return {
+      temperature: Math.max(0.6, Math.min(0.85, presetValues.temperature * 1.05)),
+      topP: Math.max(0.9, Math.min(0.98, presetValues.topP * 1.03)),
+      maxTokens: Math.max(900, Math.min(1800, Math.floor(presetValues.maxTokens * 1.2))),
+      targetLatencyMs: 5200,
+    };
+  }
+
+  return {
+    temperature: presetValues.temperature,
+    topP: presetValues.topP,
+    maxTokens: presetValues.maxTokens,
+    targetLatencyMs: 3200,
+  };
+}
+
+function rankModelCandidates(primaryModel: string, domainModel: string, sloProfile: SloProfile) {
   const ordered = [primaryModel, domainModel, ...parseFallbackModels()]
     .map((model) => sanitizeModelId(model, "Qwen/Qwen2.5-7B-Instruct"))
     .filter(Boolean);
@@ -266,8 +328,13 @@ function rankModelCandidates(primaryModel: string, domainModel: string) {
   });
 
   return unique.sort((a, b) => {
-    const aScore = scoreModelHealth(a) + (a === primaryModel ? -8 : 0);
-    const bScore = scoreModelHealth(b) + (b === primaryModel ? -8 : 0);
+    const aLatencyBias = sloProfile === "latency" ? modelLatencyHint(a) : 0;
+    const bLatencyBias = sloProfile === "latency" ? modelLatencyHint(b) : 0;
+    const aQualityBias = sloProfile === "quality" ? modelQualityHint(a) : 0;
+    const bQualityBias = sloProfile === "quality" ? modelQualityHint(b) : 0;
+
+    const aScore = scoreModelHealth(a) + aLatencyBias + aQualityBias + (a === primaryModel ? -8 : 0);
+    const bScore = scoreModelHealth(b) + bLatencyBias + bQualityBias + (b === primaryModel ? -8 : 0);
     return aScore - bScore;
   });
 }
@@ -380,6 +447,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as UseChatRequest;
     const userId = await resolveRequestUserId(request);
+    const sloProfile = parseSloProfile(body.sloProfile);
     const normalizedMessages = normalizeConversation(body.messages);
     const userPrompt = resolveLastUserPrompt(normalizedMessages);
 
@@ -542,6 +610,7 @@ export async function POST(request: NextRequest) {
       maxTokens: preset.maxTokens,
       topP: preset.topP,
     });
+    const tunedSlo = applySloPreset(sloProfile, tunedPreset);
 
     const resolvedStyle =
       body.responseStyle === "concise" || body.responseStyle === "operator" || body.responseStyle === "coach"
@@ -664,6 +733,7 @@ export async function POST(request: NextRequest) {
     const modelCandidates = rankModelCandidates(
       selectedModel,
       sanitizeModelId(resolvePredictionModel(domainSignal.domain), selectedModel),
+      sloProfile,
     );
 
     const stream = createUIMessageStream({
@@ -682,6 +752,9 @@ export async function POST(request: NextRequest) {
             userId,
             model: effectiveModel,
             preset: preset.id,
+            sloProfile,
+            sloTargetLatencyMs: tunedSlo.targetLatencyMs,
+            sloMaxTokens: tunedSlo.maxTokens,
             tier: neuralTier,
             policyMode: body.freedomMode === "uncensored" ? "open-lawful" : "standard",
             lawfulOnly: true,
@@ -724,9 +797,9 @@ export async function POST(request: NextRequest) {
 
             for await (const chunk of client.generateStream(prompt, {
               modelId: candidateModel,
-              temperature: tunedPreset.temperature,
-              maxTokens: tunedPreset.maxTokens,
-              topP: tunedPreset.topP,
+              temperature: tunedSlo.temperature,
+              maxTokens: tunedSlo.maxTokens,
+              topP: tunedSlo.topP,
             })) {
               emittedAnyToken = true;
               assistantText += chunk;
@@ -791,6 +864,9 @@ export async function POST(request: NextRequest) {
             userId,
             model: effectiveModel,
             preset: preset.id,
+            sloProfile,
+            sloTargetLatencyMs: tunedSlo.targetLatencyMs,
+            sloMaxTokens: tunedSlo.maxTokens,
             tier: neuralTier,
             policyMode: body.freedomMode === "uncensored" ? "open-lawful" : "standard",
             lawfulOnly: true,
