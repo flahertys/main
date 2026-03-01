@@ -1,6 +1,7 @@
 import { checkCredits, deductCredits, getCreditSnapshot } from "@/lib/ai/credit-system";
 import { buildTradeHaxSystemPrompt } from "@/lib/ai/custom-llm/system-prompt";
 import { cacheManager } from "@/lib/ai/response-cache";
+import { recordStreamTelemetry } from "@/lib/ai/telemetry-store";
 import { getLLMClient } from "@/lib/ai/hf-server";
 import { NeuralQuery, processNeuralCommand } from "@/lib/ai/kernel";
 import { buildLiveMarketContext } from "@/lib/ai/market-freshness";
@@ -470,6 +471,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (cachedResponse) {
+      recordStreamTelemetry({
+        userId,
+        status: "cached",
+        tier: body.tier || (body.freedomMode === "uncensored" ? "UNCENSORED" : "STANDARD"),
+        sloProfile,
+        model: cachedResponse.model,
+        preset: body.preset || "default",
+        qualityScore: cachedResponse.qualityScore,
+        qualityClass: cachedResponse.qualityClassification,
+        responseLatencyMs: Math.max(1, Date.now() - cachedResponse.createdAt),
+        cached: true,
+      });
+
       // Fast-path: return cached response instantly
       const cachedStream = createUIMessageStream({
         originalMessages: Array.isArray(body.messages) ? (body.messages as UIMessage[]) : undefined,
@@ -557,6 +571,7 @@ export async function POST(request: NextRequest) {
       const fallbackStream = createUIMessageStream({
         originalMessages: Array.isArray(body.messages) ? (body.messages as UIMessage[]) : undefined,
         execute: async ({ writer }) => {
+          const fallbackStartedAt = Date.now();
           const textPartId = `text-${Date.now()}`;
           writer.write({
             type: "data-status",
@@ -575,6 +590,20 @@ export async function POST(request: NextRequest) {
             delta: legacy.text,
           });
           writer.write({ type: "text-end", id: textPartId });
+
+          recordStreamTelemetry({
+            userId,
+            status: "fallback-complete",
+            tier: body.tier || (body.freedomMode === "uncensored" ? "UNCENSORED" : "STANDARD"),
+            sloProfile,
+            model: "legacy-chat",
+            preset: body.preset || "default",
+            qualityScore: quality.score,
+            qualityClass: quality.classification,
+            responseLatencyMs: Date.now() - fallbackStartedAt,
+            cached: false,
+          });
+
           writer.write({
             type: "data-status",
             data: {
@@ -797,6 +826,7 @@ export async function POST(request: NextRequest) {
     const stream = createUIMessageStream({
       originalMessages: Array.isArray(body.messages) ? (body.messages as UIMessage[]) : undefined,
       execute: async ({ writer }) => {
+        const startedAt = Date.now();
         const textPartId = `text-${Date.now()}`;
         let effectiveModel = selectedModel;
         let assistantText = "";
@@ -910,6 +940,7 @@ export async function POST(request: NextRequest) {
         }
 
         const quality = evaluateResponseQuality(assistantText);
+        const responseLatencyMs = Date.now() - startedAt;
 
         // Store response in cache after streaming completes
         await cacheManager
@@ -932,6 +963,24 @@ export async function POST(request: NextRequest) {
           .catch(() => {
             // Silent fail on cache storage errors; don't block response
           });
+
+        recordStreamTelemetry({
+          userId,
+          status: "complete",
+          tier: neuralTier,
+          sloProfile,
+          model: effectiveModel,
+          preset: preset.id,
+          predictionDomain: domainSignal.domain,
+          predictionConfidence: domainSignal.confidence,
+          qualityScore: quality.score,
+          qualityClass: quality.classification,
+          responseLatencyMs,
+          cached: false,
+          failedModels,
+          creditsSpent: debitCost,
+          creditsRemaining: debitRemaining,
+        });
 
         writer.write({
           type: "text-end",
@@ -957,6 +1006,7 @@ export async function POST(request: NextRequest) {
             failedModels,
             quality,
             cached: false,
+            responseLatencyMs,
             usage: {
               remainingToday: usageCommit.allowance.remainingToday,
               remainingThisWeek: usageCommit.allowance.remainingThisWeek ?? null,

@@ -31,6 +31,7 @@ type StreamStatusData = {
   preset?: string;
   cached?: boolean;
   cachedAt?: string;
+  responseLatencyMs?: number;
   sloProfile?: "latency" | "balanced" | "quality";
   sloTargetLatencyMs?: number;
   sloMaxTokens?: number;
@@ -361,7 +362,7 @@ export function ChatStreamPanel() {
             -{latestStatusData?.credits?.spent ?? 0} / {latestStatusData?.credits?.remaining ?? "-"} left
           </p>
           <p className="text-[11px] opacity-80">
-            {latestStatusData?.sloTargetLatencyMs ?? "-"}ms target · {latestStatusData?.sloMaxTokens ?? "-"} max tokens
+            {latestStatusData?.responseLatencyMs ?? "-"}ms actual · {latestStatusData?.sloTargetLatencyMs ?? "-"}ms target · {latestStatusData?.sloMaxTokens ?? "-"} max tokens
           </p>
         </div>
       </div>
