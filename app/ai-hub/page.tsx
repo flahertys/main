@@ -141,12 +141,20 @@ export default function AIHubPage() {
               <p className="text-sm font-semibold text-indigo-100">Need API keys, webhooks, or model endpoints?</p>
               <p className="text-xs text-indigo-100/75 mt-1">Beginner flow stays here. Developer and integration workflows are in Dev Hub.</p>
             </div>
-            <Link
-              href="/dev-hub"
-              className="rounded border border-indigo-300/40 bg-black/25 px-3 py-1.5 text-xs font-semibold text-indigo-100 hover:bg-black/35 transition"
-            >
-              Open Dev Hub
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/ai-hub/analytics"
+                className="rounded border border-cyan-300/40 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25 transition"
+              >
+                Open AI Analytics
+              </Link>
+              <Link
+                href="/dev-hub"
+                className="rounded border border-indigo-300/40 bg-black/25 px-3 py-1.5 text-xs font-semibold text-indigo-100 hover:bg-black/35 transition"
+              >
+                Open Dev Hub
+              </Link>
+            </div>
           </div>
         </div>
 
