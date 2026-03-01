@@ -38,6 +38,39 @@ console.log("");
 // Use curl to upload
 const { execSync } = require("child_process");
 
+function parseExternalJson(raw) {
+  if (!raw || typeof raw !== "string") return null;
+
+  const withoutBom = raw.replace(/^\uFEFF/, "");
+  const withoutAnsi = withoutBom.replace(/\u001b\[[0-9;]*m/g, "");
+  const trimmed = withoutAnsi.trim();
+
+  const candidates = [trimmed];
+  const firstObject = withoutAnsi.indexOf("{");
+  const lastObject = withoutAnsi.lastIndexOf("}");
+  if (firstObject >= 0 && lastObject > firstObject) {
+    candidates.push(withoutAnsi.slice(firstObject, lastObject + 1).trim());
+  }
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Continue with fallback sanitization
+    }
+
+    try {
+      const sanitized = candidate.replace(/\\u(?![0-9a-fA-F]{4})/g, "\\\\u");
+      return JSON.parse(sanitized);
+    } catch {
+      // Try next candidate
+    }
+  }
+
+  return null;
+}
+
 const curlCommand = `curl -X POST \\
   -H "Authorization: Bearer ${HF_TOKEN}" \\
   -F "file=@${FILE_PATH}" \\
@@ -45,7 +78,16 @@ const curlCommand = `curl -X POST \\
 
 try {
   const output = execSync(curlCommand, { encoding: "utf-8", stdio: "pipe" });
-  const result = JSON.parse(output);
+  const result = parseExternalJson(output);
+
+  if (!result || typeof result !== "object") {
+    console.error("❌ Upload failed: Unable to parse API JSON response.");
+    const preview = String(output || "").trim().slice(0, 280);
+    if (preview) {
+      console.error("   Raw output preview:", preview);
+    }
+    process.exit(1);
+  }
 
   if (result.error) {
     console.error("❌ Upload failed:", result.error);

@@ -34,6 +34,46 @@ const nodeExecPath = process.execPath;
 const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
 const ghCmd = process.platform === "win32" ? "gh.exe" : "gh";
 
+function parseExternalJson(raw) {
+  if (!raw || typeof raw !== "string") return null;
+
+  const withoutBom = raw.replace(/^\uFEFF/, "");
+  const withoutAnsi = withoutBom.replace(/\u001b\[[0-9;]*m/g, "");
+
+  const candidates = [];
+  candidates.push(withoutAnsi.trim());
+
+  const firstArray = withoutAnsi.indexOf("[");
+  const lastArray = withoutAnsi.lastIndexOf("]");
+  if (firstArray >= 0 && lastArray > firstArray) {
+    candidates.push(withoutAnsi.slice(firstArray, lastArray + 1).trim());
+  }
+
+  const firstObject = withoutAnsi.indexOf("{");
+  const lastObject = withoutAnsi.lastIndexOf("}");
+  if (firstObject >= 0 && lastObject > firstObject) {
+    candidates.push(withoutAnsi.slice(firstObject, lastObject + 1).trim());
+  }
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Continue with fallback sanitization
+    }
+
+    try {
+      const sanitized = candidate.replace(/\\u(?![0-9a-fA-F]{4})/g, "\\\\u");
+      return JSON.parse(sanitized);
+    } catch {
+      // Continue trying next candidate
+    }
+  }
+
+  return null;
+}
+
 function run(label, command, commandArgs, options = {}) {
   console.log(`\n==> ${label}`);
   console.log(`${command} ${commandArgs.join(" ")}`);
@@ -105,10 +145,8 @@ function getLatestRunId() {
   );
 
   const output = String(result.stdout || "").trim();
-  let parsed;
-  try {
-    parsed = JSON.parse(output);
-  } catch {
+  const parsed = parseExternalJson(output);
+  if (!parsed) {
     console.error("Unable to parse workflow run list output.");
     process.exit(1);
   }
