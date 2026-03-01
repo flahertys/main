@@ -31,6 +31,8 @@ This plan operationalizes the requested Phase 3/4 direction for TradeHax AI Hub 
 5. **Streaming `useChat` beta lane (frontend + backend)**
 
 - `components/ai/ChatStreamPanel.tsx`
+- `components/ai/SafetyStateBanner.tsx`
+- `components/ai/ContextSignalPanel.tsx`
 - `app/api/ai/use-chat/route.ts`
 - Added Vercel AI SDK transport with live streaming, preset/style/freedom metadata, retrieval context, and model-routing parity signals.
 

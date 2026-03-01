@@ -4,6 +4,8 @@ import { Loader2, Mic, MicOff, Search, Send, Square } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { FormEvent, useEffect, useState } from "react";
+import { SafetyStateBanner } from "@/components/ai/SafetyStateBanner";
+import { ContextSignalPanel } from "@/components/ai/ContextSignalPanel";
 
 type VoiceRecognition = {
   start: () => void;
@@ -28,6 +30,8 @@ type StreamStatusData = {
   model?: string;
   preset?: string;
   tier?: string;
+  policyMode?: string;
+  lawfulOnly?: boolean;
   failedModels?: string[];
   candidateModels?: string[];
   predictionDomain?: string;
@@ -284,6 +288,19 @@ export function ChatStreamPanel() {
       </div>
 
       {xError ? <p className="mb-2 text-xs text-rose-200">{xError}</p> : null}
+
+      <SafetyStateBanner
+        freedomMode={freedomMode}
+        policyMode={latestStatusData?.policyMode}
+        lawfulOnly={latestStatusData?.lawfulOnly ?? true}
+      />
+
+      <ContextSignalPanel
+        objective={objective}
+        xQuery={xQuery}
+        predictionDomain={latestStatusData?.predictionDomain}
+        predictionConfidence={latestStatusData?.predictionConfidence}
+      />
 
       <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-emerald-500/20 bg-black/30 px-3 py-2 text-xs text-emerald-100/85">
