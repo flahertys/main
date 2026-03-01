@@ -832,6 +832,10 @@ export async function POST(request: NextRequest) {
         let assistantText = "";
         let emittedAnyToken = false;
         const failedModels: string[] = [];
+        const latencyBudgetThresholdMs = Math.max(850, Math.floor(tunedSlo.targetLatencyMs * 0.7));
+        let sloFallbackTriggered = false;
+        let sloFallbackFromModel = "";
+        let sloFallbackToModel = "";
 
         writer.write({
           type: "data-status",
@@ -870,6 +874,8 @@ export async function POST(request: NextRequest) {
 
         for (const candidateModel of modelCandidates) {
           const attemptStartedAt = Date.now();
+          let candidateTokenCount = 0;
+          let candidateExceededLatencyBudget = false;
           try {
             const client = getLLMClient({ modelId: candidateModel });
             if (candidateModel !== effectiveModel) {
@@ -890,6 +896,19 @@ export async function POST(request: NextRequest) {
               maxTokens: tunedSlo.maxTokens,
               topP: tunedSlo.topP,
             })) {
+              candidateTokenCount += 1;
+              const elapsed = Date.now() - attemptStartedAt;
+
+              if (
+                sloProfile === "latency" &&
+                elapsed > latencyBudgetThresholdMs &&
+                candidateTokenCount < 2 &&
+                modelCandidates.length > 1
+              ) {
+                candidateExceededLatencyBudget = true;
+                break;
+              }
+
               emittedAnyToken = true;
               assistantText += chunk;
               writer.write({
@@ -897,6 +916,33 @@ export async function POST(request: NextRequest) {
                 id: textPartId,
                 delta: chunk,
               });
+            }
+
+            if (candidateExceededLatencyBudget) {
+              recordModelHealth(candidateModel, false, Date.now() - attemptStartedAt);
+              failedModels.push(candidateModel);
+
+              const fallbackModel = modelCandidates.find((model) => model !== candidateModel && !failedModels.includes(model));
+              if (fallbackModel) {
+                sloFallbackTriggered = true;
+                sloFallbackFromModel = candidateModel;
+                sloFallbackToModel = fallbackModel;
+                effectiveModel = fallbackModel;
+                writer.write({
+                  type: "data-status",
+                  data: {
+                    status: "slo-fallback",
+                    reason: "latency-budget-exceeded",
+                    thresholdMs: latencyBudgetThresholdMs,
+                    elapsedMs: Date.now() - attemptStartedAt,
+                    fromModel: candidateModel,
+                    toModel: fallbackModel,
+                  },
+                  transient: true,
+                });
+              }
+
+              continue;
             }
 
             effectiveModel = candidateModel;
@@ -977,6 +1023,9 @@ export async function POST(request: NextRequest) {
           qualityClass: quality.classification,
           responseLatencyMs,
           cached: false,
+          sloFallbackTriggered,
+          sloFallbackFromModel: sloFallbackFromModel || undefined,
+          sloFallbackToModel: sloFallbackToModel || undefined,
           failedModels,
           creditsSpent: debitCost,
           creditsRemaining: debitRemaining,
@@ -1006,6 +1055,9 @@ export async function POST(request: NextRequest) {
             failedModels,
             quality,
             cached: false,
+            sloFallbackTriggered,
+            sloFallbackFromModel: sloFallbackFromModel || undefined,
+            sloFallbackToModel: sloFallbackToModel || undefined,
             responseLatencyMs,
             usage: {
               remainingToday: usageCommit.allowance.remainingToday,

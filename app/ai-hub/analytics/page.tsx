@@ -7,6 +7,8 @@ type TelemetrySummary = {
   windowMinutes: number;
   totalEvents: number;
   cacheHitRate: number;
+  sloFallbackRate: number;
+  sloFallbackCount: number;
   avgLatencyMs: number;
   p50LatencyMs: number;
   p90LatencyMs: number;
@@ -23,6 +25,8 @@ const emptySummary: TelemetrySummary = {
   windowMinutes: 60,
   totalEvents: 0,
   cacheHitRate: 0,
+  sloFallbackRate: 0,
+  sloFallbackCount: 0,
   avgLatencyMs: 0,
   p50LatencyMs: 0,
   p90LatencyMs: 0,
@@ -82,6 +86,8 @@ export default function AIHubAnalyticsPage() {
             <select
               value={windowMinutes}
               onChange={(e) => setWindowMinutes(Number(e.target.value))}
+              title="Telemetry window"
+              aria-label="Telemetry window"
               className="rounded-lg border border-cyan-400/35 bg-black/45 px-3 py-2 text-sm text-cyan-100"
             >
               <option value={15}>15m</option>
@@ -113,6 +119,8 @@ export default function AIHubAnalyticsPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard label="Total events" value={String(summary.totalEvents)} />
           <MetricCard label="Cache hit rate" value={`${summary.cacheHitRate.toFixed(2)}%`} />
+          <MetricCard label="SLO fallback rate" value={`${summary.sloFallbackRate.toFixed(2)}%`} />
+          <MetricCard label="SLO fallback count" value={String(summary.sloFallbackCount)} />
           <MetricCard label="Avg quality" value={summary.avgQualityScore.toFixed(2)} />
           <MetricCard label="Avg latency" value={`${summary.avgLatencyMs}ms`} />
           <MetricCard label="p50 latency" value={`${summary.p50LatencyMs}ms`} />
@@ -141,9 +149,12 @@ export default function AIHubAnalyticsPage() {
                       <span className="truncate pr-2">{model}</span>
                       <span>{count} ({pct}%)</span>
                     </div>
-                    <div className="h-2 rounded bg-black/40">
-                      <div className="h-full rounded bg-cyan-400" style={{ width: `${pct}%` }} />
-                    </div>
+                    <progress
+                      value={pct}
+                      max={100}
+                      aria-label={`${model} share`}
+                      className="h-2 w-full overflow-hidden rounded bg-black/40 [&::-webkit-progress-bar]:bg-black/40 [&::-webkit-progress-value]:bg-cyan-400 [&::-moz-progress-bar]:bg-cyan-400"
+                    />
                   </div>
                 );
               })
@@ -186,9 +197,12 @@ function DistributionCard({ title, entries }: { title: string; entries: Array<[s
                   <span>{label}</span>
                   <span>{value} ({pct}%)</span>
                 </div>
-                <div className="h-2 rounded bg-black/35">
-                  <div className="h-full rounded bg-fuchsia-400" style={{ width: `${pct}%` }} />
-                </div>
+                <progress
+                  value={pct}
+                  max={100}
+                  aria-label={`${label} distribution`}
+                  className="h-2 w-full overflow-hidden rounded bg-black/35 [&::-webkit-progress-bar]:bg-black/35 [&::-webkit-progress-value]:bg-fuchsia-400 [&::-moz-progress-bar]:bg-fuchsia-400"
+                />
               </div>
             );
           })
