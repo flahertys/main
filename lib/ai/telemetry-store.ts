@@ -16,6 +16,9 @@ export type StreamTelemetryEvent = {
   qualityClass?: QualityClass;
   responseLatencyMs?: number;
   cached?: boolean;
+  sloFallbackTriggered?: boolean;
+  sloFallbackFromModel?: string;
+  sloFallbackToModel?: string;
   failedModels?: string[];
   creditsSpent?: number;
   creditsRemaining?: number;
@@ -25,6 +28,8 @@ export type TelemetrySummary = {
   windowMinutes: number;
   totalEvents: number;
   cacheHitRate: number;
+  sloFallbackRate: number;
+  sloFallbackCount: number;
   avgLatencyMs: number;
   p50LatencyMs: number;
   p90LatencyMs: number;
@@ -111,9 +116,11 @@ export function summarizeTelemetry(params?: {
   const byModel: Record<string, number> = {};
 
   let cacheHits = 0;
+  let sloFallbackCount = 0;
 
   for (const event of events) {
     if (event.cached) cacheHits += 1;
+    if (event.sloFallbackTriggered) sloFallbackCount += 1;
     if (event.qualityClass) qualityDistribution[event.qualityClass] += 1;
     if (event.sloProfile) bySloProfile[event.sloProfile] = (bySloProfile[event.sloProfile] || 0) + 1;
     if (event.tier) byTier[event.tier] = (byTier[event.tier] || 0) + 1;
@@ -129,6 +136,8 @@ export function summarizeTelemetry(params?: {
     windowMinutes,
     totalEvents: events.length,
     cacheHitRate: events.length > 0 ? Math.round((cacheHits / events.length) * 10_000) / 100 : 0,
+    sloFallbackRate: events.length > 0 ? Math.round((sloFallbackCount / events.length) * 10_000) / 100 : 0,
+    sloFallbackCount,
     avgLatencyMs,
     p50LatencyMs: percentile(latencies, 50),
     p90LatencyMs: percentile(latencies, 90),

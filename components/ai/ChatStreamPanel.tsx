@@ -31,6 +31,9 @@ type StreamStatusData = {
   preset?: string;
   cached?: boolean;
   cachedAt?: string;
+  sloFallbackTriggered?: boolean;
+  sloFallbackFromModel?: string;
+  sloFallbackToModel?: string;
   responseLatencyMs?: number;
   sloProfile?: "latency" | "balanced" | "quality";
   sloTargetLatencyMs?: number;
@@ -314,6 +317,15 @@ export function ChatStreamPanel() {
           <p className="font-semibold">⚡ Quick replay from cache</p>
           <p className="mt-1 text-[11px] opacity-90">
             Instant response served from recent cache ({latestStatusData?.cachedAt ? `cached ${new Date(latestStatusData.cachedAt).toLocaleTimeString()}` : "just now"})
+          </p>
+        </div>
+      )}
+
+      {latestStatusData?.sloFallbackTriggered && (
+        <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+          <p className="font-semibold">Adaptive SLO fallback engaged</p>
+          <p className="mt-1 text-[11px] opacity-90">
+            Switched from {latestStatusData?.sloFallbackFromModel || "initial model"} to {latestStatusData?.sloFallbackToModel || latestStatusData?.model || "fallback model"} to preserve latency target.
           </p>
         </div>
       )}
