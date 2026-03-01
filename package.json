@@ -75,6 +75,7 @@
     "deploy:launch:no-watch": "node ./scripts/launch-website-deploy.js --no-watch"
   },
   "dependencies": {
+    "@ai-sdk/react": "^3.0.107",
     "@coral-xyz/anchor": "^0.31.1",
     "@emailjs/browser": "^4.4.1",
     "@huggingface/inference": "^4.13.13",
@@ -88,6 +89,7 @@
     "@solana/wallet-adapter-wallets": "^0.19.37",
     "@solana/web3.js": "^1.98.0",
     "@vercel/analytics": "^1.6.1",
+    "ai": "^6.0.105",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.3.1",

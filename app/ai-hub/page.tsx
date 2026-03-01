@@ -1,9 +1,11 @@
 import { HFChatComponent } from "@/components/ai/HFChatComponent";
+import { ChatStreamPanel } from "@/components/ai/ChatStreamPanel";
 import { HFGeneratorComponent } from "@/components/ai/HFGeneratorComponent";
 import { HubSectionProgressRail } from "@/components/ai/HubSectionProgressRail";
 import { ImageGeneratorComponent } from "@/components/ai/ImageGeneratorComponent";
 import { ModelScoreboardPanel } from "@/components/ai/ModelScoreboardPanel";
 import { SmartEnvironmentMonitor } from "@/components/ai/SmartEnvironmentMonitor";
+import { VoiceSearchControlPanel } from "@/components/ai/VoiceSearchControlPanel";
 import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { createPageMetadata } from "@/lib/seo";
@@ -220,6 +222,22 @@ export default function AIHubPage() {
         </div>
 
         <HubSectionProgressRail steps={[...progressSteps]} />
+
+        <div id="ai-chat-stream" className="mb-8 scroll-mt-28">
+          <Suspense
+            fallback={<LoadingPanel label="Loading streaming chat lane" tone="emerald" />}
+          >
+            <ChatStreamPanel />
+          </Suspense>
+        </div>
+
+        <Suspense
+          fallback={
+            <LoadingPanel label="Loading voice/search control panel" tone="cyan" className="mb-8" />
+          }
+        >
+          <VoiceSearchControlPanel />
+        </Suspense>
 
         {/* Smart Environment Monitor */}
         <div className="mb-12">

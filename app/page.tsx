@@ -131,6 +131,12 @@ export default function Home() {
                 Start Service Intake
               </TrackedCtaLink>
               <Link
+                href="/ai-hub#ai-chat"
+                className="theme-cta theme-cta--loud px-6 py-3"
+              >
+                Enter AI Dynasty
+              </Link>
+              <Link
                 href="/ai-hub"
                 className="theme-cta theme-cta--secondary px-6 py-3"
               >
