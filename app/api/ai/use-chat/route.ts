@@ -1,5 +1,6 @@
 import { checkCredits, deductCredits, getCreditSnapshot } from "@/lib/ai/credit-system";
 import { buildTradeHaxSystemPrompt } from "@/lib/ai/custom-llm/system-prompt";
+import { cacheManager } from "@/lib/ai/response-cache";
 import { getLLMClient } from "@/lib/ai/hf-server";
 import { NeuralQuery, processNeuralCommand } from "@/lib/ai/kernel";
 import { buildLiveMarketContext } from "@/lib/ai/market-freshness";
@@ -458,6 +459,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Cache lookup: check for cached response before expensive checks
+    const cachedResponse = await cacheManager.lookup({
+      userId,
+      userPrompt,
+      sloProfile,
+      preset: body.preset || "default",
+      freedomMode: body.freedomMode || "standard",
+      objective: body.objective,
+    });
+
+    if (cachedResponse) {
+      // Fast-path: return cached response instantly
+      const cachedStream = createUIMessageStream({
+        originalMessages: Array.isArray(body.messages) ? (body.messages as UIMessage[]) : undefined,
+        execute: async ({ writer }) => {
+          const textPartId = `text-${Date.now()}`;
+          writer.write({
+            type: "data-status",
+            data: {
+              status: "cached",
+              model: cachedResponse.model,
+              cached: true,
+              cachedAt: new Date(cachedResponse.createdAt).toISOString(),
+            },
+            transient: true,
+          });
+
+          writer.write({ type: "text-start", id: textPartId });
+          writer.write({
+            type: "text-delta",
+            id: textPartId,
+            delta: cachedResponse.responseText,
+          });
+          writer.write({ type: "text-end", id: textPartId });
+          writer.write({
+            type: "data-status",
+            data: {
+              status: "cached-complete",
+              model: cachedResponse.model,
+              quality: cachedResponse.qualityClassification,
+              cached: true,
+            },
+            transient: true,
+          });
+        },
+      });
+
+      return createUIMessageStreamResponse({
+        stream: cachedStream,
+        headers: {
+          ...rateLimit.headers,
+          "X-Cache": "HIT",
+          "X-Cache-Age": String(Math.floor((Date.now() - cachedResponse.createdAt) / 1000)),
+        },
+      });
+    }
+
     if (!isStreamingLaneEnabledForUser(request, userId)) {
       const normalizedMessagesText = normalizedMessages
         .map((msg) => `${msg.role}:${msg.content}`)
@@ -770,6 +828,7 @@ export async function POST(request: NextRequest) {
               spent: debitCost,
               remaining: debitRemaining,
             },
+            cached: false,
           },
           transient: true,
         });
@@ -852,6 +911,28 @@ export async function POST(request: NextRequest) {
 
         const quality = evaluateResponseQuality(assistantText);
 
+        // Store response in cache after streaming completes
+        await cacheManager
+          .store({
+            userId,
+            userPrompt,
+            sloProfile,
+            preset: body.preset || preset.id || "default",
+            freedomMode: body.freedomMode || "standard",
+            objective: body.objective,
+            tier: neuralTier,
+            response: {
+              responseText: assistantText,
+              model: effectiveModel,
+              qualityScore: quality.score,
+              qualityClassification: quality.classification,
+              tokensUsed: assistantText.split(/\s+/).length,
+            },
+          })
+          .catch(() => {
+            // Silent fail on cache storage errors; don't block response
+          });
+
         writer.write({
           type: "text-end",
           id: textPartId,
@@ -875,6 +956,7 @@ export async function POST(request: NextRequest) {
             marketFreshnessEnabled: liveMarket.enabled,
             failedModels,
             quality,
+            cached: false,
             usage: {
               remainingToday: usageCommit.allowance.remainingToday,
               remainingThisWeek: usageCommit.allowance.remainingThisWeek ?? null,
