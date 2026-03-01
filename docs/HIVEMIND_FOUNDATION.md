@@ -12,7 +12,11 @@ This document defines the first production-safe foundation for a long-lived Trad
 ## Core Components
 
 - `lib/ai/hivemind-core.ts` consolidates readiness checks for HF token configuration and dataset quality, inventories training datasets and JSONL integrity, and surfaces behavior-ingestion plus live-source status snapshots.
+- `lib/ai/hivemind-memory-index.ts` adds retrieval-augmented personalized memory with optional HF embeddings and lexical fallback.
+- `lib/ai/hivemind-lineage.ts` adds signed, multi-approval lineage transfer governance for legacy account continuity.
 - `app/api/ai/admin/hivemind/route.ts` provides an admin-protected operational API for hivemind health and source visibility, including rate-limiting and trusted-origin controls.
+- `app/api/ai/admin/hivemind/memory/route.ts` provides admin controls for memory upsert, profile sync, and semantic querying.
+- `app/api/ai/admin/hivemind/lineage/route.ts` provides admin controls for transfer proposals, signature-based approvals, and finalization.
 - `scripts/hivemind-readiness.js` is a CI-friendly doctor script for preflight checks; `--strict` exits non-zero when readiness gates fail.
 - `scripts/hivemind-benchmark-trend.js` tracks benchmark score trends from `data/tradebot/eval-score.json`, appends history to `data/tradebot/eval-history.jsonl`, and supports strict gating on score floor and regression delta.
 
@@ -30,6 +34,10 @@ This document defines the first production-safe foundation for a long-lived Trad
   - Maximum tolerated negative score drift versus previous run.
 - `TRADEHAX_HIVEMIND_BENCHMARK_WINDOW_SIZE`
   - Number of recent runs used for rolling trend analytics.
+- `TRADEHAX_HIVEMIND_LINEAGE_SECRET`
+  - HMAC secret for signing lineage approval requests (`x-tradehax-lineage-signature`).
+- `TRADEHAX_HIVEMIND_MEMORY_EMBEDDING_MODEL`
+  - Optional model override for personalized memory embeddings.
 
 ## Operational Cadence
 
@@ -48,6 +56,6 @@ Recommended daily cadence:
 
 ## Next Build Steps
 
-- Add vector memory index for retrieval-augmented personalization.
-- Add lineage-aware account transfer workflow with signed admin approvals.
-- Add scheduled benchmark trend tracking and canary promotion integration.
+- Add persistence backend for memory index (Supabase table or vector DB).
+- Add lineage execution hooks to migrate account-level personalization artifacts.
+- Add automated canary promotion policy tied to benchmark trend quality bands.

@@ -1,5 +1,7 @@
 import { requireAdminAccess } from "@/lib/admin-access";
 import { getHivemindReadiness, getHivemindSourceSnapshot } from "@/lib/ai/hivemind-core";
+import { getLineageTransferStatus } from "@/lib/ai/hivemind-lineage";
+import { getHivemindMemoryIndexStatus } from "@/lib/ai/hivemind-memory-index";
 import { enforceRateLimit, enforceTrustedOrigin } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -29,9 +31,13 @@ export async function GET(request: NextRequest) {
   }
 
   const includeSources = parseBoolean(request.nextUrl.searchParams.get("includeSources"), true);
+  const includeMemory = parseBoolean(request.nextUrl.searchParams.get("includeMemory"), true);
+  const includeLineage = parseBoolean(request.nextUrl.searchParams.get("includeLineage"), true);
 
   const readiness = await getHivemindReadiness();
   const sourceSnapshot = includeSources ? await getHivemindSourceSnapshot() : null;
+  const memoryIndexStatus = includeMemory ? getHivemindMemoryIndexStatus() : null;
+  const lineageStatus = includeLineage ? getLineageTransferStatus() : null;
 
   return NextResponse.json(
     {
@@ -39,6 +45,8 @@ export async function GET(request: NextRequest) {
       adminMode: adminGate.access.mode,
       readiness,
       sourceSnapshot,
+      memoryIndexStatus,
+      lineageStatus,
     },
     {
       headers: {
