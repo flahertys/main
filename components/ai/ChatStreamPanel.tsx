@@ -29,6 +29,8 @@ type StreamStatusData = {
   provider?: string;
   model?: string;
   preset?: string;
+  cached?: boolean;
+  cachedAt?: string;
   sloProfile?: "latency" | "balanced" | "quality";
   sloTargetLatencyMs?: number;
   sloMaxTokens?: number;
@@ -305,6 +307,15 @@ export function ChatStreamPanel() {
       </div>
 
       {xError ? <p className="mb-2 text-xs text-rose-200">{xError}</p> : null}
+
+      {latestStatusData?.cached && (
+        <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+          <p className="font-semibold">⚡ Quick replay from cache</p>
+          <p className="mt-1 text-[11px] opacity-90">
+            Instant response served from recent cache ({latestStatusData?.cachedAt ? `cached ${new Date(latestStatusData.cachedAt).toLocaleTimeString()}` : "just now"})
+          </p>
+        </div>
+      )}
 
       <SafetyStateBanner
         freedomMode={freedomMode}
