@@ -23,6 +23,8 @@ export interface ExperimentPolicySettings {
   driftHalfLifeMs: number;
   driftShockThreshold: number;
   driftShockHoldMs: number;
+  driftRecoveryThresholdRatio: number;
+  driftRecoveryConfirmations: number;
   autoswitchConfirmationCount: number;
   autoswitchBandPoints: number;
   autoswitchCoverageBand: number;
@@ -87,6 +89,8 @@ export interface ExperimentRampEvent {
   regretPressurePoints: number;
   driftScore: number;
   shockMode: boolean;
+  driftPhase: "normal" | "shock" | "recovering";
+  shockIntensity: number;
   recommendation: ExperimentDecisionSummary["recommendation"];
   confidence: ExperimentDecisionSummary["confidence"];
   rationale: string;
@@ -146,6 +150,8 @@ export interface ExperimentAllocatorDriftState {
   smoothedAbsZScore: number;
   driftScore: number;
   shockMode: boolean;
+  phase: "normal" | "shock" | "recovering";
+  recoveryStreak: number;
   sampleCount: number;
   lastUpdatedAt: string;
   shockUntil?: string;
@@ -200,6 +206,8 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     driftHalfLifeMs: 10 * 60 * 1000,
     driftShockThreshold: 1.9,
     driftShockHoldMs: 3 * 60 * 1000,
+    driftRecoveryThresholdRatio: 0.82,
+    driftRecoveryConfirmations: 2,
     autoswitchConfirmationCount: 1,
     autoswitchBandPoints: 0.25,
     autoswitchCoverageBand: 0.04,
@@ -224,6 +232,8 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     driftHalfLifeMs: 12 * 60 * 1000,
     driftShockThreshold: 1.6,
     driftShockHoldMs: 4 * 60 * 1000,
+    driftRecoveryThresholdRatio: 0.76,
+    driftRecoveryConfirmations: 3,
     autoswitchConfirmationCount: 2,
     autoswitchBandPoints: 0.35,
     autoswitchCoverageBand: 0.05,
@@ -248,6 +258,8 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     driftHalfLifeMs: 15 * 60 * 1000,
     driftShockThreshold: 1.35,
     driftShockHoldMs: 5 * 60 * 1000,
+    driftRecoveryThresholdRatio: 0.7,
+    driftRecoveryConfirmations: 4,
     autoswitchConfirmationCount: 3,
     autoswitchBandPoints: 0.5,
     autoswitchCoverageBand: 0.06,
@@ -307,6 +319,10 @@ export function getExperimentPolicySettings(
     driftHalfLifeMs: Math.max(60_000, Math.round(base.driftHalfLifeMs * stability)),
     driftShockThreshold: Number(Math.max(0.8, base.driftShockThreshold * (2 - sensitivity)).toFixed(3)),
     driftShockHoldMs: Math.max(60_000, Math.round(base.driftShockHoldMs * stability)),
+    driftRecoveryThresholdRatio: Number(
+      Math.max(0.55, Math.min(0.95, base.driftRecoveryThresholdRatio + (stability - 1) * 0.08)).toFixed(3),
+    ),
+    driftRecoveryConfirmations: Math.max(1, Math.round(base.driftRecoveryConfirmations * stability)),
     autoswitchConfirmationCount: Math.max(1, Math.round(base.autoswitchConfirmationCount * stability)),
     autoswitchBandPoints: Number((base.autoswitchBandPoints * stability).toFixed(3)),
     autoswitchCoverageBand: Number((base.autoswitchCoverageBand * stability).toFixed(3)),
@@ -458,6 +474,8 @@ function readRampLog(): ExperimentRampEvent[] {
         typeof item.regretPressurePoints === "number" &&
         typeof item.driftScore === "number" &&
         typeof item.shockMode === "boolean" &&
+        typeof item.driftPhase === "string" &&
+        typeof item.shockIntensity === "number" &&
         typeof item.recommendation === "string" &&
         typeof item.confidence === "string" &&
         typeof item.rationale === "string" &&
@@ -960,6 +978,8 @@ function createDefaultAllocatorDriftState(): ExperimentAllocatorDriftState {
     smoothedAbsZScore: 0,
     driftScore: 0,
     shockMode: false,
+    phase: "normal",
+    recoveryStreak: 0,
     sampleCount: 0,
     lastUpdatedAt: new Date(0).toISOString(),
   };
@@ -987,6 +1007,11 @@ function readAllocatorDriftState(): ExperimentAllocatorDriftState {
       smoothedAbsZScore: typeof parsed.smoothedAbsZScore === "number" ? parsed.smoothedAbsZScore : 0,
       driftScore: typeof parsed.driftScore === "number" ? parsed.driftScore : 0,
       shockMode: parsed.shockMode === true,
+      phase:
+        parsed.phase === "shock" || parsed.phase === "recovering" || parsed.phase === "normal"
+          ? parsed.phase
+          : "normal",
+      recoveryStreak: typeof parsed.recoveryStreak === "number" ? parsed.recoveryStreak : 0,
       sampleCount: typeof parsed.sampleCount === "number" ? parsed.sampleCount : 0,
       lastUpdatedAt:
         typeof parsed.lastUpdatedAt === "string" ? parsed.lastUpdatedAt : new Date(0).toISOString(),
@@ -1044,6 +1069,8 @@ function updateAllocatorDriftState(
     Math.abs(currentAbsDelta - smoothedAbsDeltaCvrPoints) +
     0.6 * Math.abs(currentAbsZ - smoothedAbsZScore);
 
+  const recoveryThreshold = policy.driftShockThreshold * policy.driftRecoveryThresholdRatio;
+
   const priorShockUntilMs = prior.shockUntil ? Date.parse(prior.shockUntil) : 0;
   const priorShockActive = Number.isFinite(priorShockUntilMs) && priorShockUntilMs > now;
   const triggeredShock = driftScore >= policy.driftShockThreshold;
@@ -1053,11 +1080,36 @@ function updateAllocatorDriftState(
       ? priorShockUntilMs
       : 0;
 
+  const shockMode = shockUntilMs > now;
+  const priorPhase = prior.phase ?? "normal";
+
+  let phase: ExperimentAllocatorDriftState["phase"] = "normal";
+  let recoveryStreak = 0;
+
+  if (shockMode) {
+    phase = "shock";
+  } else {
+    const recoveringPath = prior.shockMode || priorPhase === "recovering";
+    if (recoveringPath) {
+      const belowRecoveryThreshold = driftScore <= recoveryThreshold;
+      const nextRecoveryStreak = belowRecoveryThreshold ? (prior.recoveryStreak ?? 0) + 1 : 0;
+      if (nextRecoveryStreak >= policy.driftRecoveryConfirmations) {
+        phase = "normal";
+        recoveryStreak = 0;
+      } else {
+        phase = "recovering";
+        recoveryStreak = nextRecoveryStreak;
+      }
+    }
+  }
+
   const next: ExperimentAllocatorDriftState = {
     smoothedAbsDeltaCvrPoints: Number(smoothedAbsDeltaCvrPoints.toFixed(3)),
     smoothedAbsZScore: Number(smoothedAbsZScore.toFixed(3)),
     driftScore: Number(driftScore.toFixed(3)),
-    shockMode: shockUntilMs > now,
+    shockMode,
+    phase,
+    recoveryStreak,
     sampleCount: prior.sampleCount + 1,
     lastUpdatedAt: nowIso,
     shockUntil: shockUntilMs > now ? new Date(shockUntilMs).toISOString() : undefined,
@@ -2200,6 +2252,8 @@ export function runExperimentRampAutopilot(
   const regime = getExperimentPolicyRegimeState();
   const adaptive = getExperimentPolicyAdaptiveState();
   const driftState = updateAllocatorDriftState(snapshot, policy);
+  const shockIntensity =
+    driftState.phase === "shock" ? 1 : driftState.phase === "recovering" ? 0.45 : 0;
   const portfolioWindowMs = policy.rampPortfolioWindowMs;
   const portfolioBudget = policy.rampPortfolioMaxShiftPerWindow;
 
@@ -2303,7 +2357,7 @@ export function runExperimentRampAutopilot(
     }
 
     const bayesianSignals = computeBayesianAllocatorSignals(experiment, snapshot, rolloutTarget, decision);
-    const opportunityScore = bayesianSignals.weightedOpportunityScore * (driftState.shockMode ? 0.9 : 1);
+    const opportunityScore = bayesianSignals.weightedOpportunityScore * (1 - 0.12 * shockIntensity);
     const recentPortfolioActions = recentPortfolioActionCounts[experiment] ?? 0;
     const fairnessPenalty = recentPortfolioActions * policy.rampFairnessPenaltyPerRecentAction;
     const isInactiveEnough =
@@ -2311,7 +2365,7 @@ export function runExperimentRampAutopilot(
       !Number.isFinite(lastActionMs) ||
       now - lastActionMs >= policy.rampExplorationBoostInactivityMs;
     const explorationBoost = isInactiveEnough ? policy.rampExplorationBoostScore : 0;
-    const uncertaintyPenalty = bayesianSignals.bayesianUncertaintyPoints * (driftState.shockMode ? 0.15 : 0.05);
+    const uncertaintyPenalty = bayesianSignals.bayesianUncertaintyPoints * (0.05 + 0.1 * shockIntensity);
 
     candidates.push({
       experiment,
@@ -2355,12 +2409,16 @@ export function runExperimentRampAutopilot(
       const allowedBudget = Math.min(
         candidate.availableVelocity,
         portfolioRemaining,
-        driftState.shockMode ? 25 : Number.MAX_SAFE_INTEGER,
+        driftState.phase === "shock"
+          ? 25
+          : driftState.phase === "recovering"
+            ? 35
+            : Number.MAX_SAFE_INTEGER,
       );
       const nextRollout = getRampTargetWithinStepBudget(
         candidate.rolloutTarget,
         candidate.direction,
-        driftState.shockMode ? Math.min(candidate.stride, 2) : candidate.stride,
+        driftState.phase === "normal" ? candidate.stride : Math.min(candidate.stride, 2),
         allowedBudget,
       );
 
@@ -2416,9 +2474,11 @@ export function runExperimentRampAutopilot(
         regretPressurePoints: Number(candidate.regretPressurePoints.toFixed(3)),
         driftScore: driftState.driftScore,
         shockMode: driftState.shockMode,
+        driftPhase: driftState.phase,
+        shockIntensity: Number(shockIntensity.toFixed(3)),
         recommendation: candidate.decision.recommendation,
         confidence: candidate.decision.confidence,
-        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (weighted ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}). Bayesian lift ${candidate.bayesianLiftPoints.toFixed(2)} pts, uncertainty ${candidate.bayesianUncertaintyPoints.toFixed(2)} pts, regret ${candidate.regretPressurePoints.toFixed(2)} pts. Drift ${driftState.driftScore.toFixed(2)} · shock ${driftState.shockMode ? "on" : "off"}.`,
+        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (weighted ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}). Bayesian lift ${candidate.bayesianLiftPoints.toFixed(2)} pts, uncertainty ${candidate.bayesianUncertaintyPoints.toFixed(2)} pts, regret ${candidate.regretPressurePoints.toFixed(2)} pts. Drift ${driftState.driftScore.toFixed(2)} · phase ${driftState.phase} · shock ${driftState.shockMode ? "on" : "off"}.`,
         timestamp,
       };
 
