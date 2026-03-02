@@ -1,0 +1,44 @@
+name: Intelligence Ingest Quality
+
+on:
+  schedule:
+    - cron: "23 */8 * * *"
+  workflow_dispatch:
+
+jobs:
+  ingest-quality:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run remote intelligence ingest and capture report
+        env:
+          TRADEHAX_CRON_SECRET: ${{ secrets.TRADEHAX_CRON_SECRET }}
+        run: |
+          mkdir -p .artifacts
+
+          if [ -z "$TRADEHAX_CRON_SECRET" ]; then
+            echo '{"ok":false,"skipped":true,"reason":"Missing TRADEHAX_CRON_SECRET in repository secrets."}' > .artifacts/intelligence-ingest-report.json
+            exit 0
+          fi
+
+          curl --silent --show-error --fail \
+            -H "Authorization: Bearer $TRADEHAX_CRON_SECRET" \
+            "https://tradehax.net/api/cron/ai/intelligence-ingest" \
+            > .artifacts/intelligence-ingest-report.json
+
+      - name: Append run summary
+        run: |
+          node -e "const fs=require('node:fs'); const p='.artifacts/intelligence-ingest-report.json'; const out=process.env.GITHUB_STEP_SUMMARY; let data={ok:false,error:'missing_report'}; try{data=JSON.parse(fs.readFileSync(p,'utf8'));}catch{} const lines=[]; lines.push('## 🧠 Intelligence Ingest Report'); lines.push(''); lines.push('- Status: '+(data.ok?'✅ OK':'⚠️ Check')); if(data.generatedAt) lines.push('- Generated: '+data.generatedAt); if(data.mode) lines.push('- Mode: '+data.mode); if(data.reason) lines.push('- Reason: '+data.reason); if(data.totals){ lines.push('- Discovered: '+(data.totals.discovered ?? 'n/a')); lines.push('- Accepted by quality: '+(data.totals.acceptedByQuality ?? 'n/a')); lines.push('- Queued: '+(data.totals.queued ?? 'n/a')); lines.push('- Upserted: '+(data.totals.upserted ?? 'n/a')); lines.push('- Skipped unchanged: '+(data.totals.skippedUnchanged ?? 'n/a')); lines.push('- Skipped low quality: '+(data.totals.skippedLowQuality ?? 'n/a')); lines.push('- Skipped budgeted: '+(data.totals.skippedBudgeted ?? 'n/a')); lines.push('- Skipped errored: '+(data.totals.skippedErrored ?? 'n/a')); } if(data.quality){ lines.push('- Min quality score: '+(data.quality.minimumScore ?? 'n/a')); lines.push('- Avg accepted score: '+(data.quality.averageAcceptedScore ?? 'n/a')); } if(data.cost){ lines.push('- Max docs/run: '+(data.cost.maxTotalDocs ?? 'n/a')); lines.push('- Max embed calls/run: '+(data.cost.maxEmbedCalls ?? 'n/a')); lines.push('- Embed calls used: '+(data.cost.embedCallsUsed ?? 'n/a')); } fs.appendFileSync(out, lines.join('\n')+'\n');"
+
+      - name: Upload ingest artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: intelligence-ingest-report
+          path: |
+            .artifacts/intelligence-ingest-report.json

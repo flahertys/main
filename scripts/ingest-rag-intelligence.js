@@ -13,6 +13,8 @@ const DEFAULT_EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
 const DEFAULT_HF_QUERIES = ["trading", "crypto", "market structure", "risk management"];
 const IGNORE_DIRS = new Set([".git", ".next", "node_modules", "dist", "out", "coverage", "archive", "public"]);
 const MANIFEST_PATH = path.resolve(process.cwd(), ".artifacts", "rag-intelligence-manifest.json");
+const HISTORY_JSONL_PATH = path.resolve(process.cwd(), ".artifacts", "rag-intelligence-history.jsonl");
+const HISTORY_JSON_PATH = path.resolve(process.cwd(), ".artifacts", "rag-intelligence-history.json");
 const UPSERT_BATCH_SIZE = 20;
 const FETCH_BATCH_SIZE = 60;
 
@@ -71,6 +73,40 @@ function ensureArtifactsDir() {
 function writeManifest(payload) {
   ensureArtifactsDir();
   fs.writeFileSync(MANIFEST_PATH, JSON.stringify(payload, null, 2));
+}
+
+function appendHistory(summary, historyLimit) {
+  ensureArtifactsDir();
+  fs.appendFileSync(HISTORY_JSONL_PATH, `${JSON.stringify(summary)}\n`);
+
+  let historyRows = [];
+  if (fs.existsSync(HISTORY_JSON_PATH)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(HISTORY_JSON_PATH, "utf8"));
+      if (Array.isArray(parsed)) {
+        historyRows = parsed;
+      }
+    } catch {
+      historyRows = [];
+    }
+  }
+
+  historyRows.push(summary);
+  if (historyRows.length > historyLimit) {
+    historyRows = historyRows.slice(historyRows.length - historyLimit);
+  }
+
+  fs.writeFileSync(HISTORY_JSON_PATH, JSON.stringify(historyRows, null, 2));
+}
+
+function qualityScoreForDoc(doc) {
+  const textLength = Math.min(1, normalizeText(doc.text, 5000).length / 500);
+  const titleLength = Math.min(1, normalizeText(doc.title, 300).length / 80);
+  const pathSignal = doc.path && String(doc.path).includes("://") ? 0.1 : 0.16;
+  const sourceSignal = doc.source === "local-doc" ? 0.16 : 0.13;
+  const uniquenessSignal = Math.min(0.2, new Set(normalizeText(doc.text, 2200).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)).size / 180);
+
+  return Number.parseFloat(Math.max(0, Math.min(1, textLength * 0.45 + titleLength * 0.19 + pathSignal + sourceSignal + uniquenessSignal)).toFixed(4));
 }
 
 async function walkMarkdownFiles(rootDir, relativeDir = "") {
@@ -256,14 +292,31 @@ function buildSummary(result) {
     generatedAt: new Date().toISOString(),
     totals: {
       discovered: result.discovered,
+      acceptedByQuality: result.acceptedByQuality,
       upserted: result.upserted,
+      queued: result.queued,
       skippedUnchanged: result.skippedUnchanged,
+      skippedLowQuality: result.skippedLowQuality,
+      skippedBudgeted: result.skippedBudgeted,
       skippedErrored: result.skippedErrored,
       batches: result.batches,
+    },
+    quality: {
+      minimumScore: result.minimumQualityScore,
+      averageAcceptedScore: result.averageAcceptedScore,
+    },
+    cost: {
+      maxTotalDocs: result.maxTotalDocs,
+      maxEmbedCalls: result.maxEmbedCalls,
+      embedCallsUsed: result.embedCallsUsed,
     },
     model: result.model,
     ingestConfig: result.config,
     manifestPath: MANIFEST_PATH,
+    historyPaths: {
+      jsonl: HISTORY_JSONL_PATH,
+      json: HISTORY_JSON_PATH,
+    },
   };
 }
 
@@ -283,6 +336,13 @@ async function main() {
   const model = getEnv("TRADEHAX_EMBEDDING_MODEL", DEFAULT_EMBED_MODEL);
   const maxLocalDocs = parseIntEnv("TRADEHAX_HF_INGEST_MAX_DOCS", 80, 1, 500);
   const queryLimit = parseIntEnv("TRADEHAX_HF_INGEST_QUERY_LIMIT", 6, 1, 30);
+  const maxTotalDocs = parseIntEnv("TRADEHAX_HF_INGEST_MAX_TOTAL_DOCS", 160, 1, 1000);
+  const maxEmbedCalls = parseIntEnv("TRADEHAX_HF_INGEST_MAX_EMBED_CALLS", 120, 1, 1000);
+  const minimumQualityScoreRaw = Number.parseFloat(getEnv("TRADEHAX_HF_INGEST_MIN_QUALITY_SCORE", "0.2"));
+  const minimumQualityScore = Number.isFinite(minimumQualityScoreRaw)
+    ? Math.max(0, Math.min(1, minimumQualityScoreRaw))
+    : 0.2;
+  const historyLimit = parseIntEnv("TRADEHAX_HF_INGEST_REPORT_HISTORY_LIMIT", 120, 10, 1500);
   const deltaEnabled = parseBoolEnv("TRADEHAX_HF_INGEST_DELTA_ENABLED", true);
   const forceUpsert = parseBoolEnv("TRADEHAX_HF_INGEST_FORCE_UPSERT", false);
   const hfQueriesRaw = getEnv("TRADEHAX_HF_INGEST_QUERIES", DEFAULT_HF_QUERIES.join(","));
@@ -314,6 +374,7 @@ async function main() {
     return {
       ...doc,
       contentHash,
+      qualityScore: qualityScoreForDoc(doc),
     };
   });
 
@@ -324,14 +385,22 @@ async function main() {
 
   console.log(`Preparing ingestion for ${allDocs.length} intelligence docs into Upstash...`);
 
+  const qualityAcceptedDocs = allDocs
+    .filter((doc) => doc.qualityScore >= minimumQualityScore)
+    .sort((a, b) => b.qualityScore - a.qualityScore)
+    .slice(0, maxTotalDocs);
+
+  const skippedLowQuality = allDocs.length - allDocs.filter((doc) => doc.qualityScore >= minimumQualityScore).length;
+  const skippedBudgeted = Math.max(0, allDocs.filter((doc) => doc.qualityScore >= minimumQualityScore).length - qualityAcceptedDocs.length);
+
   const existingMetadata = deltaEnabled && !forceUpsert
-    ? await fetchExistingMetadata(index, allDocs.map((doc) => doc.id))
+    ? await fetchExistingMetadata(index, qualityAcceptedDocs.map((doc) => doc.id))
     : new Map();
 
   const docsToUpsert = [];
   let skippedUnchanged = 0;
 
-  for (const doc of allDocs) {
+  for (const doc of qualityAcceptedDocs) {
     const previous = existingMetadata.get(doc.id);
     const previousHash = normalizeText(previous?.contentHash || "", 120);
     if (deltaEnabled && !forceUpsert && previousHash && previousHash === doc.contentHash) {
@@ -346,14 +415,19 @@ async function main() {
   let upserted = 0;
   let skippedErrored = 0;
   let batches = 0;
+  let embedCallsUsed = 0;
 
   for (let start = 0; start < docsToUpsert.length; start += UPSERT_BATCH_SIZE) {
     const chunk = docsToUpsert.slice(start, start + UPSERT_BATCH_SIZE);
     const payload = [];
 
     for (const doc of chunk) {
+      if (embedCallsUsed >= maxEmbedCalls) {
+        break;
+      }
       try {
         const vector = await embedText(doc.text, hfToken, model);
+        embedCallsUsed += 1;
         payload.push({
           id: doc.id,
           vector,
@@ -364,6 +438,7 @@ async function main() {
             source: doc.source,
             text: doc.text,
             contentHash: doc.contentHash,
+            qualityScore: doc.qualityScore,
             ingestedAt: new Date().toISOString(),
           },
         });
@@ -374,6 +449,9 @@ async function main() {
     }
 
     if (!payload.length) {
+      if (embedCallsUsed >= maxEmbedCalls) {
+        break;
+      }
       continue;
     }
 
@@ -384,25 +462,49 @@ async function main() {
     if (upserted % 20 === 0 || upserted === docsToUpsert.length) {
       console.log(`Progress: ${upserted}/${docsToUpsert.length}`);
     }
+
+    if (embedCallsUsed >= maxEmbedCalls) {
+      console.log(`Embed call budget reached (${embedCallsUsed}/${maxEmbedCalls}).`);
+      break;
+    }
   }
+
+  const acceptedByQuality = qualityAcceptedDocs.length;
+  const averageAcceptedScore = acceptedByQuality > 0
+    ? Number.parseFloat((qualityAcceptedDocs.reduce((sum, doc) => sum + doc.qualityScore, 0) / acceptedByQuality).toFixed(4))
+    : 0;
+  const queued = docsToUpsert.length;
 
   const summary = buildSummary({
     discovered: allDocs.length,
+    acceptedByQuality,
     upserted,
+    queued,
     skippedUnchanged,
+    skippedLowQuality,
+    skippedBudgeted,
     skippedErrored,
     batches,
+    minimumQualityScore,
+    averageAcceptedScore,
+    maxTotalDocs,
+    maxEmbedCalls,
+    embedCallsUsed,
     model,
     config: {
       deltaEnabled,
       forceUpsert,
       maxLocalDocs,
       queryLimit,
+      maxTotalDocs,
+      maxEmbedCalls,
+      minimumQualityScore,
       queries: hfQueries,
     },
   });
 
   writeManifest(summary);
+  appendHistory(summary, historyLimit);
 
   if (hasArg("--json")) {
     console.log(JSON.stringify(summary));

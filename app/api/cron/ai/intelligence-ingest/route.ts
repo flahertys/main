@@ -13,6 +13,7 @@ type IngestDoc = {
   text: string;
   source: "hf-dataset";
   contentHash: string;
+  qualityScore: number;
 };
 
 function isAuthorizedCronRequest(request: NextRequest) {
@@ -66,6 +67,16 @@ function normalizeId(value: string, fallback = "doc") {
 
 function hashContent(value: string) {
   return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function qualityScoreForDoc(doc: { title: string; path: string; text: string; source: "hf-dataset" }) {
+  const textLength = Math.min(1, normalizeText(doc.text, 5000).length / 500);
+  const titleLength = Math.min(1, normalizeText(doc.title, 300).length / 80);
+  const pathSignal = doc.path && String(doc.path).includes("://") ? 0.1 : 0.16;
+  const sourceSignal = 0.13;
+  const uniquenessSignal = Math.min(0.2, new Set(normalizeText(doc.text, 2200).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)).size / 180);
+
+  return Number.parseFloat(Math.max(0, Math.min(1, textLength * 0.45 + titleLength * 0.19 + pathSignal + sourceSignal + uniquenessSignal)).toFixed(4));
 }
 
 function toVector(raw: unknown) {
@@ -164,6 +175,12 @@ async function fetchHfDatasets(query: string, limit: number, token: string) {
       text,
       source: "hf-dataset",
       contentHash: hashContent(`${id}\n${text}`),
+      qualityScore: qualityScoreForDoc({
+        title: id,
+        path: `hf://dataset/${id}`,
+        text,
+        source: "hf-dataset",
+      }),
     } satisfies IngestDoc;
   });
 }
@@ -215,6 +232,12 @@ export async function GET(request: NextRequest) {
 
   const model = getEnv("TRADEHAX_EMBEDDING_MODEL", DEFAULT_EMBED_MODEL);
   const queryLimit = parseIntEnv("TRADEHAX_HF_INGEST_QUERY_LIMIT", 6, 1, 30);
+  const maxTotalDocs = parseIntEnv("TRADEHAX_HF_INGEST_MAX_TOTAL_DOCS", 160, 1, 1000);
+  const maxEmbedCalls = parseIntEnv("TRADEHAX_HF_INGEST_MAX_EMBED_CALLS", 120, 1, 1000);
+  const minimumQualityScoreRaw = Number.parseFloat(getEnv("TRADEHAX_HF_INGEST_MIN_QUALITY_SCORE", "0.2"));
+  const minimumQualityScore = Number.isFinite(minimumQualityScoreRaw)
+    ? Math.max(0, Math.min(1, minimumQualityScoreRaw))
+    : 0.2;
   const deltaEnabled = parseBool(getEnv("TRADEHAX_HF_INGEST_DELTA_ENABLED", "true"), true);
   const forceUpsert = parseBool(getEnv("TRADEHAX_HF_INGEST_FORCE_UPSERT", "false"), false);
 
@@ -252,11 +275,19 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const qualityEligibleAll = allDocs.filter((doc) => doc.qualityScore >= minimumQualityScore);
+    const qualityAcceptedDocs = qualityEligibleAll
+      .sort((a, b) => b.qualityScore - a.qualityScore)
+      .slice(0, maxTotalDocs);
+
+    const skippedLowQuality = allDocs.length - qualityEligibleAll.length;
+    const skippedBudgeted = Math.max(0, qualityEligibleAll.length - qualityAcceptedDocs.length);
+
     const existing = deltaEnabled && !forceUpsert
-      ? await fetchExistingMetadata(index, allDocs.map((doc) => doc.id))
+      ? await fetchExistingMetadata(index, qualityAcceptedDocs.map((doc) => doc.id))
       : new Map<string, Record<string, unknown>>();
 
-    const docsToUpsert = allDocs.filter((doc) => {
+    const docsToUpsert = qualityAcceptedDocs.filter((doc) => {
       if (!deltaEnabled || forceUpsert) return true;
       const metadata = existing.get(doc.id);
       const previousHash = normalizeText(metadata?.contentHash || "", 120);
@@ -265,6 +296,7 @@ export async function GET(request: NextRequest) {
 
     let upserted = 0;
     let skippedErrored = 0;
+    let embedCallsUsed = 0;
 
     for (let start = 0; start < docsToUpsert.length; start += UPSERT_BATCH_SIZE) {
       const chunk = docsToUpsert.slice(start, start + UPSERT_BATCH_SIZE);
@@ -275,8 +307,12 @@ export async function GET(request: NextRequest) {
       }> = [];
 
       for (const doc of chunk) {
+        if (embedCallsUsed >= maxEmbedCalls) {
+          break;
+        }
         try {
           const vector = await embedText(doc.text, hfToken, model);
+          embedCallsUsed += 1;
           payload.push({
             id: doc.id,
             vector,
@@ -287,6 +323,7 @@ export async function GET(request: NextRequest) {
               source: doc.source,
               text: doc.text,
               contentHash: doc.contentHash,
+              qualityScore: doc.qualityScore,
               ingestedAt: new Date().toISOString(),
             },
           });
@@ -298,7 +335,15 @@ export async function GET(request: NextRequest) {
       if (!payload.length) continue;
       await index.upsert(payload);
       upserted += payload.length;
+
+      if (embedCallsUsed >= maxEmbedCalls) {
+        break;
+      }
     }
+
+    const averageAcceptedScore = qualityAcceptedDocs.length > 0
+      ? Number.parseFloat((qualityAcceptedDocs.reduce((sum, doc) => sum + doc.qualityScore, 0) / qualityAcceptedDocs.length).toFixed(4))
+      : 0;
 
     return NextResponse.json({
       ok: true,
@@ -307,15 +352,30 @@ export async function GET(request: NextRequest) {
       model,
       totals: {
         discovered: allDocs.length,
+        acceptedByQuality: qualityAcceptedDocs.length,
         queued: docsToUpsert.length,
         upserted,
-        skippedUnchanged: allDocs.length - docsToUpsert.length,
+        skippedUnchanged: qualityAcceptedDocs.length - docsToUpsert.length,
+        skippedLowQuality,
+        skippedBudgeted,
         skippedErrored,
+      },
+      quality: {
+        minimumScore: minimumQualityScore,
+        averageAcceptedScore,
+      },
+      cost: {
+        maxTotalDocs,
+        maxEmbedCalls,
+        embedCallsUsed,
       },
       ingestConfig: {
         deltaEnabled,
         forceUpsert,
         queryLimit,
+        maxTotalDocs,
+        maxEmbedCalls,
+        minimumQualityScore,
         queries: hfQueries,
       },
     });

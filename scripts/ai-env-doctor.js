@@ -263,6 +263,10 @@ function checkHfIngestionConfig() {
 
   assertNumberRange("TRADEHAX_HF_INGEST_MAX_DOCS", { min: 1, max: 500, required: false });
   assertNumberRange("TRADEHAX_HF_INGEST_QUERY_LIMIT", { min: 1, max: 30, required: false });
+  assertNumberRange("TRADEHAX_HF_INGEST_MAX_TOTAL_DOCS", { min: 1, max: 1000, required: false });
+  assertNumberRange("TRADEHAX_HF_INGEST_MAX_EMBED_CALLS", { min: 1, max: 1000, required: false });
+  assertNumberRange("TRADEHAX_HF_INGEST_MIN_QUALITY_SCORE", { min: 0, max: 1, required: false });
+  assertNumberRange("TRADEHAX_HF_INGEST_REPORT_HISTORY_LIMIT", { min: 10, max: 1500, required: false });
 
   const deltaEnabledRaw = get("TRADEHAX_HF_INGEST_DELTA_ENABLED");
   if (!deltaEnabledRaw) {
