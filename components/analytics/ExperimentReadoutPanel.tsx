@@ -2,8 +2,12 @@
 
 import {
   clearExperimentSessionRollup,
+  clearAssignedExperimentVariant,
+  evaluateExperimentDecision,
   getExperimentSessionRollup,
+  listExperimentNames,
   listAssignedExperimentVariants,
+  setAssignedExperimentVariant,
 } from "@/lib/experiments";
 import { useEffect, useMemo, useState } from "react";
 
@@ -76,9 +80,21 @@ export function ExperimentReadoutPanel() {
   }, []);
 
   const experimentNames = useMemo(() => {
-    const names = new Set<string>([...Object.keys(state.assigned), ...Object.keys(state.rollup)]);
+    const names = new Set<string>([
+      ...listExperimentNames(),
+      ...Object.keys(state.assigned),
+      ...Object.keys(state.rollup),
+    ]);
     return Array.from(names);
   }, [state.assigned, state.rollup]);
+
+  const refreshReadout = () => {
+    setState((previous) => ({
+      ...previous,
+      assigned: listAssignedExperimentVariants(),
+      rollup: getExperimentSessionRollup(),
+    }));
+  };
 
   if (!state.enabled) {
     return null;
@@ -129,16 +145,56 @@ export function ExperimentReadoutPanel() {
         <section>
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Assignments</p>
           <div className="space-y-1">
-            {Object.entries(state.assigned).length === 0 ? (
-              <p className="text-xs text-zinc-500">No experiment assignments detected yet.</p>
-            ) : (
-              Object.entries(state.assigned).map(([name, variant]) => (
-                <div key={name} className="flex items-center justify-between rounded border border-white/10 bg-white/[0.02] px-2 py-1">
-                  <span className="text-[11px] text-zinc-200">{name}</span>
-                  <span className="text-[11px] font-semibold text-cyan-300">{variant}</span>
+            {experimentNames.map((name) => {
+              const typedName = name as keyof typeof state.assigned;
+              const assignedVariant = state.assigned[typedName];
+
+              return (
+                <div key={name} className="rounded border border-white/10 bg-white/[0.02] px-2 py-2">
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-[11px] text-zinc-200">{name}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300">
+                      {assignedVariant ?? "unassigned"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAssignedExperimentVariant(name as Parameters<typeof setAssignedExperimentVariant>[0], "control");
+                        refreshReadout();
+                      }}
+                      className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-300 hover:text-white"
+                    >
+                      control
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAssignedExperimentVariant(
+                          name as Parameters<typeof setAssignedExperimentVariant>[0],
+                          "accelerated",
+                        );
+                        refreshReadout();
+                      }}
+                      className="rounded border border-cyan-400/30 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-cyan-200 hover:text-white"
+                    >
+                      accelerated
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearAssignedExperimentVariant(name as Parameters<typeof clearAssignedExperimentVariant>[0]);
+                        refreshReadout();
+                      }}
+                      className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-400 hover:text-white"
+                    >
+                      auto
+                    </button>
+                  </div>
                 </div>
-              ))
-            )}
+              );
+            })}
           </div>
         </section>
 
@@ -152,6 +208,8 @@ export function ExperimentReadoutPanel() {
                 const byVariant = state.rollup[name as keyof typeof state.rollup] ?? {};
                 const control = byVariant.control;
                 const accelerated = byVariant.accelerated;
+                const typedName = name as Parameters<typeof evaluateExperimentDecision>[0];
+                const decision = evaluateExperimentDecision(typedName, state.rollup);
 
                 const controlRate = control?.exposureCount
                   ? (control.goalCount / control.exposureCount) * 100
@@ -166,15 +224,21 @@ export function ExperimentReadoutPanel() {
                   (accelerated?.exposureCount ?? 0) >= MIN_STRONG_SAMPLE;
 
                 const leaderLabel =
-                  rateDelta > 0.1
-                    ? "Accelerated leads"
-                    : rateDelta < -0.1
-                      ? "Control leads"
-                      : "Too close to call";
+                  decision.recommendation === "promote_accelerated"
+                    ? "Promote accelerated"
+                    : decision.recommendation === "keep_control"
+                      ? "Keep control"
+                      : decision.recommendation === "insufficient_data"
+                        ? "Need more data"
+                        : rateDelta > 0.1
+                          ? "Accelerated leads"
+                          : rateDelta < -0.1
+                            ? "Control leads"
+                            : "Too close to call";
 
                 const confidenceLabel = bothStrongSample
-                  ? "sample: strong"
-                  : "sample: warming up";
+                  ? `sample: strong · ${decision.confidence}`
+                  : `sample: warming up · ${decision.confidence}`;
 
                 return (
                   <article key={name} className="rounded border border-white/10 bg-white/[0.02] p-2">
@@ -183,6 +247,10 @@ export function ExperimentReadoutPanel() {
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300">{leaderLabel}</p>
                     </div>
                     <div className="mb-2 text-[10px] uppercase tracking-wider text-zinc-500">{confidenceLabel}</div>
+                    <div className="mb-2 text-[10px] text-zinc-400">
+                      ΔCVR {decision.deltaCvrPoints >= 0 ? "+" : ""}
+                      {decision.deltaCvrPoints.toFixed(2)} pts · z={decision.zScore.toFixed(2)}
+                    </div>
                     <div className="space-y-1.5">
                       {VARIANTS.map((variant) => {
                         const entry = byVariant[variant];
