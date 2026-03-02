@@ -78,7 +78,7 @@ export default function AIHubPage({
             </Suspense>
           </div>
 
-          <aside className="space-y-3">
+          <aside className="space-y-3 lg:sticky lg:top-24 lg:self-start">
             <StatusCard
               icon={<Brain className="h-4 w-4" />}
               title="AI Status"
@@ -149,6 +149,23 @@ export default function AIHubPage({
             </Suspense>
           </ToolAccordion>
         </section>
+
+        <div className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 mx-auto w-[min(620px,calc(100%-1rem))] rounded-xl border border-white/15 bg-black/85 supports-[backdrop-filter]:bg-black/70 p-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
+          <div className="flex items-center gap-2">
+            <Link
+              href="#ai-chat-stream"
+              className="flex-1 rounded-lg border border-emerald-300/35 bg-emerald-500/20 px-3 py-2.5 text-center text-xs font-semibold text-emerald-50"
+            >
+              Open Chat
+            </Link>
+            <Link
+              href={isAdvancedView ? "/ai-hub#ai-chat-stream" : "/ai-hub?view=advanced#ai-chat-stream"}
+              className="flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-zinc-100"
+            >
+              {isAdvancedView ? "Simple Mode" : "Advanced"}
+            </Link>
+          </div>
+        </div>
       </main>
 
       <ShamrockFooter />

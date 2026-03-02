@@ -172,7 +172,7 @@ export default function LessonsPage() {
         </section>
 
         {/* Lesson Packages */}
-        <section className="mb-16">
+        <section id="lesson-packages" className="mb-16 scroll-mt-24">
           <h2 className="text-3xl font-bold text-white text-center mb-12">
             Lesson Packages
           </h2>
@@ -356,6 +356,23 @@ export default function LessonsPage() {
         {/* Bottom Ad */}
         <div className="mb-8">
           <AdSenseBlock adSlot="lessons-bottom" adFormat="horizontal" />
+        </div>
+
+        <div className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 mx-auto w-[min(620px,calc(100%-1rem))] rounded-xl border border-white/15 bg-black/85 supports-[backdrop-filter]:bg-black/70 p-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
+          <div className="flex items-center gap-2">
+            <Link
+              href="#lesson-packages"
+              className="flex-1 rounded-lg border border-emerald-300/35 bg-emerald-500/20 px-3 py-2.5 text-center text-xs font-semibold text-emerald-50"
+            >
+              View Packages
+            </Link>
+            <Link
+              href="#studio"
+              className="flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-zinc-100"
+            >
+              Book / Studio
+            </Link>
+          </div>
         </div>
       </main>
 

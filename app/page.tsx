@@ -166,11 +166,14 @@ export default function Home() {
                 </article>
               ))}
             </div>
-            <div className="mt-5">
-              <div className="min-h-10">
+            <details className="mt-5 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-300">
+                Advanced Wallet Tools
+              </summary>
+              <div className="mt-3 min-h-10">
                 <WalletButton />
               </div>
-            </div>
+            </details>
           </div>
         </div>
       </section>
@@ -183,12 +186,12 @@ export default function Home() {
             <h2 className="text-sm font-bold uppercase tracking-widest text-cyan-300">Quick Paths</h2>
             <p className="text-xs text-zinc-400">Choose one route and execute the next action in under 60 seconds.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible">
             {quickPathLinks.map((route) => (
               <Link
                 key={route.label}
                 href={route.href}
-                className="theme-cta theme-cta--secondary px-4 py-2 text-xs uppercase tracking-wider"
+                className="theme-cta theme-cta--secondary shrink-0 px-4 py-2 text-xs uppercase tracking-wider"
               >
                 {route.label}
               </Link>
@@ -271,6 +274,25 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      <div className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 mx-auto w-[min(620px,calc(100%-1rem))] rounded-xl border border-white/15 bg-black/85 supports-[backdrop-filter]:bg-black/70 p-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
+        <div className="flex items-center gap-2">
+          <TrackedCtaLink
+            href={scheduleLinks.root}
+            conversionId="open_schedule"
+            surface="home:mobile_sticky"
+            className="flex-1 rounded-lg border border-emerald-300/35 bg-emerald-500/20 px-3 py-2.5 text-center text-xs font-semibold text-emerald-50"
+          >
+            Book Now
+          </TrackedCtaLink>
+          <Link
+            href="/ai-hub"
+            className="flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-zinc-100"
+          >
+            Start AI
+          </Link>
+        </div>
+      </div>
     </main>
   );
 }

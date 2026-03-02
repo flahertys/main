@@ -203,7 +203,7 @@ export default function ServicesPage() {
 
         <section className="mb-12 grid gap-4 md:grid-cols-3">
           {servicePaths.map((path) => (
-            <article key={path.title} className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+            <article key={path.title} className="rounded-xl border border-white/10 bg-white/[0.02] p-5 min-h-[190px]">
               <h2 className="text-lg font-bold text-white">{path.title}</h2>
               <p className="mt-2 text-sm text-gray-300">{path.summary}</p>
               <TrackedCtaLink
@@ -221,7 +221,7 @@ export default function ServicesPage() {
         </section>
 
         {/* Services Grid */}
-        <details className="mb-16 rounded-xl border border-gray-800 bg-gray-900/30" open={false}>
+        <details id="full-service-catalog" className="mb-16 rounded-xl border border-gray-800 bg-gray-900/30" open={false}>
           <summary className="cursor-pointer list-none px-5 py-4 hover:bg-white/[0.02] transition">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -532,6 +532,25 @@ export default function ServicesPage() {
             ))}
           </div>
         </section>
+
+        <div className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 mx-auto w-[min(620px,calc(100%-1rem))] rounded-xl border border-white/15 bg-black/85 supports-[backdrop-filter]:bg-black/70 p-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
+          <div className="flex items-center gap-2">
+            <TrackedCtaLink
+              href={scheduleLinks.root}
+              conversionId="open_schedule"
+              surface="services:mobile_sticky"
+              className="flex-1 rounded-lg border border-emerald-300/35 bg-emerald-500/20 px-3 py-2.5 text-center text-xs font-semibold text-emerald-50"
+            >
+              Book Now
+            </TrackedCtaLink>
+            <Link
+              href="#full-service-catalog"
+              className="flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-zinc-100"
+            >
+              Full Catalog
+            </Link>
+          </div>
+        </div>
       </main>
 
       <ShamrockFooter />
@@ -559,7 +578,7 @@ function ServiceCard({
   ctaConversionId: ServiceConversionId;
 }) {
   return (
-    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-8 hover:border-[#0366d6]/50 transition-all">
+    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 sm:p-8 hover:border-[#0366d6]/50 transition-all">
       <div className="w-16 h-16 bg-purple-500/20 rounded-lg flex items-center justify-center mb-6 text-purple-400">
         {icon}
       </div>
