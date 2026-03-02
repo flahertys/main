@@ -15,6 +15,10 @@
       "schedule": "0 */6 * * *"
     },
     {
+      "path": "/api/cron/ai/intelligence-ingest",
+      "schedule": "17 */8 * * *"
+    },
+    {
       "path": "/api/cron/investor-academy/replay-cleanup",
       "schedule": "*/30 * * * *"
     },

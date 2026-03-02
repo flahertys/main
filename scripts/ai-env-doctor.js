@@ -264,6 +264,30 @@ function checkHfIngestionConfig() {
   assertNumberRange("TRADEHAX_HF_INGEST_MAX_DOCS", { min: 1, max: 500, required: false });
   assertNumberRange("TRADEHAX_HF_INGEST_QUERY_LIMIT", { min: 1, max: 30, required: false });
 
+  const deltaEnabledRaw = get("TRADEHAX_HF_INGEST_DELTA_ENABLED");
+  if (!deltaEnabledRaw) {
+    print("WARN", "HF_Ingest_DELTA_ENABLED", "Not set. Recommended: true for incremental ingestion.");
+  } else {
+    const normalized = deltaEnabledRaw.toLowerCase();
+    if (["true", "false", "1", "0", "yes", "no", "on", "off"].includes(normalized)) {
+      print("PASS", "HF_Ingest_DELTA_ENABLED", deltaEnabledRaw);
+    } else {
+      print("WARN", "HF_Ingest_DELTA_ENABLED", "Unrecognized boolean value; expected true/false.");
+    }
+  }
+
+  const forceUpsertRaw = get("TRADEHAX_HF_INGEST_FORCE_UPSERT");
+  if (!forceUpsertRaw) {
+    print("WARN", "HF_Ingest_FORCE_UPSERT", "Not set. Recommended: false for normal delta ingestion.");
+  } else {
+    const normalized = forceUpsertRaw.toLowerCase();
+    if (["true", "false", "1", "0", "yes", "no", "on", "off"].includes(normalized)) {
+      print("PASS", "HF_Ingest_FORCE_UPSERT", forceUpsertRaw);
+    } else {
+      print("WARN", "HF_Ingest_FORCE_UPSERT", "Unrecognized boolean value; expected true/false.");
+    }
+  }
+
   const queries = get("TRADEHAX_HF_INGEST_QUERIES");
   if (!queries) {
     print("WARN", "HF_Ingest_QUERIES", "Not set. Recommended: trading,crypto,market structure,risk management");

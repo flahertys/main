@@ -56,6 +56,7 @@
     "hf:setup-vercel": "node ./scripts/setup-vercel-deployment.js",
     "hf:test-inference": "node ./scripts/test-inference.js",
     "rag:ingest:intelligence": "node ./scripts/ingest-rag-intelligence.js",
+    "rag:ingest:intelligence:json": "node ./scripts/ingest-rag-intelligence.js --json",
     "hf:sync-assets": "node ./scripts/sync-hf-assets-safe.js",
     "hf:sync-assets:direct": "node ./scripts/sync-hf-assets.js",
     "ai:env:doctor": "node ./scripts/ai-env-doctor.js",

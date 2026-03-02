@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const dotenv = require("dotenv");
@@ -11,6 +12,17 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env.local"), override: true 
 const DEFAULT_EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
 const DEFAULT_HF_QUERIES = ["trading", "crypto", "market structure", "risk management"];
 const IGNORE_DIRS = new Set([".git", ".next", "node_modules", "dist", "out", "coverage", "archive", "public"]);
+const MANIFEST_PATH = path.resolve(process.cwd(), ".artifacts", "rag-intelligence-manifest.json");
+const UPSERT_BATCH_SIZE = 20;
+const FETCH_BATCH_SIZE = 60;
+
+function hasArg(flag) {
+  return process.argv.includes(flag);
+}
+
+function hashContent(value) {
+  return crypto.createHash("sha256").update(String(value || "")).digest("hex");
+}
 
 function getEnv(name, fallback = "") {
   const value = process.env[name];
@@ -39,6 +51,26 @@ function normalizeText(value, max = 1800) {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, max);
+}
+
+function normalizeId(value, fallback = "doc") {
+  return normalizeText(value, 220)
+    .toLowerCase()
+    .replace(/[^a-z0-9._:-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || fallback;
+}
+
+function ensureArtifactsDir() {
+  const dir = path.dirname(MANIFEST_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function writeManifest(payload) {
+  ensureArtifactsDir();
+  fs.writeFileSync(MANIFEST_PATH, JSON.stringify(payload, null, 2));
 }
 
 async function walkMarkdownFiles(rootDir, relativeDir = "") {
@@ -86,7 +118,7 @@ async function collectLocalDocs(maxDocs) {
       if (!text) continue;
 
       rows.push({
-        id: `local-${rel.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase()}`,
+        id: `local-${normalizeId(rel, "local-doc")}`,
         title: rel,
         path: `/${rel}`,
         text,
@@ -125,7 +157,7 @@ async function fetchHfDatasets(query, limit, token) {
     const text = normalizeText(`${description} ${tags ? `Tags: ${tags}` : ""}`, 1800);
 
     return {
-      id: `hfds-${id.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+      id: `hfds-${normalizeId(id, `dataset-${index}`)}`,
       title: id,
       path: `hf://dataset/${id}`,
       text: text || "Hugging Face dataset intelligence entry.",
@@ -193,6 +225,48 @@ async function embedText(text, token, model) {
   return vector;
 }
 
+async function fetchExistingMetadata(index, ids) {
+  if (!ids.length) return new Map();
+
+  const existing = new Map();
+  for (let start = 0; start < ids.length; start += FETCH_BATCH_SIZE) {
+    const batchIds = ids.slice(start, start + FETCH_BATCH_SIZE);
+    try {
+      const rows = await index.fetch(batchIds, { includeMetadata: true });
+      const list = Array.isArray(rows) ? rows : [];
+      for (const item of list) {
+        if (!item || typeof item !== "object") continue;
+        const id = normalizeText(item.id || "", 240);
+        if (!id) continue;
+
+        const metadata = item.metadata && typeof item.metadata === "object" ? item.metadata : {};
+        existing.set(id, metadata);
+      }
+    } catch (error) {
+      console.warn(`Metadata fetch failed for batch starting at ${start}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  return existing;
+}
+
+function buildSummary(result) {
+  return {
+    ok: true,
+    generatedAt: new Date().toISOString(),
+    totals: {
+      discovered: result.discovered,
+      upserted: result.upserted,
+      skippedUnchanged: result.skippedUnchanged,
+      skippedErrored: result.skippedErrored,
+      batches: result.batches,
+    },
+    model: result.model,
+    ingestConfig: result.config,
+    manifestPath: MANIFEST_PATH,
+  };
+}
+
 async function main() {
   const upstashUrl = getEnv("UPSTASH_VECTOR_REST_URL");
   const upstashToken = getEnv("UPSTASH_VECTOR_REST_TOKEN");
@@ -209,6 +283,8 @@ async function main() {
   const model = getEnv("TRADEHAX_EMBEDDING_MODEL", DEFAULT_EMBED_MODEL);
   const maxLocalDocs = parseIntEnv("TRADEHAX_HF_INGEST_MAX_DOCS", 80, 1, 500);
   const queryLimit = parseIntEnv("TRADEHAX_HF_INGEST_QUERY_LIMIT", 6, 1, 30);
+  const deltaEnabled = parseBoolEnv("TRADEHAX_HF_INGEST_DELTA_ENABLED", true);
+  const forceUpsert = parseBoolEnv("TRADEHAX_HF_INGEST_FORCE_UPSERT", false);
   const hfQueriesRaw = getEnv("TRADEHAX_HF_INGEST_QUERIES", DEFAULT_HF_QUERIES.join(","));
   const hfQueries = hfQueriesRaw
     .split(",")
@@ -228,24 +304,57 @@ async function main() {
   });
 
   const hfDocs = hfPerQuery.flat();
-  const allDocs = [...localDocs, ...hfDocs];
+  const deduped = new Map();
+  for (const doc of [...localDocs, ...hfDocs]) {
+    if (!doc || !doc.id) continue;
+    deduped.set(doc.id, doc);
+  }
+  const allDocs = Array.from(deduped.values()).map((doc) => {
+    const contentHash = hashContent(`${doc.title}\n${doc.path}\n${doc.text}`);
+    return {
+      ...doc,
+      contentHash,
+    };
+  });
 
   if (!allDocs.length) {
     console.log("No documents found to ingest.");
     return;
   }
 
-  console.log(`Ingesting ${allDocs.length} intelligence docs into Upstash...`);
+  console.log(`Preparing ingestion for ${allDocs.length} intelligence docs into Upstash...`);
+
+  const existingMetadata = deltaEnabled && !forceUpsert
+    ? await fetchExistingMetadata(index, allDocs.map((doc) => doc.id))
+    : new Map();
+
+  const docsToUpsert = [];
+  let skippedUnchanged = 0;
+
+  for (const doc of allDocs) {
+    const previous = existingMetadata.get(doc.id);
+    const previousHash = normalizeText(previous?.contentHash || "", 120);
+    if (deltaEnabled && !forceUpsert && previousHash && previousHash === doc.contentHash) {
+      skippedUnchanged += 1;
+      continue;
+    }
+    docsToUpsert.push(doc);
+  }
+
+  console.log(`Delta plan: ${docsToUpsert.length} docs to upsert, ${skippedUnchanged} unchanged skipped.`);
 
   let upserted = 0;
-  let skipped = 0;
+  let skippedErrored = 0;
+  let batches = 0;
 
-  for (let i = 0; i < allDocs.length; i += 1) {
-    const doc = allDocs[i];
-    try {
-      const vector = await embedText(doc.text, hfToken, model);
-      await index.upsert([
-        {
+  for (let start = 0; start < docsToUpsert.length; start += UPSERT_BATCH_SIZE) {
+    const chunk = docsToUpsert.slice(start, start + UPSERT_BATCH_SIZE);
+    const payload = [];
+
+    for (const doc of chunk) {
+      try {
+        const vector = await embedText(doc.text, hfToken, model);
+        payload.push({
           id: doc.id,
           vector,
           metadata: {
@@ -254,21 +363,53 @@ async function main() {
             sourceType: "doc",
             source: doc.source,
             text: doc.text,
+            contentHash: doc.contentHash,
             ingestedAt: new Date().toISOString(),
           },
-        },
-      ]);
-      upserted += 1;
-      if (upserted % 10 === 0) {
-        console.log(`Progress: ${upserted}/${allDocs.length}`);
+        });
+      } catch (error) {
+        skippedErrored += 1;
+        console.warn(`Skipped ${doc.id}: ${error instanceof Error ? error.message : String(error)}`);
       }
-    } catch (error) {
-      skipped += 1;
-      console.warn(`Skipped ${doc.id}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    if (!payload.length) {
+      continue;
+    }
+
+    await index.upsert(payload);
+    upserted += payload.length;
+    batches += 1;
+
+    if (upserted % 20 === 0 || upserted === docsToUpsert.length) {
+      console.log(`Progress: ${upserted}/${docsToUpsert.length}`);
     }
   }
 
-  console.log(`Done. Upserted: ${upserted}, Skipped: ${skipped}, Total: ${allDocs.length}`);
+  const summary = buildSummary({
+    discovered: allDocs.length,
+    upserted,
+    skippedUnchanged,
+    skippedErrored,
+    batches,
+    model,
+    config: {
+      deltaEnabled,
+      forceUpsert,
+      maxLocalDocs,
+      queryLimit,
+      queries: hfQueries,
+    },
+  });
+
+  writeManifest(summary);
+
+  if (hasArg("--json")) {
+    console.log(JSON.stringify(summary));
+  } else {
+    console.log(`Done. Upserted: ${upserted}, Unchanged: ${skippedUnchanged}, Errors: ${skippedErrored}, Total discovered: ${allDocs.length}`);
+    console.log(`Manifest written to ${MANIFEST_PATH}`);
+  }
 }
 
 main().catch((error) => {
