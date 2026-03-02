@@ -77,7 +77,8 @@ export function HeroSection() {
             conversionId="open_dashboard"
             surface="landing_hero:primary_cta"
             conversionContext={{ placement: "hero_primary", variant: "dashboard", audience: "all" }}
-            className="w-full sm:w-auto"
+            ariaLabel="Start trading dashboard"
+            className="w-full sm:w-auto rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80"
           >
             <Button
               size="lg"
@@ -93,7 +94,8 @@ export function HeroSection() {
             conversionId="open_game"
             surface="landing_hero:secondary_cta"
             conversionContext={{ placement: "hero_secondary", variant: "hyperborea", audience: "all" }}
-            className="w-full sm:w-auto"
+            ariaLabel="Open Hyperborea experience"
+            className="w-full sm:w-auto rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80"
           >
             <Button
               size="lg"
@@ -135,7 +137,8 @@ export function HeroSection() {
               conversionId="open_ai_chat"
               surface="landing_hero:route_matrix"
               conversionContext={{ placement: "route_matrix", variant: "scout", audience: "new" }}
-              className="interactive-surface rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3 sm:p-4 transition-colors hover:bg-emerald-500/15"
+              ariaLabel="Open Scout Mode in AI Hub"
+              className="interactive-surface rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3 sm:p-4 transition-colors hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70"
             >
               <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-200/80">Beginner · Scout Mode</p>
               <p className="mt-1 text-sm font-semibold text-emerald-50">Start in 60 seconds</p>
@@ -147,7 +150,8 @@ export function HeroSection() {
               conversionId="open_ai_chat"
               surface="landing_hero:route_matrix"
               conversionContext={{ placement: "route_matrix", variant: "forge", audience: "returning" }}
-              className="interactive-surface rounded-xl border border-cyan-400/25 bg-cyan-500/10 p-3 sm:p-4 transition-colors hover:bg-cyan-500/15"
+              ariaLabel="Open Forge Mode in AI Hub"
+              className="interactive-surface rounded-xl border border-cyan-400/25 bg-cyan-500/10 p-3 sm:p-4 transition-colors hover:bg-cyan-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
             >
               <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-200/80">Intermediate · Forge Mode</p>
               <p className="mt-1 text-sm font-semibold text-cyan-50">Run your daily edge loop</p>
@@ -159,7 +163,8 @@ export function HeroSection() {
               conversionId="open_ai_advanced"
               surface="landing_hero:route_matrix"
               conversionContext={{ placement: "route_matrix", variant: "odin", audience: "returning" }}
-              className="interactive-surface rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/10 p-3 sm:p-4 transition-colors hover:bg-fuchsia-500/15"
+              ariaLabel="Open ODIN advanced mode in AI Hub"
+              className="interactive-surface rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/10 p-3 sm:p-4 transition-colors hover:bg-fuchsia-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70"
             >
               <p className="text-[11px] uppercase tracking-[0.18em] text-fuchsia-200/80">Advanced · ODIN Mode</p>
               <p className="mt-1 text-sm font-semibold text-fuchsia-50">Operator-grade control</p>

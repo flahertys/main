@@ -231,6 +231,7 @@ export default function Home() {
                   external={lane.external}
                   conversionId={lane.conversionId}
                   surface={lane.surface}
+                  conversionContext={{ placement: "intent_lane", variant: lane.title.toLowerCase().replace(/\s+/g, "_"), audience: "all" }}
                   className="theme-cta theme-cta--secondary mt-4 self-start"
                 >
                   {lane.cta}
@@ -244,21 +245,51 @@ export default function Home() {
 
       {/* Service Grid Section */}
       <DeferredRender
-        fallback={<div className="mx-auto max-w-7xl px-4 sm:px-6 py-20 text-zinc-500 text-sm">Loading service capabilities…</div>}
+        fallback={
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 py-20" aria-busy="true">
+            <div className="theme-panel p-6 sm:p-8">
+              <div className="h-4 w-40 rounded bg-white/10 animate-pulse" />
+              <div className="mt-4 h-3 w-3/4 rounded bg-white/10 animate-pulse" />
+              <div className="mt-2 h-3 w-1/2 rounded bg-white/10 animate-pulse" />
+            </div>
+          </div>
+        }
       >
-        <ServiceGrid />
+        <section id="home-service-grid">
+          <ServiceGrid />
+        </section>
       </DeferredRender>
 
       <DeferredRender
-        fallback={<div className="mx-auto max-w-7xl px-4 sm:px-6 py-20 text-zinc-500 text-sm">Loading AI workspace…</div>}
+        fallback={
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 py-20" aria-busy="true">
+            <div className="theme-panel p-6 sm:p-8">
+              <div className="h-4 w-36 rounded bg-white/10 animate-pulse" />
+              <div className="mt-4 h-3 w-2/3 rounded bg-white/10 animate-pulse" />
+              <div className="mt-2 h-3 w-1/2 rounded bg-white/10 animate-pulse" />
+            </div>
+          </div>
+        }
       >
-        <AINeuralHub />
+        <section id="home-ai-neural">
+          <AINeuralHub />
+        </section>
       </DeferredRender>
 
       <DeferredRender
-        fallback={<div className="mx-auto max-w-7xl px-4 sm:px-6 py-20 text-zinc-500 text-sm">Loading roadmap…</div>}
+        fallback={
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 py-20" aria-busy="true">
+            <div className="theme-panel p-6 sm:p-8">
+              <div className="h-4 w-32 rounded bg-white/10 animate-pulse" />
+              <div className="mt-4 h-3 w-3/5 rounded bg-white/10 animate-pulse" />
+              <div className="mt-2 h-3 w-2/5 rounded bg-white/10 animate-pulse" />
+            </div>
+          </div>
+        }
       >
-        <Roadmap />
+        <section id="home-roadmap">
+          <Roadmap />
+        </section>
       </DeferredRender>
 
       {/* Quick Contact Rail */}

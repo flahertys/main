@@ -7,6 +7,9 @@ const SCROLL_MILESTONES = [25, 50, 75, 90] as const;
 const OBSERVED_SECTIONS = [
   "home-quick-paths",
   "home-intent-lanes",
+  "home-service-grid",
+  "home-ai-neural",
+  "home-roadmap",
 ] as const;
 
 export function HomeEngagementTracker() {
@@ -14,6 +17,15 @@ export function HomeEngagementTracker() {
     const firedMilestones = new Set<number>();
     const startedAt = Date.now();
     const seenSections = new Set<string>();
+    let hasSentTimeOnPage = false;
+    let rafId: number | null = null;
+
+    const sendTimeOnPage = () => {
+      if (hasSentTimeOnPage) return;
+      hasSentTimeOnPage = true;
+      const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+      trackEvent.timeOnPage(seconds, "home");
+    };
 
     const handleScroll = () => {
       const doc = document.documentElement;
@@ -55,23 +67,38 @@ export function HomeEngagementTracker() {
 
     const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
-        trackEvent.timeOnPage(seconds, "home");
+        sendTimeOnPage();
       }
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    const onScroll = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        handleScroll();
+      });
+    };
+
+    const onPageHide = () => {
+      sendTimeOnPage();
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pagehide", onPageHide);
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     handleScroll();
 
     return () => {
       observer.disconnect();
-      window.removeEventListener("scroll", handleScroll);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pagehide", onPageHide);
       document.removeEventListener("visibilitychange", onVisibilityChange);
 
-      const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
-      trackEvent.timeOnPage(seconds, "home");
+      sendTimeOnPage();
     };
   }, []);
 
