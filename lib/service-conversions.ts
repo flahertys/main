@@ -1,4 +1,6 @@
 import { event } from "@/lib/analytics";
+import { trackExperimentGoal } from "@/lib/experiments";
+import type { ExperimentName } from "@/lib/experiments";
 
 export type ServiceConversionId =
   | "open_services"
@@ -52,7 +54,7 @@ export interface ConversionContext {
   placement?: string;
   variant?: string;
   audience?: "new" | "returning" | "all";
-  experiment?: string;
+  experiment?: ExperimentName;
 }
 
 export const SERVICE_CONVERSION_EVENTS: Record<ServiceConversionId, ConversionMeta> = {
@@ -294,12 +296,13 @@ export function trackServiceConversion(id: ServiceConversionId, surface: string,
 
   if (context?.experiment && context?.variant?.startsWith("exp_")) {
     const experimentVariant = context.variant.replace("exp_", "");
-    event({
-      action: "experiment_goal",
-      category: "experiments",
-      label: `${context.experiment}:${experimentVariant}:${conversion.action}:${surface}`,
-      value: conversion.value,
-    });
+    trackExperimentGoal(
+      context.experiment,
+      experimentVariant === "accelerated" ? "accelerated" : "control",
+      conversion.action,
+      surface,
+      conversion.value,
+    );
   }
 
   if (typeof window !== "undefined" && window.gtag && conversion.stage === "intent") {

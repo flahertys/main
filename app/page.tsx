@@ -1,5 +1,6 @@
 import { TrackedCtaLink } from "@/components/monetization/TrackedCtaLink";
 import { HomeEngagementTracker } from "@/components/analytics/HomeEngagementTracker";
+import { ExperimentReadoutPanel } from "@/components/analytics/ExperimentReadoutPanel";
 import { HomeHeroActions } from "@/components/landing/HomeHeroActions";
 import { DeferredRender } from '@/components/ui/DeferredRender';
 import { GlitchText } from '@/components/ui/GlitchText';
@@ -106,6 +107,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black">
       <HomeEngagementTracker />
+      <ExperimentReadoutPanel />
 
       {/* Hero + Guided Experience */}
       <section className="relative overflow-hidden px-4 sm:px-6 pt-16 sm:pt-20 pb-12 sm:pb-14">
