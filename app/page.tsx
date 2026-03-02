@@ -97,10 +97,8 @@ const intentLanes = [
 export default function Home() {
   const quickPathLinks = [
     { label: "Book Service", href: scheduleLinks.root },
-    { label: "Browse Services", href: "/services" },
     { label: "Open AI Hub", href: "/ai-hub" },
     { label: "View Pricing", href: "/pricing" },
-    { label: "See Portfolio", href: "/portfolio" },
   ] as const;
 
   return (
@@ -128,25 +126,13 @@ export default function Home() {
                 surface="home:hero"
                 className="theme-cta theme-cta--loud px-6 py-3"
               >
-                Start Service Intake
+                Book Now
               </TrackedCtaLink>
-              <Link
-                href="/ai-hub#ai-chat"
-                className="theme-cta theme-cta--loud px-6 py-3"
-              >
-                Enter AI Dynasty
-              </Link>
               <Link
                 href="/ai-hub"
                 className="theme-cta theme-cta--secondary px-6 py-3"
               >
-                Open AI Workspace
-              </Link>
-              <Link
-                href="/pricing"
-                className="theme-cta theme-cta--muted px-6 py-3"
-              >
-                Review Plans
+                Start AI Assistant
               </Link>
             </div>
           </div>

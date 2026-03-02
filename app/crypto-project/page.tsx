@@ -22,23 +22,23 @@ export const metadata = createPageMetadata({
 
 const features = [
   {
-    title: "Devnet Wallet Connect",
-    text: "Use your preferred chain wallet to connect and verify readiness.",
+    title: "Connect Wallet",
+    text: "Securely link your crypto wallet when you want on-chain features. Optional for regular browsing.",
     icon: ShieldCheck,
   },
   {
-    title: "Free Entry Mint",
-    text: "Offer low-friction mint access connected to game participation and customer onboarding.",
+    title: "Entry Mint",
+    text: "Create your token access pass (mint) for gated tools, game rewards, and roadmap drops.",
     icon: Gem,
   },
   {
-    title: "Premium Upgrade Path",
-    text: "Connect premium mint tiers to subscriptions, perks, and future feature access.",
+    title: "Premium Access",
+    text: "Unlock premium tiers tied to subscriptions, perks, and upcoming feature releases.",
     icon: BadgeDollarSign,
   },
   {
-    title: "Game Integration",
-    text: "Hyperborea rewards mapped to the new Scoring Engine. Utility Yield calculations include rarity multipliers and skill-based bonuses.",
+    title: "Game + Rewards Integration",
+    text: "Hyperborea rewards connect to scoring, with bonuses based on rarity and user skill progression.",
     icon: Sparkles,
   },
 ] as const;
@@ -51,11 +51,10 @@ export default function CryptoProjectPage() {
         <section className="theme-panel p-6 sm:p-8 mb-8">
           <span className="theme-kicker mb-3">Chain Project Hub</span>
           <h1 className="theme-title text-3xl sm:text-4xl font-bold mb-4">
-            Hyperborea NFT and Utility Roadmap
+            Crypto Project Roadmap
           </h1>
           <p className="theme-subtitle mb-6">
-            This section provides clear updates on wallet onboarding, NFT entry
-            points, and premium utility planning tied to the broader platform.
+            Clear updates on wallet onboarding, token access, and premium utility planning tied to the broader platform.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <div className="min-h-10">
@@ -79,6 +78,21 @@ export default function CryptoProjectPage() {
               Mint Upgrade Plans
             </TrackedCtaLink>
           </div>
+
+          <div className="mt-5 rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-4 py-3 text-xs text-cyan-100/90">
+            <p className="font-semibold">Quick glossary</p>
+            <ul className="mt-2 space-y-1">
+              <li>
+                <span className="font-semibold">Mint:</span> Create your token access pass.
+              </li>
+              <li>
+                <span className="font-semibold">Connect Wallet:</span> Securely link your crypto account.
+              </li>
+              <li>
+                <span className="font-semibold">Utility:</span> The practical benefits tied to your token/pass.
+              </li>
+            </ul>
+          </div>
         </section>
 
         <ActionRail surface="crypto_project" className="mb-8" />
@@ -97,20 +111,20 @@ export default function CryptoProjectPage() {
           <h2 className="theme-title text-2xl font-bold mb-4">
             Project Notes
           </h2>
-          <ul className="space-y-3 text-sm sm:text-base text-[#c4d2e9]">
-            <li>
-              Keep mint APIs behind secure environment variables and server-side
-              validation.
-            </li>
-            <li>
-              Route wallet-connected users into relevant service and subscription offers
-              when features are live.
-            </li>
-            <li>
-              Track engagement from game sessions, mint actions, and booking
-              submissions for ongoing optimization.
-            </li>
+          <ul className="space-y-3 text-sm sm:text-base text-[#c4d2e9] mb-5">
+            <li>Wallet features remain optional and are introduced only when relevant.</li>
+            <li>Token access is designed to support service value, not add friction.</li>
+            <li>We track conversion from game activity, mint actions, and bookings.</li>
           </ul>
+
+          <details className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-white">Advanced implementation notes</summary>
+            <ul className="mt-3 space-y-2 text-xs sm:text-sm text-[#c4d2e9]">
+              <li>Keep mint APIs behind secure environment variables and server-side validation.</li>
+              <li>Route wallet-connected users into relevant service and subscription offers when features are live.</li>
+              <li>Apply analytics across game sessions, mint actions, and booking submissions for optimization.</li>
+            </ul>
+          </details>
         </section>
       </main>
       <ShamrockFooter />

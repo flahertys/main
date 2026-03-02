@@ -7,7 +7,7 @@ import { VoiceSearchControlPanel } from "@/components/ai/VoiceSearchControlPanel
 import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { createPageMetadata } from "@/lib/seo";
-import { Brain, MessageSquare, ShieldCheck, Sparkles, Wand2 } from "lucide-react";
+import { Brain, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -81,21 +81,9 @@ export default function AIHubPage({
           <aside className="space-y-3">
             <StatusCard
               icon={<Brain className="h-4 w-4" />}
-              title="Neural Core Priority"
-              body="Model routing, orchestration, memory, and safety backends are unchanged and remain top priority."
+              title="AI Status"
+              body="Core engine is live: routing, orchestration, memory, and safety remain fully active. Chat-first mode keeps the interface simple, with advanced tools available on demand."
               tone="emerald"
-            />
-            <StatusCard
-              icon={<ShieldCheck className="h-4 w-4" />}
-              title="Trader-Friendly Flow"
-              body="One primary prompt lane first. Advanced controls are available only when you choose them."
-              tone="cyan"
-            />
-            <StatusCard
-              icon={<Sparkles className="h-4 w-4" />}
-              title="Quick Start Prompts"
-              body="Use plain language prompts, then iterate from one clear next action at a time."
-              tone="fuchsia"
             />
           </aside>
         </section>
