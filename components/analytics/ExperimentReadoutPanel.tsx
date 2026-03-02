@@ -694,6 +694,9 @@ export function ExperimentReadoutPanel() {
                   <div className="text-[10px] text-zinc-500">
                     step {entry.stepSize}% · stride {entry.stride} · {entry.profile}
                   </div>
+                  <div className="text-[10px] text-zinc-500">
+                    velocity {entry.velocityWindowUsedAfter}/{entry.velocityWindowBudget} pts (prev {entry.velocityWindowUsedBefore})
+                  </div>
                   <div className="text-[10px] text-zinc-500">{entry.rationale}</div>
                   <div className="text-[10px] text-zinc-500">{new Date(entry.timestamp).toLocaleTimeString()}</div>
                 </div>
