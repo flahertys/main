@@ -248,6 +248,35 @@ function checkHfDatasetIntelligenceConfig() {
   assertNumberRange("TRADEHAX_HF_DATASET_INTEL_LIMIT", { min: 1, max: 10, required: false });
 }
 
+function checkHfIngestionConfig() {
+  const includeLocalDocsRaw = get("TRADEHAX_HF_INGEST_INCLUDE_LOCAL_DOCS");
+  if (!includeLocalDocsRaw) {
+    print("WARN", "HF_Ingest_INCLUDE_LOCAL_DOCS", "Not set. Recommended: true for local knowledge ingestion.");
+  } else {
+    const normalized = includeLocalDocsRaw.toLowerCase();
+    if (["true", "false", "1", "0", "yes", "no", "on", "off"].includes(normalized)) {
+      print("PASS", "HF_Ingest_INCLUDE_LOCAL_DOCS", includeLocalDocsRaw);
+    } else {
+      print("WARN", "HF_Ingest_INCLUDE_LOCAL_DOCS", "Unrecognized boolean value; expected true/false.");
+    }
+  }
+
+  assertNumberRange("TRADEHAX_HF_INGEST_MAX_DOCS", { min: 1, max: 500, required: false });
+  assertNumberRange("TRADEHAX_HF_INGEST_QUERY_LIMIT", { min: 1, max: 30, required: false });
+
+  const queries = get("TRADEHAX_HF_INGEST_QUERIES");
+  if (!queries) {
+    print("WARN", "HF_Ingest_QUERIES", "Not set. Recommended: trading,crypto,market structure,risk management");
+  } else {
+    const count = queries.split(",").map((entry) => entry.trim()).filter(Boolean).length;
+    if (count === 0) {
+      print("WARN", "HF_Ingest_QUERIES", "Configured but empty after parsing.");
+    } else {
+      print("PASS", "HF_Ingest_QUERIES", `${count} query seeds`);
+    }
+  }
+}
+
 function main() {
   console.log("\n🧪 TradeHax AI Environment Doctor\n");
 
@@ -300,6 +329,7 @@ function main() {
   checkOptionalProviderTokens();
   checkUpstashVectorConnection();
   checkHfDatasetIntelligenceConfig();
+  checkHfIngestionConfig();
 
   const total = state.pass + state.warn + state.fail;
   console.log(`\nSummary: ${state.pass} pass, ${state.warn} warn, ${state.fail} fail (${total} checks).`);
