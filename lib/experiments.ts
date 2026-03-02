@@ -13,6 +13,9 @@ export interface ExperimentPolicySettings {
   minZForAction: number;
   highConfidenceZ: number;
   rampCooldownMs: number;
+  autoswitchConfirmationCount: number;
+  autoswitchBandPoints: number;
+  autoswitchCoverageBand: number;
   recommendationRolloutTarget: {
     promoteAccelerated: number;
     keepControl: number;
@@ -80,6 +83,13 @@ export interface ExperimentPolicyRegimeState {
   lastUpdatedAt: string;
 }
 
+export interface ExperimentPolicyPendingSwitch {
+  pendingProfile: ExperimentPolicyProfile;
+  confirmationCount: number;
+  requiredConfirmations: number;
+  reason: string;
+}
+
 const EXPERIMENT_VARIANTS: Record<ExperimentName, readonly ExperimentVariant[]> = {
   home_hero_primary_cta: ["control", "accelerated"],
   landing_hero_primary_cta: ["control", "accelerated"],
@@ -113,6 +123,9 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     minZForAction: 1.28,
     highConfidenceZ: 2.33,
     rampCooldownMs: 60 * 1000,
+    autoswitchConfirmationCount: 1,
+    autoswitchBandPoints: 0.25,
+    autoswitchCoverageBand: 0.04,
     recommendationRolloutTarget: {
       promoteAccelerated: 100,
       keepControl: 10,
@@ -124,6 +137,9 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     minZForAction: 1.64,
     highConfidenceZ: 2.58,
     rampCooldownMs: 2 * 60 * 1000,
+    autoswitchConfirmationCount: 2,
+    autoswitchBandPoints: 0.35,
+    autoswitchCoverageBand: 0.05,
     recommendationRolloutTarget: {
       promoteAccelerated: 75,
       keepControl: 25,
@@ -135,6 +151,9 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     minZForAction: 1.96,
     highConfidenceZ: 2.8,
     rampCooldownMs: 5 * 60 * 1000,
+    autoswitchConfirmationCount: 3,
+    autoswitchBandPoints: 0.5,
+    autoswitchCoverageBand: 0.06,
     recommendationRolloutTarget: {
       promoteAccelerated: 60,
       keepControl: 40,
@@ -362,7 +381,12 @@ function appendPolicySwitchEvent(eventEntry: ExperimentPolicySwitchEvent) {
   writePolicySwitchLog([eventEntry, ...existing]);
 }
 
-function readPolicyMeta(): { lastSwitchAt?: string } {
+function readPolicyMeta(): {
+  lastSwitchAt?: string;
+  pendingProfile?: ExperimentPolicyProfile;
+  pendingCount?: number;
+  pendingReason?: string;
+} {
   if (typeof window === "undefined") {
     return {};
   }
@@ -380,13 +404,24 @@ function readPolicyMeta(): { lastSwitchAt?: string } {
 
     return {
       lastSwitchAt: typeof parsed.lastSwitchAt === "string" ? parsed.lastSwitchAt : undefined,
+      pendingProfile:
+        typeof parsed.pendingProfile === "string" && isExperimentPolicyProfile(parsed.pendingProfile)
+          ? parsed.pendingProfile
+          : undefined,
+      pendingCount: typeof parsed.pendingCount === "number" ? parsed.pendingCount : undefined,
+      pendingReason: typeof parsed.pendingReason === "string" ? parsed.pendingReason : undefined,
     };
   } catch {
     return {};
   }
 }
 
-function writePolicyMeta(meta: { lastSwitchAt?: string }) {
+function writePolicyMeta(meta: {
+  lastSwitchAt?: string;
+  pendingProfile?: ExperimentPolicyProfile;
+  pendingCount?: number;
+  pendingReason?: string;
+}) {
   if (typeof window === "undefined") {
     return;
   }
@@ -1037,6 +1072,23 @@ export function getExperimentPolicyRegimeState(): ExperimentPolicyRegimeState | 
   return readPolicyRegimeState();
 }
 
+export function getExperimentPolicyPendingSwitch(): ExperimentPolicyPendingSwitch | null {
+  const meta = readPolicyMeta();
+  if (!meta.pendingProfile || !meta.pendingCount || !meta.pendingReason) {
+    return null;
+  }
+
+  const requiredConfirmations =
+    getExperimentPolicySettings(getExperimentPolicyProfile()).autoswitchConfirmationCount;
+
+  return {
+    pendingProfile: meta.pendingProfile,
+    confirmationCount: meta.pendingCount,
+    requiredConfirmations,
+    reason: meta.pendingReason,
+  };
+}
+
 export function runExperimentPolicyAutoswitch(
   snapshot: ExperimentRollupSnapshot,
   options?: { cooldownMs?: number },
@@ -1096,16 +1148,45 @@ export function runExperimentPolicyAutoswitch(
   }
 
   const currentProfile = getExperimentPolicyProfile();
+  const activePolicy = getExperimentPolicySettings(currentProfile);
+  const bandPoints = activePolicy.autoswitchBandPoints;
+  const coverageBand = activePolicy.autoswitchCoverageBand;
 
-  if (currentProfile === "aggressive" && smoothedAbsDeltaCvrPoints > 2.2 && smoothedCoverage >= 0.55) {
-    nextProfile = "aggressive";
-  }
+  const upperAggressiveThreshold = 3 + bandPoints;
+  const lowerConservativeThreshold = 1 - bandPoints;
+  const lowerBalancedThreshold = 1 + bandPoints;
+  const upperBalancedThreshold = 3 - bandPoints;
+  const lowCoverageThreshold = 0.5 - coverageBand;
+  const healthyCoverageThreshold = 0.5 + coverageBand;
 
-  if (currentProfile === "conservative" && smoothedAbsDeltaCvrPoints < 1.6) {
+  if (smoothedCoverage < lowCoverageThreshold) {
     nextProfile = "conservative";
+    reason = "Coverage trend breached safety band; vetoing aggressive modes.";
+  } else if (smoothedAbsDeltaCvrPoints >= upperAggressiveThreshold) {
+    nextProfile = "aggressive";
+    reason = "Signal exceeded aggressive confidence band across sessions.";
+  } else if (smoothedAbsDeltaCvrPoints <= lowerConservativeThreshold) {
+    nextProfile = "conservative";
+    reason = "Signal remained below conservative band across sessions.";
+  } else if (
+    smoothedCoverage >= healthyCoverageThreshold &&
+    smoothedAbsDeltaCvrPoints >= lowerBalancedThreshold &&
+    smoothedAbsDeltaCvrPoints <= upperBalancedThreshold
+  ) {
+    nextProfile = "balanced";
+    reason = "Regime has stabilized inside balanced confidence bands.";
+  } else {
+    nextProfile = currentProfile;
+    reason = "Within veto band; waiting for stronger confirmation before switching.";
   }
 
   if (currentProfile === nextProfile) {
+    writePolicyMeta({
+      ...readPolicyMeta(),
+      pendingProfile: undefined,
+      pendingCount: undefined,
+      pendingReason: undefined,
+    });
     return null;
   }
 
@@ -1118,9 +1199,32 @@ export function runExperimentPolicyAutoswitch(
     return null;
   }
 
+  const metaBeforeConfirm = readPolicyMeta();
+  const priorPendingProfile = metaBeforeConfirm.pendingProfile;
+  const priorPendingCount = metaBeforeConfirm.pendingCount ?? 0;
+  const requiredConfirmations = activePolicy.autoswitchConfirmationCount;
+
+  const confirmationCount = priorPendingProfile === nextProfile ? priorPendingCount + 1 : 1;
+
+  if (confirmationCount < requiredConfirmations) {
+    writePolicyMeta({
+      ...metaBeforeConfirm,
+      pendingProfile: nextProfile,
+      pendingCount: confirmationCount,
+      pendingReason: reason,
+    });
+
+    return null;
+  }
+
   setExperimentPolicyProfile(nextProfile, "auto");
   const timestamp = new Date().toISOString();
-  writePolicyMeta({ lastSwitchAt: timestamp });
+  writePolicyMeta({
+    lastSwitchAt: timestamp,
+    pendingProfile: undefined,
+    pendingCount: undefined,
+    pendingReason: undefined,
+  });
 
   const switchEvent: ExperimentPolicySwitchEvent = {
     previousProfile: currentProfile,
