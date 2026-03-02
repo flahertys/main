@@ -18,10 +18,7 @@ const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
 
 function resolveVercelScope() {
   const explicitScope = String(process.env.VERCEL_SCOPE || process.env.VERCEL_TEAM_SLUG || "").trim();
-  if (explicitScope) {
-    return explicitScope;
-  }
-  return "hackavelliz";
+  return explicitScope;
 }
 
 function run(label, command, commandArgs) {
@@ -48,41 +45,66 @@ function runNpm(label, npmArgs) {
 }
 
 function runDeploy() {
-  const deployArgs = ["exec", "--yes", "vercel@latest", "--"];
+  const baseDeployArgs = ["exec", "--yes", "vercel@latest", "--"];
   const vercelScope = resolveVercelScope();
   if (isProd) {
-    deployArgs.push("--prod");
+    baseDeployArgs.push("--prod");
   }
-  deployArgs.push("--yes");
-  if (vercelScope) {
-    deployArgs.push("--scope", vercelScope);
-  }
+  baseDeployArgs.push("--yes");
 
   const token = process.env.VERCEL_TOKEN;
   if (token) {
-    deployArgs.push("--token", token);
+    baseDeployArgs.push("--token", token);
   }
 
-  if (npmExecPath) {
-    run(
-      isProd ? "Deploy to Vercel production" : "Deploy to Vercel preview",
-      nodeExecPath,
-      [npmExecPath, ...deployArgs],
-    );
-    return;
-  }
+  const attemptArgs = vercelScope
+    ? [
+      [...baseDeployArgs, "--scope", vercelScope],
+      [...baseDeployArgs],
+    ]
+    : [[...baseDeployArgs]];
 
-  run(
-    isProd ? "Deploy to Vercel production" : "Deploy to Vercel preview",
-    npmCmd,
-    deployArgs,
-  );
+  for (let attempt = 0; attempt < attemptArgs.length; attempt += 1) {
+    const argsForAttempt = attemptArgs[attempt];
+    const attemptLabel = attempt === 0
+      ? (isProd ? "Deploy to Vercel production" : "Deploy to Vercel preview")
+      : `${isProd ? "Deploy to Vercel production" : "Deploy to Vercel preview"} (retry without scope)`;
+
+    process.stdout.write(`\n==> ${attemptLabel}\n`);
+
+    const result = npmExecPath
+      ? spawnSync(nodeExecPath, [npmExecPath, ...argsForAttempt], {
+        stdio: "inherit",
+        shell: process.platform === "win32",
+      })
+      : spawnSync(npmCmd, argsForAttempt, {
+        stdio: "inherit",
+        shell: process.platform === "win32",
+      });
+
+    if (result.error) {
+      process.stderr.write(`${result.error.message}\n`);
+      process.exit(1);
+    }
+
+    if (result.status === 0) {
+      return;
+    }
+
+    const hasRetry = attempt < attemptArgs.length - 1;
+    if (hasRetry) {
+      process.stdout.write("\n⚠️ Deploy attempt failed with configured scope. Retrying without scope...\n");
+      continue;
+    }
+
+    process.exit(result.status || 1);
+  }
 }
 
 (function main() {
   process.stdout.write("\nTradeHax One-Button Deploy\n");
   process.stdout.write(`Target: ${isProd ? "production" : "preview"}\n`);
-  process.stdout.write(`Vercel scope: ${resolveVercelScope()}\n`);
+  process.stdout.write(`Vercel scope: ${resolveVercelScope() || "<none>"}\n`);
   if (strictDnsCheck) {
     process.stdout.write("DNS mode: STRICT apex A record required\n");
   }
