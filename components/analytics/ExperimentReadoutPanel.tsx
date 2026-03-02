@@ -5,14 +5,17 @@ import {
   clearExperimentSessionRollup,
   clearAssignedExperimentVariant,
   clearExperimentGuardrailEvents,
+  clearExperimentRampEvents,
   clearExperimentRolloutTarget,
   evaluateExperimentDecision,
   getExperimentSessionRollup,
   listExperimentGuardrailEvents,
+  listExperimentRampEvents,
   listExperimentRolloutTargets,
   listExperimentNames,
   listAssignedExperimentVariants,
   runExperimentGuardrailAutoRollback,
+  runExperimentRampAutopilot,
   setExperimentRolloutTarget,
   setAssignedExperimentVariant,
 } from "@/lib/experiments";
@@ -24,14 +27,17 @@ const MIN_STRONG_SAMPLE = 25;
 interface ReadoutState {
   enabled: boolean;
   guardrailsEnabled: boolean;
+  rampAutopilotEnabled: boolean;
   assigned: ReturnType<typeof listAssignedExperimentVariants>;
   rollout: ReturnType<typeof listExperimentRolloutTargets>;
   rollup: ReturnType<typeof getExperimentSessionRollup>;
   guardrailEvents: ReturnType<typeof listExperimentGuardrailEvents>;
+  rampEvents: ReturnType<typeof listExperimentRampEvents>;
 }
 
 const DEBUG_STORAGE_KEY = "thx-exp-debug";
 const GUARDRAILS_STORAGE_KEY = "thx-exp-guardrails-enabled";
+const RAMP_AUTOPILOT_STORAGE_KEY = "thx-exp-ramp-autopilot-enabled";
 
 function getDebugEnabledFromUrl(): boolean {
   if (typeof window === "undefined") {
@@ -68,10 +74,12 @@ export function ExperimentReadoutPanel() {
   const [state, setState] = useState<ReadoutState>({
     enabled: false,
     guardrailsEnabled: false,
+    rampAutopilotEnabled: false,
     assigned: {},
     rollout: {},
     rollup: {},
     guardrailEvents: [],
+    rampEvents: [],
   });
 
   useEffect(() => {
@@ -83,6 +91,8 @@ export function ExperimentReadoutPanel() {
     const refresh = () => {
       const guardrailsEnabled =
         typeof window !== "undefined" && window.localStorage.getItem(GUARDRAILS_STORAGE_KEY) === "1";
+      const rampAutopilotEnabled =
+        typeof window !== "undefined" && window.localStorage.getItem(RAMP_AUTOPILOT_STORAGE_KEY) === "1";
 
       const rollupSnapshot = getExperimentSessionRollup();
 
@@ -90,13 +100,19 @@ export function ExperimentReadoutPanel() {
         runExperimentGuardrailAutoRollback(rollupSnapshot, { clearCurrentAssignment: true });
       }
 
+      if (rampAutopilotEnabled) {
+        runExperimentRampAutopilot(rollupSnapshot, { clearCurrentAssignment: true });
+      }
+
       setState({
         enabled,
         guardrailsEnabled,
+        rampAutopilotEnabled,
         assigned: listAssignedExperimentVariants(),
         rollout: listExperimentRolloutTargets(),
         rollup: rollupSnapshot,
         guardrailEvents: listExperimentGuardrailEvents(),
+        rampEvents: listExperimentRampEvents(),
       });
     };
 
@@ -117,19 +133,27 @@ export function ExperimentReadoutPanel() {
   const refreshReadout = () => {
     const guardrailsEnabled =
       typeof window !== "undefined" && window.localStorage.getItem(GUARDRAILS_STORAGE_KEY) === "1";
+    const rampAutopilotEnabled =
+      typeof window !== "undefined" && window.localStorage.getItem(RAMP_AUTOPILOT_STORAGE_KEY) === "1";
     const rollupSnapshot = getExperimentSessionRollup();
 
     if (guardrailsEnabled) {
       runExperimentGuardrailAutoRollback(rollupSnapshot, { clearCurrentAssignment: true });
     }
 
+    if (rampAutopilotEnabled) {
+      runExperimentRampAutopilot(rollupSnapshot, { clearCurrentAssignment: true });
+    }
+
     setState((previous) => ({
       ...previous,
       guardrailsEnabled,
+      rampAutopilotEnabled,
       assigned: listAssignedExperimentVariants(),
       rollout: listExperimentRolloutTargets(),
       rollup: rollupSnapshot,
       guardrailEvents: listExperimentGuardrailEvents(),
+      rampEvents: listExperimentRampEvents(),
     }));
   };
 
@@ -142,6 +166,21 @@ export function ExperimentReadoutPanel() {
       <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Experiment Readout</p>
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              const nextEnabled = !state.rampAutopilotEnabled;
+              if (typeof window !== "undefined") {
+                window.localStorage.setItem(RAMP_AUTOPILOT_STORAGE_KEY, nextEnabled ? "1" : "0");
+              }
+
+              setState((previous) => ({ ...previous, rampAutopilotEnabled: nextEnabled }));
+              refreshReadout();
+            }}
+            className="rounded border border-emerald-400/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-200 hover:text-white"
+          >
+            ramp {state.rampAutopilotEnabled ? "on" : "off"}
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -166,6 +205,7 @@ export function ExperimentReadoutPanel() {
                 rollout: state.rollout,
                 rollup: state.rollup,
                 guardrailEvents: state.guardrailEvents,
+                rampEvents: state.rampEvents,
               };
 
               const json = JSON.stringify(payload, null, 2);
@@ -400,6 +440,37 @@ export function ExperimentReadoutPanel() {
               <p className="text-xs text-zinc-500">No rollback actions triggered.</p>
             ) : (
               state.guardrailEvents.slice(0, 5).map((entry) => (
+                <div key={`${entry.experiment}:${entry.timestamp}`} className="rounded border border-white/10 bg-black/30 px-2 py-1">
+                  <div className="flex items-center justify-between text-[10px] text-zinc-300">
+                    <span>{entry.experiment}</span>
+                    <span>{entry.previousRollout}% → {entry.nextRollout}%</span>
+                  </div>
+                  <div className="text-[10px] text-zinc-500">{new Date(entry.timestamp).toLocaleTimeString()}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Ramp Feed</p>
+            <button
+              type="button"
+              onClick={() => {
+                clearExperimentRampEvents();
+                refreshReadout();
+              }}
+              className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-400 hover:text-white"
+            >
+              clear
+            </button>
+          </div>
+          <div className="space-y-1">
+            {state.rampEvents.length === 0 ? (
+              <p className="text-xs text-zinc-500">No ramp actions triggered.</p>
+            ) : (
+              state.rampEvents.slice(0, 5).map((entry) => (
                 <div key={`${entry.experiment}:${entry.timestamp}`} className="rounded border border-white/10 bg-black/30 px-2 py-1">
                   <div className="flex items-center justify-between text-[10px] text-zinc-300">
                     <span>{entry.experiment}</span>

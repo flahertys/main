@@ -39,6 +39,16 @@ export interface ExperimentGuardrailEvent {
   timestamp: string;
 }
 
+export interface ExperimentRampEvent {
+  experiment: ExperimentName;
+  previousRollout: number;
+  nextRollout: number;
+  recommendation: ExperimentDecisionSummary["recommendation"];
+  confidence: ExperimentDecisionSummary["confidence"];
+  rationale: string;
+  timestamp: string;
+}
+
 const EXPERIMENT_VARIANTS: Record<ExperimentName, readonly ExperimentVariant[]> = {
   home_hero_primary_cta: ["control", "accelerated"],
   landing_hero_primary_cta: ["control", "accelerated"],
@@ -49,8 +59,11 @@ const EXP_ROLLOUT_PREFIX = "thx-exp-rollout:";
 const EXP_EXPOSURE_PREFIX = "thx-exp-exposed:";
 const EXP_ROLLUP_STORAGE_KEY = "thx-exp-rollup";
 const EXP_GUARDRAIL_LOG_KEY = "thx-exp-guardrail-log";
+const EXP_RAMP_LOG_KEY = "thx-exp-ramp-log";
+const EXP_RAMP_META_KEY = "thx-exp-ramp-meta";
 const EXP_VISITOR_ID_KEY = "thx-exp-visitor-id";
 const EXPERIMENT_NAMES = Object.keys(EXPERIMENT_VARIANTS) as ExperimentName[];
+const RAMP_STEPS = [10, 25, 50, 75, 100] as const;
 
 function isVariantForExperiment(name: ExperimentName, value: string): value is ExperimentVariant {
   return (EXPERIMENT_VARIANTS[name] as readonly string[]).includes(value);
@@ -159,6 +172,116 @@ function writeGuardrailLog(events: ExperimentGuardrailEvent[]) {
 function appendGuardrailEvent(eventEntry: ExperimentGuardrailEvent) {
   const existing = readGuardrailLog();
   writeGuardrailLog([eventEntry, ...existing]);
+}
+
+function readRampLog(): ExperimentRampEvent[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(EXP_RAMP_LOG_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter((item): item is ExperimentRampEvent => {
+      return (
+        isObjectRecord(item) &&
+        typeof item.experiment === "string" &&
+        typeof item.previousRollout === "number" &&
+        typeof item.nextRollout === "number" &&
+        typeof item.recommendation === "string" &&
+        typeof item.confidence === "string" &&
+        typeof item.rationale === "string" &&
+        typeof item.timestamp === "string"
+      );
+    });
+  } catch {
+    return [];
+  }
+}
+
+function writeRampLog(events: ExperimentRampEvent[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(EXP_RAMP_LOG_KEY, JSON.stringify(events.slice(0, 20)));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function appendRampEvent(eventEntry: ExperimentRampEvent) {
+  const existing = readRampLog();
+  writeRampLog([eventEntry, ...existing]);
+}
+
+function readRampMeta(): Partial<Record<ExperimentName, string>> {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const raw = window.localStorage.getItem(EXP_RAMP_META_KEY);
+    if (!raw) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!isObjectRecord(parsed)) {
+      return {};
+    }
+
+    return EXPERIMENT_NAMES.reduce<Partial<Record<ExperimentName, string>>>((acc, experimentName) => {
+      const value = parsed[experimentName];
+      if (typeof value === "string") {
+        acc[experimentName] = value;
+      }
+      return acc;
+    }, {});
+  } catch {
+    return {};
+  }
+}
+
+function writeRampMeta(meta: Partial<Record<ExperimentName, string>>) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(EXP_RAMP_META_KEY, JSON.stringify(meta));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function getNextRampTarget(current: number): number | null {
+  const sorted = [...RAMP_STEPS];
+  for (let index = 0; index < sorted.length; index += 1) {
+    if (sorted[index] > current) {
+      return sorted[index];
+    }
+  }
+  return null;
+}
+
+function getPreviousRampTarget(current: number): number | null {
+  const sorted = [...RAMP_STEPS].reverse();
+  for (let index = 0; index < sorted.length; index += 1) {
+    if (sorted[index] < current) {
+      return sorted[index];
+    }
+  }
+  return null;
 }
 
 function computeConversionRate(entry?: ExperimentRollupEntry): number {
@@ -589,6 +712,22 @@ export function clearExperimentGuardrailEvents() {
   }
 }
 
+export function listExperimentRampEvents(): ExperimentRampEvent[] {
+  return readRampLog();
+}
+
+export function clearExperimentRampEvents() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(EXP_RAMP_LOG_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 export function applyExperimentRecommendation(
   decision: ExperimentDecisionSummary,
   options?: { clearCurrentAssignment?: boolean },
@@ -659,6 +798,90 @@ export function runExperimentGuardrailAutoRollback(
   });
 
   return rollbacks;
+}
+
+export function runExperimentRampAutopilot(
+  snapshot: ExperimentRollupSnapshot,
+  options?: { clearCurrentAssignment?: boolean; cooldownMs?: number },
+): ExperimentRampEvent[] {
+  const cooldownMs = options?.cooldownMs ?? 2 * 60 * 1000;
+  const now = Date.now();
+  const meta = readRampMeta();
+  const actions: ExperimentRampEvent[] = [];
+
+  EXPERIMENT_NAMES.forEach((experiment) => {
+    const rolloutTarget = getExperimentRolloutTarget(experiment);
+    if (rolloutTarget === null) {
+      return;
+    }
+
+    const decision = evaluateExperimentDecision(experiment, snapshot);
+    const lastActionIso = meta[experiment];
+    const lastActionMs = lastActionIso ? Date.parse(lastActionIso) : 0;
+
+    if (lastActionMs && Number.isFinite(lastActionMs) && now - lastActionMs < cooldownMs) {
+      return;
+    }
+
+    let nextRollout: number | null = null;
+
+    if (
+      decision.recommendation === "promote_accelerated" &&
+      (decision.confidence === "medium" || decision.confidence === "high")
+    ) {
+      nextRollout = getNextRampTarget(rolloutTarget);
+    }
+
+    if (
+      decision.recommendation === "keep_control" &&
+      (decision.confidence === "medium" || decision.confidence === "high") &&
+      nextRollout === null
+    ) {
+      const previousTarget = getPreviousRampTarget(rolloutTarget);
+      if (previousTarget !== null && previousTarget >= 25) {
+        nextRollout = previousTarget;
+      }
+    }
+
+    if (nextRollout === null || nextRollout === rolloutTarget) {
+      return;
+    }
+
+    setExperimentRolloutTarget(experiment, nextRollout);
+    if (options?.clearCurrentAssignment) {
+      clearAssignedExperimentVariant(experiment);
+    }
+
+    const timestamp = new Date().toISOString();
+    meta[experiment] = timestamp;
+
+    const rampEvent: ExperimentRampEvent = {
+      experiment,
+      previousRollout: rolloutTarget,
+      nextRollout,
+      recommendation: decision.recommendation,
+      confidence: decision.confidence,
+      rationale: decision.rationale,
+      timestamp,
+    };
+
+    appendRampEvent(rampEvent);
+
+    event({
+      action: "experiment_ramp_autopilot",
+      category: "experiments",
+      label: `${experiment}:${rolloutTarget}->${nextRollout}`,
+      value: nextRollout,
+    });
+
+    actions.push(rampEvent);
+  });
+
+  if (actions.length > 0) {
+    writeRampMeta(meta);
+  }
+
+  return actions;
 }
 
 export function evaluateExperimentDecision(
