@@ -11,6 +11,7 @@ import {
   EXPERIMENT_POLICY_PROFILES,
   evaluateExperimentDecision,
   getExperimentPolicyAutoswitchEnabled,
+  getExperimentPolicyPendingSwitch,
   getExperimentPolicyProfile,
   getExperimentPolicyRegimeState,
   getExperimentPolicySettings,
@@ -47,6 +48,7 @@ interface ReadoutState {
   guardrailEvents: ReturnType<typeof listExperimentGuardrailEvents>;
   policySwitchEvents: ReturnType<typeof listExperimentPolicySwitchEvents>;
   policyRegime: ReturnType<typeof getExperimentPolicyRegimeState>;
+  policyPending: ReturnType<typeof getExperimentPolicyPendingSwitch>;
   rampEvents: ReturnType<typeof listExperimentRampEvents>;
 }
 
@@ -98,6 +100,7 @@ export function ExperimentReadoutPanel() {
     guardrailEvents: [],
     policySwitchEvents: [],
     policyRegime: null,
+    policyPending: null,
     rampEvents: [],
   });
 
@@ -143,6 +146,7 @@ export function ExperimentReadoutPanel() {
         guardrailEvents: listExperimentGuardrailEvents(),
         policySwitchEvents: listExperimentPolicySwitchEvents(),
         policyRegime: getExperimentPolicyRegimeState(),
+        policyPending: getExperimentPolicyPendingSwitch(),
         rampEvents: listExperimentRampEvents(),
       });
     };
@@ -195,6 +199,7 @@ export function ExperimentReadoutPanel() {
       guardrailEvents: listExperimentGuardrailEvents(),
       policySwitchEvents: listExperimentPolicySwitchEvents(),
       policyRegime: getExperimentPolicyRegimeState(),
+      policyPending: getExperimentPolicyPendingSwitch(),
       rampEvents: listExperimentRampEvents(),
     }));
   };
@@ -251,6 +256,7 @@ export function ExperimentReadoutPanel() {
                 guardrailEvents: state.guardrailEvents,
                 policySwitchEvents: state.policySwitchEvents,
                 policyRegime: state.policyRegime,
+                policyPending: state.policyPending,
                 rampEvents: state.rampEvents,
               };
 
@@ -333,6 +339,12 @@ export function ExperimentReadoutPanel() {
             <p className="mt-1 text-[10px] text-zinc-500">
               regime Δ~{state.policyRegime.smoothedAbsDeltaCvrPoints.toFixed(2)} · coverage~
               {(state.policyRegime.smoothedCoverage * 100).toFixed(0)}% · samples {state.policyRegime.sampleCount}
+            </p>
+          ) : null}
+          {state.policyPending ? (
+            <p className="mt-1 text-[10px] text-zinc-500">
+              pending {state.policyPending.pendingProfile} · confirm {state.policyPending.confirmationCount}/
+              {state.policyPending.requiredConfirmations}
             </p>
           ) : null}
         </section>
