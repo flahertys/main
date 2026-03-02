@@ -1,7 +1,5 @@
-import { HFChatComponent } from "@/components/ai/HFChatComponent";
 import { ChatStreamPanel } from "@/components/ai/ChatStreamPanel";
 import { HFGeneratorComponent } from "@/components/ai/HFGeneratorComponent";
-import { HubSectionProgressRail } from "@/components/ai/HubSectionProgressRail";
 import { ImageGeneratorComponent } from "@/components/ai/ImageGeneratorComponent";
 import { ModelScoreboardPanel } from "@/components/ai/ModelScoreboardPanel";
 import { SmartEnvironmentMonitor } from "@/components/ai/SmartEnvironmentMonitor";
@@ -9,19 +7,7 @@ import { VoiceSearchControlPanel } from "@/components/ai/VoiceSearchControlPanel
 import { ShamrockFooter } from "@/components/shamrock/ShamrockFooter";
 import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { createPageMetadata } from "@/lib/seo";
-import {
-    BarChart3,
-    Brain,
-    CheckCircle2,
-    Crown,
-    Layers,
-    MessageSquare,
-    ShieldCheck,
-    Sparkles,
-    Target,
-    Wand2,
-    Zap,
-} from "lucide-react";
+import { Brain, MessageSquare, ShieldCheck, Sparkles, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -38,555 +24,143 @@ export default function AIHubPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const progressSteps = [
-    {
-      id: "ai-chat-stream",
-      label: "AI Chat",
-      nextAction: "Ask for a one-goal, one-week action plan with clear daily tasks.",
-    },
-    {
-      id: "text-generator",
-      label: "Text",
-      nextAction: "Turn your plan into a publish-ready post or SOP in one draft.",
-    },
-    {
-      id: "image-generator",
-      label: "Image",
-      nextAction: "Generate one visual asset that supports your post or landing message.",
-    },
-    {
-      id: "ai-autopilot",
-      label: "Autopilot",
-      nextAction: "Run one-click setup and keep beginner-safe defaults active.",
-    },
-    {
-      id: "getting-started",
-      label: "5-Min Path",
-      nextAction: "Complete the checklist and lock your next action before leaving.",
-    },
-  ] as const;
-
   const viewParam = searchParams?.view;
   const view = Array.isArray(viewParam) ? viewParam[0] : viewParam;
   const isAdvancedView = view === "advanced";
 
-  if (!isAdvancedView) {
-    return (
-      <div className="relative min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.14),transparent_60%)]" />
-        <ShamrockHeader />
-
-        <main className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14 pb-28 md:pb-14">
-          <section className="mb-8 text-center">
-            <div className="theme-badge inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold mb-5">
-              <MessageSquare className="w-4 h-4" />
-              ONE-WINDOW AI HUB
-            </div>
-
-            <h1 className="theme-title text-3xl sm:text-4xl md:text-5xl font-bold mb-4">TradeHax AI Chat</h1>
-            <p className="mx-auto max-w-2xl text-sm sm:text-base text-zinc-300">
-              A cleaner experience: one focused chat window with one prompt input.
-              Ask, iterate, and execute—without panel overload.
-            </p>
-
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs">
-              <Link
-                href="/ai-hub?starter=new-user-setup#ai-chat-stream"
-                className="rounded-full border border-emerald-300/40 bg-emerald-500/20 px-3 py-1.5 font-semibold text-emerald-100 hover:bg-emerald-500/30 transition"
-              >
-                New User Setup
-              </Link>
-              <Link
-                href="/ai-hub?view=advanced#ai-chat-stream"
-                className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 font-semibold text-zinc-100 hover:bg-white/15 transition"
-              >
-                Open Advanced Workspace
-              </Link>
-            </div>
-          </section>
-
-          <section id="ai-chat-stream" className="scroll-mt-24">
-            <Suspense fallback={<LoadingPanel label="Loading AI command window" tone="emerald" />}>
-              <ChatStreamPanel minimal />
-            </Suspense>
-          </section>
-        </main>
-
-        <ShamrockFooter />
-      </div>
-    );
-  }
-
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.14),transparent_60%)]" />
-      <div className="pointer-events-none absolute right-0 top-44 h-72 w-72 rounded-full bg-fuchsia-600/10 blur-3xl" />
       <ShamrockHeader />
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-28 md:pb-12">
-        {/* Hero */}
-        <div className="text-center mb-14 sm:mb-16">
-          <div className="theme-badge inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold mb-6">
-            <Brain className="w-4 h-4" />
-            BEGINNER-FIRST AI PLATFORM
+      <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-28 pt-10 sm:px-6 sm:pt-14 md:pb-14 lg:px-8">
+        <section className="mb-8 text-center sm:mb-10">
+          <div className="theme-badge inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold">
+            <MessageSquare className="h-4 w-4" />
+            AI COMMAND CENTER
           </div>
 
-          <h1 className="theme-title text-4xl sm:text-5xl md:text-6xl font-bold mb-6">TradeHax AI Hub</h1>
-
-          <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-            Get clear help in plain language: ask questions, generate content, create images,
-            and follow guided next steps for crypto and stocks—even if you&apos;re brand new.
+          <h1 className="theme-title mt-4 text-3xl font-bold sm:text-4xl md:text-5xl">TradeHax AI Hub</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-zinc-300 sm:text-base">
+            Clean chat-first interface for crypto, stocks, and prediction markets. Backend intelligence stays fully intact;
+            the GUI is now focused, simpler, and easier for every experience level.
           </p>
 
-          <div className="mb-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="#ai-chat-stream"
-              className="rounded-xl border border-emerald-300/40 bg-emerald-500/20 px-5 py-2 text-sm font-semibold text-emerald-50 transition hover:-translate-y-0.5 hover:bg-emerald-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/80"
-            >
-              Start in AI Chat
-            </Link>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs">
+            {isAdvancedView ? (
+              <Link
+                href="/ai-hub#ai-chat-stream"
+                className="rounded-full border border-emerald-300/40 bg-emerald-500/20 px-3 py-1.5 font-semibold text-emerald-100 transition hover:bg-emerald-500/30"
+              >
+                Switch to Simple Mode
+              </Link>
+            ) : (
+              <Link
+                href="/ai-hub?view=advanced#ai-chat-stream"
+                className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 font-semibold text-zinc-100 transition hover:bg-white/15"
+              >
+                Open Advanced Mode
+              </Link>
+            )}
             <Link
               href="/ai-hub?starter=new-user-setup#ai-chat-stream"
-              className="rounded-xl border border-white/20 bg-white/5 px-5 py-2 text-sm font-semibold text-zinc-100 transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300/70"
-            >
-              Launch New User Setup
-            </Link>
-          </div>
-
-          <div className="mx-auto max-w-3xl rounded-xl border border-emerald-500/20 bg-emerald-600/10 px-4 py-3 text-sm text-emerald-100/90">
-            <p className="font-semibold">How to use this page</p>
-            <p className="mt-1 text-emerald-100/75">1) Start with AI Chat, 2) ask for a step-by-step plan, 3) use Text/Image tools only when needed.</p>
-          </div>
-        </div>
-
-        <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Guided Flow" value="4-step" description="Objective → route → execute → next action" />
-          <MetricCard label="Workspace Core" value="Chat-first" description="Primary interface optimized for rapid iteration" />
-          <MetricCard label="Reliability" value="Fallback-enabled" description="Model routing + resilient provider behavior" />
-          <MetricCard label="Operator Signal" value="Real-time" description="Confidence, risk, and next-action visibility" />
-        </div>
-
-        <div className="mb-8 grid gap-4 md:grid-cols-3">
-          <QuickStartCard
-            title="I&apos;m new"
-            description="Start with a guided onboarding flow and get your first objective set in seconds."
-            cta="Start New User Setup"
-            href="/ai-hub?starter=new-user-setup#ai-chat-stream"
-            tone="emerald"
-          />
-          <QuickStartCard
-            title="I need a plan"
-            description="Generate a risk-aware execution plan with clear steps and milestones."
-            cta="Launch First Trade Plan"
-            href="/ai-hub?starter=first-trade-plan#ai-chat-stream"
-            tone="yellow"
-          />
-          <QuickStartCard
-            title="I need growth assets"
-            description="Generate text + visuals for posts, pages, and campaigns from one objective."
-            cta="Launch Content Engine"
-            href="/ai-hub?starter=content-engine#ai-chat-stream"
-            tone="cyan"
-          />
-        </div>
-
-        <div className="mb-8 rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-5 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-indigo-100">Need API keys, webhooks, or model endpoints?</p>
-              <p className="text-xs text-indigo-100/75 mt-1">Beginner flow stays here. Developer and integration workflows are in Dev Hub.</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href="/ai-hub/analytics"
-                className="rounded border border-cyan-300/40 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25 transition"
-              >
-                Open AI Analytics
-              </Link>
-              <Link
-                href="/dev-hub"
-                className="rounded border border-indigo-300/40 bg-black/25 px-3 py-1.5 text-xs font-semibold text-indigo-100 hover:bg-black/35 transition"
-              >
-                Open Dev Hub
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="sticky top-[max(0.5rem,env(safe-area-inset-top))] sm:top-3 z-20 mb-10 rounded-xl border border-white/10 bg-black/70 supports-[backdrop-filter]:bg-black/50 p-3 shadow-[0_8px_30px_rgba(0,0,0,0.3)] backdrop-blur-sm sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-300">Fast Navigation</p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="#ai-chat-stream" className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-100 transition motion-safe:hover:-translate-y-0.5 hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70">AI Chat</Link>
-              <Link href="#text-generator" className="rounded-full border border-yellow-400/25 bg-yellow-500/10 px-3 py-1 text-[11px] font-semibold text-yellow-100 transition motion-safe:hover:-translate-y-0.5 hover:bg-yellow-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300/70">Text</Link>
-              <Link href="#image-generator" className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 text-[11px] font-semibold text-cyan-100 transition motion-safe:hover:-translate-y-0.5 hover:bg-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70">Image</Link>
-              <Link href="#ai-autopilot" className="rounded-full border border-fuchsia-400/25 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-semibold text-fuchsia-100 transition motion-safe:hover:-translate-y-0.5 hover:bg-fuchsia-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70">Autopilot</Link>
-              <Link href="#getting-started" className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] font-semibold text-zinc-100 transition motion-safe:hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-200/70">5-Min Path</Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-8 grid gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-cyan-500/20 bg-cyan-600/10 px-5 py-4">
-            <p className="text-sm font-semibold text-cyan-100">What you can finish in 2 minutes</p>
-            <ul className="mt-2 space-y-1 text-xs text-cyan-100/80">
-              <li>• Get a clear step-by-step action plan from AI Chat</li>
-              <li>• Draft a publish-ready post with Text Generator</li>
-              <li>• Produce a visual concept for social/landing with Image Generator</li>
-            </ul>
-          </div>
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-600/10 px-5 py-4 text-sm text-emerald-100/90">
-            <p className="font-semibold">Sustainable usage model</p>
-            <p className="mt-1 text-emerald-100/75">
-              Pricing is designed to remain beginner-friendly while covering model/API costs.
-              Visit <Link href="/pricing" className="underline underline-offset-2"> pricing </Link>
-              for limits and included usage.
-            </p>
-          </div>
-        </div>
-
-        <div className="mb-10 rounded-xl border border-emerald-500/20 bg-emerald-600/10 px-5 py-4">
-          <p className="text-sm font-semibold text-emerald-100">Starter prompts (copy/paste into AI Chat)</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {[
-              "Build me a safe 7-day beginner workflow with daily time blocks.",
-              "Turn my idea into a one-page content plan with 3 posts.",
-              "Give me one clear next action for today and why it matters.",
-            ].map((prompt) => (
-              <Link
-                key={prompt}
-                href="#ai-chat-stream"
-                className="rounded-lg border border-emerald-400/25 bg-black/25 px-3 py-2 text-[11px] text-emerald-100/90 hover:bg-black/35 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70"
-                title={prompt}
-              >
-                {prompt}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-emerald-300/35">
-            <p className="text-[11px] uppercase tracking-wider text-emerald-200/80">Primary Interface</p>
-            <p className="mt-1 text-sm font-semibold text-emerald-100">Conversation-first workspace</p>
-          </div>
-          <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-cyan-300/35">
-            <p className="text-[11px] uppercase tracking-wider text-cyan-200/80">Session Memory</p>
-            <p className="mt-1 text-sm font-semibold text-cyan-100">Resume and continue where you left off</p>
-          </div>
-          <div className="rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/10 px-4 py-3 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-fuchsia-300/35">
-            <p className="text-[11px] uppercase tracking-wider text-fuchsia-200/80">Preset Intelligence</p>
-            <p className="mt-1 text-sm font-semibold text-fuchsia-100">Role-based AI profiles for each objective</p>
-          </div>
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-amber-300/35">
-            <p className="text-[11px] uppercase tracking-wider text-amber-200/80">Operator Visibility</p>
-            <p className="mt-1 text-sm font-semibold text-amber-100">Decision signals + next action every turn</p>
-          </div>
-        </div>
-
-        <HubSectionProgressRail steps={[...progressSteps]} />
-
-        <div id="ai-chat-stream" className="mb-8 scroll-mt-28">
-          <Suspense
-            fallback={<LoadingPanel label="Loading streaming chat lane" tone="emerald" />}
-          >
-            <ChatStreamPanel />
-          </Suspense>
-        </div>
-
-        <Suspense
-          fallback={
-            <LoadingPanel label="Loading voice/search control panel" tone="cyan" className="mb-8" />
-          }
-        >
-          <VoiceSearchControlPanel />
-        </Suspense>
-
-        {/* Smart Environment Monitor */}
-        <div className="mb-12">
-          <Suspense
-            fallback={
-              <LoadingPanel label="Loading smart environment monitor" tone="cyan" />
-            }
-          >
-            <SmartEnvironmentMonitor />
-          </Suspense>
-        </div>
-
-        <div id="ai-autopilot" className="mb-3 scroll-mt-28 rounded-xl border border-fuchsia-500/20 bg-fuchsia-600/10 px-4 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-fuchsia-100">New here? One-click setup</p>
-              <p className="text-xs text-fuchsia-100/75 mt-1">
-                Launch a guided 30-second setup wizard for autopilot and beginner-safe defaults.
-              </p>
-            </div>
-            <Link
-              href="/ai-hub?setupWizard=1#ai-autopilot"
-              className="rounded border border-fuchsia-300/40 bg-black/25 px-3 py-1.5 text-xs font-semibold text-fuchsia-100 hover:bg-black/35 transition"
-            >
-              I&apos;m new — set this up for me
-            </Link>
-          </div>
-        </div>
-
-        <Suspense
-          fallback={
-            <LoadingPanel label="Loading AI autopilot controls" tone="fuchsia" className="mb-8" />
-          }
-        >
-          <ModelScoreboardPanel />
-        </Suspense>
-
-        <div className="theme-panel p-6 sm:p-8 mb-12">
-          <div className="flex items-center gap-2 mb-4 text-amber-200">
-            <Target className="w-5 h-5" />
-            <h2 className="text-xl sm:text-2xl font-bold">Why this stands out vs generic AI tools</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            <EdgeCard
-              icon={<Layers className="w-4 h-4" />}
-              title="Flow-aware UX"
-              description="Most tools stop at chat. TradeHax pushes users through clear objective → route → execution → next action."
-            />
-            <EdgeCard
-              icon={<ShieldCheck className="w-4 h-4" />}
-              title="Safer onboarding"
-              description="Beginner prompts, low-friction controls, and predictable next steps reduce overwhelm and churn."
-            />
-            <EdgeCard
-              icon={<Crown className="w-4 h-4" />}
-              title="Operator-grade depth"
-              description="Advanced controls remain available for power users without cluttering the first-time experience."
-            />
-          </div>
-        </div>
-
-        <div id="ai-chat" className="mb-12 scroll-mt-28">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-xl font-bold text-emerald-300">AI Command Center</h2>
-            </div>
-            <p className="text-xs text-emerald-100/75">Built for fast intent-to-execution flow, inspired by best-in-class AI chat UX.</p>
-          </div>
-          <Suspense
-            fallback={
-              <LoadingPanel label="Loading AI chat" tone="emerald" />
-            }
-          >
-            <HFChatComponent />
-          </Suspense>
-        </div>
-
-        {/* Additional Tools */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-12">
-          {/* Text Generator */}
-          <div id="text-generator" className="scroll-mt-28">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-yellow-400" />
-              <h2 className="text-xl font-bold text-yellow-300">Text Studio</h2>
-            </div>
-            <Suspense
-              fallback={
-                <LoadingPanel label="Loading text generator" tone="yellow" />
-              }
-            >
-              <HFGeneratorComponent />
-            </Suspense>
-          </div>
-
-          {/* Image Generator */}
-          <div id="image-generator" className="scroll-mt-28">
-            <div className="flex items-center gap-2 mb-4">
-              <Wand2 className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-xl font-bold text-cyan-300">Image Studio</h2>
-            </div>
-            <Suspense
-              fallback={
-                <LoadingPanel label="Loading image generator" tone="cyan" />
-              }
-            >
-              <ImageGeneratorComponent />
-            </Suspense>
-          </div>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-8 mb-12">
-
-          {/* Capabilities */}
-          <div className="theme-panel p-6">
-            <h2 className="text-xl font-bold text-white mb-6">Capabilities</h2>
-            <div className="space-y-4">
-              <CapabilityItem
-                icon={<Brain className="w-5 h-5" />}
-                title="Smart Environment"
-                description="Context-aware support with clear next actions for trading workflows"
-              />
-              <CapabilityItem
-                icon={<Wand2 className="w-5 h-5" />}
-                title="Image Generation"
-                description="Create trading charts, market visuals, and hero images with AI"
-              />
-              <CapabilityItem
-                icon={<MessageSquare className="w-5 h-5" />}
-                title="Intelligent Chat"
-                description="Beginner-friendly guidance with step-by-step explanations"
-              />
-              <CapabilityItem
-                icon={<BarChart3 className="w-5 h-5" />}
-                title="Portfolio Analytics"
-                description="Real-time portfolio monitoring with allocation insights"
-              />
-              <CapabilityItem
-                icon={<Zap className="w-5 h-5" />}
-                title="Bot Management"
-                description="Create and manage automated trading bots with multiple strategies"
-              />
-              <CapabilityItem
-                icon={<Sparkles className="w-5 h-5" />}
-                title="Model Fine-tuning"
-                description="Train models on TradeHax datasets for custom predictions"
-              />
-            </div>
-          </div>
-
-          <div className="theme-panel p-6">
-            <h2 className="text-xl font-bold text-white mb-6">Workspace Principles</h2>
-            <div className="space-y-3 text-sm text-zinc-300">
-              <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
-                <p className="font-semibold text-white">1. Conversation-first</p>
-                <p className="mt-1 text-zinc-400">Chat is the control tower, with tools as specialized accelerators.</p>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
-                <p className="font-semibold text-white">2. Explainable outputs</p>
-                <p className="mt-1 text-zinc-400">Decision signals and explicit next actions keep users confident and oriented.</p>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
-                <p className="font-semibold text-white">3. Speed without clutter</p>
-                <p className="mt-1 text-zinc-400">Quick actions and presets reduce friction for beginners while preserving depth for operators.</p>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
-                <p className="font-semibold text-white">4. Brand legacy quality</p>
-                <p className="mt-1 text-zinc-400">Every interaction is designed to reflect precision, craft, and trust.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Datasets & Models */}
-        <div className="theme-panel p-8 mb-12">
-          <h2 className="text-2xl font-bold text-white mb-8">Datasets & Models</h2>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <DatasetCard
-              title="TradeHax Behavioral"
-              description="26 Q&A pairs on trading strategies, risk management, and platform features"
-              type="Training Dataset"
-              entries="26 pairs"
-              format="JSONL"
-            />
-            <DatasetCard
-              title="Crypto Education"
-              description="10 comprehensive lessons on blockchain, DeFi, trading concepts"
-              type="Training Dataset"
-              entries="10 pairs"
-              format="JSONL"
-            />
-            <DatasetCard
-              title="Trading Strategy"
-              description="Expanded with UI generation, NLP, and trading strategy optimization"
-              type="Training Dataset"
-              entries="20+ pairs"
-              format="JSONL"
-            />
-          </div>
-
-          <div className="mt-8 pt-8 border-t border-white/10">
-            <h3 className="text-lg font-bold text-white mb-4">Available Models</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <ModelCard
-                name="Mistral-7B-Instruct"
-                type="Text Generation"
-                size="7B parameters"
-                use="Chat, code, trading analysis"
-              />
-              <ModelCard
-                name="Stable Diffusion 2.1"
-                type="Image Generation"
-                size="1B+ parameters"
-                use="Trading charts, market visuals, UI"
-              />
-              <ModelCard
-                name="Meta-Llama-3-8B-Instruct"
-                type="Text Generation"
-                size="8B parameters"
-                use="Long-form strategy and agent workflows"
-              />
-              <ModelCard
-                name="FLUX.1 Schnell"
-                type="Image Generation"
-                size="Large diffusion"
-                use="High-contrast concept renders"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Getting Started */}
-        <div id="getting-started" className="theme-panel theme-panel--success scroll-mt-28 p-6 sm:p-8">
-          <h2 className="text-2xl font-bold text-emerald-300 mb-6">Getting Started (5-minute path)</h2>
-
-          <div className="space-y-4">
-            <StepCard
-              step="1"
-              title="Open AI Chat"
-              description="Use the guided assistant and describe your goal in simple words"
-            />
-            <StepCard
-              step="2"
-              title="Set your objective"
-              description="Example: 'I want a safe beginner trading routine this week'"
-            />
-            <StepCard
-              step="3"
-              title="Follow the step-by-step plan"
-              description="Use the suggested route pages and execute one task at a time"
-            />
-            <StepCard
-              step="4"
-              title="Use generators as needed"
-              description="Text for posts/docs, Image for visuals and chart storytelling"
-            />
-            <StepCard
-              step="5"
-              title="Review costs + limits"
-              description="Stay in the low-cost tier until your API usage grows"
-            />
-            <StepCard
-              step="6"
-              title="Scale when ready"
-              description="Upgrade only when your usage exceeds included monthly requests"
-            />
-          </div>
-        </div>
-
-        <div className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 mx-auto w-[min(620px,calc(100%-1rem))] rounded-xl border border-white/15 bg-black/85 supports-[backdrop-filter]:bg-black/70 p-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur md:hidden">
-          <div className="flex items-center gap-2">
-            <Link
-              href="#ai-chat-stream"
-              className="flex-1 rounded-lg border border-emerald-300/35 bg-emerald-500/20 px-3 py-2.5 text-center text-xs font-semibold text-emerald-50"
-            >
-              Open AI Chat
-            </Link>
-            <Link
-              href="/ai-hub?starter=new-user-setup#ai-chat-stream"
-              className="flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-zinc-100"
+              className="rounded-full border border-cyan-300/40 bg-cyan-500/15 px-3 py-1.5 font-semibold text-cyan-100 transition hover:bg-cyan-500/25"
             >
               New User Setup
             </Link>
           </div>
-        </div>
+        </section>
+
+        <section className="mb-8 grid gap-4 lg:grid-cols-[1fr_320px]">
+          <div id="ai-chat-stream" className="scroll-mt-24">
+            <Suspense fallback={<LoadingPanel label="Loading AI command window" tone="emerald" />}>
+              <ChatStreamPanel minimal={!isAdvancedView} />
+            </Suspense>
+          </div>
+
+          <aside className="space-y-3">
+            <StatusCard
+              icon={<Brain className="h-4 w-4" />}
+              title="Neural Core Priority"
+              body="Model routing, orchestration, memory, and safety backends are unchanged and remain top priority."
+              tone="emerald"
+            />
+            <StatusCard
+              icon={<ShieldCheck className="h-4 w-4" />}
+              title="Trader-Friendly Flow"
+              body="One primary prompt lane first. Advanced controls are available only when you choose them."
+              tone="cyan"
+            />
+            <StatusCard
+              icon={<Sparkles className="h-4 w-4" />}
+              title="Quick Start Prompts"
+              body="Use plain language prompts, then iterate from one clear next action at a time."
+              tone="fuchsia"
+            />
+          </aside>
+        </section>
+
+        <section className="space-y-3">
+          <ToolAccordion
+            id="voice-and-context"
+            title="Voice + Context Tools"
+            subtitle="Speech controls and context expansion"
+            tone="cyan"
+            defaultOpen={isAdvancedView}
+          >
+            <Suspense fallback={<LoadingPanel label="Loading voice/search control panel" tone="cyan" />}>
+              <VoiceSearchControlPanel />
+            </Suspense>
+          </ToolAccordion>
+
+          <ToolAccordion
+            id="environment-monitor"
+            title="Smart Environment Monitor"
+            subtitle="Portfolio, market snapshots, and active signals"
+            tone="cyan"
+            defaultOpen={isAdvancedView}
+          >
+            <Suspense fallback={<LoadingPanel label="Loading smart environment monitor" tone="cyan" />}>
+              <SmartEnvironmentMonitor />
+            </Suspense>
+          </ToolAccordion>
+
+          <ToolAccordion
+            id="text-studio"
+            title="Text Studio"
+            subtitle="Generate SOPs, plans, and publish-ready drafts"
+            tone="yellow"
+            defaultOpen={isAdvancedView}
+          >
+            <Suspense fallback={<LoadingPanel label="Loading text generator" tone="yellow" />}>
+              <HFGeneratorComponent />
+            </Suspense>
+          </ToolAccordion>
+
+          <ToolAccordion
+            id="image-studio"
+            title="Image Studio"
+            subtitle="Create visuals from prompts and strategy context"
+            tone="cyan"
+            defaultOpen={isAdvancedView}
+          >
+            <Suspense fallback={<LoadingPanel label="Loading image generator" tone="cyan" />}>
+              <ImageGeneratorComponent />
+            </Suspense>
+          </ToolAccordion>
+
+          <ToolAccordion
+            id="autopilot"
+            title="Autopilot + Model Scoreboard"
+            subtitle="Cross-domain model health and stable-mode controls"
+            tone="fuchsia"
+            defaultOpen={isAdvancedView}
+          >
+            <Suspense fallback={<LoadingPanel label="Loading AI autopilot controls" tone="fuchsia" />}>
+              <ModelScoreboardPanel />
+            </Suspense>
+          </ToolAccordion>
+        </section>
       </main>
 
       <ShamrockFooter />
@@ -594,168 +168,68 @@ export default function AIHubPage({
   );
 }
 
-function MetricCard({
-  label,
-  value,
-  description,
+function ToolAccordion({
+  id,
+  title,
+  subtitle,
+  tone,
+  defaultOpen,
+  children,
 }: {
-  label: string;
-  value: string;
-  description: string;
+  id: string;
+  title: string;
+  subtitle: string;
+  tone: "emerald" | "cyan" | "fuchsia" | "yellow";
+  defaultOpen?: boolean;
+  children: React.ReactNode;
 }) {
+  const toneClass = {
+    emerald: "border-emerald-500/20 bg-emerald-600/10 text-emerald-100",
+    cyan: "border-cyan-500/20 bg-cyan-600/10 text-cyan-100",
+    fuchsia: "border-fuchsia-500/20 bg-fuchsia-600/10 text-fuchsia-100",
+    yellow: "border-yellow-500/20 bg-yellow-600/10 text-yellow-100",
+  }[tone];
+
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-emerald-300/25">
-      <p className="text-[10px] uppercase tracking-wider text-zinc-400">{label}</p>
-      <p className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-emerald-200">
-        <CheckCircle2 className="w-3.5 h-3.5" />
-        {value}
-      </p>
-      <p className="mt-1 text-[11px] text-zinc-300/80 leading-relaxed">{description}</p>
-    </div>
+    <details id={id} open={defaultOpen} className={`overflow-hidden rounded-xl border ${toneClass}`}>
+      <summary className="cursor-pointer list-none px-4 py-3 transition hover:bg-black/20">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold">{title}</p>
+            <p className="text-xs opacity-80">{subtitle}</p>
+          </div>
+          <span className="rounded-full border border-white/20 bg-black/20 px-2 py-0.5 text-[10px] uppercase tracking-wide">toggle</span>
+        </div>
+      </summary>
+      <div className="border-t border-white/10 p-3 sm:p-4">{children}</div>
+    </details>
   );
 }
 
-function EdgeCard({
+function StatusCard({
   icon,
   title,
-  description,
+  body,
+  tone,
 }: {
   icon: React.ReactNode;
   title: string;
-  description: string;
+  body: string;
+  tone: "emerald" | "cyan" | "fuchsia";
 }) {
+  const toneClass = {
+    emerald: "border-emerald-500/20 bg-emerald-600/10 text-emerald-100",
+    cyan: "border-cyan-500/20 bg-cyan-600/10 text-cyan-100",
+    fuchsia: "border-fuchsia-500/20 bg-fuchsia-600/10 text-fuchsia-100",
+  }[tone];
+
   return (
-    <div className="rounded-xl border border-white/10 bg-black/30 p-4 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-white/20">
-      <div className="inline-flex items-center gap-2 text-amber-200 text-sm font-semibold mb-2">
+    <div className={`rounded-xl border p-3 ${toneClass}`}>
+      <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-semibold">
         {icon}
         {title}
       </div>
-      <p className="text-xs text-zinc-300 leading-relaxed">{description}</p>
-    </div>
-  );
-}
-
-function QuickStartCard({
-  title,
-  description,
-  cta,
-  href,
-  tone,
-}: {
-  title: string;
-  description: string;
-  cta: string;
-  href: string;
-  tone: "emerald" | "yellow" | "cyan";
-}) {
-  const toneStyles = {
-    emerald: "border-emerald-500/25 hover:border-emerald-400/50 hover:bg-emerald-500/10 text-emerald-300",
-    yellow: "border-yellow-500/25 hover:border-yellow-400/50 hover:bg-yellow-500/10 text-yellow-300",
-    cyan: "border-cyan-500/25 hover:border-cyan-400/50 hover:bg-cyan-500/10 text-cyan-300",
-  };
-
-  return (
-    <Link href={href} className={`block rounded-xl border bg-black/30 p-4 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${toneStyles[tone]}`}>
-      <h3 className="text-sm font-bold text-white">{title}</h3>
-      <p className="mt-1 text-xs leading-relaxed text-gray-300">{description}</p>
-      <p className="mt-3 text-[11px] font-semibold">{cta}</p>
-    </Link>
-  );
-}
-
-function CapabilityItem({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex gap-4">
-      <div className="text-cyan-400 flex-shrink-0">{icon}</div>
-      <div>
-        <h4 className="font-bold text-white mb-1">{title}</h4>
-        <p className="text-sm text-gray-400">{description}</p>
-      </div>
-    </div>
-  );
-}
-
-function DatasetCard({
-  title,
-  description,
-  type,
-  entries,
-  format,
-}: {
-  title: string;
-  description: string;
-  type: string;
-  entries: string;
-  format: string;
-}) {
-  return (
-    <div className="border border-emerald-500/30 rounded p-5 sm:p-6 bg-emerald-600/5 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-emerald-300/40">
-      <div className="text-xs font-bold text-emerald-400 mb-2">{type}</div>
-      <h3 className="font-bold text-white mb-2">{title}</h3>
-      <p className="text-sm text-gray-400 mb-4">{description}</p>
-      <div className="flex justify-between text-xs text-gray-500">
-        <span>{entries}</span>
-        <span>{format}</span>
-      </div>
-    </div>
-  );
-}
-
-function ModelCard({
-  name,
-  type,
-  size,
-  use,
-}: {
-  name: string;
-  type: string;
-  size: string;
-  use: string;
-}) {
-  return (
-    <div className="border border-blue-500/30 rounded p-4 bg-blue-600/5 transition motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-blue-300/40">
-      <div className="font-bold text-blue-300 mb-1">{name}</div>
-      <div className="text-xs text-gray-500 space-y-1">
-        <div>
-          <strong>Type:</strong> {type}
-        </div>
-        <div>
-          <strong>Size:</strong> {size}
-        </div>
-        <div>
-          <strong>Use:</strong> {use}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StepCard({
-  step,
-  title,
-  description,
-}: {
-  step: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex gap-4 pb-4 border-b border-emerald-500/20 last:border-0 transition motion-safe:hover:translate-x-0.5">
-      <div className="flex-shrink-0 w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center font-bold text-white">
-        {step}
-      </div>
-      <div>
-        <h4 className="font-bold text-white mb-1">{title}</h4>
-        <p className="text-sm text-emerald-200/80">{description}</p>
-      </div>
+      <p className="text-xs opacity-85">{body}</p>
     </div>
   );
 }
@@ -763,11 +237,9 @@ function StepCard({
 function LoadingPanel({
   label,
   tone,
-  className,
 }: {
   label: string;
   tone: "emerald" | "cyan" | "fuchsia" | "yellow";
-  className?: string;
 }) {
   const toneClass = {
     emerald: "border-emerald-500/20 bg-emerald-600/10 text-emerald-100/80",
@@ -777,7 +249,7 @@ function LoadingPanel({
   }[tone];
 
   return (
-    <div className={`rounded-xl border px-4 py-3 text-xs ${toneClass} ${className || ""}`}>
+    <div className={`rounded-xl border px-4 py-3 text-xs ${toneClass}`}>
       <div className="mb-2">{label}...</div>
       <div className="space-y-1.5">
         <div className="h-2 w-3/4 animate-pulse rounded bg-white/20" />
