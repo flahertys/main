@@ -13,6 +13,8 @@ export interface ExperimentPolicySettings {
   minZForAction: number;
   highConfidenceZ: number;
   rampCooldownMs: number;
+  rampVelocityWindowMs: number;
+  rampMaxShiftPerWindow: number;
   autoswitchConfirmationCount: number;
   autoswitchBandPoints: number;
   autoswitchCoverageBand: number;
@@ -62,10 +64,18 @@ export interface ExperimentRampEvent {
   stepSize: number;
   stride: number;
   profile: ExperimentPolicyProfile;
+  velocityWindowUsedBefore: number;
+  velocityWindowUsedAfter: number;
+  velocityWindowBudget: number;
   recommendation: ExperimentDecisionSummary["recommendation"];
   confidence: ExperimentDecisionSummary["confidence"];
   rationale: string;
   timestamp: string;
+}
+
+interface ExperimentRampVelocityWindowEntry {
+  timestamp: string;
+  stepSize: number;
 }
 
 export interface ExperimentPolicySwitchEvent {
@@ -123,6 +133,7 @@ const EXP_ROLLUP_STORAGE_KEY = "thx-exp-rollup";
 const EXP_GUARDRAIL_LOG_KEY = "thx-exp-guardrail-log";
 const EXP_RAMP_LOG_KEY = "thx-exp-ramp-log";
 const EXP_RAMP_META_KEY = "thx-exp-ramp-meta";
+const EXP_RAMP_VELOCITY_META_KEY = "thx-exp-ramp-velocity-meta";
 const EXP_POLICY_PROFILE_KEY = "thx-exp-policy-profile";
 const EXP_POLICY_AUTOSWITCH_KEY = "thx-exp-policy-autoswitch-enabled";
 const EXP_POLICY_SWITCH_LOG_KEY = "thx-exp-policy-switch-log";
@@ -147,6 +158,8 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     minZForAction: 1.28,
     highConfidenceZ: 2.33,
     rampCooldownMs: 60 * 1000,
+    rampVelocityWindowMs: 12 * 60 * 1000,
+    rampMaxShiftPerWindow: 65,
     autoswitchConfirmationCount: 1,
     autoswitchBandPoints: 0.25,
     autoswitchCoverageBand: 0.04,
@@ -161,6 +174,8 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     minZForAction: 1.64,
     highConfidenceZ: 2.58,
     rampCooldownMs: 2 * 60 * 1000,
+    rampVelocityWindowMs: 15 * 60 * 1000,
+    rampMaxShiftPerWindow: 45,
     autoswitchConfirmationCount: 2,
     autoswitchBandPoints: 0.35,
     autoswitchCoverageBand: 0.05,
@@ -175,6 +190,8 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     minZForAction: 1.96,
     highConfidenceZ: 2.8,
     rampCooldownMs: 5 * 60 * 1000,
+    rampVelocityWindowMs: 20 * 60 * 1000,
+    rampMaxShiftPerWindow: 30,
     autoswitchConfirmationCount: 3,
     autoswitchBandPoints: 0.5,
     autoswitchCoverageBand: 0.06,
@@ -217,6 +234,8 @@ export function getExperimentPolicySettings(
     minZForAction: Number((base.minZForAction * tuningRatio).toFixed(2)),
     highConfidenceZ: Number((base.highConfidenceZ * tuningRatio).toFixed(2)),
     rampCooldownMs: Math.max(30_000, Math.round(base.rampCooldownMs * stability)),
+    rampVelocityWindowMs: Math.max(2 * 60_000, Math.round(base.rampVelocityWindowMs * stability)),
+    rampMaxShiftPerWindow: Math.max(15, Math.round(base.rampMaxShiftPerWindow * sensitivity)),
     autoswitchConfirmationCount: Math.max(1, Math.round(base.autoswitchConfirmationCount * stability)),
     autoswitchBandPoints: Number((base.autoswitchBandPoints * stability).toFixed(3)),
     autoswitchCoverageBand: Number((base.autoswitchCoverageBand * stability).toFixed(3)),
@@ -353,6 +372,9 @@ function readRampLog(): ExperimentRampEvent[] {
         typeof item.stepSize === "number" &&
         typeof item.stride === "number" &&
         typeof item.profile === "string" &&
+        typeof item.velocityWindowUsedBefore === "number" &&
+        typeof item.velocityWindowUsedAfter === "number" &&
+        typeof item.velocityWindowBudget === "number" &&
         typeof item.recommendation === "string" &&
         typeof item.confidence === "string" &&
         typeof item.rationale === "string" &&
@@ -753,6 +775,83 @@ function writeRampMeta(meta: Partial<Record<ExperimentName, string>>) {
   }
 }
 
+function readRampVelocityMeta(): Partial<Record<ExperimentName, ExperimentRampVelocityWindowEntry[]>> {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const raw = window.localStorage.getItem(EXP_RAMP_VELOCITY_META_KEY);
+    if (!raw) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!isObjectRecord(parsed)) {
+      return {};
+    }
+
+    return EXPERIMENT_NAMES.reduce<Partial<Record<ExperimentName, ExperimentRampVelocityWindowEntry[]>>>(
+      (acc, experimentName) => {
+        const value = parsed[experimentName];
+        if (!Array.isArray(value)) {
+          return acc;
+        }
+
+        const entries = value.filter((item): item is ExperimentRampVelocityWindowEntry => {
+          return (
+            isObjectRecord(item) &&
+            typeof item.timestamp === "string" &&
+            typeof item.stepSize === "number"
+          );
+        });
+
+        if (entries.length > 0) {
+          acc[experimentName] = entries;
+        }
+
+        return acc;
+      },
+      {},
+    );
+  } catch {
+    return {};
+  }
+}
+
+function writeRampVelocityMeta(meta: Partial<Record<ExperimentName, ExperimentRampVelocityWindowEntry[]>>) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(EXP_RAMP_VELOCITY_META_KEY, JSON.stringify(meta));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function computeWindowVelocityUsage(
+  entries: ExperimentRampVelocityWindowEntry[],
+  windowMs: number,
+  nowMs: number,
+): {
+  filtered: ExperimentRampVelocityWindowEntry[];
+  usedShift: number;
+} {
+  const filtered = entries.filter((entry) => {
+    const timestampMs = Date.parse(entry.timestamp);
+    if (!Number.isFinite(timestampMs)) {
+      return false;
+    }
+
+    return nowMs - timestampMs <= windowMs;
+  });
+
+  const usedShift = filtered.reduce((acc, item) => acc + Math.max(0, item.stepSize), 0);
+  return { filtered, usedShift };
+}
+
 function getNextRampTarget(current: number): number | null {
   const sorted = [...RAMP_STEPS];
   for (let index = 0; index < sorted.length; index += 1) {
@@ -798,6 +897,39 @@ function getRampTargetByStride(
   }
 
   return RAMP_STEPS[nextIndex] ?? null;
+}
+
+function getRampTargetWithinStepBudget(
+  current: number,
+  direction: "up" | "down",
+  stride: number,
+  maxStepSize: number,
+): number | null {
+  const currentIndex = getRampIndex(current);
+  if (currentIndex < 0 || maxStepSize <= 0) {
+    return null;
+  }
+
+  let bestTarget: number | null = null;
+  let index = currentIndex;
+
+  for (let move = 0; move < Math.max(1, stride); move += 1) {
+    const nextIndex = direction === "up" ? index + 1 : index - 1;
+    if (nextIndex < 0 || nextIndex >= RAMP_STEPS.length) {
+      break;
+    }
+
+    const candidate = RAMP_STEPS[nextIndex];
+    const candidateStep = Math.abs(candidate - current);
+    if (candidateStep > maxStepSize) {
+      break;
+    }
+
+    bestTarget = candidate;
+    index = nextIndex;
+  }
+
+  return bestTarget;
 }
 
 function resolveRampStride(
@@ -1751,6 +1883,7 @@ export function runExperimentRampAutopilot(
   const cooldownMs = options?.cooldownMs ?? policy.rampCooldownMs;
   const now = Date.now();
   const meta = readRampMeta();
+  const velocityMeta = readRampVelocityMeta();
   const actions: ExperimentRampEvent[] = [];
   const regime = getExperimentPolicyRegimeState();
   const adaptive = getExperimentPolicyAdaptiveState();
@@ -1764,6 +1897,13 @@ export function runExperimentRampAutopilot(
     const decision = evaluateExperimentDecision(experiment, snapshot, { profile });
     const lastActionIso = meta[experiment];
     const lastActionMs = lastActionIso ? Date.parse(lastActionIso) : 0;
+    const velocityWindowMs = policy.rampVelocityWindowMs;
+    const velocityWindowBudget = policy.rampMaxShiftPerWindow;
+
+    const priorVelocityEntries = velocityMeta[experiment] ?? [];
+    const velocityWindow = computeWindowVelocityUsage(priorVelocityEntries, velocityWindowMs, now);
+    const velocityWindowUsedBefore = velocityWindow.usedShift;
+    const availableVelocity = Math.max(0, velocityWindowBudget - velocityWindowUsedBefore);
 
     if (lastActionMs && Number.isFinite(lastActionMs) && now - lastActionMs < cooldownMs) {
       return;
@@ -1780,7 +1920,10 @@ export function runExperimentRampAutopilot(
       const strideDecision = resolveRampStride(decision, profile, regime, adaptive);
       rampStride = strideDecision.stride;
       rampStrideRationale = strideDecision.rationale;
-      nextRollout = getRampTargetByStride(rolloutTarget, "up", rampStride) ?? getNextRampTarget(rolloutTarget);
+      nextRollout =
+        getRampTargetWithinStepBudget(rolloutTarget, "up", rampStride, availableVelocity) ??
+        getRampTargetByStride(rolloutTarget, "up", 1) ??
+        getNextRampTarget(rolloutTarget);
     }
 
     if (
@@ -1792,13 +1935,20 @@ export function runExperimentRampAutopilot(
       rampStride = Math.max(1, Math.min(2, strideDecision.stride));
       rampStrideRationale = `${strideDecision.rationale} Rollback stride capped for safety.`;
       const previousTarget =
-        getRampTargetByStride(rolloutTarget, "down", rampStride) ?? getPreviousRampTarget(rolloutTarget);
+        getRampTargetWithinStepBudget(rolloutTarget, "down", rampStride, availableVelocity) ??
+        getRampTargetByStride(rolloutTarget, "down", 1) ??
+        getPreviousRampTarget(rolloutTarget);
       if (previousTarget !== null && previousTarget >= 25) {
         nextRollout = previousTarget;
       }
     }
 
     if (nextRollout === null || nextRollout === rolloutTarget) {
+      return;
+    }
+
+    const stepSize = Math.abs(nextRollout - rolloutTarget);
+    if (stepSize <= 0 || stepSize > availableVelocity) {
       return;
     }
 
@@ -1809,7 +1959,10 @@ export function runExperimentRampAutopilot(
 
     const timestamp = new Date().toISOString();
     meta[experiment] = timestamp;
-    const stepSize = Math.abs(nextRollout - rolloutTarget);
+
+    const nextVelocityEntries = [...velocityWindow.filtered, { timestamp, stepSize }];
+    velocityMeta[experiment] = nextVelocityEntries;
+    const velocityWindowUsedAfter = velocityWindowUsedBefore + stepSize;
 
     const rampEvent: ExperimentRampEvent = {
       experiment,
@@ -1818,9 +1971,12 @@ export function runExperimentRampAutopilot(
       stepSize,
       stride: rampStride,
       profile,
+      velocityWindowUsedBefore,
+      velocityWindowUsedAfter,
+      velocityWindowBudget,
       recommendation: decision.recommendation,
       confidence: decision.confidence,
-      rationale: `${decision.rationale} ${rampStrideRationale}`,
+      rationale: `${decision.rationale} ${rampStrideRationale} Velocity window ${velocityWindowUsedAfter}/${velocityWindowBudget} points used.`,
       timestamp,
     };
 
@@ -1838,6 +1994,7 @@ export function runExperimentRampAutopilot(
 
   if (actions.length > 0) {
     writeRampMeta(meta);
+    writeRampVelocityMeta(velocityMeta);
   }
 
   return actions;
