@@ -79,6 +79,9 @@ export interface ExperimentRampEvent {
   adjustedOpportunityScore: number;
   recentPortfolioActions: number;
   fairnessBoostApplied: boolean;
+  bayesianLiftPoints: number;
+  bayesianUncertaintyPoints: number;
+  regretPressurePoints: number;
   recommendation: ExperimentDecisionSummary["recommendation"];
   confidence: ExperimentDecisionSummary["confidence"];
   rationale: string;
@@ -422,6 +425,9 @@ function readRampLog(): ExperimentRampEvent[] {
         typeof item.adjustedOpportunityScore === "number" &&
         typeof item.recentPortfolioActions === "number" &&
         typeof item.fairnessBoostApplied === "boolean" &&
+        typeof item.bayesianLiftPoints === "number" &&
+        typeof item.bayesianUncertaintyPoints === "number" &&
+        typeof item.regretPressurePoints === "number" &&
         typeof item.recommendation === "string" &&
         typeof item.confidence === "string" &&
         typeof item.rationale === "string" &&
@@ -1973,6 +1979,66 @@ function scoreRampOpportunity(decision: ExperimentDecisionSummary): number {
   );
 }
 
+function computeBayesianAllocatorSignals(
+  experiment: ExperimentName,
+  snapshot: ExperimentRollupSnapshot,
+  rolloutTarget: number,
+  decision: ExperimentDecisionSummary,
+): {
+  weightedOpportunityScore: number;
+  bayesianLiftPoints: number;
+  bayesianUncertaintyPoints: number;
+  regretPressurePoints: number;
+} {
+  const byVariant = snapshot[experiment] ?? {};
+  const control = byVariant.control;
+  const accelerated = byVariant.accelerated;
+
+  const controlExposure = Math.max(0, control?.exposureCount ?? 0);
+  const controlGoals = Math.max(0, control?.goalCount ?? 0);
+  const acceleratedExposure = Math.max(0, accelerated?.exposureCount ?? 0);
+  const acceleratedGoals = Math.max(0, accelerated?.goalCount ?? 0);
+
+  const controlAlpha = controlGoals + 1;
+  const controlBeta = Math.max(0, controlExposure - controlGoals) + 1;
+  const acceleratedAlpha = acceleratedGoals + 1;
+  const acceleratedBeta = Math.max(0, acceleratedExposure - acceleratedGoals) + 1;
+
+  const controlMean = controlAlpha / (controlAlpha + controlBeta);
+  const acceleratedMean = acceleratedAlpha / (acceleratedAlpha + acceleratedBeta);
+  const bayesianLiftPoints = (acceleratedMean - controlMean) * 100;
+
+  const controlVariance =
+    (controlAlpha * controlBeta) /
+    (((controlAlpha + controlBeta) ** 2) * (controlAlpha + controlBeta + 1));
+  const acceleratedVariance =
+    (acceleratedAlpha * acceleratedBeta) /
+    (((acceleratedAlpha + acceleratedBeta) ** 2) * (acceleratedAlpha + acceleratedBeta + 1));
+
+  const bayesianUncertaintyPoints = Math.sqrt(controlVariance + acceleratedVariance) * 100;
+
+  const regretPressurePoints =
+    decision.recommendation === "promote_accelerated"
+      ? Math.max(0, bayesianLiftPoints) * ((100 - rolloutTarget) / 100)
+      : decision.recommendation === "keep_control"
+        ? Math.max(0, -bayesianLiftPoints) * (rolloutTarget / 100)
+        : Math.abs(bayesianLiftPoints) * 0.2;
+
+  const confidenceFactor = Math.max(0.45, Math.min(1.25, 1.2 - bayesianUncertaintyPoints / 15));
+  const baseOpportunity = scoreRampOpportunity(decision);
+  const weightedOpportunityScore =
+    baseOpportunity * confidenceFactor +
+    regretPressurePoints * 0.6 +
+    Math.max(0, bayesianLiftPoints) * 0.2;
+
+  return {
+    weightedOpportunityScore,
+    bayesianLiftPoints,
+    bayesianUncertaintyPoints,
+    regretPressurePoints,
+  };
+}
+
 export function runExperimentRampAutopilot(
   snapshot: ExperimentRollupSnapshot,
   options?: { clearCurrentAssignment?: boolean; cooldownMs?: number; profile?: ExperimentPolicyProfile },
@@ -2010,6 +2076,9 @@ export function runExperimentRampAutopilot(
     adjustedOpportunityScore: number;
     recentPortfolioActions: number;
     fairnessBoostApplied: boolean;
+    bayesianLiftPoints: number;
+    bayesianUncertaintyPoints: number;
+    regretPressurePoints: number;
   }
 
   const candidates: RampCandidate[] = [];
@@ -2085,7 +2154,8 @@ export function runExperimentRampAutopilot(
       return;
     }
 
-    const opportunityScore = scoreRampOpportunity(decision);
+    const bayesianSignals = computeBayesianAllocatorSignals(experiment, snapshot, rolloutTarget, decision);
+    const opportunityScore = bayesianSignals.weightedOpportunityScore;
     const recentPortfolioActions = recentPortfolioActionCounts[experiment] ?? 0;
     const fairnessPenalty = recentPortfolioActions * policy.rampFairnessPenaltyPerRecentAction;
     const isInactiveEnough =
@@ -2109,6 +2179,9 @@ export function runExperimentRampAutopilot(
       adjustedOpportunityScore: Math.max(0, opportunityScore - fairnessPenalty + explorationBoost),
       recentPortfolioActions,
       fairnessBoostApplied: explorationBoost > 0,
+      bayesianLiftPoints: bayesianSignals.bayesianLiftPoints,
+      bayesianUncertaintyPoints: bayesianSignals.bayesianUncertaintyPoints,
+      regretPressurePoints: bayesianSignals.regretPressurePoints,
     });
   });
 
@@ -2185,9 +2258,12 @@ export function runExperimentRampAutopilot(
         adjustedOpportunityScore: Number(candidate.adjustedOpportunityScore.toFixed(3)),
         recentPortfolioActions: candidate.recentPortfolioActions,
         fairnessBoostApplied: candidate.fairnessBoostApplied,
+        bayesianLiftPoints: Number(candidate.bayesianLiftPoints.toFixed(3)),
+        bayesianUncertaintyPoints: Number(candidate.bayesianUncertaintyPoints.toFixed(3)),
+        regretPressurePoints: Number(candidate.regretPressurePoints.toFixed(3)),
         recommendation: candidate.decision.recommendation,
         confidence: candidate.decision.confidence,
-        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (base ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}).`,
+        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (weighted ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}). Bayesian lift ${candidate.bayesianLiftPoints.toFixed(2)} pts, uncertainty ${candidate.bayesianUncertaintyPoints.toFixed(2)} pts, regret ${candidate.regretPressurePoints.toFixed(2)} pts.`,
         timestamp,
       };
 
