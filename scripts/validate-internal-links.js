@@ -13,8 +13,9 @@ function parseArgs(argv) {
   const args = {
     strict: false,
     changed: false,
-    baseRef: "origin/main",
+    baseRef: "",
     reportPath: "",
+    sarifPath: "",
   };
 
   for (const raw of argv) {
@@ -34,6 +35,10 @@ function parseArgs(argv) {
     }
     if (token.startsWith("--report=")) {
       args.reportPath = token.slice("--report=".length).trim();
+      continue;
+    }
+    if (token.startsWith("--sarif=")) {
+      args.sarifPath = token.slice("--sarif=".length).trim();
     }
   }
 
@@ -115,6 +120,24 @@ function extractHrefCandidates(content) {
   return matches;
 }
 
+function extractMarkdownLinkCandidates(content) {
+  const matches = [];
+  const regex = /\[[^\]]+\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+  let m;
+  while ((m = regex.exec(content)) !== null) {
+    const href = m[1] || "";
+    if (href) {
+      matches.push({
+        href: href.trim(),
+        index: m.index,
+        line: countLine(content, m.index),
+        source: "markdown",
+      });
+    }
+  }
+  return matches;
+}
+
 function extractAnchorIdCandidates(content) {
   const ids = new Set();
   const regex = /\bid\s*=\s*(?:"([^"]+)"|'([^']+)'|\{"([^"]+)"\}|\{'([^']+)'\})/g;
@@ -168,6 +191,11 @@ function shouldSkipHref(href) {
   return false;
 }
 
+function isMarkdownFile(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  return ext === ".md" || ext === ".mdx";
+}
+
 function collectRoutes() {
   const appFiles = walk(appDir, []);
   const routeToFile = new Map();
@@ -216,6 +244,48 @@ function getChangedWorkspaceFiles(ref) {
   };
 }
 
+function gitRefExists(ref) {
+  if (!ref) return false;
+  const result = spawnSync("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], {
+    cwd: projectRoot,
+    stdio: "ignore",
+  });
+  return result.status === 0;
+}
+
+function resolveBaseRef(explicitBaseRef) {
+  const candidates = [];
+  const userBase = String(explicitBaseRef || "").trim();
+  if (userBase) {
+    candidates.push(userBase);
+  }
+
+  const githubBaseRef = String(process.env.GITHUB_BASE_REF || "").trim();
+  if (githubBaseRef) {
+    candidates.push(`origin/${githubBaseRef}`);
+    candidates.push(githubBaseRef);
+  }
+
+  candidates.push("origin/main", "main", "origin/master", "master");
+
+  const unique = Array.from(new Set(candidates.filter(Boolean)));
+  for (const candidate of unique) {
+    if (gitRefExists(candidate)) {
+      return {
+        ok: true,
+        ref: candidate,
+        reason: "",
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    ref: "",
+    reason: `No valid base ref found among: ${unique.join(", ")}`,
+  };
+}
+
 function isScannableSourceFile(filePath) {
   const ext = path.extname(filePath);
   if (!exts.has(ext)) return false;
@@ -251,6 +321,84 @@ function writeJsonReport(reportPath, report) {
   console.log(`🧾 Link audit report written: ${path.relative(projectRoot, absolute)}`);
 }
 
+function writeSarifReport(sarifPath, report) {
+  if (!sarifPath) return;
+  const absolute = path.isAbsolute(sarifPath) ? sarifPath : path.resolve(projectRoot, sarifPath);
+  fs.mkdirSync(path.dirname(absolute), { recursive: true });
+
+  const sarif = {
+    version: "2.1.0",
+    $schema: "https://json.schemastore.org/sarif-2.1.0.json",
+    runs: [
+      {
+        tool: {
+          driver: {
+            name: "tradehax-link-audit",
+            informationUri: "https://github.com/DarkModder33/main",
+            rules: [
+              {
+                id: "broken-internal-link",
+                name: "Broken Internal Link",
+                shortDescription: { text: "Internal link points to a missing route/path." },
+                defaultConfiguration: { level: "error" },
+              },
+              {
+                id: "missing-anchor-target",
+                name: "Missing Anchor Target",
+                shortDescription: { text: "Anchor link points to an id that does not exist." },
+                defaultConfiguration: { level: "error" },
+              },
+            ],
+          },
+        },
+        results: [
+          ...report.brokenLinks.map((item) => ({
+            ruleId: "broken-internal-link",
+            level: "error",
+            message: {
+              text: `Broken internal link '${item.href}' in ${item.filePath}`,
+            },
+            locations: [
+              {
+                physicalLocation: {
+                  artifactLocation: {
+                    uri: item.filePath,
+                  },
+                  region: {
+                    startLine: Math.max(1, Number(item.line) || 1),
+                  },
+                },
+              },
+            ],
+          })),
+          ...report.missingAnchors.map((item) => ({
+            ruleId: "missing-anchor-target",
+            level: "error",
+            message: {
+              text: `Missing anchor target '#${item.hash}' for link '${item.href}' in ${item.filePath}`,
+            },
+            locations: [
+              {
+                physicalLocation: {
+                  artifactLocation: {
+                    uri: item.filePath,
+                  },
+                  region: {
+                    startLine: Math.max(1, Number(item.line) || 1),
+                  },
+                },
+              },
+            ],
+          })),
+        ],
+      },
+    ],
+  };
+
+  fs.writeFileSync(absolute, JSON.stringify(sarif, null, 2));
+  console.log(`🧾 SARIF report written: ${path.relative(projectRoot, absolute)}`);
+}
+
 function validateInternalLinks() {
   const { routes, routeToFile } = collectRoutes();
   const routePatterns = routes.map((route) => ({ route, re: routePatternToRegex(route) }));
@@ -258,18 +406,25 @@ function validateInternalLinks() {
   const allFiles = scanRoots.flatMap((root) => walk(root, []));
   let files = allFiles;
   let changedFallbackReason = "";
+  let resolvedBaseRef = baseRef;
 
   if (isChangedMode) {
-    const changed = getChangedWorkspaceFiles(baseRef);
-    if (changed.ok) {
-      const changedScannable = changed.files.filter((filePath) => isScannableSourceFile(filePath) && fs.existsSync(filePath));
-      if (changedScannable.length > 0) {
-        files = changedScannable;
-      } else {
-        changedFallbackReason = "No changed scannable source files detected; used full scan.";
-      }
+    const baseResolution = resolveBaseRef(baseRef);
+    if (!baseResolution.ok) {
+      changedFallbackReason = `Changed-files scan unavailable (${baseResolution.reason}); used full scan.`;
     } else {
-      changedFallbackReason = `Changed-files scan unavailable (${changed.reason}); used full scan.`;
+      resolvedBaseRef = baseResolution.ref;
+      const changed = getChangedWorkspaceFiles(resolvedBaseRef);
+      if (changed.ok) {
+        const changedScannable = changed.files.filter((filePath) => isScannableSourceFile(filePath) && fs.existsSync(filePath));
+        if (changedScannable.length > 0) {
+          files = changedScannable;
+        } else {
+          changedFallbackReason = "No changed scannable source files detected; used full scan.";
+        }
+      } else {
+        changedFallbackReason = `Changed-files scan unavailable (${changed.reason}); used full scan.`;
+      }
     }
   }
 
@@ -287,10 +442,30 @@ function validateInternalLinks() {
 
   for (const filePath of files) {
     const raw = fs.readFileSync(filePath, "utf8");
-    const hrefs = extractHrefCandidates(raw);
+    const hrefs = [
+      ...extractHrefCandidates(raw),
+      ...(isMarkdownFile(filePath) ? extractMarkdownLinkCandidates(raw) : []),
+    ];
     for (const hrefEntry of hrefs) {
       const href = hrefEntry.href;
       if (shouldSkipHref(href)) continue;
+
+      const isMarkdownRelative = href.startsWith("./") || href.startsWith("../");
+      if (isMarkdownRelative && isMarkdownFile(filePath)) {
+        const rawWithoutHash = href.split("#")[0].split("?")[0];
+        const candidatePath = path.resolve(path.dirname(filePath), rawWithoutHash);
+        if (!fs.existsSync(candidatePath)) {
+          broken.push({
+            type: "broken-link",
+            filePath,
+            href,
+            pathname: rawWithoutHash,
+            line: hrefEntry.line,
+          });
+        }
+        continue;
+      }
+
       const { pathname, hash } = splitHref(href);
 
       if (href.startsWith("#")) {
@@ -345,7 +520,7 @@ function validateInternalLinks() {
     generatedAt: new Date().toISOString(),
     mode: isStrict ? "strict" : "standard",
     changedMode: isChangedMode,
-    baseRef: isChangedMode ? baseRef : null,
+    baseRef: isChangedMode ? resolvedBaseRef : null,
     changedFallbackReason: changedFallbackReason || null,
     scannedFiles: files.length,
     indexedRoutes: routes.length,
@@ -369,6 +544,7 @@ function validateInternalLinks() {
   };
 
   writeJsonReport(options.reportPath, report);
+  writeSarifReport(options.sarifPath, report);
 
   if (broken.length > 0 || missingAnchors.length > 0) {
     console.error("\n❌ Internal link validation failed. Broken links found:\n");
@@ -394,7 +570,7 @@ function validateInternalLinks() {
   if (changedFallbackReason) {
     console.log(`ℹ️ ${changedFallbackReason}`);
   }
-  console.log(`✅ Internal link validation passed (${files.length} files scanned, ${routes.length} routes indexed, anchors verified, mode=${mode}${isChangedMode ? `, changed-base=${baseRef}` : ""}).`);
+  console.log(`✅ Internal link validation passed (${files.length} files scanned, ${routes.length} routes indexed, anchors verified, mode=${mode}${isChangedMode ? `, changed-base=${resolvedBaseRef}` : ""}).`);
 }
 
 validateInternalLinks();

@@ -9,6 +9,9 @@ on:
 jobs:
   build-check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,7 +42,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: link-audit-report
-          path: .artifacts/link-audit-report.json
+          path: |
+            .artifacts/link-audit-report.json
+            .artifacts/link-audit.sarif
+
+      - name: Upload link audit SARIF
+        if: ${{ always() && github.event_name == 'push' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: .artifacts/link-audit.sarif
+          category: link-audit
 
       - name: Upload build log
         if: failure()
