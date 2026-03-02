@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useExperimentVariant } from "@/components/analytics/useExperimentVariant";
 import { TrackedCtaLink } from "@/components/monetization/TrackedCtaLink";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
@@ -12,6 +13,14 @@ const HeroBackground = dynamic(
 );
 
 export function HeroSection() {
+  const variant = useExperimentVariant("landing_hero_primary_cta", {
+    surface: "landing_hero",
+    fallback: "control",
+  });
+
+  const primaryLabel = variant === "accelerated" ? "Execute Now" : "Start Trading";
+  const secondaryLabel = variant === "accelerated" ? "Enter Hyperborea" : "Play Hyperborea";
+
   return (
     <section className="relative min-h-[100svh] flex items-center justify-center overflow-hidden bg-black px-4 sm:px-0" aria-label="TradeHax hero">
       {/* WebGL Three.js Background */}
@@ -76,7 +85,7 @@ export function HeroSection() {
             href="/dashboard"
             conversionId="open_dashboard"
             surface="landing_hero:primary_cta"
-            conversionContext={{ placement: "hero_primary", variant: "dashboard", audience: "all" }}
+            conversionContext={{ placement: "hero_primary", variant: `exp_${variant}`, audience: "all" }}
             ariaLabel="Start trading dashboard"
             className="w-full sm:w-auto rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80"
           >
@@ -84,7 +93,7 @@ export function HeroSection() {
               size="lg"
               className="relative w-full sm:w-auto bg-[#00F0FF] hover:bg-[#00d4e0] text-black font-semibold px-8 sm:px-10 py-6 sm:py-7 text-base sm:text-lg rounded-xl transition-all duration-300 shadow-[0_0_30px_rgba(0,240,255,0.3)] hover:shadow-[0_0_50px_rgba(0,240,255,0.5)] group"
             >
-              Start Trading
+              {primaryLabel}
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </TrackedCtaLink>
@@ -93,7 +102,7 @@ export function HeroSection() {
             href="/game"
             conversionId="open_game"
             surface="landing_hero:secondary_cta"
-            conversionContext={{ placement: "hero_secondary", variant: "hyperborea", audience: "all" }}
+            conversionContext={{ placement: "hero_secondary", variant: `exp_${variant}`, audience: "all" }}
             ariaLabel="Open Hyperborea experience"
             className="w-full sm:w-auto rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80"
           >
@@ -103,7 +112,7 @@ export function HeroSection() {
               className="w-full sm:w-auto border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 hover:bg-white/5 backdrop-blur-sm px-8 sm:px-10 py-6 sm:py-7 text-base sm:text-lg rounded-xl transition-all duration-300 group"
             >
               <Play className="mr-2 w-5 h-5 group-hover:scale-110 transition-transform" />
-              Play Hyperborea
+              {secondaryLabel}
             </Button>
           </TrackedCtaLink>
         </div>

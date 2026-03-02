@@ -1,5 +1,6 @@
 import { TrackedCtaLink } from "@/components/monetization/TrackedCtaLink";
 import { HomeEngagementTracker } from "@/components/analytics/HomeEngagementTracker";
+import { HomeHeroActions } from "@/components/landing/HomeHeroActions";
 import { DeferredRender } from '@/components/ui/DeferredRender';
 import { GlitchText } from '@/components/ui/GlitchText';
 import { scheduleLinks } from "@/lib/booking";
@@ -122,26 +123,7 @@ export default function Home() {
               Start with a clear intent and move through a predictable path.
             </p>
 
-            <div className="flex flex-wrap gap-3">
-              <TrackedCtaLink
-                href={scheduleLinks.root}
-                conversionId="open_schedule"
-                surface="home:hero"
-                conversionContext={{ placement: "hero_primary", variant: "book_now", audience: "all" }}
-                className="theme-cta theme-cta--loud px-6 py-3"
-              >
-                Book Now
-              </TrackedCtaLink>
-              <TrackedCtaLink
-                href="/ai-hub"
-                conversionId="open_ai_chat"
-                surface="home:hero"
-                conversionContext={{ placement: "hero_secondary", variant: "ai_assistant", audience: "all" }}
-                className="theme-cta theme-cta--secondary px-6 py-3"
-              >
-                Start AI Assistant
-              </TrackedCtaLink>
-            </div>
+            <HomeHeroActions scheduleHref={scheduleLinks.root} />
           </div>
 
           <div className="theme-panel p-5 sm:p-6">
