@@ -767,6 +767,9 @@ export function ExperimentReadoutPanel() {
                     memory gate {entry.qualityMemoryPhaseWeight.toFixed(2)} · memory half-life {(entry.qualityMemoryHalfLifeMs / 1000).toFixed(0)}s
                   </div>
                   <div className="text-[10px] text-zinc-500">
+                    adaptive gate {entry.qualityGateAdaptiveWeight.toFixed(2)} · adaptive half-life ×{entry.qualityGateAdaptiveHalfLifeMultiplier.toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-zinc-500">
                     drift {entry.driftScore.toFixed(2)} · shock {entry.shockMode ? "on" : "off"}
                   </div>
                   <div className="text-[10px] text-zinc-500">

@@ -96,6 +96,8 @@ export interface ExperimentRampEvent {
   qualityMemoryBoost: number;
   qualityMemoryPhaseWeight: number;
   qualityMemoryHalfLifeMs: number;
+  qualityGateAdaptiveWeight: number;
+  qualityGateAdaptiveHalfLifeMultiplier: number;
   driftScore: number;
   shortDriftScore: number;
   mediumDriftScore: number;
@@ -186,6 +188,17 @@ interface ExperimentAllocatorQualityMemoryEntry {
 
 type ExperimentAllocatorQualityMemoryState = Partial<Record<ExperimentName, ExperimentAllocatorQualityMemoryEntry>>;
 
+interface ExperimentQualityGateAdaptiveState {
+  normalWeight: number;
+  recoveringWeight: number;
+  shockWeight: number;
+  normalHalfLifeMultiplier: number;
+  recoveringHalfLifeMultiplier: number;
+  shockHalfLifeMultiplier: number;
+  sampleCount: number;
+  lastUpdatedAt: string;
+}
+
 const EXPERIMENT_VARIANTS: Record<ExperimentName, readonly ExperimentVariant[]> = {
   home_hero_primary_cta: ["control", "accelerated"],
   landing_hero_primary_cta: ["control", "accelerated"],
@@ -202,6 +215,7 @@ const EXP_RAMP_VELOCITY_META_KEY = "thx-exp-ramp-velocity-meta";
 const EXP_RAMP_PORTFOLIO_META_KEY = "thx-exp-ramp-portfolio-meta";
 const EXP_RAMP_DRIFT_STATE_KEY = "thx-exp-ramp-drift-state";
 const EXP_RAMP_QUALITY_MEMORY_KEY = "thx-exp-ramp-quality-memory";
+const EXP_RAMP_QUALITY_GATE_ADAPTIVE_KEY = "thx-exp-ramp-quality-gate-adaptive";
 const EXP_POLICY_PROFILE_KEY = "thx-exp-policy-profile";
 const EXP_POLICY_AUTOSWITCH_KEY = "thx-exp-policy-autoswitch-enabled";
 const EXP_POLICY_SWITCH_LOG_KEY = "thx-exp-policy-switch-log";
@@ -511,6 +525,8 @@ function readRampLog(): ExperimentRampEvent[] {
         typeof item.qualityMemoryBoost === "number" &&
         typeof item.qualityMemoryPhaseWeight === "number" &&
         typeof item.qualityMemoryHalfLifeMs === "number" &&
+        typeof item.qualityGateAdaptiveWeight === "number" &&
+        typeof item.qualityGateAdaptiveHalfLifeMultiplier === "number" &&
         typeof item.driftScore === "number" &&
         typeof item.shortDriftScore === "number" &&
         typeof item.mediumDriftScore === "number" &&
@@ -1171,10 +1187,24 @@ function updateAllocatorQualityMemory(
   memoryBoost: number;
   memoryPhaseWeight: number;
   memoryHalfLifeMs: number;
+  adaptiveWeight: number;
+  adaptiveHalfLifeMultiplier: number;
 } {
   const prior = state[experiment];
-  const phaseHalfLifeMultiplier =
-    driftPhase === "shock" ? 0.45 : driftPhase === "recovering" ? 0.75 : 1.25;
+  const adaptiveGate = readQualityGateAdaptiveState();
+  const adaptiveWeight =
+    driftPhase === "shock"
+      ? adaptiveGate.shockWeight
+      : driftPhase === "recovering"
+        ? adaptiveGate.recoveringWeight
+        : adaptiveGate.normalWeight;
+  const adaptiveHalfLifeMultiplier =
+    driftPhase === "shock"
+      ? adaptiveGate.shockHalfLifeMultiplier
+      : driftPhase === "recovering"
+        ? adaptiveGate.recoveringHalfLifeMultiplier
+        : adaptiveGate.normalHalfLifeMultiplier;
+  const phaseHalfLifeMultiplier = adaptiveHalfLifeMultiplier;
   const qualityHalfLifeMs = Math.max(60_000, Math.round(policy.driftHalfLifeMs * phaseHalfLifeMultiplier));
   const priorUpdatedMs = prior ? Date.parse(prior.lastUpdatedAt) : 0;
   const elapsedMs = Number.isFinite(priorUpdatedMs) ? Math.max(0, nowMs - priorUpdatedMs) : 0;
@@ -1195,8 +1225,7 @@ function updateAllocatorQualityMemory(
   const sampleCount = (prior?.sampleCount ?? 0) + 1;
   const confidenceWeight = Math.max(0.2, Math.min(1, smoothedRouteSignalCoverage));
   const memoryMaturity = Math.max(0.25, Math.min(1, sampleCount / 8));
-  const phaseWeight =
-    driftPhase === "shock" ? 0.35 : driftPhase === "recovering" ? 0.7 : 1;
+  const phaseWeight = adaptiveWeight;
   const shockDamping = Math.max(0.35, 1 - Math.max(0, Math.min(1, shockIntensity)) * 0.55);
   const memoryBoost =
     (smoothedRouteIntentLiftPoints * 0.08 + smoothedRouteValueDelta * 0.16) *
@@ -1220,7 +1249,107 @@ function updateAllocatorQualityMemory(
     memoryBoost: Number(memoryBoost.toFixed(3)),
     memoryPhaseWeight: Number((phaseWeight * shockDamping).toFixed(3)),
     memoryHalfLifeMs: qualityHalfLifeMs,
+    adaptiveWeight: Number(adaptiveWeight.toFixed(3)),
+    adaptiveHalfLifeMultiplier: Number(adaptiveHalfLifeMultiplier.toFixed(3)),
   };
+}
+
+function createDefaultQualityGateAdaptiveState(): ExperimentQualityGateAdaptiveState {
+  return {
+    normalWeight: 1,
+    recoveringWeight: 0.7,
+    shockWeight: 0.35,
+    normalHalfLifeMultiplier: 1.25,
+    recoveringHalfLifeMultiplier: 0.75,
+    shockHalfLifeMultiplier: 0.45,
+    sampleCount: 0,
+    lastUpdatedAt: new Date(0).toISOString(),
+  };
+}
+
+function readQualityGateAdaptiveState(): ExperimentQualityGateAdaptiveState {
+  if (typeof window === "undefined") {
+    return createDefaultQualityGateAdaptiveState();
+  }
+
+  try {
+    const raw = window.localStorage.getItem(EXP_RAMP_QUALITY_GATE_ADAPTIVE_KEY);
+    if (!raw) {
+      return createDefaultQualityGateAdaptiveState();
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!isObjectRecord(parsed)) {
+      return createDefaultQualityGateAdaptiveState();
+    }
+
+    return {
+      normalWeight: typeof parsed.normalWeight === "number" ? parsed.normalWeight : 1,
+      recoveringWeight: typeof parsed.recoveringWeight === "number" ? parsed.recoveringWeight : 0.7,
+      shockWeight: typeof parsed.shockWeight === "number" ? parsed.shockWeight : 0.35,
+      normalHalfLifeMultiplier:
+        typeof parsed.normalHalfLifeMultiplier === "number" ? parsed.normalHalfLifeMultiplier : 1.25,
+      recoveringHalfLifeMultiplier:
+        typeof parsed.recoveringHalfLifeMultiplier === "number" ? parsed.recoveringHalfLifeMultiplier : 0.75,
+      shockHalfLifeMultiplier:
+        typeof parsed.shockHalfLifeMultiplier === "number" ? parsed.shockHalfLifeMultiplier : 0.45,
+      sampleCount: typeof parsed.sampleCount === "number" ? parsed.sampleCount : 0,
+      lastUpdatedAt:
+        typeof parsed.lastUpdatedAt === "string" ? parsed.lastUpdatedAt : new Date(0).toISOString(),
+    };
+  } catch {
+    return createDefaultQualityGateAdaptiveState();
+  }
+}
+
+function writeQualityGateAdaptiveState(state: ExperimentQualityGateAdaptiveState) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(EXP_RAMP_QUALITY_GATE_ADAPTIVE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function calibrateQualityGateAdaptiveState(
+  phase: ExperimentAllocatorDriftState["phase"],
+  evidenceScore: number,
+  shockIntensity: number,
+) {
+  const state = readQualityGateAdaptiveState();
+  const boundedEvidence = clamp(evidenceScore, -1.5, 1.5);
+  const learningRate = 0.04 * (1 - Math.min(1, Math.max(0, shockIntensity)) * 0.45);
+
+  const weightDelta = boundedEvidence * learningRate;
+  const halfLifeDelta = boundedEvidence * learningRate * 0.35;
+
+  if (phase === "shock") {
+    state.shockWeight = Number(clamp(state.shockWeight + weightDelta, 0.15, 0.6).toFixed(3));
+    state.shockHalfLifeMultiplier = Number(
+      clamp(state.shockHalfLifeMultiplier + halfLifeDelta, 0.25, 0.8).toFixed(3),
+    );
+  } else if (phase === "recovering") {
+    state.recoveringWeight = Number(clamp(state.recoveringWeight + weightDelta, 0.35, 0.95).toFixed(3));
+    state.recoveringHalfLifeMultiplier = Number(
+      clamp(state.recoveringHalfLifeMultiplier + halfLifeDelta, 0.45, 1.2).toFixed(3),
+    );
+  } else {
+    state.normalWeight = Number(clamp(state.normalWeight + weightDelta, 0.7, 1.2).toFixed(3));
+    state.normalHalfLifeMultiplier = Number(
+      clamp(state.normalHalfLifeMultiplier + halfLifeDelta, 0.8, 1.8).toFixed(3),
+    );
+  }
+
+  state.sampleCount += 1;
+  state.lastUpdatedAt = new Date().toISOString();
+  writeQualityGateAdaptiveState(state);
 }
 
 function updateAllocatorDriftState(
@@ -2574,6 +2703,8 @@ export function runExperimentRampAutopilot(
     qualityMemoryBoost: number;
     qualityMemoryPhaseWeight: number;
     qualityMemoryHalfLifeMs: number;
+    qualityGateAdaptiveWeight: number;
+    qualityGateAdaptiveHalfLifeMultiplier: number;
   }
 
   const candidates: RampCandidate[] = [];
@@ -2703,6 +2834,8 @@ export function runExperimentRampAutopilot(
       qualityMemoryBoost: qualityMemory.memoryBoost,
       qualityMemoryPhaseWeight: qualityMemory.memoryPhaseWeight,
       qualityMemoryHalfLifeMs: qualityMemory.memoryHalfLifeMs,
+      qualityGateAdaptiveWeight: qualityMemory.adaptiveWeight,
+      qualityGateAdaptiveHalfLifeMultiplier: qualityMemory.adaptiveHalfLifeMultiplier,
     });
   });
 
@@ -2718,6 +2851,7 @@ export function runExperimentRampAutopilot(
   const dispatchQueue = explorationFirst
     ? [explorationFirst, ...rankedCandidates.filter((candidate) => candidate !== explorationFirst)]
     : rankedCandidates;
+  const qualityEvidenceSignals: number[] = [];
 
   dispatchQueue.forEach((candidate) => {
       if (portfolioRemaining <= 0) {
@@ -2752,6 +2886,14 @@ export function runExperimentRampAutopilot(
       if (candidate.direction === "down" && nextRollout < 25) {
         return;
       }
+
+      const directionEvidenceSign = candidate.direction === "up" ? 1 : -1;
+      const rawEvidence =
+        directionEvidenceSign * (candidate.routeIntentLiftPoints * 0.08 + candidate.routeValueDelta * 0.12);
+      const confidenceEvidenceWeight =
+        candidate.decision.confidence === "high" ? 1 : candidate.decision.confidence === "medium" ? 0.75 : 0.5;
+      const evidence = rawEvidence * candidate.routeSignalCoverage * confidenceEvidenceWeight;
+      qualityEvidenceSignals.push(evidence);
 
       setExperimentRolloutTarget(candidate.experiment, nextRollout);
       if (options?.clearCurrentAssignment) {
@@ -2799,6 +2941,8 @@ export function runExperimentRampAutopilot(
         qualityMemoryBoost: Number(candidate.qualityMemoryBoost.toFixed(3)),
         qualityMemoryPhaseWeight: Number(candidate.qualityMemoryPhaseWeight.toFixed(3)),
         qualityMemoryHalfLifeMs: Math.round(candidate.qualityMemoryHalfLifeMs),
+        qualityGateAdaptiveWeight: Number(candidate.qualityGateAdaptiveWeight.toFixed(3)),
+        qualityGateAdaptiveHalfLifeMultiplier: Number(candidate.qualityGateAdaptiveHalfLifeMultiplier.toFixed(3)),
         driftScore: driftState.driftScore,
         shortDriftScore: driftState.shortDriftScore,
         mediumDriftScore: driftState.mediumDriftScore,
@@ -2826,6 +2970,12 @@ export function runExperimentRampAutopilot(
 
   if (qualityMemoryUpdated) {
     writeAllocatorQualityMemoryState(qualityMemoryState);
+  }
+
+  if (qualityEvidenceSignals.length > 0) {
+    const averageEvidence =
+      qualityEvidenceSignals.reduce((acc, value) => acc + value, 0) / qualityEvidenceSignals.length;
+    calibrateQualityGateAdaptiveState(driftState.phase, averageEvidence, shockIntensity);
   }
 
   if (actions.length > 0) {
