@@ -764,6 +764,9 @@ export function ExperimentReadoutPanel() {
                     memory lift {entry.qualityMemoryIntentLiftPoints.toFixed(2)} pts · memory value {entry.qualityMemoryValueDelta.toFixed(2)} · memory coverage {(entry.qualityMemorySignalCoverage * 100).toFixed(0)}% · memory boost {entry.qualityMemoryBoost.toFixed(2)}
                   </div>
                   <div className="text-[10px] text-zinc-500">
+                    memory gate {entry.qualityMemoryPhaseWeight.toFixed(2)} · memory half-life {(entry.qualityMemoryHalfLifeMs / 1000).toFixed(0)}s
+                  </div>
+                  <div className="text-[10px] text-zinc-500">
                     drift {entry.driftScore.toFixed(2)} · shock {entry.shockMode ? "on" : "off"}
                   </div>
                   <div className="text-[10px] text-zinc-500">

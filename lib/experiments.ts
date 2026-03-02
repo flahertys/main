@@ -94,6 +94,8 @@ export interface ExperimentRampEvent {
   qualityMemoryValueDelta: number;
   qualityMemorySignalCoverage: number;
   qualityMemoryBoost: number;
+  qualityMemoryPhaseWeight: number;
+  qualityMemoryHalfLifeMs: number;
   driftScore: number;
   shortDriftScore: number;
   mediumDriftScore: number;
@@ -507,6 +509,8 @@ function readRampLog(): ExperimentRampEvent[] {
         typeof item.qualityMemoryValueDelta === "number" &&
         typeof item.qualityMemorySignalCoverage === "number" &&
         typeof item.qualityMemoryBoost === "number" &&
+        typeof item.qualityMemoryPhaseWeight === "number" &&
+        typeof item.qualityMemoryHalfLifeMs === "number" &&
         typeof item.driftScore === "number" &&
         typeof item.shortDriftScore === "number" &&
         typeof item.mediumDriftScore === "number" &&
@@ -1156,6 +1160,8 @@ function updateAllocatorQualityMemory(
     routeSignalCoverage: number;
   },
   policy: ExperimentPolicySettings,
+  driftPhase: ExperimentAllocatorDriftState["phase"],
+  shockIntensity: number,
   nowMs: number,
   state: ExperimentAllocatorQualityMemoryState,
 ): {
@@ -1163,9 +1169,13 @@ function updateAllocatorQualityMemory(
   memoryValueDelta: number;
   memorySignalCoverage: number;
   memoryBoost: number;
+  memoryPhaseWeight: number;
+  memoryHalfLifeMs: number;
 } {
   const prior = state[experiment];
-  const qualityHalfLifeMs = Math.max(60_000, Math.round(policy.driftHalfLifeMs * 1.25));
+  const phaseHalfLifeMultiplier =
+    driftPhase === "shock" ? 0.45 : driftPhase === "recovering" ? 0.75 : 1.25;
+  const qualityHalfLifeMs = Math.max(60_000, Math.round(policy.driftHalfLifeMs * phaseHalfLifeMultiplier));
   const priorUpdatedMs = prior ? Date.parse(prior.lastUpdatedAt) : 0;
   const elapsedMs = Number.isFinite(priorUpdatedMs) ? Math.max(0, nowMs - priorUpdatedMs) : 0;
 
@@ -1185,10 +1195,15 @@ function updateAllocatorQualityMemory(
   const sampleCount = (prior?.sampleCount ?? 0) + 1;
   const confidenceWeight = Math.max(0.2, Math.min(1, smoothedRouteSignalCoverage));
   const memoryMaturity = Math.max(0.25, Math.min(1, sampleCount / 8));
+  const phaseWeight =
+    driftPhase === "shock" ? 0.35 : driftPhase === "recovering" ? 0.7 : 1;
+  const shockDamping = Math.max(0.35, 1 - Math.max(0, Math.min(1, shockIntensity)) * 0.55);
   const memoryBoost =
     (smoothedRouteIntentLiftPoints * 0.08 + smoothedRouteValueDelta * 0.16) *
     confidenceWeight *
-    memoryMaturity;
+    memoryMaturity *
+    phaseWeight *
+    shockDamping;
 
   state[experiment] = {
     smoothedRouteIntentLiftPoints: Number(smoothedRouteIntentLiftPoints.toFixed(3)),
@@ -1203,6 +1218,8 @@ function updateAllocatorQualityMemory(
     memoryValueDelta: state[experiment]?.smoothedRouteValueDelta ?? 0,
     memorySignalCoverage: state[experiment]?.smoothedRouteSignalCoverage ?? 0,
     memoryBoost: Number(memoryBoost.toFixed(3)),
+    memoryPhaseWeight: Number((phaseWeight * shockDamping).toFixed(3)),
+    memoryHalfLifeMs: qualityHalfLifeMs,
   };
 }
 
@@ -2555,6 +2572,8 @@ export function runExperimentRampAutopilot(
     qualityMemoryValueDelta: number;
     qualityMemorySignalCoverage: number;
     qualityMemoryBoost: number;
+    qualityMemoryPhaseWeight: number;
+    qualityMemoryHalfLifeMs: number;
   }
 
   const candidates: RampCandidate[] = [];
@@ -2639,6 +2658,8 @@ export function runExperimentRampAutopilot(
         routeSignalCoverage: bayesianSignals.routeSignalCoverage,
       },
       policy,
+      driftState.phase,
+      shockIntensity,
       now,
       qualityMemoryState,
     );
@@ -2680,6 +2701,8 @@ export function runExperimentRampAutopilot(
       qualityMemoryValueDelta: qualityMemory.memoryValueDelta,
       qualityMemorySignalCoverage: qualityMemory.memorySignalCoverage,
       qualityMemoryBoost: qualityMemory.memoryBoost,
+      qualityMemoryPhaseWeight: qualityMemory.memoryPhaseWeight,
+      qualityMemoryHalfLifeMs: qualityMemory.memoryHalfLifeMs,
     });
   });
 
@@ -2774,6 +2797,8 @@ export function runExperimentRampAutopilot(
         qualityMemoryValueDelta: Number(candidate.qualityMemoryValueDelta.toFixed(3)),
         qualityMemorySignalCoverage: Number(candidate.qualityMemorySignalCoverage.toFixed(3)),
         qualityMemoryBoost: Number(candidate.qualityMemoryBoost.toFixed(3)),
+        qualityMemoryPhaseWeight: Number(candidate.qualityMemoryPhaseWeight.toFixed(3)),
+        qualityMemoryHalfLifeMs: Math.round(candidate.qualityMemoryHalfLifeMs),
         driftScore: driftState.driftScore,
         shortDriftScore: driftState.shortDriftScore,
         mediumDriftScore: driftState.mediumDriftScore,
@@ -2783,7 +2808,7 @@ export function runExperimentRampAutopilot(
         shockIntensity: Number(shockIntensity.toFixed(3)),
         recommendation: candidate.decision.recommendation,
         confidence: candidate.decision.confidence,
-        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (weighted ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}). Bayesian lift ${candidate.bayesianLiftPoints.toFixed(2)} pts, uncertainty ${candidate.bayesianUncertaintyPoints.toFixed(2)} pts, regret ${candidate.regretPressurePoints.toFixed(2)} pts. Route intent lift ${candidate.routeIntentLiftPoints.toFixed(2)} pts, value Δ ${candidate.routeValueDelta.toFixed(2)}, coverage ${(candidate.routeSignalCoverage * 100).toFixed(0)}%. Memory intent ${candidate.qualityMemoryIntentLiftPoints.toFixed(2)} pts, memory value ${candidate.qualityMemoryValueDelta.toFixed(2)}, memory coverage ${(candidate.qualityMemorySignalCoverage * 100).toFixed(0)}%, memory boost ${candidate.qualityMemoryBoost.toFixed(2)}. Drift fused ${driftState.driftScore.toFixed(2)} [S ${driftState.shortDriftScore.toFixed(2)} · M ${driftState.mediumDriftScore.toFixed(2)} · L ${driftState.longDriftScore.toFixed(2)}] · phase ${driftState.phase} · shock ${driftState.shockMode ? "on" : "off"}.`,
+        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (weighted ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}). Bayesian lift ${candidate.bayesianLiftPoints.toFixed(2)} pts, uncertainty ${candidate.bayesianUncertaintyPoints.toFixed(2)} pts, regret ${candidate.regretPressurePoints.toFixed(2)} pts. Route intent lift ${candidate.routeIntentLiftPoints.toFixed(2)} pts, value Δ ${candidate.routeValueDelta.toFixed(2)}, coverage ${(candidate.routeSignalCoverage * 100).toFixed(0)}%. Memory intent ${candidate.qualityMemoryIntentLiftPoints.toFixed(2)} pts, memory value ${candidate.qualityMemoryValueDelta.toFixed(2)}, memory coverage ${(candidate.qualityMemorySignalCoverage * 100).toFixed(0)}%, memory boost ${candidate.qualityMemoryBoost.toFixed(2)}, gate ${candidate.qualityMemoryPhaseWeight.toFixed(2)}, half-life ${Math.round(candidate.qualityMemoryHalfLifeMs / 1000)}s. Drift fused ${driftState.driftScore.toFixed(2)} [S ${driftState.shortDriftScore.toFixed(2)} · M ${driftState.mediumDriftScore.toFixed(2)} · L ${driftState.longDriftScore.toFixed(2)}] · phase ${driftState.phase} · shock ${driftState.shockMode ? "on" : "off"}.`,
         timestamp,
       };
 
