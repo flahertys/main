@@ -12,7 +12,7 @@ const HeroBackground = dynamic(
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black px-4 sm:px-0" aria-label="TradeHax hero">
+    <section className="relative min-h-[100svh] flex items-center justify-center overflow-hidden bg-black px-4 sm:px-0" aria-label="TradeHax hero">
       {/* WebGL Three.js Background */}
       <HeroBackground />
 
@@ -21,7 +21,7 @@ export function HeroSection() {
       <div className="absolute inset-0 z-[1] bg-gradient-to-r from-black/40 via-transparent to-black/40 pointer-events-none" />
 
       {/* Radial glow behind content */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(0,240,255,0.06)_0%,transparent_70%)] z-[1] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[460px] h-[460px] sm:w-[620px] sm:h-[620px] lg:w-[800px] lg:h-[800px] bg-[radial-gradient(circle,rgba(0,240,255,0.06)_0%,transparent_70%)] z-[1] pointer-events-none" />
       <div className="mythic-circuit-overlay z-[1]" />
 
       {/* Content */}
@@ -36,7 +36,7 @@ export function HeroSection() {
 
         {/* Main headline */}
         <h1
-          className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-bold tracking-tight mb-5 sm:mb-6 opacity-0 animate-slide-up-fade [animation-delay:0.2s]"
+          className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-bold tracking-tight mb-5 sm:mb-6 opacity-0 animate-slide-up-fade [animation-delay:0.2s]"
         >
           <span className="block sm:inline bg-gradient-to-r from-white via-gray-100 to-gray-300 text-transparent bg-clip-text">
             Trade
@@ -48,7 +48,7 @@ export function HeroSection() {
 
         {/* Subheadline */}
         <p
-          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-400 font-light mb-4 max-w-3xl mx-auto opacity-0 animate-slide-up-fade [animation-delay:0.35s]"
+          className="text-base sm:text-xl md:text-2xl lg:text-3xl text-gray-400 font-light mb-4 max-w-3xl mx-auto opacity-0 animate-slide-up-fade [animation-delay:0.35s]"
         >
           Smarter trading through{" "}
           <span className="text-white font-medium">artificial intelligence</span>{" "}

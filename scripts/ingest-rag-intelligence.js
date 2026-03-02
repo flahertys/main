@@ -15,6 +15,7 @@ const IGNORE_DIRS = new Set([".git", ".next", "node_modules", "dist", "out", "co
 const MANIFEST_PATH = path.resolve(process.cwd(), ".artifacts", "rag-intelligence-manifest.json");
 const HISTORY_JSONL_PATH = path.resolve(process.cwd(), ".artifacts", "rag-intelligence-history.jsonl");
 const HISTORY_JSON_PATH = path.resolve(process.cwd(), ".artifacts", "rag-intelligence-history.json");
+const ROLLBACK_STATE_PATH = path.resolve(process.cwd(), ".artifacts", "rag-intelligence-rollback-state.json");
 const UPSERT_BATCH_SIZE = 20;
 const FETCH_BATCH_SIZE = 60;
 
@@ -35,6 +36,13 @@ function getEnv(name, fallback = "") {
 function parseIntEnv(name, fallback, min, max) {
   const raw = getEnv(name, String(fallback));
   const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(min, Math.min(max, parsed));
+}
+
+function parseFloatEnv(name, fallback, min, max) {
+  const raw = getEnv(name, String(fallback));
+  const parsed = Number.parseFloat(raw);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(min, Math.min(max, parsed));
 }
@@ -97,6 +105,46 @@ function appendHistory(summary, historyLimit) {
   }
 
   fs.writeFileSync(HISTORY_JSON_PATH, JSON.stringify(historyRows, null, 2));
+}
+
+function defaultRollbackState() {
+  return {
+    active: false,
+    poorStreak: 0,
+    cooldownRemaining: 0,
+    updatedAt: null,
+    lastTriggerAt: null,
+    lastReason: "",
+  };
+}
+
+function readRollbackState() {
+  if (!fs.existsSync(ROLLBACK_STATE_PATH)) {
+    return defaultRollbackState();
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(ROLLBACK_STATE_PATH, "utf8"));
+    if (!parsed || typeof parsed !== "object") {
+      return defaultRollbackState();
+    }
+
+    return {
+      active: Boolean(parsed.active),
+      poorStreak: Number.isFinite(Number(parsed.poorStreak)) ? Math.max(0, Number(parsed.poorStreak)) : 0,
+      cooldownRemaining: Number.isFinite(Number(parsed.cooldownRemaining)) ? Math.max(0, Number(parsed.cooldownRemaining)) : 0,
+      updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : null,
+      lastTriggerAt: typeof parsed.lastTriggerAt === "string" ? parsed.lastTriggerAt : null,
+      lastReason: typeof parsed.lastReason === "string" ? parsed.lastReason : "",
+    };
+  } catch {
+    return defaultRollbackState();
+  }
+}
+
+function writeRollbackState(state) {
+  ensureArtifactsDir();
+  fs.writeFileSync(ROLLBACK_STATE_PATH, JSON.stringify(state, null, 2));
 }
 
 function qualityScoreForDoc(doc) {
@@ -287,7 +335,7 @@ async function fetchExistingMetadata(index, ids) {
 }
 
 function buildSummary(result) {
-  return {
+  const summary = {
     ok: true,
     generatedAt: new Date().toISOString(),
     totals: {
@@ -318,6 +366,12 @@ function buildSummary(result) {
       json: HISTORY_JSON_PATH,
     },
   };
+
+  if (result.rollback && typeof result.rollback === "object") {
+    summary.rollback = result.rollback;
+  }
+
+  return summary;
 }
 
 async function main() {
@@ -343,6 +397,13 @@ async function main() {
     ? Math.max(0, Math.min(1, minimumQualityScoreRaw))
     : 0.2;
   const historyLimit = parseIntEnv("TRADEHAX_HF_INGEST_REPORT_HISTORY_LIMIT", 120, 10, 1500);
+  const rollbackEnabled = parseBoolEnv("TRADEHAX_HF_INGEST_ROLLBACK_ENABLED", true);
+  const rollbackMinAvgScore = parseFloatEnv("TRADEHAX_HF_INGEST_ROLLBACK_MIN_AVG_SCORE", 0.32, 0, 1);
+  const rollbackMaxErrorRate = parseFloatEnv("TRADEHAX_HF_INGEST_ROLLBACK_MAX_ERROR_RATE", 0.35, 0, 1);
+  const rollbackStreakRequired = parseIntEnv("TRADEHAX_HF_INGEST_ROLLBACK_STREAK", 3, 1, 20);
+  const rollbackCooldownRuns = parseIntEnv("TRADEHAX_HF_INGEST_ROLLBACK_COOLDOWN_RUNS", 2, 1, 50);
+  const conservativeDocsCap = parseIntEnv("TRADEHAX_HF_INGEST_CONSERVATIVE_MAX_TOTAL_DOCS", 80, 1, 1000);
+  const conservativeEmbedCap = parseIntEnv("TRADEHAX_HF_INGEST_CONSERVATIVE_MAX_EMBED_CALLS", 60, 1, 1000);
   const deltaEnabled = parseBoolEnv("TRADEHAX_HF_INGEST_DELTA_ENABLED", true);
   const forceUpsert = parseBoolEnv("TRADEHAX_HF_INGEST_FORCE_UPSERT", false);
   const hfQueriesRaw = getEnv("TRADEHAX_HF_INGEST_QUERIES", DEFAULT_HF_QUERIES.join(","));
@@ -351,6 +412,11 @@ async function main() {
     .map((entry) => normalizeText(entry, 80))
     .filter(Boolean)
     .slice(0, 10);
+
+  const rollbackStateBefore = rollbackEnabled ? readRollbackState() : defaultRollbackState();
+  const conservativeModeActive = rollbackEnabled && rollbackStateBefore.active;
+  const effectiveMaxTotalDocs = conservativeModeActive ? Math.min(maxTotalDocs, conservativeDocsCap) : maxTotalDocs;
+  const effectiveMaxEmbedCalls = conservativeModeActive ? Math.min(maxEmbedCalls, conservativeEmbedCap) : maxEmbedCalls;
 
   const [{ Index }, localDocs, ...hfPerQuery] = await Promise.all([
     import("@upstash/vector"),
@@ -388,7 +454,7 @@ async function main() {
   const qualityAcceptedDocs = allDocs
     .filter((doc) => doc.qualityScore >= minimumQualityScore)
     .sort((a, b) => b.qualityScore - a.qualityScore)
-    .slice(0, maxTotalDocs);
+    .slice(0, effectiveMaxTotalDocs);
 
   const skippedLowQuality = allDocs.length - allDocs.filter((doc) => doc.qualityScore >= minimumQualityScore).length;
   const skippedBudgeted = Math.max(0, allDocs.filter((doc) => doc.qualityScore >= minimumQualityScore).length - qualityAcceptedDocs.length);
@@ -422,7 +488,7 @@ async function main() {
     const payload = [];
 
     for (const doc of chunk) {
-      if (embedCallsUsed >= maxEmbedCalls) {
+      if (embedCallsUsed >= effectiveMaxEmbedCalls) {
         break;
       }
       try {
@@ -449,7 +515,7 @@ async function main() {
     }
 
     if (!payload.length) {
-      if (embedCallsUsed >= maxEmbedCalls) {
+      if (embedCallsUsed >= effectiveMaxEmbedCalls) {
         break;
       }
       continue;
@@ -463,8 +529,8 @@ async function main() {
       console.log(`Progress: ${upserted}/${docsToUpsert.length}`);
     }
 
-    if (embedCallsUsed >= maxEmbedCalls) {
-      console.log(`Embed call budget reached (${embedCallsUsed}/${maxEmbedCalls}).`);
+    if (embedCallsUsed >= effectiveMaxEmbedCalls) {
+      console.log(`Embed call budget reached (${embedCallsUsed}/${effectiveMaxEmbedCalls}).`);
       break;
     }
   }
@@ -474,6 +540,69 @@ async function main() {
     ? Number.parseFloat((qualityAcceptedDocs.reduce((sum, doc) => sum + doc.qualityScore, 0) / acceptedByQuality).toFixed(4))
     : 0;
   const queued = docsToUpsert.length;
+  const errorRate = queued > 0
+    ? Number.parseFloat((skippedErrored / queued).toFixed(4))
+    : 0;
+
+  const rollbackReasons = [];
+  if (averageAcceptedScore < rollbackMinAvgScore) {
+    rollbackReasons.push(`low_avg_score:${averageAcceptedScore}<${rollbackMinAvgScore}`);
+  }
+  if (errorRate > rollbackMaxErrorRate) {
+    rollbackReasons.push(`high_error_rate:${errorRate}>${rollbackMaxErrorRate}`);
+  }
+
+  const poorRun = rollbackReasons.length > 0;
+  let triggeredThisRun = false;
+  let rollbackStateAfter = rollbackStateBefore;
+
+  if (rollbackEnabled) {
+    const nowIso = new Date().toISOString();
+
+    if (rollbackStateBefore.active) {
+      const cooldownRemaining = poorRun
+        ? rollbackCooldownRuns
+        : Math.max(0, Number(rollbackStateBefore.cooldownRemaining || 0) - 1);
+      const active = poorRun || cooldownRemaining > 0;
+
+      rollbackStateAfter = {
+        ...rollbackStateBefore,
+        active,
+        poorStreak: 0,
+        cooldownRemaining,
+        updatedAt: nowIso,
+        lastReason: poorRun ? rollbackReasons.join(";") : rollbackStateBefore.lastReason,
+      };
+    } else {
+      const poorStreak = poorRun
+        ? Number(rollbackStateBefore.poorStreak || 0) + 1
+        : 0;
+
+      if (poorStreak >= rollbackStreakRequired) {
+        triggeredThisRun = true;
+        rollbackStateAfter = {
+          ...rollbackStateBefore,
+          active: true,
+          poorStreak: 0,
+          cooldownRemaining: rollbackCooldownRuns,
+          updatedAt: nowIso,
+          lastTriggerAt: nowIso,
+          lastReason: rollbackReasons.join(";"),
+        };
+      } else {
+        rollbackStateAfter = {
+          ...rollbackStateBefore,
+          active: false,
+          poorStreak,
+          cooldownRemaining: 0,
+          updatedAt: nowIso,
+          lastReason: poorRun ? rollbackReasons.join(";") : "",
+        };
+      }
+    }
+
+    writeRollbackState(rollbackStateAfter);
+  }
 
   const summary = buildSummary({
     discovered: allDocs.length,
@@ -491,6 +620,27 @@ async function main() {
     maxEmbedCalls,
     embedCallsUsed,
     model,
+    rollback: {
+      enabled: rollbackEnabled,
+      poorRun,
+      triggeredThisRun,
+      reasons: rollbackReasons,
+      errorRate,
+      policy: {
+        minAvgScore: rollbackMinAvgScore,
+        maxErrorRate: rollbackMaxErrorRate,
+        streakRequired: rollbackStreakRequired,
+        cooldownRuns: rollbackCooldownRuns,
+      },
+      conservativeMode: {
+        active: conservativeModeActive,
+        maxTotalDocs: effectiveMaxTotalDocs,
+        maxEmbedCalls: effectiveMaxEmbedCalls,
+      },
+      stateBefore: rollbackStateBefore,
+      stateAfter: rollbackStateAfter,
+      statePath: ROLLBACK_STATE_PATH,
+    },
     config: {
       deltaEnabled,
       forceUpsert,
@@ -498,6 +648,8 @@ async function main() {
       queryLimit,
       maxTotalDocs,
       maxEmbedCalls,
+      effectiveMaxTotalDocs,
+      effectiveMaxEmbedCalls,
       minimumQualityScore,
       queries: hfQueries,
     },

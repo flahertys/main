@@ -267,6 +267,36 @@ function checkHfIngestionConfig() {
   assertNumberRange("TRADEHAX_HF_INGEST_MAX_EMBED_CALLS", { min: 1, max: 1000, required: false });
   assertNumberRange("TRADEHAX_HF_INGEST_MIN_QUALITY_SCORE", { min: 0, max: 1, required: false });
   assertNumberRange("TRADEHAX_HF_INGEST_REPORT_HISTORY_LIMIT", { min: 10, max: 1500, required: false });
+  assertNumberRange("TRADEHAX_HF_INGEST_ROLLBACK_MIN_AVG_SCORE", { min: 0, max: 1, required: false });
+  assertNumberRange("TRADEHAX_HF_INGEST_ROLLBACK_MAX_ERROR_RATE", { min: 0, max: 1, required: false });
+  assertNumberRange("TRADEHAX_HF_INGEST_ROLLBACK_STREAK", { min: 1, max: 20, required: false });
+  assertNumberRange("TRADEHAX_HF_INGEST_ROLLBACK_COOLDOWN_RUNS", { min: 1, max: 50, required: false });
+  assertNumberRange("TRADEHAX_HF_INGEST_CONSERVATIVE_MAX_TOTAL_DOCS", { min: 1, max: 1000, required: false });
+  assertNumberRange("TRADEHAX_HF_INGEST_CONSERVATIVE_MAX_EMBED_CALLS", { min: 1, max: 1000, required: false });
+
+  const rollbackEnabledRaw = get("TRADEHAX_HF_INGEST_ROLLBACK_ENABLED");
+  if (!rollbackEnabledRaw) {
+    print("WARN", "HF_Ingest_ROLLBACK_ENABLED", "Not set. Recommended: true for automatic conservative fallback.");
+  } else {
+    const normalized = rollbackEnabledRaw.toLowerCase();
+    if (["true", "false", "1", "0", "yes", "no", "on", "off"].includes(normalized)) {
+      print("PASS", "HF_Ingest_ROLLBACK_ENABLED", rollbackEnabledRaw);
+    } else {
+      print("WARN", "HF_Ingest_ROLLBACK_ENABLED", "Unrecognized boolean value; expected true/false.");
+    }
+  }
+
+  const conservativeModeRaw = get("TRADEHAX_HF_INGEST_CONSERVATIVE_MODE");
+  if (!conservativeModeRaw) {
+    print("WARN", "HF_Ingest_CONSERVATIVE_MODE", "Not set. Recommended: false (managed by rollback policy/workflows). ");
+  } else {
+    const normalized = conservativeModeRaw.toLowerCase();
+    if (["true", "false", "1", "0", "yes", "no", "on", "off"].includes(normalized)) {
+      print("PASS", "HF_Ingest_CONSERVATIVE_MODE", conservativeModeRaw);
+    } else {
+      print("WARN", "HF_Ingest_CONSERVATIVE_MODE", "Unrecognized boolean value; expected true/false.");
+    }
+  }
 
   const deltaEnabledRaw = get("TRADEHAX_HF_INGEST_DELTA_ENABLED");
   if (!deltaEnabledRaw) {

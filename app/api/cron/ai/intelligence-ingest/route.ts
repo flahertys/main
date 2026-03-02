@@ -234,10 +234,24 @@ export async function GET(request: NextRequest) {
   const queryLimit = parseIntEnv("TRADEHAX_HF_INGEST_QUERY_LIMIT", 6, 1, 30);
   const maxTotalDocs = parseIntEnv("TRADEHAX_HF_INGEST_MAX_TOTAL_DOCS", 160, 1, 1000);
   const maxEmbedCalls = parseIntEnv("TRADEHAX_HF_INGEST_MAX_EMBED_CALLS", 120, 1, 1000);
+  const conservativeMode = parseBool(getEnv("TRADEHAX_HF_INGEST_CONSERVATIVE_MODE", "false"), false);
+  const conservativeMaxTotalDocs = parseIntEnv("TRADEHAX_HF_INGEST_CONSERVATIVE_MAX_TOTAL_DOCS", 80, 1, 1000);
+  const conservativeMaxEmbedCalls = parseIntEnv("TRADEHAX_HF_INGEST_CONSERVATIVE_MAX_EMBED_CALLS", 60, 1, 1000);
+  const effectiveMaxTotalDocs = conservativeMode ? Math.min(maxTotalDocs, conservativeMaxTotalDocs) : maxTotalDocs;
+  const effectiveMaxEmbedCalls = conservativeMode ? Math.min(maxEmbedCalls, conservativeMaxEmbedCalls) : maxEmbedCalls;
   const minimumQualityScoreRaw = Number.parseFloat(getEnv("TRADEHAX_HF_INGEST_MIN_QUALITY_SCORE", "0.2"));
   const minimumQualityScore = Number.isFinite(minimumQualityScoreRaw)
     ? Math.max(0, Math.min(1, minimumQualityScoreRaw))
     : 0.2;
+  const rollbackEnabled = parseBool(getEnv("TRADEHAX_HF_INGEST_ROLLBACK_ENABLED", "true"), true);
+  const rollbackMinAvgScoreRaw = Number.parseFloat(getEnv("TRADEHAX_HF_INGEST_ROLLBACK_MIN_AVG_SCORE", "0.32"));
+  const rollbackMinAvgScore = Number.isFinite(rollbackMinAvgScoreRaw)
+    ? Math.max(0, Math.min(1, rollbackMinAvgScoreRaw))
+    : 0.32;
+  const rollbackMaxErrorRateRaw = Number.parseFloat(getEnv("TRADEHAX_HF_INGEST_ROLLBACK_MAX_ERROR_RATE", "0.35"));
+  const rollbackMaxErrorRate = Number.isFinite(rollbackMaxErrorRateRaw)
+    ? Math.max(0, Math.min(1, rollbackMaxErrorRateRaw))
+    : 0.35;
   const deltaEnabled = parseBool(getEnv("TRADEHAX_HF_INGEST_DELTA_ENABLED", "true"), true);
   const forceUpsert = parseBool(getEnv("TRADEHAX_HF_INGEST_FORCE_UPSERT", "false"), false);
 
@@ -278,7 +292,7 @@ export async function GET(request: NextRequest) {
     const qualityEligibleAll = allDocs.filter((doc) => doc.qualityScore >= minimumQualityScore);
     const qualityAcceptedDocs = qualityEligibleAll
       .sort((a, b) => b.qualityScore - a.qualityScore)
-      .slice(0, maxTotalDocs);
+      .slice(0, effectiveMaxTotalDocs);
 
     const skippedLowQuality = allDocs.length - qualityEligibleAll.length;
     const skippedBudgeted = Math.max(0, qualityEligibleAll.length - qualityAcceptedDocs.length);
@@ -307,7 +321,7 @@ export async function GET(request: NextRequest) {
       }> = [];
 
       for (const doc of chunk) {
-        if (embedCallsUsed >= maxEmbedCalls) {
+        if (embedCallsUsed >= effectiveMaxEmbedCalls) {
           break;
         }
         try {
@@ -336,7 +350,7 @@ export async function GET(request: NextRequest) {
       await index.upsert(payload);
       upserted += payload.length;
 
-      if (embedCallsUsed >= maxEmbedCalls) {
+      if (embedCallsUsed >= effectiveMaxEmbedCalls) {
         break;
       }
     }
@@ -344,6 +358,23 @@ export async function GET(request: NextRequest) {
     const averageAcceptedScore = qualityAcceptedDocs.length > 0
       ? Number.parseFloat((qualityAcceptedDocs.reduce((sum, doc) => sum + doc.qualityScore, 0) / qualityAcceptedDocs.length).toFixed(4))
       : 0;
+    const queued = docsToUpsert.length;
+    const errorRate = queued > 0
+      ? Number.parseFloat((skippedErrored / queued).toFixed(4))
+      : 0;
+
+    const rollbackReasons: string[] = [];
+    if (averageAcceptedScore < rollbackMinAvgScore) {
+      rollbackReasons.push(`low_avg_score:${averageAcceptedScore}<${rollbackMinAvgScore}`);
+    }
+    if (errorRate > rollbackMaxErrorRate) {
+      rollbackReasons.push(`high_error_rate:${errorRate}>${rollbackMaxErrorRate}`);
+    }
+
+    const rollbackTriggered = rollbackEnabled && rollbackReasons.length > 0;
+    const alerts = rollbackTriggered
+      ? [{ level: "warning", code: "ROLLBACK_TRIGGERED", message: `Ingest degradation detected: ${rollbackReasons.join("; ")}` }]
+      : [];
 
     return NextResponse.json({
       ok: true,
@@ -353,7 +384,7 @@ export async function GET(request: NextRequest) {
       totals: {
         discovered: allDocs.length,
         acceptedByQuality: qualityAcceptedDocs.length,
-        queued: docsToUpsert.length,
+        queued,
         upserted,
         skippedUnchanged: qualityAcceptedDocs.length - docsToUpsert.length,
         skippedLowQuality,
@@ -367,14 +398,34 @@ export async function GET(request: NextRequest) {
       cost: {
         maxTotalDocs,
         maxEmbedCalls,
+        effectiveMaxTotalDocs,
+        effectiveMaxEmbedCalls,
         embedCallsUsed,
       },
+      rollback: {
+        enabled: rollbackEnabled,
+        triggered: rollbackTriggered,
+        reasons: rollbackReasons,
+        errorRate,
+        policy: {
+          minAvgScore: rollbackMinAvgScore,
+          maxErrorRate: rollbackMaxErrorRate,
+        },
+        conservativeMode: {
+          active: conservativeMode,
+          maxTotalDocs: effectiveMaxTotalDocs,
+          maxEmbedCalls: effectiveMaxEmbedCalls,
+        },
+      },
+      alerts,
       ingestConfig: {
         deltaEnabled,
         forceUpsert,
         queryLimit,
         maxTotalDocs,
         maxEmbedCalls,
+        effectiveMaxTotalDocs,
+        effectiveMaxEmbedCalls,
         minimumQualityScore,
         queries: hfQueries,
       },
