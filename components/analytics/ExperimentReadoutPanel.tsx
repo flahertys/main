@@ -4,12 +4,15 @@ import {
   applyExperimentRecommendation,
   clearExperimentSessionRollup,
   clearAssignedExperimentVariant,
+  clearExperimentGuardrailEvents,
   clearExperimentRolloutTarget,
   evaluateExperimentDecision,
   getExperimentSessionRollup,
+  listExperimentGuardrailEvents,
   listExperimentRolloutTargets,
   listExperimentNames,
   listAssignedExperimentVariants,
+  runExperimentGuardrailAutoRollback,
   setExperimentRolloutTarget,
   setAssignedExperimentVariant,
 } from "@/lib/experiments";
@@ -20,12 +23,15 @@ const MIN_STRONG_SAMPLE = 25;
 
 interface ReadoutState {
   enabled: boolean;
+  guardrailsEnabled: boolean;
   assigned: ReturnType<typeof listAssignedExperimentVariants>;
   rollout: ReturnType<typeof listExperimentRolloutTargets>;
   rollup: ReturnType<typeof getExperimentSessionRollup>;
+  guardrailEvents: ReturnType<typeof listExperimentGuardrailEvents>;
 }
 
 const DEBUG_STORAGE_KEY = "thx-exp-debug";
+const GUARDRAILS_STORAGE_KEY = "thx-exp-guardrails-enabled";
 
 function getDebugEnabledFromUrl(): boolean {
   if (typeof window === "undefined") {
@@ -61,9 +67,11 @@ function resolveDebugEnabled(): boolean {
 export function ExperimentReadoutPanel() {
   const [state, setState] = useState<ReadoutState>({
     enabled: false,
+    guardrailsEnabled: false,
     assigned: {},
     rollout: {},
     rollup: {},
+    guardrailEvents: [],
   });
 
   useEffect(() => {
@@ -73,11 +81,22 @@ export function ExperimentReadoutPanel() {
     }
 
     const refresh = () => {
+      const guardrailsEnabled =
+        typeof window !== "undefined" && window.localStorage.getItem(GUARDRAILS_STORAGE_KEY) === "1";
+
+      const rollupSnapshot = getExperimentSessionRollup();
+
+      if (guardrailsEnabled) {
+        runExperimentGuardrailAutoRollback(rollupSnapshot, { clearCurrentAssignment: true });
+      }
+
       setState({
         enabled,
+        guardrailsEnabled,
         assigned: listAssignedExperimentVariants(),
         rollout: listExperimentRolloutTargets(),
-        rollup: getExperimentSessionRollup(),
+        rollup: rollupSnapshot,
+        guardrailEvents: listExperimentGuardrailEvents(),
       });
     };
 
@@ -96,11 +115,21 @@ export function ExperimentReadoutPanel() {
   }, [state.assigned, state.rollup]);
 
   const refreshReadout = () => {
+    const guardrailsEnabled =
+      typeof window !== "undefined" && window.localStorage.getItem(GUARDRAILS_STORAGE_KEY) === "1";
+    const rollupSnapshot = getExperimentSessionRollup();
+
+    if (guardrailsEnabled) {
+      runExperimentGuardrailAutoRollback(rollupSnapshot, { clearCurrentAssignment: true });
+    }
+
     setState((previous) => ({
       ...previous,
+      guardrailsEnabled,
       assigned: listAssignedExperimentVariants(),
       rollout: listExperimentRolloutTargets(),
-      rollup: getExperimentSessionRollup(),
+      rollup: rollupSnapshot,
+      guardrailEvents: listExperimentGuardrailEvents(),
     }));
   };
 
@@ -115,12 +144,28 @@ export function ExperimentReadoutPanel() {
         <div className="flex items-center gap-1">
           <button
             type="button"
+            onClick={() => {
+              const nextEnabled = !state.guardrailsEnabled;
+              if (typeof window !== "undefined") {
+                window.localStorage.setItem(GUARDRAILS_STORAGE_KEY, nextEnabled ? "1" : "0");
+              }
+
+              setState((previous) => ({ ...previous, guardrailsEnabled: nextEnabled }));
+              refreshReadout();
+            }}
+            className="rounded border border-amber-400/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-200 hover:text-white"
+          >
+            guardrails {state.guardrailsEnabled ? "on" : "off"}
+          </button>
+          <button
+            type="button"
             onClick={async () => {
               const payload = {
                 generatedAt: new Date().toISOString(),
                 assigned: state.assigned,
                 rollout: state.rollout,
                 rollup: state.rollup,
+                guardrailEvents: state.guardrailEvents,
               };
 
               const json = JSON.stringify(payload, null, 2);
@@ -332,6 +377,37 @@ export function ExperimentReadoutPanel() {
                   </article>
                 );
               })
+            )}
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Guardrail Feed</p>
+            <button
+              type="button"
+              onClick={() => {
+                clearExperimentGuardrailEvents();
+                refreshReadout();
+              }}
+              className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-400 hover:text-white"
+            >
+              clear
+            </button>
+          </div>
+          <div className="space-y-1">
+            {state.guardrailEvents.length === 0 ? (
+              <p className="text-xs text-zinc-500">No rollback actions triggered.</p>
+            ) : (
+              state.guardrailEvents.slice(0, 5).map((entry) => (
+                <div key={`${entry.experiment}:${entry.timestamp}`} className="rounded border border-white/10 bg-black/30 px-2 py-1">
+                  <div className="flex items-center justify-between text-[10px] text-zinc-300">
+                    <span>{entry.experiment}</span>
+                    <span>{entry.previousRollout}% → {entry.nextRollout}%</span>
+                  </div>
+                  <div className="text-[10px] text-zinc-500">{new Date(entry.timestamp).toLocaleTimeString()}</div>
+                </div>
+              ))
             )}
           </div>
         </section>
