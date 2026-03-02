@@ -106,17 +106,17 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black">
       {/* Hero + Guided Experience */}
-      <section className="relative overflow-hidden px-6 pt-20 pb-14">
+      <section className="relative overflow-hidden px-4 sm:px-6 pt-16 sm:pt-20 pb-12 sm:pb-14">
         <div className="absolute top-[-8rem] right-[-6rem] w-[460px] h-[460px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-[-9rem] left-[-4rem] w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-[1.2fr_0.8fr] gap-8 items-start">
-          <div className="theme-panel p-8 md:p-12">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-[1.2fr_0.8fr] gap-6 sm:gap-8 items-start">
+          <div className="theme-panel p-6 sm:p-8 md:p-12">
             <span className="theme-kicker mb-4">Operational Entry</span>
-            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter italic uppercase mb-5">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter italic uppercase mb-5">
               <GlitchText text="TradeHax" />
             </h1>
-            <p className="text-zinc-300 text-lg max-w-2xl leading-relaxed mb-8">
+            <p className="text-zinc-300 text-base sm:text-lg max-w-2xl leading-relaxed mb-8">
               Professional digital execution for service, growth, and AI workflows.
               Start with a clear intent and move through a predictable path.
             </p>
@@ -151,7 +151,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="theme-panel p-6">
+          <div className="theme-panel p-5 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold uppercase tracking-widest text-cyan-300">Guided Experience</h2>
               <Sparkles className="w-4 h-4 text-cyan-300" />
@@ -191,7 +191,7 @@ export default function Home() {
 
       <LiveActivity />
 
-      <section className="max-w-7xl mx-auto px-6 pt-8 pb-6">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-6">
         <div className="theme-panel p-6 md:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <h2 className="text-sm font-bold uppercase tracking-widest text-cyan-300">Quick Paths</h2>
@@ -212,14 +212,14 @@ export default function Home() {
       </section>
 
       {/* Intent Lanes Section */}
-      <section className="max-w-7xl mx-auto px-6 py-24">
-        <div className="theme-panel p-8 md:p-12">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+        <div className="theme-panel p-6 sm:p-8 md:p-12">
           <span className="theme-kicker mb-4">Start Here</span>
-          <h2 className="theme-title text-4xl md:text-5xl mb-6">Choose Your Primary Path</h2>
-          <p className="text-zinc-300 max-w-2xl mb-12 text-lg">
+          <h2 className="theme-title text-3xl sm:text-4xl md:text-5xl mb-6">Choose Your Primary Path</h2>
+          <p className="text-zinc-300 max-w-2xl mb-10 sm:mb-12 text-base sm:text-lg">
             This matrix removes guesswork: select one lane, complete the route, then return for the next objective.
           </p>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {intentLanes.map((lane) => (
               <article key={lane.title} className="theme-grid-card">
                 <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-500 mb-4">
@@ -245,26 +245,26 @@ export default function Home() {
 
       {/* Service Grid Section */}
       <DeferredRender
-        fallback={<div className="mx-auto max-w-7xl px-6 py-20 text-zinc-500 text-sm">Loading service capabilities…</div>}
+        fallback={<div className="mx-auto max-w-7xl px-4 sm:px-6 py-20 text-zinc-500 text-sm">Loading service capabilities…</div>}
       >
         <ServiceGrid />
       </DeferredRender>
 
       <DeferredRender
-        fallback={<div className="mx-auto max-w-7xl px-6 py-20 text-zinc-500 text-sm">Loading AI workspace…</div>}
+        fallback={<div className="mx-auto max-w-7xl px-4 sm:px-6 py-20 text-zinc-500 text-sm">Loading AI workspace…</div>}
       >
         <AINeuralHub />
       </DeferredRender>
 
       <DeferredRender
-        fallback={<div className="mx-auto max-w-7xl px-6 py-20 text-zinc-500 text-sm">Loading roadmap…</div>}
+        fallback={<div className="mx-auto max-w-7xl px-4 sm:px-6 py-20 text-zinc-500 text-sm">Loading roadmap…</div>}
       >
         <Roadmap />
       </DeferredRender>
 
       {/* Quick Contact Rail */}
-      <section className="max-w-7xl mx-auto px-6 py-12">
-        <div className="flex flex-wrap items-center justify-center gap-6 p-8 glass-panel rounded-3xl border border-white/5">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 p-6 sm:p-8 glass-panel rounded-3xl border border-white/5">
           <p className="text-zinc-300 font-mono text-xs uppercase tracking-widest">Direct Access</p>
           <TrackedCtaLink
             href={businessProfile.contactLinks.text}
