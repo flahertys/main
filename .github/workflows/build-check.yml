@@ -12,6 +12,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,6 +53,12 @@ jobs:
         with:
           sarif_file: .artifacts/link-audit.sarif
           category: link-audit
+
+      - name: Publish link audit summary
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node ./scripts/post-link-audit-pr-comment.js --report=.artifacts/link-audit-report.json
 
       - name: Upload build log
         if: failure()
