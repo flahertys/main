@@ -700,6 +700,9 @@ export function ExperimentReadoutPanel() {
                   <div className="text-[10px] text-zinc-500">
                     portfolio {entry.portfolioWindowUsedAfter}/{entry.portfolioWindowBudget} pts (prev {entry.portfolioWindowUsedBefore}) · score {entry.opportunityScore.toFixed(2)}
                   </div>
+                  <div className="text-[10px] text-zinc-500">
+                    adjusted {entry.adjustedOpportunityScore.toFixed(2)} · recent {entry.recentPortfolioActions} · boost {entry.fairnessBoostApplied ? "on" : "off"}
+                  </div>
                   <div className="text-[10px] text-zinc-500">{entry.rationale}</div>
                   <div className="text-[10px] text-zinc-500">{new Date(entry.timestamp).toLocaleTimeString()}</div>
                 </div>

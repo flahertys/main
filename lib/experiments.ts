@@ -17,6 +17,9 @@ export interface ExperimentPolicySettings {
   rampMaxShiftPerWindow: number;
   rampPortfolioWindowMs: number;
   rampPortfolioMaxShiftPerWindow: number;
+  rampFairnessPenaltyPerRecentAction: number;
+  rampExplorationBoostInactivityMs: number;
+  rampExplorationBoostScore: number;
   autoswitchConfirmationCount: number;
   autoswitchBandPoints: number;
   autoswitchCoverageBand: number;
@@ -73,6 +76,9 @@ export interface ExperimentRampEvent {
   portfolioWindowUsedAfter: number;
   portfolioWindowBudget: number;
   opportunityScore: number;
+  adjustedOpportunityScore: number;
+  recentPortfolioActions: number;
+  fairnessBoostApplied: boolean;
   recommendation: ExperimentDecisionSummary["recommendation"];
   confidence: ExperimentDecisionSummary["confidence"];
   rationale: string;
@@ -169,6 +175,9 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     rampMaxShiftPerWindow: 65,
     rampPortfolioWindowMs: 10 * 60 * 1000,
     rampPortfolioMaxShiftPerWindow: 95,
+    rampFairnessPenaltyPerRecentAction: 0.3,
+    rampExplorationBoostInactivityMs: 6 * 60 * 1000,
+    rampExplorationBoostScore: 0.35,
     autoswitchConfirmationCount: 1,
     autoswitchBandPoints: 0.25,
     autoswitchCoverageBand: 0.04,
@@ -187,6 +196,9 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     rampMaxShiftPerWindow: 45,
     rampPortfolioWindowMs: 12 * 60 * 1000,
     rampPortfolioMaxShiftPerWindow: 70,
+    rampFairnessPenaltyPerRecentAction: 0.45,
+    rampExplorationBoostInactivityMs: 8 * 60 * 1000,
+    rampExplorationBoostScore: 0.5,
     autoswitchConfirmationCount: 2,
     autoswitchBandPoints: 0.35,
     autoswitchCoverageBand: 0.05,
@@ -205,6 +217,9 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     rampMaxShiftPerWindow: 30,
     rampPortfolioWindowMs: 15 * 60 * 1000,
     rampPortfolioMaxShiftPerWindow: 45,
+    rampFairnessPenaltyPerRecentAction: 0.6,
+    rampExplorationBoostInactivityMs: 10 * 60 * 1000,
+    rampExplorationBoostScore: 0.65,
     autoswitchConfirmationCount: 3,
     autoswitchBandPoints: 0.5,
     autoswitchCoverageBand: 0.06,
@@ -251,6 +266,16 @@ export function getExperimentPolicySettings(
     rampMaxShiftPerWindow: Math.max(15, Math.round(base.rampMaxShiftPerWindow * sensitivity)),
     rampPortfolioWindowMs: Math.max(2 * 60_000, Math.round(base.rampPortfolioWindowMs * stability)),
     rampPortfolioMaxShiftPerWindow: Math.max(20, Math.round(base.rampPortfolioMaxShiftPerWindow * sensitivity)),
+    rampFairnessPenaltyPerRecentAction: Number(
+      Math.max(0.1, base.rampFairnessPenaltyPerRecentAction * stability).toFixed(3),
+    ),
+    rampExplorationBoostInactivityMs: Math.max(
+      2 * 60_000,
+      Math.round(base.rampExplorationBoostInactivityMs * stability),
+    ),
+    rampExplorationBoostScore: Number(
+      Math.max(0.1, base.rampExplorationBoostScore * stability).toFixed(3),
+    ),
     autoswitchConfirmationCount: Math.max(1, Math.round(base.autoswitchConfirmationCount * stability)),
     autoswitchBandPoints: Number((base.autoswitchBandPoints * stability).toFixed(3)),
     autoswitchCoverageBand: Number((base.autoswitchCoverageBand * stability).toFixed(3)),
@@ -394,6 +419,9 @@ function readRampLog(): ExperimentRampEvent[] {
         typeof item.portfolioWindowUsedAfter === "number" &&
         typeof item.portfolioWindowBudget === "number" &&
         typeof item.opportunityScore === "number" &&
+        typeof item.adjustedOpportunityScore === "number" &&
+        typeof item.recentPortfolioActions === "number" &&
+        typeof item.fairnessBoostApplied === "boolean" &&
         typeof item.recommendation === "string" &&
         typeof item.confidence === "string" &&
         typeof item.rationale === "string" &&
@@ -1979,9 +2007,21 @@ export function runExperimentRampAutopilot(
     velocityFilteredEntries: ExperimentRampVelocityWindowEntry[];
     strideRationale: string;
     opportunityScore: number;
+    adjustedOpportunityScore: number;
+    recentPortfolioActions: number;
+    fairnessBoostApplied: boolean;
   }
 
   const candidates: RampCandidate[] = [];
+  const recentPortfolioActionCounts = readRampLog()
+    .filter((entry) => {
+      const entryMs = Date.parse(entry.timestamp);
+      return Number.isFinite(entryMs) && now - entryMs <= portfolioWindowMs;
+    })
+    .reduce<Partial<Record<ExperimentName, number>>>((acc, entry) => {
+      acc[entry.experiment] = (acc[entry.experiment] ?? 0) + 1;
+      return acc;
+    }, {});
 
   EXPERIMENT_NAMES.forEach((experiment) => {
     const rolloutTarget = getExperimentRolloutTarget(experiment);
@@ -2045,6 +2085,15 @@ export function runExperimentRampAutopilot(
       return;
     }
 
+    const opportunityScore = scoreRampOpportunity(decision);
+    const recentPortfolioActions = recentPortfolioActionCounts[experiment] ?? 0;
+    const fairnessPenalty = recentPortfolioActions * policy.rampFairnessPenaltyPerRecentAction;
+    const isInactiveEnough =
+      !lastActionMs ||
+      !Number.isFinite(lastActionMs) ||
+      now - lastActionMs >= policy.rampExplorationBoostInactivityMs;
+    const explorationBoost = isInactiveEnough ? policy.rampExplorationBoostScore : 0;
+
     candidates.push({
       experiment,
       rolloutTarget,
@@ -2056,13 +2105,27 @@ export function runExperimentRampAutopilot(
       availableVelocity,
       velocityFilteredEntries: velocityWindow.filtered,
       strideRationale: rampStrideRationale,
-      opportunityScore: scoreRampOpportunity(decision),
+      opportunityScore,
+      adjustedOpportunityScore: Math.max(0, opportunityScore - fairnessPenalty + explorationBoost),
+      recentPortfolioActions,
+      fairnessBoostApplied: explorationBoost > 0,
     });
   });
 
-  candidates
-    .sort((left, right) => right.opportunityScore - left.opportunityScore)
-    .forEach((candidate) => {
+  const rankedCandidates = [...candidates].sort((left, right) => {
+    if (right.adjustedOpportunityScore !== left.adjustedOpportunityScore) {
+      return right.adjustedOpportunityScore - left.adjustedOpportunityScore;
+    }
+
+    return right.opportunityScore - left.opportunityScore;
+  });
+
+  const explorationFirst = rankedCandidates.find((candidate) => candidate.fairnessBoostApplied);
+  const dispatchQueue = explorationFirst
+    ? [explorationFirst, ...rankedCandidates.filter((candidate) => candidate !== explorationFirst)]
+    : rankedCandidates;
+
+  dispatchQueue.forEach((candidate) => {
       if (portfolioRemaining <= 0) {
         return;
       }
@@ -2119,9 +2182,12 @@ export function runExperimentRampAutopilot(
         portfolioWindowUsedAfter: portfolioUsed,
         portfolioWindowBudget: portfolioBudget,
         opportunityScore: Number(candidate.opportunityScore.toFixed(3)),
+        adjustedOpportunityScore: Number(candidate.adjustedOpportunityScore.toFixed(3)),
+        recentPortfolioActions: candidate.recentPortfolioActions,
+        fairnessBoostApplied: candidate.fairnessBoostApplied,
         recommendation: candidate.decision.recommendation,
         confidence: candidate.decision.confidence,
-        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used.`,
+        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (base ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}).`,
         timestamp,
       };
 
