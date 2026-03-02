@@ -71,6 +71,30 @@ const servicesFaqs = [
   },
 ] as const;
 
+const servicePaths = [
+  {
+    title: "AI Trading + Web3",
+    summary: "Trading systems, strategy consults, and blockchain development for advanced digital execution.",
+    href: scheduleLinks.tradingConsult,
+    conversionId: "book_trading_consult" as ServiceConversionId,
+    cta: "Start AI/Web3 Discovery",
+  },
+  {
+    title: "Digital Builds",
+    summary: "Websites, apps, cloud architecture, and e-commerce systems with end-to-end delivery.",
+    href: scheduleLinks.webDevConsult,
+    conversionId: "book_web3_consult" as ServiceConversionId,
+    cta: "Start Build Consultation",
+  },
+  {
+    title: "Support + Growth",
+    summary: "Repair, IT management, and social media growth for individuals and local businesses.",
+    href: scheduleLinks.techSupport,
+    conversionId: "book_repair_quote" as ServiceConversionId,
+    cta: "Start Support Intake",
+  },
+] as const;
+
 const servicesPageJsonLd = {
   "@context": "https://schema.org",
   "@graph": [
@@ -152,10 +176,20 @@ export default function ServicesPage() {
             Professional Services
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Complete technology solutions from Web3 development to hardware
-            repair, social media marketing, and automated trading systems built
-            for businesses and individuals in Greater Philadelphia and remote.
+            Clear, outcome-focused service paths for AI trading, digital builds, and real-world support.
+            Pick one path and we&apos;ll guide the next action.
           </p>
+          <div className="mt-8">
+            <TrackedCtaLink
+              href={scheduleLinks.root}
+              conversionId="open_schedule"
+              surface="services:hero"
+              className="theme-cta theme-cta--loud px-6 py-3"
+            >
+              Choose Your Service Path
+              <ArrowRight className="w-5 h-5" />
+            </TrackedCtaLink>
+          </div>
         </div>
 
         <div className="mb-12">
@@ -167,8 +201,38 @@ export default function ServicesPage() {
           <AdSenseBlock adSlot="services-top" adFormat="horizontal" />
         </div>
 
+        <section className="mb-12 grid gap-4 md:grid-cols-3">
+          {servicePaths.map((path) => (
+            <article key={path.title} className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+              <h2 className="text-lg font-bold text-white">{path.title}</h2>
+              <p className="mt-2 text-sm text-gray-300">{path.summary}</p>
+              <TrackedCtaLink
+                href={path.href}
+                conversionId={path.conversionId}
+                surface={`services:path:${path.title.toLowerCase().replace(/\s+/g, "_")}`}
+                external={path.href.startsWith("http")}
+                className="theme-cta theme-cta--secondary mt-4"
+              >
+                {path.cta}
+                <ArrowRight className="w-4 h-4" />
+              </TrackedCtaLink>
+            </article>
+          ))}
+        </section>
+
         {/* Services Grid */}
-        <div className="grid md:grid-cols-2 gap-8 mb-16">
+        <details className="mb-16 rounded-xl border border-gray-800 bg-gray-900/30" open={false}>
+          <summary className="cursor-pointer list-none px-5 py-4 hover:bg-white/[0.02] transition">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">Full Service Catalog</p>
+                <p className="text-xs text-gray-400">10 detailed offerings with feature breakdowns and pricing anchors</p>
+              </div>
+              <span className="rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-wide text-gray-300">expand</span>
+            </div>
+          </summary>
+          <div className="border-t border-gray-800 px-4 py-5 sm:px-6 sm:py-6">
+            <div className="grid md:grid-cols-2 gap-8">
           <ServiceCard
             icon={<Code className="w-10 h-10" />}
             title="Web3 Development"
@@ -345,7 +409,9 @@ export default function ServicesPage() {
             ctaHref={scheduleLinks.ecommerceConsult}
             ctaConversionId="book_ecommerce_consult"
           />
-        </div>
+            </div>
+          </div>
+        </details>
 
         {/* Process Section */}
         <section className="mb-16">
@@ -411,32 +477,21 @@ export default function ServicesPage() {
 
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <TrackedCtaLink
+              href={scheduleLinks.root}
+              conversionId="open_schedule"
+              surface="services:cta_section"
+              className="theme-cta theme-cta--loud px-6 py-3"
+            >
+              Book a Service Call
+              <ArrowRight className="w-5 h-5" />
+            </TrackedCtaLink>
+            <TrackedCtaLink
               href="/portfolio"
               conversionId="open_portfolio"
               surface="services:cta_section"
               className="theme-cta theme-cta--secondary px-6 py-3"
             >
               View Portfolio
-              <ArrowRight className="w-5 h-5" />
-            </TrackedCtaLink>
-            <TrackedCtaLink
-              href={businessProfile.contactLinks.emailSales}
-              conversionId="email_contact"
-              surface="services:cta_section"
-              external
-              className="theme-cta theme-cta--loud px-6 py-3"
-            >
-              Email Us
-              <ArrowRight className="w-5 h-5" />
-            </TrackedCtaLink>
-            <TrackedCtaLink
-              href={businessProfile.contactLinks.text}
-              conversionId="contact_text"
-              surface="services:cta_section"
-              external
-              className="theme-cta theme-cta--muted px-6 py-3"
-            >
-              Text {businessProfile.contactPhoneDisplay}
               <ArrowRight className="w-5 h-5" />
             </TrackedCtaLink>
           </div>

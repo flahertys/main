@@ -6,10 +6,10 @@ export const ServiceGrid = () => {
       <div className="container mx-auto px-6">
         <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
           <div className="max-w-2xl">
-            <h2 className="text-xs font-mono text-cyan-500 mb-4 tracking-[0.3em] uppercase">System_Capabilities</h2>
-            <h3 className="text-4xl md:text-5xl font-black text-white tracking-tighter">INTEGRATED_SERVICES</h3>
+            <h2 className="text-xs font-mono text-cyan-500 mb-4 tracking-[0.3em] uppercase">Service Capabilities</h2>
+            <h3 className="text-4xl md:text-5xl font-black text-white tracking-tighter">Integrated Services</h3>
           </div>
-          <p className="text-zinc-300 text-sm max-w-xs font-mono">V_4.0 // Cross-chain ready</p>
+          <p className="text-zinc-300 text-sm max-w-xs">Built for practical execution across AI, trading, and digital services.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 auto-rows-[200px]">
@@ -18,13 +18,13 @@ export const ServiceGrid = () => {
             <div className="scanline" />
             <div className="absolute top-0 right-0 p-8 text-6xl opacity-20 group-hover:opacity-40 transition-opacity">🤖</div>
             <div className="relative z-10 h-full flex flex-col justify-end">
-              <h4 className="text-3xl font-bold text-white mb-4">Predictive_AI</h4>
+              <h4 className="text-3xl font-bold text-white mb-4">Predictive AI</h4>
               <p className="text-zinc-300 max-w-md leading-relaxed">
                 AI models analyze liquidity, sentiment, and momentum signals in real time so you can act faster with clearer context.
               </p>
               <div className="mt-8 flex gap-2">
-                <span className="px-3 py-1 bg-cyan-500/10 text-cyan-500 text-[10px] font-mono rounded-full border border-cyan-500/20">LIVE_DATA</span>
-                <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-[10px] font-mono rounded-full">MULTI_CHAIN</span>
+                <span className="px-3 py-1 bg-cyan-500/10 text-cyan-500 text-[10px] font-mono rounded-full border border-cyan-500/20">Live Data</span>
+                <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-[10px] font-mono rounded-full">Multi-Chain</span>
               </div>
             </div>
           </div>
@@ -33,16 +33,16 @@ export const ServiceGrid = () => {
           <div className="md:col-span-6 lg:col-span-4 row-span-3 group relative overflow-hidden rounded-3xl bg-gradient-to-b from-purple-500/10 to-black border border-white/5 p-10 hover:border-purple-500/50 transition-all cursor-pointer">
             <div className="h-full flex flex-col">
               <div className="text-5xl mb-6">🎮</div>
-              <h4 className="text-2xl font-bold text-white mb-4">Hax_Runner</h4>
+              <h4 className="text-2xl font-bold text-white mb-4">Hax Runner</h4>
               <p className="text-zinc-300 text-sm leading-relaxed mb-8">
                 Compete in high-stakes arcade challenges to earn $HAX and exclusive NFT fragments.
               </p>
               <div className="mt-auto pt-8 border-t border-white/5">
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-xs font-mono text-zinc-500 uppercase">Current_Pool</span>
+                  <span className="text-xs font-mono text-zinc-500 uppercase">Current Pool</span>
                   <span className="text-purple-500 font-mono">50,000 $HAX</span>
                 </div>
-                <button className="w-full min-h-[44px] py-4 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-500 transition-colors">PLAY_NOW</button>
+                <button className="w-full min-h-[44px] py-4 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-500 transition-colors">Play Now</button>
               </div>
             </div>
           </div>
@@ -50,7 +50,7 @@ export const ServiceGrid = () => {
           {/* Portfolio - Wide */}
           <div className="md:col-span-6 lg:col-span-8 row-span-1 group relative overflow-hidden rounded-3xl bg-zinc-900/40 border border-white/5 px-10 py-8 hover:border-blue-500/50 transition-all cursor-pointer flex items-center justify-between">
             <div>
-              <h4 className="text-xl font-bold text-white mb-1">Universal_Portfolio</h4>
+              <h4 className="text-xl font-bold text-white mb-1">Universal Portfolio</h4>
               <p className="text-zinc-300 text-sm">Track assets across 15+ chains in one view.</p>
             </div>
             <div className="flex -space-x-3">
@@ -64,16 +64,16 @@ export const ServiceGrid = () => {
           <Link href="/music" className="md:col-span-6 lg:col-span-12 row-span-1 group relative overflow-hidden rounded-3xl bg-cyan-500/5 border border-cyan-500/20 px-10 py-8 hover:border-cyan-500 transition-all cursor-pointer flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <span className="text-xs font-mono text-cyan-500 uppercase tracking-widest">Elite_Skill_Acquisition</span>
+                <span className="text-xs font-mono text-cyan-500 uppercase tracking-widest">Elite Skill Acquisition</span>
                 <span className="w-1 h-1 rounded-full bg-cyan-500 animate-pulse" />
               </div>
-              <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter">Neural_Studio // Guitar_Lessons</h4>
+              <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter">Neural Studio // Guitar Lessons</h4>
               <p className="text-zinc-300 text-sm">Direct instruction from Michael S. Flaherty with 25+ years of session and teaching experience.</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="hidden md:flex flex-col items-end mr-4">
                 <span className="text-[10px] font-mono text-zinc-600 uppercase">Status</span>
-                <span className="text-xs font-bold text-cyan-500 uppercase italic">Active_Slots</span>
+                <span className="text-xs font-bold text-cyan-500 uppercase italic">Active Slots</span>
               </div>
               <div className="w-12 h-12 rounded-xl bg-white text-black flex items-center justify-center text-xl shadow-[0_0_20px_rgba(255,255,255,0.2)]">
                 🎸
