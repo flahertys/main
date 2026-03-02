@@ -15,6 +15,8 @@ export interface ExperimentPolicySettings {
   rampCooldownMs: number;
   rampVelocityWindowMs: number;
   rampMaxShiftPerWindow: number;
+  rampPortfolioWindowMs: number;
+  rampPortfolioMaxShiftPerWindow: number;
   autoswitchConfirmationCount: number;
   autoswitchBandPoints: number;
   autoswitchCoverageBand: number;
@@ -67,6 +69,10 @@ export interface ExperimentRampEvent {
   velocityWindowUsedBefore: number;
   velocityWindowUsedAfter: number;
   velocityWindowBudget: number;
+  portfolioWindowUsedBefore: number;
+  portfolioWindowUsedAfter: number;
+  portfolioWindowBudget: number;
+  opportunityScore: number;
   recommendation: ExperimentDecisionSummary["recommendation"];
   confidence: ExperimentDecisionSummary["confidence"];
   rationale: string;
@@ -134,6 +140,7 @@ const EXP_GUARDRAIL_LOG_KEY = "thx-exp-guardrail-log";
 const EXP_RAMP_LOG_KEY = "thx-exp-ramp-log";
 const EXP_RAMP_META_KEY = "thx-exp-ramp-meta";
 const EXP_RAMP_VELOCITY_META_KEY = "thx-exp-ramp-velocity-meta";
+const EXP_RAMP_PORTFOLIO_META_KEY = "thx-exp-ramp-portfolio-meta";
 const EXP_POLICY_PROFILE_KEY = "thx-exp-policy-profile";
 const EXP_POLICY_AUTOSWITCH_KEY = "thx-exp-policy-autoswitch-enabled";
 const EXP_POLICY_SWITCH_LOG_KEY = "thx-exp-policy-switch-log";
@@ -160,6 +167,8 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     rampCooldownMs: 60 * 1000,
     rampVelocityWindowMs: 12 * 60 * 1000,
     rampMaxShiftPerWindow: 65,
+    rampPortfolioWindowMs: 10 * 60 * 1000,
+    rampPortfolioMaxShiftPerWindow: 95,
     autoswitchConfirmationCount: 1,
     autoswitchBandPoints: 0.25,
     autoswitchCoverageBand: 0.04,
@@ -176,6 +185,8 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     rampCooldownMs: 2 * 60 * 1000,
     rampVelocityWindowMs: 15 * 60 * 1000,
     rampMaxShiftPerWindow: 45,
+    rampPortfolioWindowMs: 12 * 60 * 1000,
+    rampPortfolioMaxShiftPerWindow: 70,
     autoswitchConfirmationCount: 2,
     autoswitchBandPoints: 0.35,
     autoswitchCoverageBand: 0.05,
@@ -192,6 +203,8 @@ const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings>
     rampCooldownMs: 5 * 60 * 1000,
     rampVelocityWindowMs: 20 * 60 * 1000,
     rampMaxShiftPerWindow: 30,
+    rampPortfolioWindowMs: 15 * 60 * 1000,
+    rampPortfolioMaxShiftPerWindow: 45,
     autoswitchConfirmationCount: 3,
     autoswitchBandPoints: 0.5,
     autoswitchCoverageBand: 0.06,
@@ -236,6 +249,8 @@ export function getExperimentPolicySettings(
     rampCooldownMs: Math.max(30_000, Math.round(base.rampCooldownMs * stability)),
     rampVelocityWindowMs: Math.max(2 * 60_000, Math.round(base.rampVelocityWindowMs * stability)),
     rampMaxShiftPerWindow: Math.max(15, Math.round(base.rampMaxShiftPerWindow * sensitivity)),
+    rampPortfolioWindowMs: Math.max(2 * 60_000, Math.round(base.rampPortfolioWindowMs * stability)),
+    rampPortfolioMaxShiftPerWindow: Math.max(20, Math.round(base.rampPortfolioMaxShiftPerWindow * sensitivity)),
     autoswitchConfirmationCount: Math.max(1, Math.round(base.autoswitchConfirmationCount * stability)),
     autoswitchBandPoints: Number((base.autoswitchBandPoints * stability).toFixed(3)),
     autoswitchCoverageBand: Number((base.autoswitchCoverageBand * stability).toFixed(3)),
@@ -375,6 +390,10 @@ function readRampLog(): ExperimentRampEvent[] {
         typeof item.velocityWindowUsedBefore === "number" &&
         typeof item.velocityWindowUsedAfter === "number" &&
         typeof item.velocityWindowBudget === "number" &&
+        typeof item.portfolioWindowUsedBefore === "number" &&
+        typeof item.portfolioWindowUsedAfter === "number" &&
+        typeof item.portfolioWindowBudget === "number" &&
+        typeof item.opportunityScore === "number" &&
         typeof item.recommendation === "string" &&
         typeof item.confidence === "string" &&
         typeof item.rationale === "string" &&
@@ -826,6 +845,46 @@ function writeRampVelocityMeta(meta: Partial<Record<ExperimentName, ExperimentRa
 
   try {
     window.localStorage.setItem(EXP_RAMP_VELOCITY_META_KEY, JSON.stringify(meta));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function readRampPortfolioMeta(): ExperimentRampVelocityWindowEntry[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(EXP_RAMP_PORTFOLIO_META_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter((item): item is ExperimentRampVelocityWindowEntry => {
+      return (
+        isObjectRecord(item) &&
+        typeof item.timestamp === "string" &&
+        typeof item.stepSize === "number"
+      );
+    });
+  } catch {
+    return [];
+  }
+}
+
+function writeRampPortfolioMeta(entries: ExperimentRampVelocityWindowEntry[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(EXP_RAMP_PORTFOLIO_META_KEY, JSON.stringify(entries.slice(-80)));
   } catch {
     // Ignore storage failures.
   }
@@ -1874,6 +1933,18 @@ export function runExperimentGuardrailAutoRollback(
   return rollbacks;
 }
 
+function scoreRampOpportunity(decision: ExperimentDecisionSummary): number {
+  const confidenceWeight = decision.confidence === "high" ? 1 : decision.confidence === "medium" ? 0.5 : 0;
+  const safetyWeight = decision.recommendation === "keep_control" ? 0.15 : 0;
+
+  return (
+    Math.abs(decision.deltaCvrPoints) * 0.5 +
+    Math.abs(decision.zScore) * 0.35 +
+    confidenceWeight +
+    safetyWeight
+  );
+}
+
 export function runExperimentRampAutopilot(
   snapshot: ExperimentRollupSnapshot,
   options?: { clearCurrentAssignment?: boolean; cooldownMs?: number; profile?: ExperimentPolicyProfile },
@@ -1887,6 +1958,30 @@ export function runExperimentRampAutopilot(
   const actions: ExperimentRampEvent[] = [];
   const regime = getExperimentPolicyRegimeState();
   const adaptive = getExperimentPolicyAdaptiveState();
+  const portfolioWindowMs = policy.rampPortfolioWindowMs;
+  const portfolioBudget = policy.rampPortfolioMaxShiftPerWindow;
+
+  const priorPortfolioEntries = readRampPortfolioMeta();
+  const portfolioWindow = computeWindowVelocityUsage(priorPortfolioEntries, portfolioWindowMs, now);
+  let portfolioUsed = portfolioWindow.usedShift;
+  let portfolioRemaining = Math.max(0, portfolioBudget - portfolioUsed);
+  const nextPortfolioEntries = [...portfolioWindow.filtered];
+
+  interface RampCandidate {
+    experiment: ExperimentName;
+    rolloutTarget: number;
+    direction: "up" | "down";
+    stride: number;
+    decision: ExperimentDecisionSummary;
+    velocityWindowUsedBefore: number;
+    velocityWindowBudget: number;
+    availableVelocity: number;
+    velocityFilteredEntries: ExperimentRampVelocityWindowEntry[];
+    strideRationale: string;
+    opportunityScore: number;
+  }
+
+  const candidates: RampCandidate[] = [];
 
   EXPERIMENT_NAMES.forEach((experiment) => {
     const rolloutTarget = getExperimentRolloutTarget(experiment);
@@ -1909,7 +2004,11 @@ export function runExperimentRampAutopilot(
       return;
     }
 
-    let nextRollout: number | null = null;
+    if (availableVelocity <= 0) {
+      return;
+    }
+
+    let direction: "up" | "down" | null = null;
     let rampStride = 1;
     let rampStrideRationale = "Ramp stride 1 (default).";
 
@@ -1920,81 +2019,128 @@ export function runExperimentRampAutopilot(
       const strideDecision = resolveRampStride(decision, profile, regime, adaptive);
       rampStride = strideDecision.stride;
       rampStrideRationale = strideDecision.rationale;
-      nextRollout =
-        getRampTargetWithinStepBudget(rolloutTarget, "up", rampStride, availableVelocity) ??
-        getRampTargetByStride(rolloutTarget, "up", 1) ??
-        getNextRampTarget(rolloutTarget);
+      direction = "up";
     }
 
     if (
       decision.recommendation === "keep_control" &&
-      (decision.confidence === "medium" || decision.confidence === "high") &&
-      nextRollout === null
+      (decision.confidence === "medium" || decision.confidence === "high")
     ) {
       const strideDecision = resolveRampStride(decision, profile, regime, adaptive);
       rampStride = Math.max(1, Math.min(2, strideDecision.stride));
       rampStrideRationale = `${strideDecision.rationale} Rollback stride capped for safety.`;
-      const previousTarget =
-        getRampTargetWithinStepBudget(rolloutTarget, "down", rampStride, availableVelocity) ??
-        getRampTargetByStride(rolloutTarget, "down", 1) ??
-        getPreviousRampTarget(rolloutTarget);
-      if (previousTarget !== null && previousTarget >= 25) {
-        nextRollout = previousTarget;
-      }
+      direction = "down";
     }
 
-    if (nextRollout === null || nextRollout === rolloutTarget) {
+    if (!direction) {
       return;
     }
 
-    const stepSize = Math.abs(nextRollout - rolloutTarget);
-    if (stepSize <= 0 || stepSize > availableVelocity) {
+    const candidateTarget = getRampTargetWithinStepBudget(rolloutTarget, direction, rampStride, availableVelocity);
+    if (candidateTarget === null || candidateTarget === rolloutTarget) {
       return;
     }
 
-    setExperimentRolloutTarget(experiment, nextRollout);
-    if (options?.clearCurrentAssignment) {
-      clearAssignedExperimentVariant(experiment);
+    if (direction === "down" && candidateTarget < 25) {
+      return;
     }
 
-    const timestamp = new Date().toISOString();
-    meta[experiment] = timestamp;
-
-    const nextVelocityEntries = [...velocityWindow.filtered, { timestamp, stepSize }];
-    velocityMeta[experiment] = nextVelocityEntries;
-    const velocityWindowUsedAfter = velocityWindowUsedBefore + stepSize;
-
-    const rampEvent: ExperimentRampEvent = {
+    candidates.push({
       experiment,
-      previousRollout: rolloutTarget,
-      nextRollout,
-      stepSize,
+      rolloutTarget,
+      direction,
       stride: rampStride,
-      profile,
+      decision,
       velocityWindowUsedBefore,
-      velocityWindowUsedAfter,
       velocityWindowBudget,
-      recommendation: decision.recommendation,
-      confidence: decision.confidence,
-      rationale: `${decision.rationale} ${rampStrideRationale} Velocity window ${velocityWindowUsedAfter}/${velocityWindowBudget} points used.`,
-      timestamp,
-    };
-
-    appendRampEvent(rampEvent);
-
-    event({
-      action: "experiment_ramp_autopilot",
-      category: "experiments",
-      label: `${experiment}:${rolloutTarget}->${nextRollout}`,
-      value: nextRollout,
+      availableVelocity,
+      velocityFilteredEntries: velocityWindow.filtered,
+      strideRationale: rampStrideRationale,
+      opportunityScore: scoreRampOpportunity(decision),
     });
-
-    actions.push(rampEvent);
   });
+
+  candidates
+    .sort((left, right) => right.opportunityScore - left.opportunityScore)
+    .forEach((candidate) => {
+      if (portfolioRemaining <= 0) {
+        return;
+      }
+
+      const allowedBudget = Math.min(candidate.availableVelocity, portfolioRemaining);
+      const nextRollout = getRampTargetWithinStepBudget(
+        candidate.rolloutTarget,
+        candidate.direction,
+        candidate.stride,
+        allowedBudget,
+      );
+
+      if (nextRollout === null || nextRollout === candidate.rolloutTarget) {
+        return;
+      }
+
+      const stepSize = Math.abs(nextRollout - candidate.rolloutTarget);
+      if (stepSize <= 0 || stepSize > allowedBudget) {
+        return;
+      }
+
+      if (candidate.direction === "down" && nextRollout < 25) {
+        return;
+      }
+
+      setExperimentRolloutTarget(candidate.experiment, nextRollout);
+      if (options?.clearCurrentAssignment) {
+        clearAssignedExperimentVariant(candidate.experiment);
+      }
+
+      const timestamp = new Date().toISOString();
+      meta[candidate.experiment] = timestamp;
+
+      const nextVelocityEntries = [...candidate.velocityFilteredEntries, { timestamp, stepSize }];
+      velocityMeta[candidate.experiment] = nextVelocityEntries;
+      const velocityWindowUsedAfter = candidate.velocityWindowUsedBefore + stepSize;
+
+      const portfolioWindowUsedBefore = portfolioUsed;
+      portfolioUsed += stepSize;
+      portfolioRemaining = Math.max(0, portfolioBudget - portfolioUsed);
+      nextPortfolioEntries.push({ timestamp, stepSize });
+
+      const rampEvent: ExperimentRampEvent = {
+        experiment: candidate.experiment,
+        previousRollout: candidate.rolloutTarget,
+        nextRollout,
+        stepSize,
+        stride: candidate.stride,
+        profile,
+        velocityWindowUsedBefore: candidate.velocityWindowUsedBefore,
+        velocityWindowUsedAfter,
+        velocityWindowBudget: candidate.velocityWindowBudget,
+        portfolioWindowUsedBefore,
+        portfolioWindowUsedAfter: portfolioUsed,
+        portfolioWindowBudget: portfolioBudget,
+        opportunityScore: Number(candidate.opportunityScore.toFixed(3)),
+        recommendation: candidate.decision.recommendation,
+        confidence: candidate.decision.confidence,
+        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used.`,
+        timestamp,
+      };
+
+      appendRampEvent(rampEvent);
+
+      event({
+        action: "experiment_ramp_autopilot",
+        category: "experiments",
+        label: `${candidate.experiment}:${candidate.rolloutTarget}->${nextRollout}`,
+        value: nextRollout,
+      });
+
+      actions.push(rampEvent);
+    });
 
   if (actions.length > 0) {
     writeRampMeta(meta);
     writeRampVelocityMeta(velocityMeta);
+    writeRampPortfolioMeta(nextPortfolioEntries);
   }
 
   return actions;

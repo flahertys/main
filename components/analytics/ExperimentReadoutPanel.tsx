@@ -697,6 +697,9 @@ export function ExperimentReadoutPanel() {
                   <div className="text-[10px] text-zinc-500">
                     velocity {entry.velocityWindowUsedAfter}/{entry.velocityWindowBudget} pts (prev {entry.velocityWindowUsedBefore})
                   </div>
+                  <div className="text-[10px] text-zinc-500">
+                    portfolio {entry.portfolioWindowUsedAfter}/{entry.portfolioWindowBudget} pts (prev {entry.portfolioWindowUsedBefore}) · score {entry.opportunityScore.toFixed(2)}
+                  </div>
                   <div className="text-[10px] text-zinc-500">{entry.rationale}</div>
                   <div className="text-[10px] text-zinc-500">{new Date(entry.timestamp).toLocaleTimeString()}</div>
                 </div>
