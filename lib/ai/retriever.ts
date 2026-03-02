@@ -1,4 +1,8 @@
 import {
+  queryHfDatasetIntelligence,
+  type HfDatasetIntelligenceRow,
+} from "@/lib/ai/hf-dataset-intelligence";
+import {
     listPersistedRetrievalEmbeddings,
     persistRetrievalEmbeddingsSnapshot,
     type RetrievalEmbeddingInputRow,
@@ -6,6 +10,7 @@ import {
 import { SITE_ROUTE_CATALOG } from "@/lib/ai/site-map";
 import { sanitizePlainText } from "@/lib/security";
 import { HfInference } from "@huggingface/inference";
+import { Index } from "@upstash/vector";
 import { createHash } from "crypto";
 import { promises as fs } from "fs";
 import path from "path";
@@ -39,6 +44,8 @@ const MAX_DOC_CHUNKS = 850;
 const CORPUS_REBUILD_MS = 5 * 60_000;
 const EMBED_PREFILTER_LIMIT = 28;
 const MAX_PERSISTED_ROWS = 8_000;
+const UPSTASH_RETRIEVAL_BOOST = 1.04;
+const UPSTASH_MAX_TOP_K = 20;
 
 const IGNORED_DIRS = new Set([
   ".git",
@@ -50,6 +57,8 @@ const IGNORED_DIRS = new Set([
   "archive",
   "public",
 ]);
+
+let upstashWarningLogged = false;
 
 function getGlobalCaches() {
   const globalRef = globalThis as typeof globalThis & {
@@ -234,11 +243,132 @@ function getEmbeddingModel() {
 }
 
 function getEmbeddingClient() {
-  const token = String(process.env.HF_API_TOKEN || "").trim();
+  const token = String(
+    process.env.HF_API_TOKEN || process.env.HUGGINGFACE_API_TOKEN || process.env.HF_TOKEN || "",
+  ).trim();
   if (!token) {
     return null;
   }
   return new HfInference(token);
+}
+
+function getUpstashVectorIndex() {
+  const url = String(process.env.UPSTASH_VECTOR_REST_URL || "").trim();
+  const token = String(process.env.UPSTASH_VECTOR_REST_TOKEN || "").trim();
+  if (!url || !token) {
+    return null;
+  }
+
+  return new Index({
+    url,
+    token,
+  });
+}
+
+function resolveUpstashSourceType(value: unknown): "route" | "doc" {
+  if (value === "route") return "route";
+  return "doc";
+}
+
+function parseUpstashScore(raw: unknown) {
+  const value = Number(raw);
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1, value));
+}
+
+async function queryUpstashRetrieval(args: { queryVector: number[]; limit: number }) {
+  const index = getUpstashVectorIndex();
+  if (!index || !Array.isArray(args.queryVector) || args.queryVector.length === 0) {
+    return [] as RetrievalChunk[];
+  }
+
+  const bounded = Math.min(UPSTASH_MAX_TOP_K, Math.max(1, args.limit));
+
+  try {
+    const response = await index.query({
+      vector: args.queryVector,
+      topK: bounded,
+      includeMetadata: true,
+    });
+
+    const rows = Array.isArray(response) ? response : [];
+    return rows
+      .map((row, idx) => {
+        const metadata =
+          row && typeof row === "object" && "metadata" in row
+            ? ((row as { metadata?: unknown }).metadata as Record<string, unknown> | undefined)
+            : undefined;
+        const title = sanitizePlainText(String(metadata?.title || metadata?.name || "Knowledge Base"), 120) || "Knowledge Base";
+        const path = sanitizePlainText(String(metadata?.path || metadata?.sourcePath || "upstash://vector"), 280) || "upstash://vector";
+        const snippet =
+          sanitizePlainText(
+            String(metadata?.text || metadata?.snippet || metadata?.content || metadata?.summary || ""),
+            240,
+          ) || "External retrieval context loaded from vector store.";
+
+        const idFromRow =
+          row && typeof row === "object" && "id" in row
+            ? sanitizePlainText(String((row as { id?: unknown }).id || ""), 140)
+            : "";
+
+        const scoreRaw =
+          row && typeof row === "object" && "score" in row
+            ? (row as { score?: unknown }).score
+            : 0;
+
+        const score = Math.max(0, parseUpstashScore(scoreRaw) * UPSTASH_RETRIEVAL_BOOST);
+
+        return {
+          id: idFromRow || `upstash-${idx}-${hashText(`${title}:${path}:${snippet}`)}`,
+          title,
+          path,
+          score: Number.parseFloat(score.toFixed(3)),
+          snippet,
+          sourceType: resolveUpstashSourceType(metadata?.sourceType),
+        } satisfies RetrievalChunk;
+      })
+      .filter((chunk) => chunk.snippet.length > 0);
+  } catch (error) {
+    if (!upstashWarningLogged) {
+      upstashWarningLogged = true;
+      console.warn("upstash retrieval skipped", error);
+    }
+    return [] as RetrievalChunk[];
+  }
+}
+
+function mergeRetrievalResults(local: RetrievalChunk[], external: RetrievalChunk[], limit: number) {
+  const merged = [...local, ...external];
+  const dedup = new Map<string, RetrievalChunk>();
+
+  for (const chunk of merged) {
+    const key = `${chunk.path.toLowerCase()}::${chunk.snippet.toLowerCase().slice(0, 80)}`;
+    const existing = dedup.get(key);
+    if (!existing || chunk.score > existing.score) {
+      dedup.set(key, chunk);
+    }
+  }
+
+  return Array.from(dedup.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((chunk) => ({
+      ...chunk,
+      score: Number.parseFloat(chunk.score.toFixed(3)),
+    }));
+}
+
+function mapHfRowsToChunks(rows: HfDatasetIntelligenceRow[]) {
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    path: row.path,
+    score: Number.parseFloat(row.score.toFixed(3)),
+    snippet: sanitizePlainText(row.snippet, 240),
+    sourceType: "doc" as const,
+  }));
 }
 
 async function walkMarkdownFiles(rootDir: string, relativeDir = ""): Promise<string[]> {
@@ -500,6 +630,7 @@ export async function retrieveRelevantContext(query: string, limit = 4) {
 
   const bounded = Math.min(12, Math.max(1, Math.floor(limit)));
   const corpus = await getCorpus();
+  const queryVector = await embedTextWithCache(query);
 
   const lexicalRanked = corpus
     .map((doc) => ({ doc, lexicalScore: scoreDocument(doc, tokens) }))
@@ -508,17 +639,45 @@ export async function retrieveRelevantContext(query: string, limit = 4) {
     .slice(0, EMBED_PREFILTER_LIMIT);
 
   if (lexicalRanked.length === 0) {
-    return [] as RetrievalChunk[];
+    const hfDatasetRows = await queryHfDatasetIntelligence(query, Math.min(6, bounded));
+    const hfChunks = mapHfRowsToChunks(hfDatasetRows);
+
+    if (!queryVector) {
+      return hfChunks.slice(0, bounded);
+    }
+
+    const upstashResults = await queryUpstashRetrieval({
+      queryVector,
+      limit: bounded,
+    });
+
+    if (upstashResults.length === 0) {
+      return hfChunks.slice(0, bounded);
+    }
+
+    if (hfChunks.length === 0) {
+      return upstashResults.slice(0, bounded);
+    }
+
+    return mergeRetrievalResults(upstashResults, hfChunks, bounded);
+  }
+
+  if (!queryVector) {
+    const lexicalOnly = lexicalRanked
+      .slice(0, bounded)
+      .map((entry) => toChunk(entry.doc, entry.lexicalScore));
+
+    const hfDatasetRows = await queryHfDatasetIntelligence(query, Math.min(6, bounded));
+    const hfChunks = mapHfRowsToChunks(hfDatasetRows);
+
+    if (hfChunks.length === 0) {
+      return lexicalOnly;
+    }
+
+    return mergeRetrievalResults(lexicalOnly, hfChunks, bounded);
   }
 
   const maxLexical = lexicalRanked[0]?.lexicalScore || 1;
-  const queryVector = await embedTextWithCache(query);
-
-  if (!queryVector) {
-    return lexicalRanked
-      .slice(0, bounded)
-      .map((entry) => toChunk(entry.doc, entry.lexicalScore));
-  }
 
   const reranked = await Promise.all(
     lexicalRanked.map(async (entry) => {
@@ -535,10 +694,27 @@ export async function retrieveRelevantContext(query: string, limit = 4) {
     }),
   );
 
-  return reranked
+  const localResults = reranked
     .sort((left, right) => right.score - left.score)
     .slice(0, bounded)
     .map((entry) => toChunk(entry.doc, entry.score));
+
+  const [upstashResults, hfDatasetRows] = await Promise.all([
+    queryUpstashRetrieval({
+      queryVector,
+      limit: Math.min(UPSTASH_MAX_TOP_K, bounded * 2),
+    }),
+    queryHfDatasetIntelligence(query, Math.min(6, bounded)),
+  ]);
+
+  const hfChunks = mapHfRowsToChunks(hfDatasetRows);
+  const externalResults = [...upstashResults, ...hfChunks];
+
+  if (externalResults.length === 0) {
+    return localResults;
+  }
+
+  return mergeRetrievalResults(localResults, externalResults, bounded);
 }
 
 export async function rebuildAndPersistRetrievalSnapshot() {

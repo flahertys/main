@@ -84,6 +84,22 @@ function assertRequiredEnv(key, hint) {
   }
 }
 
+function assertOneOfRequiredEnv(keys, label, hint) {
+  const selected = keys.find((key) => has(key));
+  if (!selected) {
+    print("FAIL", label, `Missing required variable. ${hint}`);
+    return;
+  }
+
+  const value = get(selected);
+  if (isPlaceholder(value)) {
+    print("FAIL", label, `Variable ${selected} looks like a placeholder value.`);
+    return;
+  }
+
+  print("PASS", `${label} (${selected})`, "present (masked)");
+}
+
 function assertNumberRange(key, opts) {
   const value = parseNumber(key);
   if (value === null) {
@@ -187,11 +203,60 @@ function checkOptionalProviderTokens() {
   }
 }
 
+function checkUpstashVectorConnection() {
+  const hasUrl = has("UPSTASH_VECTOR_REST_URL");
+  const hasToken = has("UPSTASH_VECTOR_REST_TOKEN");
+
+  if (hasUrl && hasToken) {
+    print("PASS", "Upstash_Vector_CONNECTION", "configured (url + token present)");
+    return;
+  }
+
+  if (hasUrl || hasToken) {
+    print(
+      "WARN",
+      "Upstash_Vector_CONNECTION",
+      "Partially configured. Both UPSTASH_VECTOR_REST_URL and UPSTASH_VECTOR_REST_TOKEN are required.",
+    );
+    return;
+  }
+
+  print(
+    "WARN",
+    "Upstash_Vector_CONNECTION",
+    "Not configured. Add UPSTASH_VECTOR_REST_URL + UPSTASH_VECTOR_REST_TOKEN for persistent serverless retrieval.",
+  );
+}
+
+function checkHfDatasetIntelligenceConfig() {
+  const enabledRaw = get("TRADEHAX_HF_DATASET_INTEL_ENABLED");
+  if (!enabledRaw) {
+    print(
+      "WARN",
+      "HF_Dataset_Intel_ENABLED",
+      "Not set. Recommended: true to enable Hugging Face dataset intelligence blending.",
+    );
+  } else {
+    const normalized = enabledRaw.toLowerCase();
+    if (["true", "false", "1", "0", "yes", "no", "on", "off"].includes(normalized)) {
+      print("PASS", "HF_Dataset_Intel_ENABLED", enabledRaw);
+    } else {
+      print("WARN", "HF_Dataset_Intel_ENABLED", "Unrecognized boolean value; expected true/false.");
+    }
+  }
+
+  assertNumberRange("TRADEHAX_HF_DATASET_INTEL_LIMIT", { min: 1, max: 10, required: false });
+}
+
 function main() {
   console.log("\n🧪 TradeHax AI Environment Doctor\n");
 
   console.log("[1/5] Core provider + model");
-  assertRequiredEnv("HF_API_TOKEN", "Set a Hugging Face token with repo + inference permissions.");
+  assertOneOfRequiredEnv(
+    ["HF_API_TOKEN", "HUGGINGFACE_API_TOKEN", "HF_TOKEN"],
+    "HF_TOKEN",
+    "Set a Hugging Face token with repo + inference permissions.",
+  );
   assertRequiredEnv("HF_MODEL_ID", "Set your default primary chat model.");
   checkFallbackModels();
 
@@ -233,6 +298,8 @@ function main() {
 
   console.log("\n[extra] Optional provider token connections");
   checkOptionalProviderTokens();
+  checkUpstashVectorConnection();
+  checkHfDatasetIntelligenceConfig();
 
   const total = state.pass + state.warn + state.fail;
   console.log(`\nSummary: ${state.pass} pass, ${state.warn} warn, ${state.fail} fail (${total} checks).`);
