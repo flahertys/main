@@ -33,7 +33,11 @@ export const metadata = createPageMetadata({
   keywords: ["ai trading", "crypto ai", "stock ai", "smart environment", "image generation", "ai assistants"],
 });
 
-export default function AIHubPage() {
+export default function AIHubPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   const progressSteps = [
     {
       id: "ai-chat-stream",
@@ -61,6 +65,57 @@ export default function AIHubPage() {
       nextAction: "Complete the checklist and lock your next action before leaving.",
     },
   ] as const;
+
+  const viewParam = searchParams?.view;
+  const view = Array.isArray(viewParam) ? viewParam[0] : viewParam;
+  const isAdvancedView = view === "advanced";
+
+  if (!isAdvancedView) {
+    return (
+      <div className="relative min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.14),transparent_60%)]" />
+        <ShamrockHeader />
+
+        <main className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14 pb-28 md:pb-14">
+          <section className="mb-8 text-center">
+            <div className="theme-badge inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold mb-5">
+              <MessageSquare className="w-4 h-4" />
+              ONE-WINDOW AI HUB
+            </div>
+
+            <h1 className="theme-title text-3xl sm:text-4xl md:text-5xl font-bold mb-4">TradeHax AI Chat</h1>
+            <p className="mx-auto max-w-2xl text-sm sm:text-base text-zinc-300">
+              A cleaner experience: one focused chat window with one prompt input.
+              Ask, iterate, and execute—without panel overload.
+            </p>
+
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs">
+              <Link
+                href="/ai-hub?starter=new-user-setup#ai-chat-stream"
+                className="rounded-full border border-emerald-300/40 bg-emerald-500/20 px-3 py-1.5 font-semibold text-emerald-100 hover:bg-emerald-500/30 transition"
+              >
+                New User Setup
+              </Link>
+              <Link
+                href="/ai-hub?view=advanced#ai-chat-stream"
+                className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 font-semibold text-zinc-100 hover:bg-white/15 transition"
+              >
+                Open Advanced Workspace
+              </Link>
+            </div>
+          </section>
+
+          <section id="ai-chat-stream" className="scroll-mt-24">
+            <Suspense fallback={<LoadingPanel label="Loading AI command window" tone="emerald" />}>
+              <ChatStreamPanel minimal />
+            </Suspense>
+          </section>
+        </main>
+
+        <ShamrockFooter />
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">

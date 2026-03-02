@@ -297,7 +297,7 @@ type MissionTask = {
   createdAt: number;
 };
 
-export function ChatStreamPanel() {
+export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {}) {
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [recording, setRecording] = useState(false);
   const [xQuery, setXQuery] = useState("");
@@ -325,7 +325,7 @@ export function ChatStreamPanel() {
   const [videoResult, setVideoResult] = useState<VideoConceptResult | null>(null);
   const [experienceMode, setExperienceMode] = useState<ExperienceMode>("beginner");
   const [skillLevel, setSkillLevel] = useState<SkillLevel>("beginner");
-  const [showSetupPanels, setShowSetupPanels] = useState(true);
+  const [showSetupPanels, setShowSetupPanels] = useState(() => !minimal);
   const [missionTasks, setMissionTasks] = useState<MissionTask[]>([]);
   const [frictionTelemetry, setFrictionTelemetry] = useState<FrictionTelemetry>({
     sends: 0,
@@ -375,9 +375,19 @@ export function ChatStreamPanel() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (minimal) {
+      setShowSetupPanels(false);
+      return;
+    }
     const mobile = window.matchMedia("(max-width: 768px)").matches;
     setShowSetupPanels(!mobile);
-  }, []);
+  }, [minimal]);
+
+  useEffect(() => {
+    if (minimal) {
+      setActiveTab("text");
+    }
+  }, [minimal]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1153,6 +1163,102 @@ export function ChatStreamPanel() {
     ],
     [nextBestAction, skillLevel, frictionSummary.health],
   );
+
+  if (minimal) {
+    return (
+      <div className="theme-panel rounded-xl border border-emerald-500/20 bg-emerald-600/10 p-3 sm:p-5">
+        <div className="mb-3">
+          <p className="text-xs uppercase tracking-widest text-emerald-200/80">Single Window Mode</p>
+          <h3 className="text-lg font-bold text-emerald-100">AI Command Window</h3>
+          <p className="mt-1 text-xs text-emerald-100/75">One input, one conversation, one next action.</p>
+        </div>
+
+        <div className="mb-3 max-h-[45dvh] sm:max-h-[420px] overflow-y-auto rounded-lg border border-white/10 bg-black/30 p-3" role="log" aria-live="polite" aria-relevant="additions text">
+          {messages.length === 0 ? (
+            <div className="space-y-3">
+              <p className="text-xs text-zinc-300/75">Start with a single objective. Keep prompts short and outcome-focused.</p>
+              <div className="flex flex-wrap gap-2">
+                {adaptiveStarterPrompts.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => applyAdaptivePrompt(prompt)}
+                    className="rounded-full border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] text-emerald-100/90 hover:bg-emerald-500/25"
+                  >
+                    {prompt.length > 78 ? `${prompt.slice(0, 78)}…` : prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {messages.map((message) => (
+                <article
+                  key={message.id}
+                  className={`rounded-lg border px-3 py-2 text-sm ${
+                    message.role === "user"
+                      ? "border-cyan-400/25 bg-cyan-500/10 text-cyan-50"
+                      : "border-emerald-400/25 bg-emerald-500/10 text-emerald-50"
+                  }`}
+                >
+                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider opacity-75">{message.role}</p>
+                  <p className="whitespace-pre-wrap">
+                    {message.parts
+                      .filter((part) => part.type === "text")
+                      .map((part) => part.text)
+                      .join("")}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={submitMessage} className="space-y-2">
+          <div className="flex gap-2">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(event) => {
+                if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && input.trim() && !isStreaming) {
+                  event.preventDefault();
+                  void submitCurrentInput();
+                }
+              }}
+              placeholder="Ask anything… (Ctrl/Cmd + Enter to send)"
+              rows={3}
+              className="flex-1 resize-none rounded-lg border border-emerald-500/30 bg-black/35 px-3 py-2 text-sm text-emerald-100 outline-none placeholder:text-emerald-100/45 min-h-[92px]"
+            />
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={toggleVoice}
+                disabled={!voiceSupported}
+                className="inline-flex items-center justify-center gap-1 rounded-lg border border-fuchsia-400/35 bg-fuchsia-500/20 px-3 py-2 text-sm font-semibold text-fuchsia-100 disabled:opacity-50 min-h-[44px]"
+              >
+                {recording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {recording ? "Stop" : "Voice"}
+              </button>
+              <button
+                type="submit"
+                disabled={!input.trim() || isStreaming}
+                className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-400/35 bg-emerald-500/25 px-3 py-2 text-sm font-semibold text-emerald-100 disabled:opacity-50 min-h-[44px]"
+              >
+                {isStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Send
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {(error || localError) && (
+          <div className="mt-2 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+            {error?.message || localError}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="theme-panel rounded-xl border border-emerald-500/20 bg-emerald-600/10 p-3 sm:p-5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
