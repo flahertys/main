@@ -90,6 +90,18 @@ export interface ExperimentPolicyPendingSwitch {
   reason: string;
 }
 
+export interface ExperimentPolicyDiagnostics {
+  cycles: number;
+  switchedCount: number;
+  noChangeCount: number;
+  coverageVetoCount: number;
+  signalBandVetoCount: number;
+  cooldownVetoCount: number;
+  confirmationPendingCount: number;
+  lastReason: string;
+  lastUpdatedAt: string;
+}
+
 const EXPERIMENT_VARIANTS: Record<ExperimentName, readonly ExperimentVariant[]> = {
   home_hero_primary_cta: ["control", "accelerated"],
   landing_hero_primary_cta: ["control", "accelerated"],
@@ -107,6 +119,7 @@ const EXP_POLICY_AUTOSWITCH_KEY = "thx-exp-policy-autoswitch-enabled";
 const EXP_POLICY_SWITCH_LOG_KEY = "thx-exp-policy-switch-log";
 const EXP_POLICY_META_KEY = "thx-exp-policy-meta";
 const EXP_POLICY_REGIME_KEY = "thx-exp-policy-regime";
+const EXP_POLICY_DIAGNOSTICS_KEY = "thx-exp-policy-diagnostics";
 const EXP_VISITOR_ID_KEY = "thx-exp-visitor-id";
 const EXPERIMENT_NAMES = Object.keys(EXPERIMENT_VARIANTS) as ExperimentName[];
 const RAMP_STEPS = [10, 25, 50, 75, 100] as const;
@@ -414,6 +427,94 @@ function readPolicyMeta(): {
   } catch {
     return {};
   }
+}
+
+function createEmptyPolicyDiagnostics(): ExperimentPolicyDiagnostics {
+  return {
+    cycles: 0,
+    switchedCount: 0,
+    noChangeCount: 0,
+    coverageVetoCount: 0,
+    signalBandVetoCount: 0,
+    cooldownVetoCount: 0,
+    confirmationPendingCount: 0,
+    lastReason: "none",
+    lastUpdatedAt: new Date(0).toISOString(),
+  };
+}
+
+function readPolicyDiagnostics(): ExperimentPolicyDiagnostics {
+  if (typeof window === "undefined") {
+    return createEmptyPolicyDiagnostics();
+  }
+
+  try {
+    const raw = window.localStorage.getItem(EXP_POLICY_DIAGNOSTICS_KEY);
+    if (!raw) {
+      return createEmptyPolicyDiagnostics();
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!isObjectRecord(parsed)) {
+      return createEmptyPolicyDiagnostics();
+    }
+
+    return {
+      cycles: typeof parsed.cycles === "number" ? parsed.cycles : 0,
+      switchedCount: typeof parsed.switchedCount === "number" ? parsed.switchedCount : 0,
+      noChangeCount: typeof parsed.noChangeCount === "number" ? parsed.noChangeCount : 0,
+      coverageVetoCount: typeof parsed.coverageVetoCount === "number" ? parsed.coverageVetoCount : 0,
+      signalBandVetoCount: typeof parsed.signalBandVetoCount === "number" ? parsed.signalBandVetoCount : 0,
+      cooldownVetoCount: typeof parsed.cooldownVetoCount === "number" ? parsed.cooldownVetoCount : 0,
+      confirmationPendingCount:
+        typeof parsed.confirmationPendingCount === "number" ? parsed.confirmationPendingCount : 0,
+      lastReason: typeof parsed.lastReason === "string" ? parsed.lastReason : "none",
+      lastUpdatedAt:
+        typeof parsed.lastUpdatedAt === "string" ? parsed.lastUpdatedAt : new Date(0).toISOString(),
+    };
+  } catch {
+    return createEmptyPolicyDiagnostics();
+  }
+}
+
+function writePolicyDiagnostics(diagnostics: ExperimentPolicyDiagnostics) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(EXP_POLICY_DIAGNOSTICS_KEY, JSON.stringify(diagnostics));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function trackPolicyDiagnostics(reasonCode: string, reasonText: string) {
+  const current = readPolicyDiagnostics();
+  const nowIso = new Date().toISOString();
+
+  const next: ExperimentPolicyDiagnostics = {
+    ...current,
+    cycles: current.cycles + 1,
+    lastReason: reasonText,
+    lastUpdatedAt: nowIso,
+  };
+
+  if (reasonCode === "switched") {
+    next.switchedCount += 1;
+  } else if (reasonCode === "no_change") {
+    next.noChangeCount += 1;
+  } else if (reasonCode === "coverage_veto") {
+    next.coverageVetoCount += 1;
+  } else if (reasonCode === "signal_band_veto") {
+    next.signalBandVetoCount += 1;
+  } else if (reasonCode === "cooldown_veto") {
+    next.cooldownVetoCount += 1;
+  } else if (reasonCode === "confirmation_pending") {
+    next.confirmationPendingCount += 1;
+  }
+
+  writePolicyDiagnostics(next);
 }
 
 function writePolicyMeta(meta: {
@@ -1072,6 +1173,22 @@ export function getExperimentPolicyRegimeState(): ExperimentPolicyRegimeState | 
   return readPolicyRegimeState();
 }
 
+export function getExperimentPolicyDiagnostics(): ExperimentPolicyDiagnostics {
+  return readPolicyDiagnostics();
+}
+
+export function clearExperimentPolicyDiagnostics() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(EXP_POLICY_DIAGNOSTICS_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 export function getExperimentPolicyPendingSwitch(): ExperimentPolicyPendingSwitch | null {
   const meta = readPolicyMeta();
   if (!meta.pendingProfile || !meta.pendingCount || !meta.pendingReason) {
@@ -1135,10 +1252,12 @@ export function runExperimentPolicyAutoswitch(
 
   let nextProfile: ExperimentPolicyProfile = "balanced";
   let reason = "Data is mixed; balanced mode remains optimal.";
+  let reasonCode = "no_change";
 
   if (smoothedCoverage < 0.5) {
     nextProfile = "conservative";
     reason = "Coverage is persistently low; prioritize safety until sample depth improves.";
+    reasonCode = "coverage_veto";
   } else if (smoothedAbsDeltaCvrPoints >= 3) {
     nextProfile = "aggressive";
     reason = "Directional edge is sustained; accelerate exploitation.";
@@ -1162,12 +1281,15 @@ export function runExperimentPolicyAutoswitch(
   if (smoothedCoverage < lowCoverageThreshold) {
     nextProfile = "conservative";
     reason = "Coverage trend breached safety band; vetoing aggressive modes.";
+    reasonCode = "coverage_veto";
   } else if (smoothedAbsDeltaCvrPoints >= upperAggressiveThreshold) {
     nextProfile = "aggressive";
     reason = "Signal exceeded aggressive confidence band across sessions.";
+    reasonCode = "no_change";
   } else if (smoothedAbsDeltaCvrPoints <= lowerConservativeThreshold) {
     nextProfile = "conservative";
     reason = "Signal remained below conservative band across sessions.";
+    reasonCode = "no_change";
   } else if (
     smoothedCoverage >= healthyCoverageThreshold &&
     smoothedAbsDeltaCvrPoints >= lowerBalancedThreshold &&
@@ -1175,9 +1297,11 @@ export function runExperimentPolicyAutoswitch(
   ) {
     nextProfile = "balanced";
     reason = "Regime has stabilized inside balanced confidence bands.";
+    reasonCode = "no_change";
   } else {
     nextProfile = currentProfile;
     reason = "Within veto band; waiting for stronger confirmation before switching.";
+    reasonCode = "signal_band_veto";
   }
 
   if (currentProfile === nextProfile) {
@@ -1187,6 +1311,7 @@ export function runExperimentPolicyAutoswitch(
       pendingCount: undefined,
       pendingReason: undefined,
     });
+    trackPolicyDiagnostics(reasonCode, reason);
     return null;
   }
 
@@ -1196,6 +1321,7 @@ export function runExperimentPolicyAutoswitch(
   const now = Date.now();
 
   if (lastSwitchMs && Number.isFinite(lastSwitchMs) && now - lastSwitchMs < cooldownMs) {
+    trackPolicyDiagnostics("cooldown_veto", "Autoswitch blocked by cooldown window.");
     return null;
   }
 
@@ -1213,6 +1339,8 @@ export function runExperimentPolicyAutoswitch(
       pendingCount: confirmationCount,
       pendingReason: reason,
     });
+
+    trackPolicyDiagnostics("confirmation_pending", `Awaiting confirmation for ${nextProfile} profile.`);
 
     return null;
   }
@@ -1245,6 +1373,8 @@ export function runExperimentPolicyAutoswitch(
     label: `${currentProfile}->${nextProfile}`,
     value: Math.round(smoothedAbsDeltaCvrPoints * 100),
   });
+
+  trackPolicyDiagnostics("switched", reason);
 
   return switchEvent;
 }

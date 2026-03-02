@@ -2,6 +2,7 @@
 
 import {
   applyExperimentRecommendation,
+  clearExperimentPolicyDiagnostics,
   clearExperimentPolicySwitchEvents,
   clearExperimentSessionRollup,
   clearAssignedExperimentVariant,
@@ -11,6 +12,7 @@ import {
   EXPERIMENT_POLICY_PROFILES,
   evaluateExperimentDecision,
   getExperimentPolicyAutoswitchEnabled,
+  getExperimentPolicyDiagnostics,
   getExperimentPolicyPendingSwitch,
   getExperimentPolicyProfile,
   getExperimentPolicyRegimeState,
@@ -47,6 +49,7 @@ interface ReadoutState {
   rollup: ReturnType<typeof getExperimentSessionRollup>;
   guardrailEvents: ReturnType<typeof listExperimentGuardrailEvents>;
   policySwitchEvents: ReturnType<typeof listExperimentPolicySwitchEvents>;
+  policyDiagnostics: ReturnType<typeof getExperimentPolicyDiagnostics>;
   policyRegime: ReturnType<typeof getExperimentPolicyRegimeState>;
   policyPending: ReturnType<typeof getExperimentPolicyPendingSwitch>;
   rampEvents: ReturnType<typeof listExperimentRampEvents>;
@@ -99,6 +102,7 @@ export function ExperimentReadoutPanel() {
     rollup: {},
     guardrailEvents: [],
     policySwitchEvents: [],
+    policyDiagnostics: getExperimentPolicyDiagnostics(),
     policyRegime: null,
     policyPending: null,
     rampEvents: [],
@@ -145,6 +149,7 @@ export function ExperimentReadoutPanel() {
         rollup: rollupSnapshot,
         guardrailEvents: listExperimentGuardrailEvents(),
         policySwitchEvents: listExperimentPolicySwitchEvents(),
+        policyDiagnostics: getExperimentPolicyDiagnostics(),
         policyRegime: getExperimentPolicyRegimeState(),
         policyPending: getExperimentPolicyPendingSwitch(),
         rampEvents: listExperimentRampEvents(),
@@ -198,6 +203,7 @@ export function ExperimentReadoutPanel() {
       rollup: rollupSnapshot,
       guardrailEvents: listExperimentGuardrailEvents(),
       policySwitchEvents: listExperimentPolicySwitchEvents(),
+      policyDiagnostics: getExperimentPolicyDiagnostics(),
       policyRegime: getExperimentPolicyRegimeState(),
       policyPending: getExperimentPolicyPendingSwitch(),
       rampEvents: listExperimentRampEvents(),
@@ -255,6 +261,7 @@ export function ExperimentReadoutPanel() {
                 rollup: state.rollup,
                 guardrailEvents: state.guardrailEvents,
                 policySwitchEvents: state.policySwitchEvents,
+                policyDiagnostics: state.policyDiagnostics,
                 policyRegime: state.policyRegime,
                 policyPending: state.policyPending,
                 rampEvents: state.rampEvents,
@@ -347,21 +354,41 @@ export function ExperimentReadoutPanel() {
               {state.policyPending.requiredConfirmations}
             </p>
           ) : null}
+          <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] text-zinc-500">
+            <span>cycles {state.policyDiagnostics.cycles}</span>
+            <span>switches {state.policyDiagnostics.switchedCount}</span>
+            <span>coverage veto {state.policyDiagnostics.coverageVetoCount}</span>
+            <span>band veto {state.policyDiagnostics.signalBandVetoCount}</span>
+            <span>cooldown veto {state.policyDiagnostics.cooldownVetoCount}</span>
+            <span>pending {state.policyDiagnostics.confirmationPendingCount}</span>
+          </div>
         </section>
 
         <section>
           <div className="mb-1 flex items-center justify-between">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Policy Feed</p>
-            <button
-              type="button"
-              onClick={() => {
-                clearExperimentPolicySwitchEvents();
-                refreshReadout();
-              }}
-              className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-400 hover:text-white"
-            >
-              clear
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  clearExperimentPolicyDiagnostics();
+                  refreshReadout();
+                }}
+                className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-400 hover:text-white"
+              >
+                clear stats
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearExperimentPolicySwitchEvents();
+                  refreshReadout();
+                }}
+                className="rounded border border-white/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-400 hover:text-white"
+              >
+                clear feed
+              </button>
+            </div>
           </div>
           <div className="space-y-1">
             {state.policySwitchEvents.length === 0 ? (
