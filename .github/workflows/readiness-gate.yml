@@ -1,0 +1,37 @@
+name: Launch Readiness Gate
+
+"on":
+  schedule:
+    - cron: "33 4 * * 1"
+  workflow_dispatch:
+
+jobs:
+  readiness-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Internal links (strict)
+        run: npm run check:links:strict
+
+      - name: Quality checks
+        run: npm run pipeline:quality
+
+      - name: Vercel deployment preflight
+        run: npm run check:vercel
+
+      - name: Snow service env preflight
+        run: npm run snow:env:check

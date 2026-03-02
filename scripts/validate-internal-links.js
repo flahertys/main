@@ -7,6 +7,7 @@ const projectRoot = path.resolve(__dirname, "..");
 const appDir = path.join(projectRoot, "app");
 const scanRoots = [path.join(projectRoot, "app"), path.join(projectRoot, "components")];
 const exts = new Set([".ts", ".tsx", ".js", ".jsx", ".md", ".mdx"]);
+const isStrict = process.argv.includes("--strict");
 
 function walk(dir, acc = []) {
   if (!fs.existsSync(dir)) return acc;
@@ -190,7 +191,9 @@ function validateInternalLinks() {
         const routeFile = routeToFile.get(pathname);
         if (routeFile) {
           const ids = fileAnchorIndex.get(routeFile) || new Set();
-          if (!ids.has(hash) && !globalAnchors.has(hash)) {
+          const existsInTargetRoute = ids.has(hash);
+          const existsGlobally = globalAnchors.has(hash);
+          if (!existsInTargetRoute && !(existsGlobally && !isStrict)) {
             missingAnchors.push({ filePath, href, pathname, hash });
           }
         }
@@ -216,7 +219,8 @@ function validateInternalLinks() {
     process.exit(1);
   }
 
-  console.log(`✅ Internal link validation passed (${files.length} files scanned, ${routes.length} routes indexed, anchors verified).`);
+  const mode = isStrict ? "strict" : "standard";
+  console.log(`✅ Internal link validation passed (${files.length} files scanned, ${routes.length} routes indexed, anchors verified, mode=${mode}).`);
 }
 
 validateInternalLinks();

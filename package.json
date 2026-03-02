@@ -19,6 +19,7 @@
     "deploy:build": "npm run clean && npm run build",
     "check:vercel": "node ./scripts/check-deploy-config.js --vercel",
     "check:links": "node ./scripts/validate-internal-links.js",
+    "check:links:strict": "node ./scripts/validate-internal-links.js --strict",
     "check:dns": "node ./scripts/check-deploy-config.js --dns",
     "pipeline:quality": "npm run lint && npm run type-check",
     "pipeline:local": "npm run pipeline:quality && npm run check:links && npm run build",

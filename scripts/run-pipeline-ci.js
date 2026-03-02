@@ -39,4 +39,5 @@ if (hasBash()) {
 }
 
 runStep("Quality checks", ["run", "pipeline:quality"]);
+runStep("Internal link checks", ["run", "check:links"]);
 runStep("Build", ["run", "build"]);
