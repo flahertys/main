@@ -57,6 +57,39 @@ export interface ConversionContext {
   experiment?: ExperimentName;
 }
 
+interface ParsedExperimentAttribution {
+  experimentVariant: "control" | "accelerated";
+  route?: string;
+}
+
+function parseExperimentAttribution(variant?: string): ParsedExperimentAttribution | null {
+  if (!variant) {
+    return null;
+  }
+
+  const segments = variant
+    .split(":")
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+
+  if (segments.length === 0) {
+    return null;
+  }
+
+  const expSegment = segments.find((segment) => segment.startsWith("exp_"));
+  if (!expSegment) {
+    return null;
+  }
+
+  const experimentVariant = expSegment.replace("exp_", "") === "accelerated" ? "accelerated" : "control";
+  const routeSegment = segments.find((segment) => segment !== expSegment);
+
+  return {
+    experimentVariant,
+    route: routeSegment,
+  };
+}
+
 export const SERVICE_CONVERSION_EVENTS: Record<ServiceConversionId, ConversionMeta> = {
   open_services: {
     action: "open_services",
@@ -286,6 +319,7 @@ export function trackServiceConversion(id: ServiceConversionId, surface: string,
   const conversion = SERVICE_CONVERSION_EVENTS[id];
   const contextSegments = [context?.placement, context?.variant, context?.audience].filter(Boolean).join(":");
   const label = `${conversion.label}:${surface}:${conversion.stage}${contextSegments ? `:${contextSegments}` : ""}`;
+  const parsedAttribution = parseExperimentAttribution(context?.variant);
 
   event({
     action: conversion.action,
@@ -294,12 +328,19 @@ export function trackServiceConversion(id: ServiceConversionId, surface: string,
     value: conversion.value,
   });
 
-  if (context?.experiment && context?.variant?.startsWith("exp_")) {
-    const experimentVariant = context.variant.replace("exp_", "");
+  if (context?.experiment && parsedAttribution) {
+    const goalActionSegments = [conversion.action];
+    if (context?.placement) {
+      goalActionSegments.push(`placement_${context.placement}`);
+    }
+    if (context?.placement === "route_matrix" && parsedAttribution.route) {
+      goalActionSegments.push(`route_${parsedAttribution.route}`);
+    }
+
     trackExperimentGoal(
       context.experiment,
-      experimentVariant === "accelerated" ? "accelerated" : "control",
-      conversion.action,
+      parsedAttribution.experimentVariant,
+      goalActionSegments.join(":"),
       surface,
       conversion.value,
     );

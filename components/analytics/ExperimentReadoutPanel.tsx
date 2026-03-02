@@ -43,6 +43,37 @@ import { useEffect, useMemo, useState } from "react";
 const VARIANTS = ["control", "accelerated"] as const;
 const MIN_STRONG_SAMPLE = 25;
 
+function summarizeGoalActions(goalsByAction: Record<string, number>): string {
+  const top = Object.entries(goalsByAction)
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 3)
+    .map(([action, count]) => `${action}×${count}`);
+
+  return top.length > 0 ? top.join(" · ") : "none";
+}
+
+function summarizeRouteMix(goalsByAction: Record<string, number>): string {
+  const routeTotals = Object.entries(goalsByAction).reduce<Record<string, number>>((acc, [action, count]) => {
+    const routeSegment = action
+      .split(":")
+      .find((segment) => segment.startsWith("route_"))
+      ?.replace("route_", "");
+
+    if (!routeSegment) {
+      return acc;
+    }
+
+    acc[routeSegment] = (acc[routeSegment] ?? 0) + count;
+    return acc;
+  }, {});
+
+  const ranked = Object.entries(routeTotals)
+    .sort((left, right) => right[1] - left[1])
+    .map(([route, count]) => `${route}×${count}`);
+
+  return ranked.length > 0 ? ranked.join(" · ") : "n/a";
+}
+
 interface ReadoutState {
   enabled: boolean;
   policyAdaptiveEnabled: boolean;
@@ -625,7 +656,10 @@ export function ExperimentReadoutPanel() {
                         const exposureCount = entry?.exposureCount ?? 0;
                         const goalCount = entry?.goalCount ?? 0;
                         const weightedGoalValue = entry?.weightedGoalValue ?? 0;
+                        const goalsByAction = entry?.goalsByAction ?? {};
                         const conversionRate = exposureCount ? ((goalCount / exposureCount) * 100).toFixed(1) : "0.0";
+                        const topGoalActions = summarizeGoalActions(goalsByAction);
+                        const routeMix = summarizeRouteMix(goalsByAction);
 
                         return (
                           <div
@@ -640,6 +674,8 @@ export function ExperimentReadoutPanel() {
                             <span>
                               VPE: {exposureCount ? (weightedGoalValue / exposureCount).toFixed(2) : "0.00"}
                             </span>
+                            <span className="col-span-2 text-[10px] text-zinc-500">Top goals: {topGoalActions}</span>
+                            <span className="col-span-2 text-[10px] text-zinc-500">Route mix: {routeMix}</span>
                           </div>
                         );
                       })}
