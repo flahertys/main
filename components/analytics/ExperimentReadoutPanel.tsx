@@ -7,6 +7,9 @@ import {
 } from "@/lib/experiments";
 import { useEffect, useMemo, useState } from "react";
 
+const VARIANTS = ["control", "accelerated"] as const;
+const MIN_STRONG_SAMPLE = 25;
+
 interface ReadoutState {
   enabled: boolean;
   assigned: ReturnType<typeof listAssignedExperimentVariants>;
@@ -72,7 +75,10 @@ export function ExperimentReadoutPanel() {
     return () => window.clearInterval(intervalId);
   }, []);
 
-  const rows = useMemo(() => Object.entries(state.rollup), [state.rollup]);
+  const experimentNames = useMemo(() => {
+    const names = new Set<string>([...Object.keys(state.assigned), ...Object.keys(state.rollup)]);
+    return Array.from(names);
+  }, [state.assigned, state.rollup]);
 
   if (!state.enabled) {
     return null;
@@ -82,16 +88,41 @@ export function ExperimentReadoutPanel() {
     <aside className="fixed bottom-3 right-3 z-[70] w-[340px] max-h-[70vh] overflow-hidden rounded-xl border border-cyan-400/30 bg-black/95 shadow-2xl shadow-cyan-500/20">
       <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Experiment Readout</p>
-        <button
-          type="button"
-          onClick={() => {
-            clearExperimentSessionRollup();
-            setState((previous) => ({ ...previous, rollup: {} }));
-          }}
-          className="rounded border border-white/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-300 hover:text-white"
-        >
-          Reset
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={async () => {
+              const payload = {
+                generatedAt: new Date().toISOString(),
+                assigned: state.assigned,
+                rollup: state.rollup,
+              };
+
+              const json = JSON.stringify(payload, null, 2);
+
+              if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+                try {
+                  await navigator.clipboard.writeText(json);
+                } catch {
+                  // Ignore clipboard failures.
+                }
+              }
+            }}
+            className="rounded border border-white/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-300 hover:text-white"
+          >
+            Copy
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              clearExperimentSessionRollup();
+              setState((previous) => ({ ...previous, rollup: {} }));
+            }}
+            className="rounded border border-white/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-300 hover:text-white"
+          >
+            Reset
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3 overflow-y-auto p-3">
@@ -114,29 +145,68 @@ export function ExperimentReadoutPanel() {
         <section>
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Session Results</p>
           <div className="space-y-2">
-            {rows.length === 0 ? (
+            {experimentNames.length === 0 ? (
               <p className="text-xs text-zinc-500">Waiting for exposure and goal events…</p>
             ) : (
-              rows.map(([name, entry]) => {
-                if (!entry) {
-                  return null;
-                }
+              experimentNames.map((name) => {
+                const byVariant = state.rollup[name as keyof typeof state.rollup] ?? {};
+                const control = byVariant.control;
+                const accelerated = byVariant.accelerated;
 
-                const conversionRate = entry.exposureCount
-                  ? ((entry.goalCount / entry.exposureCount) * 100).toFixed(1)
-                  : "0.0";
+                const controlRate = control?.exposureCount
+                  ? (control.goalCount / control.exposureCount) * 100
+                  : 0;
+                const acceleratedRate = accelerated?.exposureCount
+                  ? (accelerated.goalCount / accelerated.exposureCount) * 100
+                  : 0;
+
+                const rateDelta = acceleratedRate - controlRate;
+                const bothStrongSample =
+                  (control?.exposureCount ?? 0) >= MIN_STRONG_SAMPLE &&
+                  (accelerated?.exposureCount ?? 0) >= MIN_STRONG_SAMPLE;
+
+                const leaderLabel =
+                  rateDelta > 0.1
+                    ? "Accelerated leads"
+                    : rateDelta < -0.1
+                      ? "Control leads"
+                      : "Too close to call";
+
+                const confidenceLabel = bothStrongSample
+                  ? "sample: strong"
+                  : "sample: warming up";
 
                 return (
                   <article key={name} className="rounded border border-white/10 bg-white/[0.02] p-2">
                     <div className="mb-1 flex items-center justify-between">
                       <p className="text-[11px] text-zinc-200">{name}</p>
-                      <p className="text-[11px] font-semibold text-cyan-300">{entry.variant}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300">{leaderLabel}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-1 text-[11px] text-zinc-300">
-                      <span>Exposures: {entry.exposureCount}</span>
-                      <span>Goals: {entry.goalCount}</span>
-                      <span>CVR: {conversionRate}%</span>
-                      <span>Value: {entry.weightedGoalValue}</span>
+                    <div className="mb-2 text-[10px] uppercase tracking-wider text-zinc-500">{confidenceLabel}</div>
+                    <div className="space-y-1.5">
+                      {VARIANTS.map((variant) => {
+                        const entry = byVariant[variant];
+                        const exposureCount = entry?.exposureCount ?? 0;
+                        const goalCount = entry?.goalCount ?? 0;
+                        const weightedGoalValue = entry?.weightedGoalValue ?? 0;
+                        const conversionRate = exposureCount ? ((goalCount / exposureCount) * 100).toFixed(1) : "0.0";
+
+                        return (
+                          <div
+                            key={`${name}:${variant}`}
+                            className="grid grid-cols-2 gap-1 rounded border border-white/10 bg-black/30 px-2 py-1 text-[11px] text-zinc-300"
+                          >
+                            <span className="font-semibold text-zinc-100">{variant}</span>
+                            <span>Exposures: {exposureCount}</span>
+                            <span>Goals: {goalCount}</span>
+                            <span>CVR: {conversionRate}%</span>
+                            <span>Value: {weightedGoalValue}</span>
+                            <span>
+                              VPE: {exposureCount ? (weightedGoalValue / exposureCount).toFixed(2) : "0.00"}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </article>
                 );
