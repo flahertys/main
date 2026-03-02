@@ -29,6 +29,16 @@ export interface ExperimentDecisionSummary {
   rationale: string;
 }
 
+export interface ExperimentGuardrailEvent {
+  experiment: ExperimentName;
+  previousRollout: number;
+  nextRollout: number;
+  recommendation: ExperimentDecisionSummary["recommendation"];
+  confidence: ExperimentDecisionSummary["confidence"];
+  rationale: string;
+  timestamp: string;
+}
+
 const EXPERIMENT_VARIANTS: Record<ExperimentName, readonly ExperimentVariant[]> = {
   home_hero_primary_cta: ["control", "accelerated"],
   landing_hero_primary_cta: ["control", "accelerated"],
@@ -38,6 +48,7 @@ const EXP_STORAGE_PREFIX = "thx-exp:";
 const EXP_ROLLOUT_PREFIX = "thx-exp-rollout:";
 const EXP_EXPOSURE_PREFIX = "thx-exp-exposed:";
 const EXP_ROLLUP_STORAGE_KEY = "thx-exp-rollup";
+const EXP_GUARDRAIL_LOG_KEY = "thx-exp-guardrail-log";
 const EXP_VISITOR_ID_KEY = "thx-exp-visitor-id";
 const EXPERIMENT_NAMES = Object.keys(EXPERIMENT_VARIANTS) as ExperimentName[];
 
@@ -98,6 +109,56 @@ function clampPercentage(value: number): number {
   }
 
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function readGuardrailLog(): ExperimentGuardrailEvent[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(EXP_GUARDRAIL_LOG_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter((item): item is ExperimentGuardrailEvent => {
+      return (
+        isObjectRecord(item) &&
+        typeof item.experiment === "string" &&
+        typeof item.previousRollout === "number" &&
+        typeof item.nextRollout === "number" &&
+        typeof item.recommendation === "string" &&
+        typeof item.confidence === "string" &&
+        typeof item.rationale === "string" &&
+        typeof item.timestamp === "string"
+      );
+    });
+  } catch {
+    return [];
+  }
+}
+
+function writeGuardrailLog(events: ExperimentGuardrailEvent[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(EXP_GUARDRAIL_LOG_KEY, JSON.stringify(events.slice(0, 20)));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function appendGuardrailEvent(eventEntry: ExperimentGuardrailEvent) {
+  const existing = readGuardrailLog();
+  writeGuardrailLog([eventEntry, ...existing]);
 }
 
 function computeConversionRate(entry?: ExperimentRollupEntry): number {
@@ -512,6 +573,22 @@ export function clearExperimentRolloutTarget(name: ExperimentName) {
   });
 }
 
+export function listExperimentGuardrailEvents(): ExperimentGuardrailEvent[] {
+  return readGuardrailLog();
+}
+
+export function clearExperimentGuardrailEvents() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(EXP_GUARDRAIL_LOG_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 export function applyExperimentRecommendation(
   decision: ExperimentDecisionSummary,
   options?: { clearCurrentAssignment?: boolean },
@@ -530,6 +607,58 @@ export function applyExperimentRecommendation(
       clearAssignedExperimentVariant(decision.experiment);
     }
   }
+}
+
+export function runExperimentGuardrailAutoRollback(
+  snapshot: ExperimentRollupSnapshot,
+  options?: { clearCurrentAssignment?: boolean },
+): ExperimentGuardrailEvent[] {
+  const rollbacks: ExperimentGuardrailEvent[] = [];
+
+  EXPERIMENT_NAMES.forEach((experiment) => {
+    const rolloutTarget = getExperimentRolloutTarget(experiment);
+    if (rolloutTarget === null || rolloutTarget <= 50) {
+      return;
+    }
+
+    const decision = evaluateExperimentDecision(experiment, snapshot);
+    const shouldRollback =
+      decision.recommendation === "keep_control" &&
+      (decision.confidence === "medium" || decision.confidence === "high");
+
+    if (!shouldRollback) {
+      return;
+    }
+
+    const nextRollout = 50;
+    setExperimentRolloutTarget(experiment, nextRollout);
+    if (options?.clearCurrentAssignment) {
+      clearAssignedExperimentVariant(experiment);
+    }
+
+    const rollbackEvent: ExperimentGuardrailEvent = {
+      experiment,
+      previousRollout: rolloutTarget,
+      nextRollout,
+      recommendation: decision.recommendation,
+      confidence: decision.confidence,
+      rationale: decision.rationale,
+      timestamp: new Date().toISOString(),
+    };
+
+    appendGuardrailEvent(rollbackEvent);
+
+    event({
+      action: "experiment_guardrail_rollback",
+      category: "experiments",
+      label: `${experiment}:${rolloutTarget}->${nextRollout}`,
+      value: nextRollout,
+    });
+
+    rollbacks.push(rollbackEvent);
+  });
+
+  return rollbacks;
 }
 
 export function evaluateExperimentDecision(
