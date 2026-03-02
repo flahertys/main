@@ -5,6 +5,19 @@ export type ExperimentName =
   | "landing_hero_primary_cta";
 
 export type ExperimentVariant = "control" | "accelerated";
+export type ExperimentPolicyProfile = "aggressive" | "balanced" | "conservative";
+
+export interface ExperimentPolicySettings {
+  minRequiredPerVariant: number;
+  minDeltaPoints: number;
+  minZForAction: number;
+  highConfidenceZ: number;
+  rampCooldownMs: number;
+  recommendationRolloutTarget: {
+    promoteAccelerated: number;
+    keepControl: number;
+  };
+}
 
 export interface ExperimentRollupEntry {
   exposureCount: number;
@@ -64,9 +77,60 @@ const EXP_RAMP_META_KEY = "thx-exp-ramp-meta";
 const EXP_VISITOR_ID_KEY = "thx-exp-visitor-id";
 const EXPERIMENT_NAMES = Object.keys(EXPERIMENT_VARIANTS) as ExperimentName[];
 const RAMP_STEPS = [10, 25, 50, 75, 100] as const;
+export const EXPERIMENT_POLICY_PROFILES: readonly ExperimentPolicyProfile[] = [
+  "aggressive",
+  "balanced",
+  "conservative",
+] as const;
+
+const POLICY_SETTINGS: Record<ExperimentPolicyProfile, ExperimentPolicySettings> = {
+  aggressive: {
+    minRequiredPerVariant: 20,
+    minDeltaPoints: 1.0,
+    minZForAction: 1.28,
+    highConfidenceZ: 2.33,
+    rampCooldownMs: 60 * 1000,
+    recommendationRolloutTarget: {
+      promoteAccelerated: 100,
+      keepControl: 10,
+    },
+  },
+  balanced: {
+    minRequiredPerVariant: 30,
+    minDeltaPoints: 1.5,
+    minZForAction: 1.64,
+    highConfidenceZ: 2.58,
+    rampCooldownMs: 2 * 60 * 1000,
+    recommendationRolloutTarget: {
+      promoteAccelerated: 75,
+      keepControl: 25,
+    },
+  },
+  conservative: {
+    minRequiredPerVariant: 45,
+    minDeltaPoints: 2.0,
+    minZForAction: 1.96,
+    highConfidenceZ: 2.8,
+    rampCooldownMs: 5 * 60 * 1000,
+    recommendationRolloutTarget: {
+      promoteAccelerated: 60,
+      keepControl: 40,
+    },
+  },
+};
 
 function isVariantForExperiment(name: ExperimentName, value: string): value is ExperimentVariant {
   return (EXPERIMENT_VARIANTS[name] as readonly string[]).includes(value);
+}
+
+export function isExperimentPolicyProfile(value: string): value is ExperimentPolicyProfile {
+  return (EXPERIMENT_POLICY_PROFILES as readonly string[]).includes(value);
+}
+
+export function getExperimentPolicySettings(
+  profile: ExperimentPolicyProfile = "balanced",
+): ExperimentPolicySettings {
+  return POLICY_SETTINGS[profile];
 }
 
 function pickRandomVariant(name: ExperimentName): ExperimentVariant {
@@ -730,10 +794,15 @@ export function clearExperimentRampEvents() {
 
 export function applyExperimentRecommendation(
   decision: ExperimentDecisionSummary,
-  options?: { clearCurrentAssignment?: boolean },
+  options?: { clearCurrentAssignment?: boolean; profile?: ExperimentPolicyProfile },
 ) {
+  const policy = getExperimentPolicySettings(options?.profile ?? "balanced");
+
   if (decision.recommendation === "promote_accelerated") {
-    setExperimentRolloutTarget(decision.experiment, 75);
+    setExperimentRolloutTarget(
+      decision.experiment,
+      policy.recommendationRolloutTarget.promoteAccelerated,
+    );
     if (options?.clearCurrentAssignment) {
       clearAssignedExperimentVariant(decision.experiment);
     }
@@ -741,7 +810,7 @@ export function applyExperimentRecommendation(
   }
 
   if (decision.recommendation === "keep_control") {
-    setExperimentRolloutTarget(decision.experiment, 25);
+    setExperimentRolloutTarget(decision.experiment, policy.recommendationRolloutTarget.keepControl);
     if (options?.clearCurrentAssignment) {
       clearAssignedExperimentVariant(decision.experiment);
     }
@@ -750,9 +819,10 @@ export function applyExperimentRecommendation(
 
 export function runExperimentGuardrailAutoRollback(
   snapshot: ExperimentRollupSnapshot,
-  options?: { clearCurrentAssignment?: boolean },
+  options?: { clearCurrentAssignment?: boolean; profile?: ExperimentPolicyProfile },
 ): ExperimentGuardrailEvent[] {
   const rollbacks: ExperimentGuardrailEvent[] = [];
+  const profile = options?.profile ?? "balanced";
 
   EXPERIMENT_NAMES.forEach((experiment) => {
     const rolloutTarget = getExperimentRolloutTarget(experiment);
@@ -760,7 +830,7 @@ export function runExperimentGuardrailAutoRollback(
       return;
     }
 
-    const decision = evaluateExperimentDecision(experiment, snapshot);
+    const decision = evaluateExperimentDecision(experiment, snapshot, { profile });
     const shouldRollback =
       decision.recommendation === "keep_control" &&
       (decision.confidence === "medium" || decision.confidence === "high");
@@ -802,9 +872,11 @@ export function runExperimentGuardrailAutoRollback(
 
 export function runExperimentRampAutopilot(
   snapshot: ExperimentRollupSnapshot,
-  options?: { clearCurrentAssignment?: boolean; cooldownMs?: number },
+  options?: { clearCurrentAssignment?: boolean; cooldownMs?: number; profile?: ExperimentPolicyProfile },
 ): ExperimentRampEvent[] {
-  const cooldownMs = options?.cooldownMs ?? 2 * 60 * 1000;
+  const profile = options?.profile ?? "balanced";
+  const policy = getExperimentPolicySettings(profile);
+  const cooldownMs = options?.cooldownMs ?? policy.rampCooldownMs;
   const now = Date.now();
   const meta = readRampMeta();
   const actions: ExperimentRampEvent[] = [];
@@ -815,7 +887,7 @@ export function runExperimentRampAutopilot(
       return;
     }
 
-    const decision = evaluateExperimentDecision(experiment, snapshot);
+    const decision = evaluateExperimentDecision(experiment, snapshot, { profile });
     const lastActionIso = meta[experiment];
     const lastActionMs = lastActionIso ? Date.parse(lastActionIso) : 0;
 
@@ -887,7 +959,10 @@ export function runExperimentRampAutopilot(
 export function evaluateExperimentDecision(
   experiment: ExperimentName,
   snapshot: ExperimentRollupSnapshot,
+  options?: { profile?: ExperimentPolicyProfile },
 ): ExperimentDecisionSummary {
+  const profile = options?.profile ?? "balanced";
+  const policy = getExperimentPolicySettings(profile);
   const byVariant = snapshot[experiment] ?? {};
   const control = byVariant.control;
   const accelerated = byVariant.accelerated;
@@ -901,9 +976,9 @@ export function evaluateExperimentDecision(
   const controlGoals = control?.goalCount ?? 0;
   const acceleratedGoals = accelerated?.goalCount ?? 0;
 
-  const minRequiredPerVariant = 30;
-  const minDeltaPoints = 1.5;
-  const minZForAction = 1.64;
+  const minRequiredPerVariant = policy.minRequiredPerVariant;
+  const minDeltaPoints = policy.minDeltaPoints;
+  const minZForAction = policy.minZForAction;
 
   if (controlExposure < minRequiredPerVariant || acceleratedExposure < minRequiredPerVariant) {
     return {
@@ -931,7 +1006,7 @@ export function evaluateExperimentDecision(
     return {
       experiment,
       recommendation: "promote_accelerated",
-      confidence: zScore >= 2.58 ? "high" : "medium",
+      confidence: zScore >= policy.highConfidenceZ ? "high" : "medium",
       deltaCvrPoints,
       controlCvr,
       acceleratedCvr,
@@ -946,7 +1021,7 @@ export function evaluateExperimentDecision(
     return {
       experiment,
       recommendation: "keep_control",
-      confidence: zScore <= -2.58 ? "high" : "medium",
+      confidence: zScore <= -policy.highConfidenceZ ? "high" : "medium",
       deltaCvrPoints,
       controlCvr,
       acceleratedCvr,

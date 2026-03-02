@@ -7,8 +7,11 @@ import {
   clearExperimentGuardrailEvents,
   clearExperimentRampEvents,
   clearExperimentRolloutTarget,
+  EXPERIMENT_POLICY_PROFILES,
   evaluateExperimentDecision,
+  getExperimentPolicySettings,
   getExperimentSessionRollup,
+  isExperimentPolicyProfile,
   listExperimentGuardrailEvents,
   listExperimentRampEvents,
   listExperimentRolloutTargets,
@@ -18,6 +21,7 @@ import {
   runExperimentRampAutopilot,
   setExperimentRolloutTarget,
   setAssignedExperimentVariant,
+  type ExperimentPolicyProfile,
 } from "@/lib/experiments";
 import { useEffect, useMemo, useState } from "react";
 
@@ -28,6 +32,7 @@ interface ReadoutState {
   enabled: boolean;
   guardrailsEnabled: boolean;
   rampAutopilotEnabled: boolean;
+  policyProfile: ExperimentPolicyProfile;
   assigned: ReturnType<typeof listAssignedExperimentVariants>;
   rollout: ReturnType<typeof listExperimentRolloutTargets>;
   rollup: ReturnType<typeof getExperimentSessionRollup>;
@@ -38,6 +43,7 @@ interface ReadoutState {
 const DEBUG_STORAGE_KEY = "thx-exp-debug";
 const GUARDRAILS_STORAGE_KEY = "thx-exp-guardrails-enabled";
 const RAMP_AUTOPILOT_STORAGE_KEY = "thx-exp-ramp-autopilot-enabled";
+const POLICY_PROFILE_STORAGE_KEY = "thx-exp-policy-profile";
 
 function getDebugEnabledFromUrl(): boolean {
   if (typeof window === "undefined") {
@@ -75,6 +81,7 @@ export function ExperimentReadoutPanel() {
     enabled: false,
     guardrailsEnabled: false,
     rampAutopilotEnabled: false,
+    policyProfile: "balanced",
     assigned: {},
     rollout: {},
     rollup: {},
@@ -93,21 +100,26 @@ export function ExperimentReadoutPanel() {
         typeof window !== "undefined" && window.localStorage.getItem(GUARDRAILS_STORAGE_KEY) === "1";
       const rampAutopilotEnabled =
         typeof window !== "undefined" && window.localStorage.getItem(RAMP_AUTOPILOT_STORAGE_KEY) === "1";
+      const rawProfile =
+        typeof window !== "undefined" ? window.localStorage.getItem(POLICY_PROFILE_STORAGE_KEY) : null;
+      const policyProfile: ExperimentPolicyProfile =
+        rawProfile && isExperimentPolicyProfile(rawProfile) ? rawProfile : "balanced";
 
       const rollupSnapshot = getExperimentSessionRollup();
 
       if (guardrailsEnabled) {
-        runExperimentGuardrailAutoRollback(rollupSnapshot, { clearCurrentAssignment: true });
+        runExperimentGuardrailAutoRollback(rollupSnapshot, { clearCurrentAssignment: true, profile: policyProfile });
       }
 
       if (rampAutopilotEnabled) {
-        runExperimentRampAutopilot(rollupSnapshot, { clearCurrentAssignment: true });
+        runExperimentRampAutopilot(rollupSnapshot, { clearCurrentAssignment: true, profile: policyProfile });
       }
 
       setState({
         enabled,
         guardrailsEnabled,
         rampAutopilotEnabled,
+        policyProfile,
         assigned: listAssignedExperimentVariants(),
         rollout: listExperimentRolloutTargets(),
         rollup: rollupSnapshot,
@@ -135,20 +147,25 @@ export function ExperimentReadoutPanel() {
       typeof window !== "undefined" && window.localStorage.getItem(GUARDRAILS_STORAGE_KEY) === "1";
     const rampAutopilotEnabled =
       typeof window !== "undefined" && window.localStorage.getItem(RAMP_AUTOPILOT_STORAGE_KEY) === "1";
+    const rawProfile =
+      typeof window !== "undefined" ? window.localStorage.getItem(POLICY_PROFILE_STORAGE_KEY) : null;
+    const policyProfile: ExperimentPolicyProfile =
+      rawProfile && isExperimentPolicyProfile(rawProfile) ? rawProfile : "balanced";
     const rollupSnapshot = getExperimentSessionRollup();
 
     if (guardrailsEnabled) {
-      runExperimentGuardrailAutoRollback(rollupSnapshot, { clearCurrentAssignment: true });
+      runExperimentGuardrailAutoRollback(rollupSnapshot, { clearCurrentAssignment: true, profile: policyProfile });
     }
 
     if (rampAutopilotEnabled) {
-      runExperimentRampAutopilot(rollupSnapshot, { clearCurrentAssignment: true });
+      runExperimentRampAutopilot(rollupSnapshot, { clearCurrentAssignment: true, profile: policyProfile });
     }
 
     setState((previous) => ({
       ...previous,
       guardrailsEnabled,
       rampAutopilotEnabled,
+      policyProfile,
       assigned: listAssignedExperimentVariants(),
       rollout: listExperimentRolloutTargets(),
       rollup: rollupSnapshot,
@@ -203,6 +220,7 @@ export function ExperimentReadoutPanel() {
                 generatedAt: new Date().toISOString(),
                 assigned: state.assigned,
                 rollout: state.rollout,
+                profile: state.policyProfile,
                 rollup: state.rollup,
                 guardrailEvents: state.guardrailEvents,
                 rampEvents: state.rampEvents,
@@ -236,6 +254,39 @@ export function ExperimentReadoutPanel() {
       </div>
 
       <div className="space-y-3 overflow-y-auto p-3">
+        <section>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Policy Profile</p>
+          <div className="flex flex-wrap gap-1">
+            {EXPERIMENT_POLICY_PROFILES.map((profile) => {
+              const selected = state.policyProfile === profile;
+              return (
+                <button
+                  key={profile}
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem(POLICY_PROFILE_STORAGE_KEY, profile);
+                    }
+                    setState((previous) => ({ ...previous, policyProfile: profile }));
+                    refreshReadout();
+                  }}
+                  className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${
+                    selected
+                      ? "border-cyan-400/40 text-cyan-200"
+                      : "border-white/15 text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  {profile}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1 text-[10px] text-zinc-500">
+            min sample {getExperimentPolicySettings(state.policyProfile).minRequiredPerVariant} ·
+            Δ threshold {getExperimentPolicySettings(state.policyProfile).minDeltaPoints.toFixed(1)} pts
+          </p>
+        </section>
+
         <section>
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Assignments</p>
           <div className="space-y-1">
@@ -335,7 +386,7 @@ export function ExperimentReadoutPanel() {
                 const control = byVariant.control;
                 const accelerated = byVariant.accelerated;
                 const typedName = name as Parameters<typeof evaluateExperimentDecision>[0];
-                const decision = evaluateExperimentDecision(typedName, state.rollup);
+                const decision = evaluateExperimentDecision(typedName, state.rollup, { profile: state.policyProfile });
 
                 const controlRate = control?.exposureCount
                   ? (control.goalCount / control.exposureCount) * 100
@@ -381,7 +432,10 @@ export function ExperimentReadoutPanel() {
                       <button
                         type="button"
                         onClick={() => {
-                          applyExperimentRecommendation(decision, { clearCurrentAssignment: true });
+                          applyExperimentRecommendation(decision, {
+                            clearCurrentAssignment: true,
+                            profile: state.policyProfile,
+                          });
                           refreshReadout();
                         }}
                         className="rounded border border-cyan-400/30 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-cyan-200 hover:text-white"
