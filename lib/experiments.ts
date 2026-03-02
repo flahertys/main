@@ -17,14 +17,14 @@ const EXP_ROLLUP_STORAGE_KEY = "thx-exp-rollup";
 const EXPERIMENT_NAMES = Object.keys(EXPERIMENT_VARIANTS) as ExperimentName[];
 
 interface ExperimentRollupEntry {
-  variant: ExperimentVariant;
   exposureCount: number;
   goalCount: number;
   weightedGoalValue: number;
   goalsByAction: Record<string, number>;
 }
 
-type ExperimentRollupSnapshot = Partial<Record<ExperimentName, ExperimentRollupEntry>>;
+type ExperimentRollupByVariant = Partial<Record<ExperimentVariant, ExperimentRollupEntry>>;
+type ExperimentRollupSnapshot = Partial<Record<ExperimentName, ExperimentRollupByVariant>>;
 
 function isVariantForExperiment(name: ExperimentName, value: string): value is ExperimentVariant {
   return (EXPERIMENT_VARIANTS[name] as readonly string[]).includes(value);
@@ -40,6 +40,82 @@ function experimentStorageKey(name: ExperimentName): string {
   return `${EXP_STORAGE_PREFIX}${name}`;
 }
 
+function createEmptyRollupEntry(): ExperimentRollupEntry {
+  return {
+    exposureCount: 0,
+    goalCount: 0,
+    weightedGoalValue: 0,
+    goalsByAction: {},
+  };
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeRollupEntry(value: unknown): ExperimentRollupEntry {
+  if (!isObjectRecord(value)) {
+    return createEmptyRollupEntry();
+  }
+
+  const exposureCount = typeof value.exposureCount === "number" ? value.exposureCount : 0;
+  const goalCount = typeof value.goalCount === "number" ? value.goalCount : 0;
+  const weightedGoalValue = typeof value.weightedGoalValue === "number" ? value.weightedGoalValue : 0;
+
+  const goalsByAction = isObjectRecord(value.goalsByAction)
+    ? Object.entries(value.goalsByAction).reduce<Record<string, number>>((acc, [action, count]) => {
+        if (typeof count === "number") {
+          acc[action] = count;
+        }
+        return acc;
+      }, {})
+    : {};
+
+  return {
+    exposureCount,
+    goalCount,
+    weightedGoalValue,
+    goalsByAction,
+  };
+}
+
+function normalizeRollupSnapshot(rawValue: unknown): ExperimentRollupSnapshot {
+  if (!isObjectRecord(rawValue)) {
+    return {};
+  }
+
+  return EXPERIMENT_NAMES.reduce<ExperimentRollupSnapshot>((snapshot, name) => {
+    const rawExperimentValue = rawValue[name];
+    if (!rawExperimentValue || !isObjectRecord(rawExperimentValue)) {
+      return snapshot;
+    }
+
+    if (typeof rawExperimentValue.variant === "string") {
+      const legacyVariant = rawExperimentValue.variant;
+      if (isVariantForExperiment(name, legacyVariant)) {
+        snapshot[name] = {
+          [legacyVariant]: normalizeRollupEntry(rawExperimentValue),
+        };
+      }
+      return snapshot;
+    }
+
+    const byVariant: ExperimentRollupByVariant = {};
+    EXPERIMENT_VARIANTS[name].forEach((variant) => {
+      const rawVariantValue = rawExperimentValue[variant];
+      if (rawVariantValue) {
+        byVariant[variant] = normalizeRollupEntry(rawVariantValue);
+      }
+    });
+
+    if (Object.keys(byVariant).length > 0) {
+      snapshot[name] = byVariant;
+    }
+
+    return snapshot;
+  }, {});
+}
+
 function readRollupSnapshot(): ExperimentRollupSnapshot {
   if (typeof window === "undefined") {
     return {};
@@ -48,7 +124,7 @@ function readRollupSnapshot(): ExperimentRollupSnapshot {
   try {
     const raw = window.sessionStorage.getItem(EXP_ROLLUP_STORAGE_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as ExperimentRollupSnapshot;
+    return normalizeRollupSnapshot(JSON.parse(raw));
   } catch {
     return {};
   }
@@ -72,28 +148,14 @@ function upsertRollup(
   update: (entry: ExperimentRollupEntry) => ExperimentRollupEntry,
 ) {
   const snapshot = readRollupSnapshot();
-  const current =
-    snapshot[name] ??
-    ({
-      variant,
-      exposureCount: 0,
-      goalCount: 0,
-      weightedGoalValue: 0,
-      goalsByAction: {},
-    } satisfies ExperimentRollupEntry);
+  const experimentSnapshot = snapshot[name] ?? {};
+  const currentVariantEntry = experimentSnapshot[variant] ?? createEmptyRollupEntry();
 
-  const normalizedCurrent =
-    current.variant === variant
-      ? current
-      : {
-          variant,
-          exposureCount: 0,
-          goalCount: 0,
-          weightedGoalValue: 0,
-          goalsByAction: {},
-        };
+  snapshot[name] = {
+    ...experimentSnapshot,
+    [variant]: update(currentVariantEntry),
+  };
 
-  snapshot[name] = update(normalizedCurrent);
   writeRollupSnapshot(snapshot);
 }
 
