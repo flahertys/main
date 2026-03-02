@@ -21,11 +21,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate internal links
-        run: npm run check:links
+      - name: Validate internal links (changed scope)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: npm run check:links:changed
+
+      - name: Validate internal links (full scan)
+        if: ${{ github.event_name != 'pull_request' }}
+        run: npm run check:links:report
 
       - name: Run CI pipeline contract
+        env:
+          SKIP_PRECHECK_LINKS: "true"
         run: npm run pipeline:ci
+
+      - name: Upload link audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: link-audit-report
+          path: .artifacts/link-audit-report.json
 
       - name: Upload build log
         if: failure()

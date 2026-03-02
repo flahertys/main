@@ -60,3 +60,6 @@ tradehax-fresh/
 .codex/
 .opencode/
 opencode.json
+
+# local audit artifacts
+.artifacts/

@@ -25,7 +25,7 @@ jobs:
         run: npm ci
 
       - name: Internal links (strict)
-        run: npm run check:links:strict
+        run: npm run check:links:strict:report
 
       - name: Quality checks
         run: npm run pipeline:quality
@@ -35,3 +35,10 @@ jobs:
 
       - name: Snow service env preflight
         run: npm run snow:env:check
+
+      - name: Upload readiness artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: readiness-gate-artifacts
+          path: .artifacts/link-audit-report.json

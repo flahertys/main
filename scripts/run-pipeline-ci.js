@@ -28,6 +28,12 @@ function hasBash() {
   return result.status === 0;
 }
 
+function shouldUseChangedLinkCheck() {
+  const eventName = String(process.env.GITHUB_EVENT_NAME || "").toLowerCase();
+  const ci = String(process.env.CI || "").toLowerCase() === "true";
+  return ci && eventName === "pull_request";
+}
+
 runStep("Clean workspace", ["run", "clean"]);
 
 if (hasBash()) {
@@ -39,5 +45,15 @@ if (hasBash()) {
 }
 
 runStep("Quality checks", ["run", "pipeline:quality"]);
-runStep("Internal link checks", ["run", "check:links"]);
+
+if (String(process.env.SKIP_PRECHECK_LINKS || "").toLowerCase() !== "true") {
+  if (shouldUseChangedLinkCheck()) {
+    runStep("Internal link checks (changed scope)", ["run", "check:links:changed"]);
+  } else {
+    runStep("Internal link checks", ["run", "check:links"]);
+  }
+} else {
+  process.stdout.write("\n==> Skipping internal link checks: precheck step already executed.\n");
+}
+
 runStep("Build", ["run", "build"]);
