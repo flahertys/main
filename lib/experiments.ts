@@ -6,6 +6,29 @@ export type ExperimentName =
 
 export type ExperimentVariant = "control" | "accelerated";
 
+export interface ExperimentRollupEntry {
+  exposureCount: number;
+  goalCount: number;
+  weightedGoalValue: number;
+  goalsByAction: Record<string, number>;
+}
+
+export type ExperimentRollupByVariant = Partial<Record<ExperimentVariant, ExperimentRollupEntry>>;
+export type ExperimentRollupSnapshot = Partial<Record<ExperimentName, ExperimentRollupByVariant>>;
+
+export interface ExperimentDecisionSummary {
+  experiment: ExperimentName;
+  recommendation: "promote_accelerated" | "keep_control" | "monitor" | "insufficient_data";
+  confidence: "low" | "medium" | "high";
+  deltaCvrPoints: number;
+  controlCvr: number;
+  acceleratedCvr: number;
+  zScore: number;
+  minRequiredPerVariant: number;
+  minDeltaPoints: number;
+  rationale: string;
+}
+
 const EXPERIMENT_VARIANTS: Record<ExperimentName, readonly ExperimentVariant[]> = {
   home_hero_primary_cta: ["control", "accelerated"],
   landing_hero_primary_cta: ["control", "accelerated"],
@@ -15,16 +38,6 @@ const EXP_STORAGE_PREFIX = "thx-exp:";
 const EXP_EXPOSURE_PREFIX = "thx-exp-exposed:";
 const EXP_ROLLUP_STORAGE_KEY = "thx-exp-rollup";
 const EXPERIMENT_NAMES = Object.keys(EXPERIMENT_VARIANTS) as ExperimentName[];
-
-interface ExperimentRollupEntry {
-  exposureCount: number;
-  goalCount: number;
-  weightedGoalValue: number;
-  goalsByAction: Record<string, number>;
-}
-
-type ExperimentRollupByVariant = Partial<Record<ExperimentVariant, ExperimentRollupEntry>>;
-type ExperimentRollupSnapshot = Partial<Record<ExperimentName, ExperimentRollupByVariant>>;
 
 function isVariantForExperiment(name: ExperimentName, value: string): value is ExperimentVariant {
   return (EXPERIMENT_VARIANTS[name] as readonly string[]).includes(value);
@@ -38,6 +51,14 @@ function pickRandomVariant(name: ExperimentName): ExperimentVariant {
 
 function experimentStorageKey(name: ExperimentName): string {
   return `${EXP_STORAGE_PREFIX}${name}`;
+}
+
+function computeConversionRate(entry?: ExperimentRollupEntry): number {
+  if (!entry || entry.exposureCount <= 0) {
+    return 0;
+  }
+
+  return entry.goalCount / entry.exposureCount;
 }
 
 function createEmptyRollupEntry(): ExperimentRollupEntry {
@@ -309,4 +330,133 @@ export function listAssignedExperimentVariants(): Partial<Record<ExperimentName,
     },
     {},
   );
+}
+
+export function listExperimentNames(): ExperimentName[] {
+  return [...EXPERIMENT_NAMES];
+}
+
+export function setAssignedExperimentVariant(name: ExperimentName, variant: ExperimentVariant) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(experimentStorageKey(name), variant);
+  } catch {
+    // Ignore storage failures.
+  }
+
+  event({
+    action: "experiment_lock_variant",
+    category: "experiments",
+    label: `${name}:${variant}`,
+    value: 1,
+  });
+}
+
+export function clearAssignedExperimentVariant(name: ExperimentName) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(experimentStorageKey(name));
+  } catch {
+    // Ignore storage failures.
+  }
+
+  event({
+    action: "experiment_unlock_variant",
+    category: "experiments",
+    label: name,
+    value: 1,
+  });
+}
+
+export function evaluateExperimentDecision(
+  experiment: ExperimentName,
+  snapshot: ExperimentRollupSnapshot,
+): ExperimentDecisionSummary {
+  const byVariant = snapshot[experiment] ?? {};
+  const control = byVariant.control;
+  const accelerated = byVariant.accelerated;
+
+  const controlCvr = computeConversionRate(control);
+  const acceleratedCvr = computeConversionRate(accelerated);
+  const deltaCvrPoints = (acceleratedCvr - controlCvr) * 100;
+
+  const controlExposure = control?.exposureCount ?? 0;
+  const acceleratedExposure = accelerated?.exposureCount ?? 0;
+  const controlGoals = control?.goalCount ?? 0;
+  const acceleratedGoals = accelerated?.goalCount ?? 0;
+
+  const minRequiredPerVariant = 30;
+  const minDeltaPoints = 1.5;
+  const minZForAction = 1.64;
+
+  if (controlExposure < minRequiredPerVariant || acceleratedExposure < minRequiredPerVariant) {
+    return {
+      experiment,
+      recommendation: "insufficient_data",
+      confidence: "low",
+      deltaCvrPoints,
+      controlCvr,
+      acceleratedCvr,
+      zScore: 0,
+      minRequiredPerVariant,
+      minDeltaPoints,
+      rationale: "Need at least 30 exposures per variant before actioning.",
+    };
+  }
+
+  const pooledRate =
+    (controlGoals + acceleratedGoals) / Math.max(controlExposure + acceleratedExposure, 1);
+  const standardError = Math.sqrt(
+    pooledRate * (1 - pooledRate) * (1 / Math.max(controlExposure, 1) + 1 / Math.max(acceleratedExposure, 1)),
+  );
+  const zScore = standardError > 0 ? (acceleratedCvr - controlCvr) / standardError : 0;
+
+  if (deltaCvrPoints >= minDeltaPoints && zScore >= minZForAction) {
+    return {
+      experiment,
+      recommendation: "promote_accelerated",
+      confidence: zScore >= 2.58 ? "high" : "medium",
+      deltaCvrPoints,
+      controlCvr,
+      acceleratedCvr,
+      zScore,
+      minRequiredPerVariant,
+      minDeltaPoints,
+      rationale: "Accelerated is outperforming control with directional significance.",
+    };
+  }
+
+  if (deltaCvrPoints <= -minDeltaPoints && zScore <= -minZForAction) {
+    return {
+      experiment,
+      recommendation: "keep_control",
+      confidence: zScore <= -2.58 ? "high" : "medium",
+      deltaCvrPoints,
+      controlCvr,
+      acceleratedCvr,
+      zScore,
+      minRequiredPerVariant,
+      minDeltaPoints,
+      rationale: "Control is outperforming accelerated with directional significance.",
+    };
+  }
+
+  return {
+    experiment,
+    recommendation: "monitor",
+    confidence: "low",
+    deltaCvrPoints,
+    controlCvr,
+    acceleratedCvr,
+    zScore,
+    minRequiredPerVariant,
+    minDeltaPoints,
+    rationale: "No decisive edge yet; continue data collection.",
+  };
 }
