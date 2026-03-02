@@ -1,4 +1,5 @@
 import { TrackedCtaLink } from "@/components/monetization/TrackedCtaLink";
+import { HomeEngagementTracker } from "@/components/analytics/HomeEngagementTracker";
 import { DeferredRender } from '@/components/ui/DeferredRender';
 import { GlitchText } from '@/components/ui/GlitchText';
 import { scheduleLinks } from "@/lib/booking";
@@ -96,13 +97,15 @@ const intentLanes = [
 
 export default function Home() {
   const quickPathLinks = [
-    { label: "Book Service", href: scheduleLinks.root },
-    { label: "Open AI Hub", href: "/ai-hub" },
-    { label: "View Pricing", href: "/pricing" },
+    { label: "Book Service", href: scheduleLinks.root, conversionId: "open_schedule", variant: "book_service" },
+    { label: "Open AI Hub", href: "/ai-hub", conversionId: "open_ai_chat", variant: "ai_hub" },
+    { label: "View Pricing", href: "/pricing", conversionId: "open_pricing", variant: "pricing" },
   ] as const;
 
   return (
     <main className="min-h-screen bg-black">
+      <HomeEngagementTracker />
+
       {/* Hero + Guided Experience */}
       <section className="relative overflow-hidden px-4 sm:px-6 pt-16 sm:pt-20 pb-12 sm:pb-14">
         <div className="absolute top-[-8rem] right-[-6rem] w-[460px] h-[460px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
@@ -124,16 +127,20 @@ export default function Home() {
                 href={scheduleLinks.root}
                 conversionId="open_schedule"
                 surface="home:hero"
+                conversionContext={{ placement: "hero_primary", variant: "book_now", audience: "all" }}
                 className="theme-cta theme-cta--loud px-6 py-3"
               >
                 Book Now
               </TrackedCtaLink>
-              <Link
+              <TrackedCtaLink
                 href="/ai-hub"
+                conversionId="open_ai_chat"
+                surface="home:hero"
+                conversionContext={{ placement: "hero_secondary", variant: "ai_assistant", audience: "all" }}
                 className="theme-cta theme-cta--secondary px-6 py-3"
               >
                 Start AI Assistant
-              </Link>
+              </TrackedCtaLink>
             </div>
           </div>
 
@@ -180,7 +187,7 @@ export default function Home() {
 
       <LiveActivity />
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-6">
+      <section id="home-quick-paths" className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-6">
         <div className="theme-panel p-6 md:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <h2 className="text-sm font-bold uppercase tracking-widest text-cyan-300">Quick Paths</h2>
@@ -188,20 +195,23 @@ export default function Home() {
           </div>
           <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible">
             {quickPathLinks.map((route) => (
-              <Link
+              <TrackedCtaLink
                 key={route.label}
                 href={route.href}
+                conversionId={route.conversionId}
+                surface="home:quick_paths"
+                conversionContext={{ placement: "quick_paths", variant: route.variant, audience: "all" }}
                 className="theme-cta theme-cta--secondary shrink-0 px-4 py-2 text-xs uppercase tracking-wider"
               >
                 {route.label}
-              </Link>
+              </TrackedCtaLink>
             ))}
           </div>
         </div>
       </section>
 
       {/* Intent Lanes Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+      <section id="home-intent-lanes" className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
         <div className="theme-panel p-6 sm:p-8 md:p-12">
           <span className="theme-kicker mb-4">Start Here</span>
           <h2 className="theme-title text-3xl sm:text-4xl md:text-5xl mb-6">Choose Your Primary Path</h2>
@@ -286,12 +296,15 @@ export default function Home() {
           >
             Book Now
           </TrackedCtaLink>
-          <Link
+          <TrackedCtaLink
             href="/ai-hub"
+            conversionId="open_ai_chat"
+            surface="home:mobile_sticky"
+            conversionContext={{ placement: "sticky", variant: "ai_assistant", audience: "all" }}
             className="mobile-action-btn"
           >
             Start AI
-          </Link>
+          </TrackedCtaLink>
         </div>
       </div>
     </main>

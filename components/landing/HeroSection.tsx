@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TrackedCtaLink } from "@/components/monetization/TrackedCtaLink";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -71,7 +72,13 @@ export function HeroSection() {
         <div
           className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center mb-12 sm:mb-16 opacity-0 animate-slide-up-fade [animation-delay:0.55s]"
         >
-          <Link href="/dashboard" className="w-full sm:w-auto">
+          <TrackedCtaLink
+            href="/dashboard"
+            conversionId="open_dashboard"
+            surface="landing_hero:primary_cta"
+            conversionContext={{ placement: "hero_primary", variant: "dashboard", audience: "all" }}
+            className="w-full sm:w-auto"
+          >
             <Button
               size="lg"
               className="relative w-full sm:w-auto bg-[#00F0FF] hover:bg-[#00d4e0] text-black font-semibold px-8 sm:px-10 py-6 sm:py-7 text-base sm:text-lg rounded-xl transition-all duration-300 shadow-[0_0_30px_rgba(0,240,255,0.3)] hover:shadow-[0_0_50px_rgba(0,240,255,0.5)] group"
@@ -79,9 +86,15 @@ export function HeroSection() {
               Start Trading
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
-          </Link>
+          </TrackedCtaLink>
 
-          <Link href="/game" className="w-full sm:w-auto">
+          <TrackedCtaLink
+            href="/game"
+            conversionId="open_game"
+            surface="landing_hero:secondary_cta"
+            conversionContext={{ placement: "hero_secondary", variant: "hyperborea", audience: "all" }}
+            className="w-full sm:w-auto"
+          >
             <Button
               size="lg"
               variant="outline"
@@ -90,7 +103,7 @@ export function HeroSection() {
               <Play className="mr-2 w-5 h-5 group-hover:scale-110 transition-transform" />
               Play Hyperborea
             </Button>
-          </Link>
+          </TrackedCtaLink>
         </div>
 
         {/* Trust metrics — minimal Tesla-style */}
@@ -117,32 +130,41 @@ export function HeroSection() {
         <div className="mt-8 sm:mt-10 opacity-0 animate-slide-up-fade [animation-delay:0.8s]">
           <p className="text-[11px] sm:text-xs uppercase tracking-[0.26em] text-cyan-200/75 mb-3">Choose your route</p>
           <div className="grid gap-3 sm:grid-cols-3 text-left">
-            <Link
+            <TrackedCtaLink
               href="/ai-hub?route=scout&experience=beginner&skill=beginner#ai-chat-stream"
-              className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3 sm:p-4 transition-colors hover:bg-emerald-500/15"
+              conversionId="open_ai_chat"
+              surface="landing_hero:route_matrix"
+              conversionContext={{ placement: "route_matrix", variant: "scout", audience: "new" }}
+              className="interactive-surface rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3 sm:p-4 transition-colors hover:bg-emerald-500/15"
             >
               <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-200/80">Beginner · Scout Mode</p>
               <p className="mt-1 text-sm font-semibold text-emerald-50">Start in 60 seconds</p>
               <p className="mt-1 text-xs text-emerald-100/75">Guided prompts, plain-English recommendations, and one clear next action.</p>
-            </Link>
+            </TrackedCtaLink>
 
-            <Link
+            <TrackedCtaLink
               href="/ai-hub?route=forge&experience=beginner&skill=intermediate#ai-chat-stream"
-              className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 p-3 sm:p-4 transition-colors hover:bg-cyan-500/15"
+              conversionId="open_ai_chat"
+              surface="landing_hero:route_matrix"
+              conversionContext={{ placement: "route_matrix", variant: "forge", audience: "returning" }}
+              className="interactive-surface rounded-xl border border-cyan-400/25 bg-cyan-500/10 p-3 sm:p-4 transition-colors hover:bg-cyan-500/15"
             >
               <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-200/80">Intermediate · Forge Mode</p>
               <p className="mt-1 text-sm font-semibold text-cyan-50">Run your daily edge loop</p>
               <p className="mt-1 text-xs text-cyan-100/75">Scenario checks, risk boundaries, and faster execution decisions.</p>
-            </Link>
+            </TrackedCtaLink>
 
-            <Link
+            <TrackedCtaLink
               href="/ai-hub?route=odin&experience=odin&skill=advanced#ai-chat-stream"
-              className="rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/10 p-3 sm:p-4 transition-colors hover:bg-fuchsia-500/15"
+              conversionId="open_ai_advanced"
+              surface="landing_hero:route_matrix"
+              conversionContext={{ placement: "route_matrix", variant: "odin", audience: "returning" }}
+              className="interactive-surface rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/10 p-3 sm:p-4 transition-colors hover:bg-fuchsia-500/15"
             >
               <p className="text-[11px] uppercase tracking-[0.18em] text-fuchsia-200/80">Advanced · ODIN Mode</p>
               <p className="mt-1 text-sm font-semibold text-fuchsia-50">Operator-grade control</p>
               <p className="mt-1 text-xs text-fuchsia-100/75">Command workflows, deeper context orchestration, and execution discipline.</p>
-            </Link>
+            </TrackedCtaLink>
           </div>
           <p className="mt-3 text-[11px] text-zinc-400">
             No steep learning curve: each route adapts language depth, pacing, and decision support to your skill level.
