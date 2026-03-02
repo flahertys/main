@@ -12,6 +12,7 @@ import {
   clearExperimentRolloutTarget,
   EXPERIMENT_POLICY_PROFILES,
   evaluateExperimentDecision,
+  getExperimentAllocatorDriftState,
   getExperimentPolicyAdaptiveEnabled,
   getExperimentPolicyAdaptiveState,
   getExperimentPolicyAutoswitchEnabled,
@@ -56,6 +57,7 @@ interface ReadoutState {
   policySwitchEvents: ReturnType<typeof listExperimentPolicySwitchEvents>;
   policyDiagnostics: ReturnType<typeof getExperimentPolicyDiagnostics>;
   policyAdaptive: ReturnType<typeof getExperimentPolicyAdaptiveState>;
+  allocatorDrift: ReturnType<typeof getExperimentAllocatorDriftState>;
   policyRegime: ReturnType<typeof getExperimentPolicyRegimeState>;
   policyPending: ReturnType<typeof getExperimentPolicyPendingSwitch>;
   rampEvents: ReturnType<typeof listExperimentRampEvents>;
@@ -111,6 +113,7 @@ export function ExperimentReadoutPanel() {
     policySwitchEvents: [],
     policyDiagnostics: getExperimentPolicyDiagnostics(),
     policyAdaptive: getExperimentPolicyAdaptiveState(),
+    allocatorDrift: getExperimentAllocatorDriftState(),
     policyRegime: null,
     policyPending: null,
     rampEvents: [],
@@ -161,6 +164,7 @@ export function ExperimentReadoutPanel() {
         policySwitchEvents: listExperimentPolicySwitchEvents(),
         policyDiagnostics: getExperimentPolicyDiagnostics(),
         policyAdaptive: getExperimentPolicyAdaptiveState(),
+        allocatorDrift: getExperimentAllocatorDriftState(),
         policyRegime: getExperimentPolicyRegimeState(),
         policyPending: getExperimentPolicyPendingSwitch(),
         rampEvents: listExperimentRampEvents(),
@@ -218,6 +222,7 @@ export function ExperimentReadoutPanel() {
       policySwitchEvents: listExperimentPolicySwitchEvents(),
       policyDiagnostics: getExperimentPolicyDiagnostics(),
       policyAdaptive: getExperimentPolicyAdaptiveState(),
+      allocatorDrift: getExperimentAllocatorDriftState(),
       policyRegime: getExperimentPolicyRegimeState(),
       policyPending: getExperimentPolicyPendingSwitch(),
       rampEvents: listExperimentRampEvents(),
@@ -278,6 +283,7 @@ export function ExperimentReadoutPanel() {
                 policySwitchEvents: state.policySwitchEvents,
                 policyDiagnostics: state.policyDiagnostics,
                 policyAdaptive: state.policyAdaptive,
+                allocatorDrift: state.allocatorDrift,
                 policyRegime: state.policyRegime,
                 policyPending: state.policyPending,
                 rampEvents: state.rampEvents,
@@ -399,6 +405,9 @@ export function ExperimentReadoutPanel() {
               adaptive sens {state.policyAdaptive.sensitivity.toFixed(2)} · stab {state.policyAdaptive.stability.toFixed(2)}
             </p>
           ) : null}
+          <p className="mt-1 text-[10px] text-zinc-500">
+            drift {state.allocatorDrift.driftScore.toFixed(2)} · shock {state.allocatorDrift.shockMode ? "on" : "off"}
+          </p>
         </section>
 
         <section>
@@ -705,6 +714,9 @@ export function ExperimentReadoutPanel() {
                   </div>
                   <div className="text-[10px] text-zinc-500">
                     bayes lift {entry.bayesianLiftPoints.toFixed(2)} pts · uncertainty {entry.bayesianUncertaintyPoints.toFixed(2)} · regret {entry.regretPressurePoints.toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-zinc-500">
+                    drift {entry.driftScore.toFixed(2)} · shock {entry.shockMode ? "on" : "off"}
                   </div>
                   <div className="text-[10px] text-zinc-500">{entry.rationale}</div>
                   <div className="text-[10px] text-zinc-500">{new Date(entry.timestamp).toLocaleTimeString()}</div>
