@@ -7,7 +7,7 @@ import { LessonStudioEmbed } from '@/components/music/LessonStudioEmbed';
 import { ShamrockFooter } from '@/components/shamrock/ShamrockFooter';
 import { ShamrockHeader } from '@/components/shamrock/ShamrockHeader';
 import { createPageMetadata } from "@/lib/seo";
-import { ArrowLeft, ArrowRight, BrainCircuit, Calendar, CheckCircle2, CreditCard, Gem, Shield, Sparkles, Swords, TrendingUp, Trophy, UserRound, Users, Video } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BrainCircuit, Calendar, CheckCircle2, ChevronDown, CreditCard, Gem, Shield, Sparkles, Swords, Trophy, UserRound, Video } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -54,8 +54,8 @@ export default function LessonsPage() {
               Guitar Lessons Are The Heart
             </h1>
             <p className="mt-5 text-lg text-cyan-100/85 max-w-4xl mx-auto leading-relaxed">
-              This page is your flagship conversion engine: elite guitar coaching powered by AI smart lessons, milestone rewards,
-              and low-overhead live instruction that feeds growth across your entire TradeHax service ecosystem.
+              Elite guitar coaching with AI-assisted lesson plans, milestone rewards, and clear weekly progression.
+              The goal is simple: make measurable progress every session.
             </p>
             <p className="mt-3 text-sm uppercase tracking-[0.2em] text-emerald-200/85">
               Single-Teacher Promise: every lesson is taught directly by the TradeHax founder.
@@ -63,8 +63,10 @@ export default function LessonsPage() {
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
               <a href="#studio" className="rounded-lg border border-emerald-300/50 bg-emerald-500/20 px-4 py-2 text-xs font-bold uppercase tracking-wide text-emerald-100 hover:bg-emerald-500/30">Enter Live Studio</a>
               <a href="#reward-forge" className="rounded-lg border border-cyan-300/50 bg-cyan-500/20 px-4 py-2 text-xs font-bold uppercase tracking-wide text-cyan-100 hover:bg-cyan-500/30">View Milestone Rewards</a>
-              <Link href="/ai-hub?source=lessons-heart" className="rounded-lg border border-fuchsia-300/50 bg-fuchsia-500/20 px-4 py-2 text-xs font-bold uppercase tracking-wide text-fuchsia-100 hover:bg-fuchsia-500/30">Open AI Coach</Link>
             </div>
+            <p className="mt-4 text-xs text-cyan-100/70">
+              Public roadmap updates are shared as features launch — no hidden positioning, just transparent progress.
+            </p>
           </div>
         </div>
 
@@ -243,194 +245,99 @@ export default function LessonsPage() {
             One teacher · one standard · consistent coaching lineage
           </p>
 
-          <div className="overflow-x-auto rounded-xl border border-emerald-400/20">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-emerald-500/15 text-emerald-100 uppercase text-xs tracking-[0.16em]">
-                <tr>
-                  <th className="px-4 py-3">Milestone</th>
-                  <th className="px-4 py-3">Student Achievement</th>
-                  <th className="px-4 py-3">Reward Layer</th>
-                  <th className="px-4 py-3">Business Impact</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-emerald-500/15 text-cyan-100/85">
-                <tr>
-                  <td className="px-4 py-3 font-semibold">Rune I</td>
-                  <td className="px-4 py-3">First 4 lessons completed</td>
-                  <td className="px-4 py-3">Digital badge + referral code unlock</td>
-                  <td className="px-4 py-3">Increases retention + referrals</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-semibold">Rune II</td>
-                  <td className="px-4 py-3">First song performed cleanly</td>
-                  <td className="px-4 py-3">NFT-ready metadata certificate (future mint)</td>
-                  <td className="px-4 py-3">Shareable social proof</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-semibold">Rune III</td>
-                  <td className="px-4 py-3">12-lesson streak + skill review</td>
-                  <td className="px-4 py-3">Priority booking + bonus AI plan</td>
-                  <td className="px-4 py-3">Higher LTV and upsell readiness</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-semibold">Legend Tier</td>
-                  <td className="px-4 py-3">Original songwriting showcase</td>
-                  <td className="px-4 py-3">Featured artist slot + token utility candidate</td>
-                  <td className="px-4 py-3">Brand authority + community growth</td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="grid gap-3 md:grid-cols-2">
+            <MilestoneCard
+              milestone="Rune I"
+              achievement="First 4 lessons completed"
+              reward="Digital badge + referral unlock"
+              impact="Improves retention and referrals"
+            />
+            <MilestoneCard
+              milestone="Rune II"
+              achievement="First song performed cleanly"
+              reward="NFT-ready certificate metadata"
+              impact="Creates shareable social proof"
+            />
+            <MilestoneCard
+              milestone="Rune III"
+              achievement="12-lesson streak + review"
+              reward="Priority booking + bonus AI plan"
+              impact="Improves LTV and upsell readiness"
+            />
+            <MilestoneCard
+              milestone="Legend Tier"
+              achievement="Original songwriting showcase"
+              reward="Featured artist slot + utility candidate"
+              impact="Builds authority and community growth"
+            />
           </div>
         </section>
 
-        {/* Platform Expansion (Merged from legacy music landing) */}
-        <section className="mb-16">
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/35 bg-cyan-500/10 px-4 py-1 text-[11px] uppercase tracking-[0.22em] text-cyan-200 mb-4">
-              <Sparkles className="w-3.5 h-3.5" />
-              Music Platform Expansion
+        <section className="mb-16 space-y-3">
+          <CollapsiblePanel
+            title="Artist Showcase + Scholarship Roadmap"
+            subtitle="Platform expansion and scholarship utility updates"
+            defaultOpen
+          >
+            <div className="grid md:grid-cols-2 gap-6">
+              <Link
+                href="/music/showcase"
+                className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-6 hover:border-purple-400/60 transition-all group"
+              >
+                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">
+                  Artist Showcase
+                </h3>
+                <p className="text-gray-300 mb-4 text-sm">
+                  Discover featured artists, platform mechanics, and growth tools designed to expand audience reach.
+                </p>
+                <span className="inline-flex items-center gap-2 text-purple-300 font-semibold text-sm">
+                  Explore Showcase
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              </Link>
+
+              <Link
+                href="/music/scholarships"
+                className="bg-gradient-to-br from-emerald-900/30 to-cyan-900/30 border border-emerald-500/30 rounded-xl p-6 hover:border-emerald-400/60 transition-all group"
+              >
+                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-emerald-300 transition-colors">
+                  Scholarship + Token Roadmap
+                </h3>
+                <p className="text-gray-300 mb-4 text-sm">
+                  Follow the education funding roadmap, governance model, and launch phases for scholarship utility.
+                </p>
+                <span className="inline-flex items-center gap-2 text-emerald-300 font-semibold text-sm">
+                  View Roadmap
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              </Link>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Artist Showcase + Scholarship Roadmap</h2>
-            <p className="text-cyan-100/75 max-w-3xl mx-auto">
-              The original music page capabilities are now consolidated here so guitar students can access artist growth and scholarship planning without switching contexts.
-            </p>
-          </div>
+          </CollapsiblePanel>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <Link
-              href="/music/showcase"
-              className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-8 hover:border-purple-400/60 transition-all group"
-            >
-              <Users className="w-10 h-10 text-purple-300 mb-4" />
-              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">
-                Artist Showcase
-              </h3>
-              <p className="text-gray-300 mb-4">
-                Discover featured artists, platform mechanics, and growth tools designed to expand audience reach.
-              </p>
-              <span className="inline-flex items-center gap-2 text-purple-300 font-semibold">
-                Explore Showcase
-                <ArrowRight className="w-4 h-4" />
-              </span>
-            </Link>
-
-            <Link
-              href="/music/scholarships"
-              className="bg-gradient-to-br from-emerald-900/30 to-cyan-900/30 border border-emerald-500/30 rounded-xl p-8 hover:border-emerald-400/60 transition-all group"
-            >
-              <Trophy className="w-10 h-10 text-emerald-300 mb-4" />
-              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-emerald-300 transition-colors">
-                Scholarship + Token Roadmap
-              </h3>
-              <p className="text-gray-300 mb-4">
-                Follow the education funding roadmap, governance model, and launch phases for scholarship utility.
-              </p>
-              <span className="inline-flex items-center gap-2 text-emerald-300 font-semibold">
-                View Roadmap
-                <ArrowRight className="w-4 h-4" />
-              </span>
-            </Link>
-          </div>
-        </section>
-
-        {/* Student Success Stories (Merged from legacy music landing) */}
-        <section className="mb-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Student Success Stories</h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-[#FF6B35]">★</span>
-                ))}
-              </div>
-              <p className="text-gray-300 mb-4">
-                &quot;The lessons are structured and practical. I moved from basic chord confusion to full songs with clean timing in weeks.&quot;
-              </p>
-              <p className="text-white font-semibold">- Emily T.</p>
+          <CollapsiblePanel
+            title="Student Success Stories"
+            subtitle="Social proof from active students"
+          >
+            <div className="grid md:grid-cols-3 gap-6">
+              <QuoteCard quote="The lessons are structured and practical. I moved from basic chord confusion to full songs with clean timing in weeks." author="Emily T." />
+              <QuoteCard quote="The AI practice plan between sessions keeps me accountable. My weekly progress is measurable and consistent." author="Carlos M." />
+              <QuoteCard quote="Direct founder instruction is the difference. Every lesson has clear goals and actionable feedback." author="Rachel K." />
             </div>
+          </CollapsiblePanel>
 
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-[#FF6B35]">★</span>
-                ))}
-              </div>
-              <p className="text-gray-300 mb-4">
-                &quot;The AI practice plan between sessions keeps me accountable. My weekly progress is measurable and consistent.&quot;
-              </p>
-              <p className="text-white font-semibold">- Carlos M.</p>
+          <CollapsiblePanel
+            title="Every Lesson Includes"
+            subtitle="Core deliverables in each session"
+          >
+            <div className="grid md:grid-cols-2 gap-4">
+              <Feature text="60-minute personalized instruction" />
+              <Feature text="Custom practice plan and exercises" />
+              <Feature text="Video recording of your lesson" />
+              <Feature text="Sheet music and tabs provided" />
+              <Feature text="Progress tracking and feedback" />
+              <Feature text="Email support between lessons" />
             </div>
-
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-[#FF6B35]">★</span>
-                ))}
-              </div>
-              <p className="text-gray-300 mb-4">
-                &quot;Direct founder instruction is the difference. Every lesson has clear goals and actionable feedback.&quot;
-              </p>
-              <p className="text-white font-semibold">- Rachel K.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Cross-Promotion (Merged from legacy music landing) */}
-        <section className="mb-16">
-          <div className="grid md:grid-cols-2 gap-6">
-            <Link
-              href="/services"
-              className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-xl p-8 hover:border-blue-500/50 transition-all group"
-            >
-              <TrendingUp className="w-12 h-12 text-blue-400 mb-4" />
-              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
-                Need a Music Website?
-              </h3>
-              <p className="text-gray-300 mb-4">
-                Build your artist presence with professional web and platform support.
-              </p>
-              <span className="inline-flex items-center gap-2 text-blue-400 font-semibold">
-                Explore Services
-                <ArrowRight className="w-5 h-5" />
-              </span>
-            </Link>
-
-            <Link
-              href="/dashboard"
-              className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 border border-green-500/30 rounded-xl p-8 hover:border-green-500/50 transition-all group"
-            >
-              <TrendingUp className="w-12 h-12 text-green-400 mb-4" />
-              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-green-400 transition-colors">
-                Explore Analytics Tools
-              </h3>
-              <p className="text-gray-300 mb-4">
-                Review dashboard intelligence and performance metrics for your growth strategy.
-              </p>
-              <span className="inline-flex items-center gap-2 text-green-400 font-semibold">
-                Open Dashboard
-                <ArrowRight className="w-5 h-5" />
-              </span>
-            </Link>
-          </div>
-        </section>
-
-        {/* What You Get */}
-        <section className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-8 mb-16">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">
-            Every Lesson Includes
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <Feature text="60-minute personalized instruction" />
-            <Feature text="Custom practice plan and exercises" />
-            <Feature text="Video recording of your lesson" />
-            <Feature text="Sheet music and tabs provided" />
-            <Feature text="Progress tracking and feedback" />
-            <Feature text="Email support between lessons" />
-          </div>
+          </CollapsiblePanel>
         </section>
 
         {/* Email Capture */}
@@ -496,6 +403,68 @@ function TeacherFact({ label, value }: { label: string; value: string }) {
   );
 }
 
+function MilestoneCard({
+  milestone,
+  achievement,
+  reward,
+  impact,
+}: {
+  milestone: string;
+  achievement: string;
+  reward: string;
+  impact: string;
+}) {
+  return (
+    <article className="rounded-xl border border-emerald-400/20 bg-black/35 p-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-300/85">{milestone}</p>
+      <p className="mt-2 text-sm font-semibold text-white">{achievement}</p>
+      <p className="mt-2 text-xs text-cyan-100/80">Reward: {reward}</p>
+      <p className="mt-1 text-xs text-cyan-100/65">Impact: {impact}</p>
+    </article>
+  );
+}
+
+function CollapsiblePanel({
+  title,
+  subtitle,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details open={defaultOpen} className="rounded-xl border border-cyan-500/25 bg-black/35 overflow-hidden">
+      <summary className="list-none cursor-pointer px-4 py-3 hover:bg-white/[0.02] transition">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-white">{title}</p>
+            <p className="text-xs text-cyan-100/70">{subtitle}</p>
+          </div>
+          <ChevronDown className="h-4 w-4 text-cyan-200/80" />
+        </div>
+      </summary>
+      <div className="border-t border-cyan-500/20 p-4 sm:p-5">{children}</div>
+    </details>
+  );
+}
+
+function QuoteCard({ quote, author }: { quote: string; author: string }) {
+  return (
+    <article className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+      <div className="flex items-center gap-1 mb-4" aria-label="5 star rating">
+        {[...Array(5)].map((_, i) => (
+          <span key={i} className="text-[#FF6B35]">★</span>
+        ))}
+      </div>
+      <p className="text-gray-300 mb-4 text-sm">&quot;{quote}&quot;</p>
+      <p className="text-white font-semibold text-sm">- {author}</p>
+    </article>
+  );
+}
+
 function BookingStep({
   icon,
   title,
@@ -518,7 +487,7 @@ function BookingStep({
 
 function Feature({ text }: { text: string }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3">
       <CheckCircle2 className="w-5 h-5 text-[#0366d6] flex-shrink-0 mt-0.5" />
       <span className="text-gray-300">{text}</span>
     </div>
