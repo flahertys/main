@@ -88,6 +88,9 @@ export interface ExperimentRampEvent {
   bayesianUncertaintyPoints: number;
   regretPressurePoints: number;
   driftScore: number;
+  shortDriftScore: number;
+  mediumDriftScore: number;
+  longDriftScore: number;
   shockMode: boolean;
   driftPhase: "normal" | "shock" | "recovering";
   shockIntensity: number;
@@ -146,9 +149,16 @@ export interface ExperimentPolicyAdaptiveState {
 }
 
 export interface ExperimentAllocatorDriftState {
+  shortSmoothedAbsDeltaCvrPoints: number;
+  shortSmoothedAbsZScore: number;
   smoothedAbsDeltaCvrPoints: number;
   smoothedAbsZScore: number;
+  longSmoothedAbsDeltaCvrPoints: number;
+  longSmoothedAbsZScore: number;
   driftScore: number;
+  shortDriftScore: number;
+  mediumDriftScore: number;
+  longDriftScore: number;
   shockMode: boolean;
   phase: "normal" | "shock" | "recovering";
   recoveryStreak: number;
@@ -473,6 +483,9 @@ function readRampLog(): ExperimentRampEvent[] {
         typeof item.bayesianUncertaintyPoints === "number" &&
         typeof item.regretPressurePoints === "number" &&
         typeof item.driftScore === "number" &&
+        typeof item.shortDriftScore === "number" &&
+        typeof item.mediumDriftScore === "number" &&
+        typeof item.longDriftScore === "number" &&
         typeof item.shockMode === "boolean" &&
         typeof item.driftPhase === "string" &&
         typeof item.shockIntensity === "number" &&
@@ -974,9 +987,16 @@ function writeRampPortfolioMeta(entries: ExperimentRampVelocityWindowEntry[]) {
 
 function createDefaultAllocatorDriftState(): ExperimentAllocatorDriftState {
   return {
+    shortSmoothedAbsDeltaCvrPoints: 0,
+    shortSmoothedAbsZScore: 0,
     smoothedAbsDeltaCvrPoints: 0,
     smoothedAbsZScore: 0,
+    longSmoothedAbsDeltaCvrPoints: 0,
+    longSmoothedAbsZScore: 0,
     driftScore: 0,
+    shortDriftScore: 0,
+    mediumDriftScore: 0,
+    longDriftScore: 0,
     shockMode: false,
     phase: "normal",
     recoveryStreak: 0,
@@ -1002,10 +1022,25 @@ function readAllocatorDriftState(): ExperimentAllocatorDriftState {
     }
 
     return {
+      shortSmoothedAbsDeltaCvrPoints:
+        typeof parsed.shortSmoothedAbsDeltaCvrPoints === "number"
+          ? parsed.shortSmoothedAbsDeltaCvrPoints
+          : 0,
+      shortSmoothedAbsZScore:
+        typeof parsed.shortSmoothedAbsZScore === "number" ? parsed.shortSmoothedAbsZScore : 0,
       smoothedAbsDeltaCvrPoints:
         typeof parsed.smoothedAbsDeltaCvrPoints === "number" ? parsed.smoothedAbsDeltaCvrPoints : 0,
       smoothedAbsZScore: typeof parsed.smoothedAbsZScore === "number" ? parsed.smoothedAbsZScore : 0,
+      longSmoothedAbsDeltaCvrPoints:
+        typeof parsed.longSmoothedAbsDeltaCvrPoints === "number"
+          ? parsed.longSmoothedAbsDeltaCvrPoints
+          : 0,
+      longSmoothedAbsZScore:
+        typeof parsed.longSmoothedAbsZScore === "number" ? parsed.longSmoothedAbsZScore : 0,
       driftScore: typeof parsed.driftScore === "number" ? parsed.driftScore : 0,
+      shortDriftScore: typeof parsed.shortDriftScore === "number" ? parsed.shortDriftScore : 0,
+      mediumDriftScore: typeof parsed.mediumDriftScore === "number" ? parsed.mediumDriftScore : 0,
+      longDriftScore: typeof parsed.longDriftScore === "number" ? parsed.longDriftScore : 0,
       shockMode: parsed.shockMode === true,
       phase:
         parsed.phase === "shock" || parsed.phase === "recovering" || parsed.phase === "normal"
@@ -1057,17 +1092,56 @@ function updateAllocatorDriftState(
 
   const lastUpdatedMs = Date.parse(prior.lastUpdatedAt);
   const elapsedMs = Number.isFinite(lastUpdatedMs) ? Math.max(0, now - lastUpdatedMs) : 0;
-  const decay = Math.exp(-elapsedMs / Math.max(policy.driftHalfLifeMs, 1));
-  const blend = 1 - decay;
+  const shortHalfLife = Math.max(30_000, Math.round(policy.driftHalfLifeMs * 0.5));
+  const mediumHalfLife = Math.max(30_000, policy.driftHalfLifeMs);
+  const longHalfLife = Math.max(30_000, Math.round(policy.driftHalfLifeMs * 2));
+
+  const shortDecay = Math.exp(-elapsedMs / shortHalfLife);
+  const mediumDecay = Math.exp(-elapsedMs / mediumHalfLife);
+  const longDecay = Math.exp(-elapsedMs / longHalfLife);
+
+  const shortBlend = 1 - shortDecay;
+  const mediumBlend = 1 - mediumDecay;
+  const longBlend = 1 - longDecay;
+
+  const shortSmoothedAbsDeltaCvrPoints =
+    prior.sampleCount > 0
+      ? prior.shortSmoothedAbsDeltaCvrPoints * shortDecay + currentAbsDelta * shortBlend
+      : currentAbsDelta;
+  const shortSmoothedAbsZScore =
+    prior.sampleCount > 0
+      ? prior.shortSmoothedAbsZScore * shortDecay + currentAbsZ * shortBlend
+      : currentAbsZ;
 
   const smoothedAbsDeltaCvrPoints =
-    prior.sampleCount > 0 ? prior.smoothedAbsDeltaCvrPoints * decay + currentAbsDelta * blend : currentAbsDelta;
+    prior.sampleCount > 0
+      ? prior.smoothedAbsDeltaCvrPoints * mediumDecay + currentAbsDelta * mediumBlend
+      : currentAbsDelta;
   const smoothedAbsZScore =
-    prior.sampleCount > 0 ? prior.smoothedAbsZScore * decay + currentAbsZ * blend : currentAbsZ;
+    prior.sampleCount > 0
+      ? prior.smoothedAbsZScore * mediumDecay + currentAbsZ * mediumBlend
+      : currentAbsZ;
 
-  const driftScore =
+  const longSmoothedAbsDeltaCvrPoints =
+    prior.sampleCount > 0
+      ? prior.longSmoothedAbsDeltaCvrPoints * longDecay + currentAbsDelta * longBlend
+      : currentAbsDelta;
+  const longSmoothedAbsZScore =
+    prior.sampleCount > 0
+      ? prior.longSmoothedAbsZScore * longDecay + currentAbsZ * longBlend
+      : currentAbsZ;
+
+  const shortDriftScore =
+    Math.abs(currentAbsDelta - shortSmoothedAbsDeltaCvrPoints) +
+    0.6 * Math.abs(currentAbsZ - shortSmoothedAbsZScore);
+  const mediumDriftScore =
     Math.abs(currentAbsDelta - smoothedAbsDeltaCvrPoints) +
     0.6 * Math.abs(currentAbsZ - smoothedAbsZScore);
+  const longDriftScore =
+    Math.abs(currentAbsDelta - longSmoothedAbsDeltaCvrPoints) +
+    0.6 * Math.abs(currentAbsZ - longSmoothedAbsZScore);
+
+  const driftScore = shortDriftScore * 0.5 + mediumDriftScore * 0.3 + longDriftScore * 0.2;
 
   const recoveryThreshold = policy.driftShockThreshold * policy.driftRecoveryThresholdRatio;
 
@@ -1104,9 +1178,16 @@ function updateAllocatorDriftState(
   }
 
   const next: ExperimentAllocatorDriftState = {
+    shortSmoothedAbsDeltaCvrPoints: Number(shortSmoothedAbsDeltaCvrPoints.toFixed(3)),
+    shortSmoothedAbsZScore: Number(shortSmoothedAbsZScore.toFixed(3)),
     smoothedAbsDeltaCvrPoints: Number(smoothedAbsDeltaCvrPoints.toFixed(3)),
     smoothedAbsZScore: Number(smoothedAbsZScore.toFixed(3)),
+    longSmoothedAbsDeltaCvrPoints: Number(longSmoothedAbsDeltaCvrPoints.toFixed(3)),
+    longSmoothedAbsZScore: Number(longSmoothedAbsZScore.toFixed(3)),
     driftScore: Number(driftScore.toFixed(3)),
+    shortDriftScore: Number(shortDriftScore.toFixed(3)),
+    mediumDriftScore: Number(mediumDriftScore.toFixed(3)),
+    longDriftScore: Number(longDriftScore.toFixed(3)),
     shockMode,
     phase,
     recoveryStreak,
@@ -2473,12 +2554,15 @@ export function runExperimentRampAutopilot(
         bayesianUncertaintyPoints: Number(candidate.bayesianUncertaintyPoints.toFixed(3)),
         regretPressurePoints: Number(candidate.regretPressurePoints.toFixed(3)),
         driftScore: driftState.driftScore,
+        shortDriftScore: driftState.shortDriftScore,
+        mediumDriftScore: driftState.mediumDriftScore,
+        longDriftScore: driftState.longDriftScore,
         shockMode: driftState.shockMode,
         driftPhase: driftState.phase,
         shockIntensity: Number(shockIntensity.toFixed(3)),
         recommendation: candidate.decision.recommendation,
         confidence: candidate.decision.confidence,
-        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (weighted ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}). Bayesian lift ${candidate.bayesianLiftPoints.toFixed(2)} pts, uncertainty ${candidate.bayesianUncertaintyPoints.toFixed(2)} pts, regret ${candidate.regretPressurePoints.toFixed(2)} pts. Drift ${driftState.driftScore.toFixed(2)} · phase ${driftState.phase} · shock ${driftState.shockMode ? "on" : "off"}.`,
+        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (weighted ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}). Bayesian lift ${candidate.bayesianLiftPoints.toFixed(2)} pts, uncertainty ${candidate.bayesianUncertaintyPoints.toFixed(2)} pts, regret ${candidate.regretPressurePoints.toFixed(2)} pts. Drift fused ${driftState.driftScore.toFixed(2)} [S ${driftState.shortDriftScore.toFixed(2)} · M ${driftState.mediumDriftScore.toFixed(2)} · L ${driftState.longDriftScore.toFixed(2)}] · phase ${driftState.phase} · shock ${driftState.shockMode ? "on" : "off"}.`,
         timestamp,
       };
 

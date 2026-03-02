@@ -411,6 +411,9 @@ export function ExperimentReadoutPanel() {
           <p className="mt-1 text-[10px] text-zinc-500">
             phase {state.allocatorDrift.phase} · recovery {state.allocatorDrift.recoveryStreak}
           </p>
+          <p className="mt-1 text-[10px] text-zinc-500">
+            channels S {state.allocatorDrift.shortDriftScore.toFixed(2)} · M {state.allocatorDrift.mediumDriftScore.toFixed(2)} · L {state.allocatorDrift.longDriftScore.toFixed(2)}
+          </p>
         </section>
 
         <section>
@@ -723,6 +726,9 @@ export function ExperimentReadoutPanel() {
                   </div>
                   <div className="text-[10px] text-zinc-500">
                     phase {entry.driftPhase} · intensity {entry.shockIntensity.toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-zinc-500">
+                    channels S {entry.shortDriftScore.toFixed(2)} · M {entry.mediumDriftScore.toFixed(2)} · L {entry.longDriftScore.toFixed(2)}
                   </div>
                   <div className="text-[10px] text-zinc-500">{entry.rationale}</div>
                   <div className="text-[10px] text-zinc-500">{new Date(entry.timestamp).toLocaleTimeString()}</div>
