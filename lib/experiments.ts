@@ -98,6 +98,10 @@ export interface ExperimentRampEvent {
   qualityMemoryHalfLifeMs: number;
   qualityGateAdaptiveWeight: number;
   qualityGateAdaptiveHalfLifeMultiplier: number;
+  crossExperimentPriorBoost: number;
+  crossExperimentAlignment: number;
+  cohortRouteIntentLiftPoints: number;
+  cohortRouteValueDelta: number;
   driftScore: number;
   shortDriftScore: number;
   mediumDriftScore: number;
@@ -527,6 +531,10 @@ function readRampLog(): ExperimentRampEvent[] {
         typeof item.qualityMemoryHalfLifeMs === "number" &&
         typeof item.qualityGateAdaptiveWeight === "number" &&
         typeof item.qualityGateAdaptiveHalfLifeMultiplier === "number" &&
+        typeof item.crossExperimentPriorBoost === "number" &&
+        typeof item.crossExperimentAlignment === "number" &&
+        typeof item.cohortRouteIntentLiftPoints === "number" &&
+        typeof item.cohortRouteValueDelta === "number" &&
         typeof item.driftScore === "number" &&
         typeof item.shortDriftScore === "number" &&
         typeof item.mediumDriftScore === "number" &&
@@ -2570,6 +2578,11 @@ function summarizeRouteIntent(entry?: ExperimentRollupEntry): {
   };
 }
 
+function getExperimentTotalExposure(snapshot: ExperimentRollupSnapshot, experiment: ExperimentName): number {
+  const byVariant = snapshot[experiment] ?? {};
+  return Math.max(0, byVariant.control?.exposureCount ?? 0) + Math.max(0, byVariant.accelerated?.exposureCount ?? 0);
+}
+
 function computeBayesianAllocatorSignals(
   experiment: ExperimentName,
   snapshot: ExperimentRollupSnapshot,
@@ -2705,6 +2718,10 @@ export function runExperimentRampAutopilot(
     qualityMemoryHalfLifeMs: number;
     qualityGateAdaptiveWeight: number;
     qualityGateAdaptiveHalfLifeMultiplier: number;
+    crossExperimentPriorBoost: number;
+    crossExperimentAlignment: number;
+    cohortRouteIntentLiftPoints: number;
+    cohortRouteValueDelta: number;
   }
 
   const candidates: RampCandidate[] = [];
@@ -2836,10 +2853,60 @@ export function runExperimentRampAutopilot(
       qualityMemoryHalfLifeMs: qualityMemory.memoryHalfLifeMs,
       qualityGateAdaptiveWeight: qualityMemory.adaptiveWeight,
       qualityGateAdaptiveHalfLifeMultiplier: qualityMemory.adaptiveHalfLifeMultiplier,
+      crossExperimentPriorBoost: 0,
+      crossExperimentAlignment: 0,
+      cohortRouteIntentLiftPoints: 0,
+      cohortRouteValueDelta: 0,
     });
   });
 
-  const rankedCandidates = [...candidates].sort((left, right) => {
+  const cohortCoverageTotal = candidates.reduce((acc, candidate) => acc + Math.max(0, candidate.routeSignalCoverage), 0);
+  const cohortRouteIntentLiftPoints =
+    cohortCoverageTotal > 0
+      ? candidates.reduce((acc, candidate) => acc + candidate.routeIntentLiftPoints * Math.max(0, candidate.routeSignalCoverage), 0) /
+        cohortCoverageTotal
+      : 0;
+  const cohortRouteValueDelta =
+    cohortCoverageTotal > 0
+      ? candidates.reduce((acc, candidate) => acc + candidate.routeValueDelta * Math.max(0, candidate.routeSignalCoverage), 0) /
+        cohortCoverageTotal
+      : 0;
+
+  const coupledCandidates = candidates.map((candidate) => {
+    const totalExposure = getExperimentTotalExposure(snapshot, candidate.experiment);
+    const lowSampleBoost = clamp(1 - totalExposure / 140, 0, 1);
+    const intentAgreement =
+      cohortRouteIntentLiftPoints === 0 || candidate.routeIntentLiftPoints === 0
+        ? 0
+        : Math.sign(candidate.routeIntentLiftPoints) === Math.sign(cohortRouteIntentLiftPoints)
+          ? 1
+          : -1;
+    const valueAgreement =
+      cohortRouteValueDelta === 0 || candidate.routeValueDelta === 0
+        ? 0
+        : Math.sign(candidate.routeValueDelta) === Math.sign(cohortRouteValueDelta)
+          ? 1
+          : -1;
+
+    const crossExperimentAlignment = clamp(0.5 + intentAgreement * 0.25 + valueAgreement * 0.25, 0, 1);
+    const crossExperimentPriorBoost =
+      (cohortRouteIntentLiftPoints * 0.06 + cohortRouteValueDelta * 0.1) *
+      crossExperimentAlignment *
+      lowSampleBoost *
+      Math.max(0.2, candidate.routeSignalCoverage);
+
+    return {
+      ...candidate,
+      crossExperimentAlignment: Number(crossExperimentAlignment.toFixed(3)),
+      crossExperimentPriorBoost: Number(crossExperimentPriorBoost.toFixed(3)),
+      cohortRouteIntentLiftPoints: Number(cohortRouteIntentLiftPoints.toFixed(3)),
+      cohortRouteValueDelta: Number(cohortRouteValueDelta.toFixed(3)),
+      opportunityScore: Number((candidate.opportunityScore + crossExperimentPriorBoost).toFixed(3)),
+      adjustedOpportunityScore: Math.max(0, Number((candidate.adjustedOpportunityScore + crossExperimentPriorBoost).toFixed(3))),
+    } satisfies RampCandidate;
+  });
+
+  const rankedCandidates = [...coupledCandidates].sort((left, right) => {
     if (right.adjustedOpportunityScore !== left.adjustedOpportunityScore) {
       return right.adjustedOpportunityScore - left.adjustedOpportunityScore;
     }
@@ -2943,6 +3010,10 @@ export function runExperimentRampAutopilot(
         qualityMemoryHalfLifeMs: Math.round(candidate.qualityMemoryHalfLifeMs),
         qualityGateAdaptiveWeight: Number(candidate.qualityGateAdaptiveWeight.toFixed(3)),
         qualityGateAdaptiveHalfLifeMultiplier: Number(candidate.qualityGateAdaptiveHalfLifeMultiplier.toFixed(3)),
+        crossExperimentPriorBoost: Number(candidate.crossExperimentPriorBoost.toFixed(3)),
+        crossExperimentAlignment: Number(candidate.crossExperimentAlignment.toFixed(3)),
+        cohortRouteIntentLiftPoints: Number(candidate.cohortRouteIntentLiftPoints.toFixed(3)),
+        cohortRouteValueDelta: Number(candidate.cohortRouteValueDelta.toFixed(3)),
         driftScore: driftState.driftScore,
         shortDriftScore: driftState.shortDriftScore,
         mediumDriftScore: driftState.mediumDriftScore,
@@ -2952,7 +3023,7 @@ export function runExperimentRampAutopilot(
         shockIntensity: Number(shockIntensity.toFixed(3)),
         recommendation: candidate.decision.recommendation,
         confidence: candidate.decision.confidence,
-        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (weighted ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}). Bayesian lift ${candidate.bayesianLiftPoints.toFixed(2)} pts, uncertainty ${candidate.bayesianUncertaintyPoints.toFixed(2)} pts, regret ${candidate.regretPressurePoints.toFixed(2)} pts. Route intent lift ${candidate.routeIntentLiftPoints.toFixed(2)} pts, value Δ ${candidate.routeValueDelta.toFixed(2)}, coverage ${(candidate.routeSignalCoverage * 100).toFixed(0)}%. Memory intent ${candidate.qualityMemoryIntentLiftPoints.toFixed(2)} pts, memory value ${candidate.qualityMemoryValueDelta.toFixed(2)}, memory coverage ${(candidate.qualityMemorySignalCoverage * 100).toFixed(0)}%, memory boost ${candidate.qualityMemoryBoost.toFixed(2)}, gate ${candidate.qualityMemoryPhaseWeight.toFixed(2)}, half-life ${Math.round(candidate.qualityMemoryHalfLifeMs / 1000)}s. Drift fused ${driftState.driftScore.toFixed(2)} [S ${driftState.shortDriftScore.toFixed(2)} · M ${driftState.mediumDriftScore.toFixed(2)} · L ${driftState.longDriftScore.toFixed(2)}] · phase ${driftState.phase} · shock ${driftState.shockMode ? "on" : "off"}.`,
+        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (weighted ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}). Bayesian lift ${candidate.bayesianLiftPoints.toFixed(2)} pts, uncertainty ${candidate.bayesianUncertaintyPoints.toFixed(2)} pts, regret ${candidate.regretPressurePoints.toFixed(2)} pts. Route intent lift ${candidate.routeIntentLiftPoints.toFixed(2)} pts, value Δ ${candidate.routeValueDelta.toFixed(2)}, coverage ${(candidate.routeSignalCoverage * 100).toFixed(0)}%. Memory intent ${candidate.qualityMemoryIntentLiftPoints.toFixed(2)} pts, memory value ${candidate.qualityMemoryValueDelta.toFixed(2)}, memory coverage ${(candidate.qualityMemorySignalCoverage * 100).toFixed(0)}%, memory boost ${candidate.qualityMemoryBoost.toFixed(2)}, gate ${candidate.qualityMemoryPhaseWeight.toFixed(2)}, half-life ${Math.round(candidate.qualityMemoryHalfLifeMs / 1000)}s. Cohort intent ${candidate.cohortRouteIntentLiftPoints.toFixed(2)} pts, cohort value ${candidate.cohortRouteValueDelta.toFixed(2)}, alignment ${candidate.crossExperimentAlignment.toFixed(2)}, prior boost ${candidate.crossExperimentPriorBoost.toFixed(2)}. Drift fused ${driftState.driftScore.toFixed(2)} [S ${driftState.shortDriftScore.toFixed(2)} · M ${driftState.mediumDriftScore.toFixed(2)} · L ${driftState.longDriftScore.toFixed(2)}] · phase ${driftState.phase} · shock ${driftState.shockMode ? "on" : "off"}.`,
         timestamp,
       };
 
