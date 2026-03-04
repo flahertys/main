@@ -33,7 +33,7 @@ export default async function IntelligenceHubPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
       <ShamrockHeader />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 pb-28 md:pb-14">
         <IntelligencePageShell
           kicker="Institutional Terminal"
           title="TradeHax Intelligence Hub"
@@ -48,7 +48,7 @@ export default async function IntelligenceHubPage() {
             { label: "Content Studio", href: "/intelligence/content" },
           ]}
         >
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
             <IntelligenceMetricCard
               label="Options Premium"
               value={formatCompactUsd(overview.optionsPremium24hUsd)}
@@ -81,7 +81,7 @@ export default async function IntelligenceHubPage() {
             {snapshot.status.simulated ? " simulated" : " live"})
           </div>
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <IntelligenceRouteCard
               title="Options Flow Tape"
               description="Track high-premium call/put activity with unusual-score filters and AI interpretation."

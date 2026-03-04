@@ -664,7 +664,7 @@ export default function GamePage() {
   if (isPlaying) {
     return (
       <div
-        className="fixed inset-0 z-[70] w-screen min-h-[100svh] h-[calc(var(--hyperborea-vh,1vh)*100)] bg-black overflow-hidden select-none touch-none"
+        className="fixed inset-0 z-[70] w-screen min-h-[100svh] h-[calc(var(--hyperborea-vh,1vh)*100)] bg-black overflow-hidden overscroll-none select-none touch-none"
       >
         {/* Initialization Overlay */}
         <AnimatePresence>
@@ -755,37 +755,39 @@ export default function GamePage() {
         />
 
         {/* Central score ribbon for instant readability on all devices */}
-        <div className="absolute top-[max(0.4rem,env(safe-area-inset-top))] sm:top-4 left-1/2 z-20 w-[min(98vw,860px)] -translate-x-1/2 px-1 sm:px-2 pointer-events-none">
+        <div className="absolute top-[max(0.4rem,env(safe-area-inset-top))] sm:top-4 left-1/2 z-20 w-[min(99vw,860px)] -translate-x-1/2 px-1 sm:px-2 pointer-events-none">
           <div className="theme-floating-panel theme-floating-panel--info px-2 py-1.5 sm:px-3 sm:py-2 bg-black/40 backdrop-blur-sm">
-            <div className="grid grid-cols-3 gap-1 text-[9px] sm:grid-cols-6 sm:text-sm">
-              <div className="rounded border border-cyan-500/30 bg-black/45 px-2 py-1 text-cyan-100">
+            <div className="grid grid-cols-2 gap-1 text-[9px] sm:grid-cols-3 lg:grid-cols-6 sm:text-xs lg:text-sm">
+              <div className="min-w-0 rounded border border-cyan-500/30 bg-black/45 px-2 py-1 text-cyan-100">
                 <div className="text-[10px] uppercase tracking-wide text-cyan-300/90">Score</div>
                 <div className="font-bold">{score.toLocaleString()}</div>
               </div>
-              <div className="rounded border border-blue-500/30 bg-black/45 px-2 py-1 text-blue-100">
+              <div className="min-w-0 rounded border border-blue-500/30 bg-black/45 px-2 py-1 text-blue-100">
                 <div className="text-[10px] uppercase tracking-wide text-blue-300/90">Time</div>
                 <div className="font-bold">{formatElapsed(elapsedSeconds)}</div>
               </div>
-              <div className="rounded border border-emerald-500/30 bg-black/45 px-2 py-1 text-emerald-100">
+              <div className="min-w-0 rounded border border-emerald-500/30 bg-black/45 px-2 py-1 text-emerald-100">
                 <div className="text-[10px] uppercase tracking-wide text-emerald-300/90">Utility</div>
-                <div className="font-bold">
-                  {utilityPoints.toLocaleString()} pts | {projectedUtilityUnits}{" "}
-                  {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"}
+                <div className="font-bold leading-tight break-words text-[10px] sm:text-[12px]">
+                  <span className="block">
+                    {projectedUtilityUnits} {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"} proj
+                  </span>
+                  <span className="hidden sm:block">{utilityPoints.toLocaleString()} pts</span>
                 </div>
               </div>
-              <div className="rounded border border-yellow-500/30 bg-black/45 px-2 py-1 text-yellow-100">
+              <div className="min-w-0 rounded border border-yellow-500/30 bg-black/45 px-2 py-1 text-yellow-100">
                 <div className="text-[10px] uppercase tracking-wide text-yellow-300/90">Combo</div>
                 <div className="font-bold">{combo}x</div>
               </div>
-              <div className="rounded border border-fuchsia-500/30 bg-black/45 px-2 py-1 text-fuchsia-100">
+              <div className="min-w-0 rounded border border-fuchsia-500/30 bg-black/45 px-2 py-1 text-fuchsia-100">
                 <div className="text-[10px] uppercase tracking-wide text-fuchsia-300/90">Run Progress</div>
-                <div className="font-bold">
+                <div className="font-bold break-words">
                   {scoreSnapshot
                     ? `${scoreSnapshot.relicsCollected} relics | ${scoreSnapshot.runesActivated} runes`
                     : `${cloversCollected} relics`}
                 </div>
               </div>
-              <div className="rounded border border-indigo-500/30 bg-black/45 px-2 py-1 text-indigo-100">
+              <div className="min-w-0 rounded border border-indigo-500/30 bg-black/45 px-2 py-1 text-indigo-100">
                 <div className="text-[10px] uppercase tracking-wide text-indigo-300/90">Objective</div>
                 <div className="font-bold">{Math.round(objectiveProgress)}%</div>
               </div>
@@ -796,7 +798,7 @@ export default function GamePage() {
                 value={Math.max(0, Math.min(utilityProgressPercent, 100))}
                 max={100}
               />
-              <div className="mt-1 text-[11px] text-emerald-200/90">
+              <div className="mt-1 text-[10px] sm:text-[11px] text-emerald-200/90">
                 {pointsToNextToken} utility pts to next projected{" "}
                 {activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"} reward unit
               </div>
@@ -883,7 +885,7 @@ export default function GamePage() {
         </div>
 
         {/* Game Controls */}
-        <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-4 flex gap-2 pointer-events-auto z-20">
+        <div className="absolute top-[max(0.7rem,env(safe-area-inset-top))] right-3 sm:top-auto sm:right-auto sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:left-4 flex gap-2 pointer-events-auto z-20">
           <button
             onClick={togglePause}
             className="theme-cta theme-cta--secondary theme-cta--compact px-4 py-2 backdrop-blur-sm flex items-center gap-2"
@@ -1399,7 +1401,7 @@ export default function GamePage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
       <ShamrockHeader />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-28 md:pb-14">
         {/* Hero Section */}
         <div className="text-center mb-8 sm:mb-12">
           <div className="theme-badge inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold mb-6">
@@ -1655,7 +1657,7 @@ export default function GamePage() {
         </div>
 
         {/* Game Preview */}
-        <div className="theme-panel p-8 mb-12 min-h-[600px] flex items-center justify-center relative">
+        <div className="theme-panel p-6 sm:p-8 mb-12 min-h-[420px] sm:min-h-[600px] flex items-center justify-center relative">
           {/* Animated Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#0c1a14]/55 via-transparent to-[#0f2530]/40 animate-pulse"></div>
 
@@ -1680,7 +1682,7 @@ export default function GamePage() {
         </div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-12">
           <FeatureCard
             icon={<Trophy className="w-8 h-8" />}
             title="Compete & Win"
@@ -1704,11 +1706,11 @@ export default function GamePage() {
         </div>
 
         {/* Game Info */}
-        <div className="theme-panel p-8 mb-12">
+        <div className="theme-panel p-6 sm:p-8 mb-12">
           <h2 className="text-2xl font-bold text-white mb-6">
             About Hyperborea
           </h2>
-          <div className="grid md:grid-cols-2 gap-8 text-[#d8e6ef]">
+          <div className="grid gap-6 md:grid-cols-2 text-[#d8e6ef]">
             <div>
               <h3 className="text-lg font-semibold text-white mb-3">
                 Free Tier

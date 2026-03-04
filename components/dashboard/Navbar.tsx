@@ -19,10 +19,10 @@ export function Navbar() {
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-green-800 bg-gray-950/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 gap-3">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="text-2xl font-bold bg-gradient-to-r from-[#00FF41] to-[#39FF14] text-transparent bg-clip-text">
+          <Link href="/" className="flex items-center space-x-2 min-w-0">
+            <div className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-[#00FF41] to-[#39FF14] text-transparent bg-clip-text truncate">
               TradeHax AI
             </div>
           </Link>
@@ -31,7 +31,7 @@ export function Navbar() {
           <div className="hidden md:flex items-center space-x-8">
             {navLinks.map((link) => (
               <Link
-                key={link.href}
+                key={`${link.href}:${link.label}`}
                 href={link.href}
                 className="text-gray-300 hover:text-white transition-colors"
               >
@@ -47,7 +47,7 @@ export function Navbar() {
 
           {/* Mobile menu button */}
           <button
-            className="md:hidden text-gray-300 hover:text-white"
+            className="md:hidden text-gray-300 hover:text-white rounded-lg border border-white/10 p-1.5"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? (
@@ -60,12 +60,12 @@ export function Navbar() {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-4">
+          <div className="md:hidden py-4 space-y-3 border-t border-white/10">
             {navLinks.map((link) => (
               <Link
-                key={link.href}
+                key={`${link.href}:${link.label}`}
                 href={link.href}
-                className="block text-gray-300 hover:text-white transition-colors"
+                className="block rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-gray-300 hover:text-white transition-colors"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 {link.label}

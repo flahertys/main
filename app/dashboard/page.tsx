@@ -38,19 +38,19 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28 md:pb-14">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#00FF41] to-[#39FF14] text-transparent bg-clip-text mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#00FF41] to-[#39FF14] text-transparent bg-clip-text mb-2">
             TradeHax AI Dashboard
           </h1>
-          <p className="text-gray-400">
+          <p className="text-sm sm:text-base text-gray-400">
             Review analytics and test key platform workflows in one place.
           </p>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
           <StatCard
             title="Total Trades"
             value="0"
@@ -80,11 +80,11 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Trading Demo Section */}
           <div className="lg:col-span-2">
             <div className="mb-4">
-              <h2 className="text-2xl font-bold text-white mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
                 Demo Counter
               </h2>
               <p className="text-gray-400 text-sm">
@@ -92,14 +92,14 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex items-center justify-center p-8 bg-gradient-to-b from-gray-900/50 to-gray-950/50 rounded-xl border border-gray-800">
+            <div className="flex items-center justify-center p-4 sm:p-8 bg-gradient-to-b from-gray-900/50 to-gray-950/50 rounded-xl border border-gray-800">
               <CounterCard />
             </div>
           </div>
 
           {/* Quick Actions Panel */}
           <div>
-            <h2 className="text-2xl font-bold text-white mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">
               Quick Actions
             </h2>
 
