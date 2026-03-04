@@ -65,6 +65,23 @@ function parseNumber(key) {
   return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
+function parseCsvSet(raw) {
+  return new Set(
+    String(raw || "")
+      .split(",")
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+function parseBooleanValue(raw, fallback = false) {
+  const normalized = String(raw || "").trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+  return fallback;
+}
+
 function assertRequiredEnv(key, hint) {
   if (!has(key)) {
     print("FAIL", key, `Missing required variable. ${hint}`);
@@ -181,29 +198,34 @@ function checkCanaryGovernance() {
 
 function checkOptionalProviderTokens() {
   const providers = [
-    ["Hugging Face", ["HF_API_TOKEN", "HUGGINGFACE_API_TOKEN", "HUGGING_FACE_HUB_TOKEN"]],
-    ["OpenAI", ["OPENAI_API_KEY"]],
-    ["Azure OpenAI", ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT"]],
-    ["GitHub Models", ["GITHUB_TOKEN"]],
-    ["Anthropic", ["ANTHROPIC_API_KEY"]],
-    ["Groq", ["GROQ_API_KEY"]],
-    ["Together", ["TOGETHER_API_KEY"]],
-    ["Cohere", ["COHERE_API_KEY"]],
-    ["Mistral", ["MISTRAL_API_KEY"]],
-    ["DeepSeek", ["DEEPSEEK_API_KEY"]],
+    ["huggingface", "Hugging Face", ["HF_API_TOKEN", "HF_API_TOKEN_REICH", "HUGGINGFACE_API_TOKEN", "HUGGING_FACE_HUB_TOKEN", "HF_TOKEN"]],
+    ["openai", "OpenAI", ["OPENAI_API_KEY"]],
+    ["azure-openai", "Azure OpenAI", ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT"]],
+    ["github", "GitHub Models", ["GITHUB_TOKEN"]],
+    ["anthropic", "Anthropic", ["ANTHROPIC_API_KEY"]],
+    ["groq", "Groq", ["GROQ_API_KEY"]],
+    ["together", "Together", ["TOGETHER_API_KEY"]],
+    ["cohere", "Cohere", ["COHERE_API_KEY"]],
+    ["mistral", "Mistral", ["MISTRAL_API_KEY"]],
+    ["deepseek", "DeepSeek", ["DEEPSEEK_API_KEY"]],
   ];
 
-  for (const [label, keys] of providers) {
+  const requiredProviders = parseCsvSet(get("TRADEHAX_REQUIRED_AI_PROVIDERS") || "huggingface");
+
+  for (const [providerId, label, keys] of providers) {
     const connected = keys.some((key) => has(key));
     if (connected) {
       print("PASS", `${label}_TOKEN_CONNECTION`, "configured (masked)");
-    } else {
+    } else if (requiredProviders.has(String(providerId))) {
       print("WARN", `${label}_TOKEN_CONNECTION`, `Not configured. Expected one of: ${keys.join(", ")}`);
+    } else {
+      print("PASS", `${label}_TOKEN_CONNECTION`, "optional and not required for this deployment profile");
     }
   }
 }
 
 function checkUpstashVectorConnection() {
+  const vectorRequired = parseBooleanValue(get("TRADEHAX_VECTOR_RETRIEVAL_REQUIRED"), false);
   const hasUrl = has("UPSTASH_VECTOR_REST_URL");
   const hasToken = has("UPSTASH_VECTOR_REST_TOKEN");
 
@@ -217,6 +239,15 @@ function checkUpstashVectorConnection() {
       "WARN",
       "Upstash_Vector_CONNECTION",
       "Partially configured. Both UPSTASH_VECTOR_REST_URL and UPSTASH_VECTOR_REST_TOKEN are required.",
+    );
+    return;
+  }
+
+  if (!vectorRequired) {
+    print(
+      "PASS",
+      "Upstash_Vector_CONNECTION",
+      "optional and disabled for current deployment profile (set TRADEHAX_VECTOR_RETRIEVAL_REQUIRED=true to enforce)",
     );
     return;
   }
@@ -340,7 +371,7 @@ function main() {
 
   console.log("[1/5] Core provider + model");
   assertOneOfRequiredEnv(
-    ["HF_API_TOKEN", "HUGGINGFACE_API_TOKEN", "HF_TOKEN"],
+    ["HF_API_TOKEN", "HF_API_TOKEN_REICH", "HUGGINGFACE_API_TOKEN", "HF_TOKEN"],
     "HF_TOKEN",
     "Set a Hugging Face token with repo + inference permissions.",
   );
