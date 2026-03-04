@@ -14,6 +14,8 @@ Usage:
 Options:
   --skip-local-checks   Skip local deploy readiness checks
   --no-watch            Do not wait/watch GitHub Actions run
+  --skip-secret-audit   Skip GitHub Actions secret presence audit
+  --allow-missing-secrets Continue even when required deploy secrets are missing
   --dry-run             Print actions only, do not execute
   --help, -h            Show help
 
@@ -28,6 +30,14 @@ What this does:
 const dryRun = args.has("--dry-run");
 const skipLocalChecks = args.has("--skip-local-checks");
 const noWatch = args.has("--no-watch");
+const skipSecretAudit = args.has("--skip-secret-audit");
+const allowMissingSecrets = args.has("--allow-missing-secrets");
+
+const REQUIRED_DEPLOY_SECRETS = [
+  "NAMECHEAP_VPS_HOST",
+  "NAMECHEAP_VPS_USER",
+  "NAMECHEAP_VPS_SSH_KEY",
+];
 
 const npmExecPath = process.env.npm_execpath;
 const nodeExecPath = process.execPath;
@@ -115,6 +125,52 @@ function ensureGhAuth() {
   run("Verify GitHub CLI authentication", ghCmd, ["auth", "status"]);
 }
 
+function parseSecretList(raw) {
+  const lines = String(raw || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length <= 1) return [];
+
+  const rows = lines
+    .slice(1)
+    .map((line) => line.split(/\s+/)[0]?.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(rows));
+}
+
+function auditRequiredDeploySecrets() {
+  const result = run(
+    "Audit required GitHub Actions deploy secrets",
+    ghCmd,
+    ["secret", "list"],
+    { capture: true },
+  );
+
+  const listed = parseSecretList(result.stdout);
+  const missing = REQUIRED_DEPLOY_SECRETS.filter((secret) => !listed.includes(secret));
+
+  if (missing.length === 0) {
+    console.log("✅ Required deploy secrets are present in GitHub Actions.");
+    return;
+  }
+
+  console.error("\n❌ Missing required GitHub Actions secrets for Namecheap deploy:");
+  for (const secret of missing) {
+    console.error(`- ${secret}`);
+  }
+  console.error("\nSet these at: GitHub -> Settings -> Secrets and variables -> Actions");
+
+  if (!allowMissingSecrets) {
+    console.error("\nAborting deploy launch. Use --allow-missing-secrets to continue anyway.");
+    process.exit(1);
+  }
+
+  console.warn("\n⚠️ Continuing despite missing required secrets (--allow-missing-secrets).");
+}
+
 function triggerWorkflow() {
   run("Trigger Namecheap deploy workflow", ghCmd, [
     "workflow",
@@ -187,6 +243,13 @@ function showRunDetails(runId) {
   }
 
   ensureGhAuth();
+
+  if (!skipSecretAudit) {
+    auditRequiredDeploySecrets();
+  } else {
+    console.log("\n⚠️ Skipping secret audit (--skip-secret-audit).");
+  }
+
   triggerWorkflow();
 
   if (dryRun) {

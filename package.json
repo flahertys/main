@@ -83,9 +83,12 @@
     "ide:sync:full": "node ./scripts/ide-sync-pipeline.js --install --build --namecheap",
     "ide:sync:deploy-ready": "node ./scripts/ide-sync-pipeline.js --install --build --namecheap --strict-namecheap",
     "deploy:launch": "node ./scripts/launch-website-deploy.js",
+    "deploy:launch:strict": "node ./scripts/launch-website-deploy.js",
     "deploy:launch:dry-run": "node ./scripts/launch-website-deploy.js --dry-run",
     "deploy:launch:no-watch": "node ./scripts/launch-website-deploy.js --no-watch",
-    "launch:readiness": "npm run check:links && npm run pipeline:quality && npm run check:vercel && npm run snow:env:check"
+    "launch:readiness": "npm run check:links && npm run pipeline:quality && npm run check:vercel && npm run snow:env:check",
+    "launch:readiness:strict": "npm run ide:sync:deploy-ready && npm run ai:env:doctor:strict && npm run social:check && npm run snow:env:check:strict",
+    "launch:professional": "npm run launch:readiness:strict && npm run deploy:launch"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.113",
