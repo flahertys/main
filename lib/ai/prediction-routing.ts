@@ -1,3 +1,6 @@
+import type { AdaptiveRoutingHints } from "@/lib/ai/adaptive-routing-memory";
+import { getTrainingBenchmarkSnapshot } from "@/lib/ai/training-benchmarks";
+
 type PredictionDomain = "stock" | "crypto" | "kalshi" | "general";
 
 type LlmPresetId =
@@ -62,6 +65,16 @@ type PredictionTelemetrySummary = {
       requests: number;
     }>;
   }>;
+};
+
+type AdaptiveInferenceTuning = {
+  effectiveSloProfile: "latency" | "balanced" | "quality";
+  tokenMultiplier: number;
+  temperatureMultiplier: number;
+  topPMultiplier: number;
+  trafficPressure: "low" | "elevated" | "high";
+  benchmarkMaturity: number;
+  reasons: string[];
 };
 
 type ModelPerformance = {
@@ -341,18 +354,142 @@ function parseNumericEnv(name: string, fallback: number, opts?: { min?: number; 
   return value;
 }
 
+function parseBooleanEnv(name: string, fallback: boolean) {
+  const raw = String(process.env[name] || "").trim().toLowerCase();
+  if (!raw) return fallback;
+  if (["1", "true", "yes", "on"].includes(raw)) return true;
+  if (["0", "false", "no", "off"].includes(raw)) return false;
+  return fallback;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function resolveBenchmarkMaturity() {
+  if (!parseBooleanEnv("TRADEHAX_BENCHMARK_GOVERNANCE_ENABLED", true)) {
+    return 0.5;
+  }
+
+  try {
+    const snapshot = getTrainingBenchmarkSnapshot();
+    return clamp(Number(snapshot?.overallScore || 0.5), 0, 1);
+  } catch {
+    return 0.5;
+  }
+}
+
 function getRoutingGates() {
+  const benchmarkMaturity = resolveBenchmarkMaturity();
+
+  const confidenceOffset = benchmarkMaturity >= 0.85 ? -0.6 : benchmarkMaturity <= 0.45 ? 0.8 : 0;
+  const promoOffset = benchmarkMaturity >= 0.85 ? -1 : benchmarkMaturity <= 0.4 ? 1 : 0;
+  const rollbackOffset = benchmarkMaturity >= 0.85 ? 1 : 0;
+
   return {
     minRequests: Math.round(parseNumericEnv("TRADEHAX_CANARY_MIN_REQUESTS", 40, { min: 5, max: 1000 })),
-    minConfidenceGain: parseNumericEnv("TRADEHAX_CANARY_MIN_CONFIDENCE_GAIN", 3, { min: 0, max: 30 }),
+    minConfidenceGain: clamp(
+      parseNumericEnv("TRADEHAX_CANARY_MIN_CONFIDENCE_GAIN", 3, { min: 0, max: 30 }) + confidenceOffset,
+      0,
+      30,
+    ),
     maxFallbackRate: parseNumericEnv("TRADEHAX_CANARY_MAX_FALLBACK_RATE", 18, { min: 0, max: 100 }),
     maxFallbackDelta: parseNumericEnv("TRADEHAX_CANARY_MAX_FALLBACK_DELTA", 5, { min: 0, max: 100 }),
     hysteresis: parseNumericEnv("TRADEHAX_CANARY_HYSTERESIS", 1.5, { min: 0, max: 30 }),
     cooldownMinutes: Math.round(parseNumericEnv("TRADEHAX_CANARY_COOLDOWN_MINUTES", 30, { min: 0, max: 60 * 24 })),
     windowSize: Math.round(parseNumericEnv("TRADEHAX_CANARY_WINDOW_SIZE", 240, { min: 20, max: 3000 })),
     rolloutPercent: Math.round(parseNumericEnv("TRADEHAX_CANARY_ROLLOUT_PERCENT", 15, { min: 0, max: 100 })),
-    promotionStreak: Math.round(parseNumericEnv("TRADEHAX_CANARY_PROMOTION_STREAK", 3, { min: 1, max: 10 })),
-    rollbackStreak: Math.round(parseNumericEnv("TRADEHAX_CANARY_ROLLBACK_STREAK", 2, { min: 1, max: 10 })),
+    promotionStreak: Math.round(
+      clamp(parseNumericEnv("TRADEHAX_CANARY_PROMOTION_STREAK", 3, { min: 1, max: 10 }) + promoOffset, 1, 10),
+    ),
+    rollbackStreak: Math.round(
+      clamp(parseNumericEnv("TRADEHAX_CANARY_ROLLBACK_STREAK", 2, { min: 1, max: 10 }) + rollbackOffset, 1, 10),
+    ),
+  };
+}
+
+function getRecentTrafficPressure() {
+  const store = getTelemetryStore();
+  if (store.length === 0) return "low" as const;
+
+  const windowMinutes = Math.round(parseNumericEnv("TRADEHAX_SMARTNESS_TRAFFIC_WINDOW_MIN", 5, { min: 1, max: 60 }));
+  const highThreshold = Math.round(parseNumericEnv("TRADEHAX_SMARTNESS_TRAFFIC_HIGH_RPM", 120, { min: 10, max: 5000 }));
+  const elevatedThreshold = Math.round(parseNumericEnv("TRADEHAX_SMARTNESS_TRAFFIC_ELEVATED_RPM", 60, { min: 5, max: 5000 }));
+
+  const cutoff = Date.now() - windowMinutes * 60_000;
+  const recent = store.filter((row) => Date.parse(row.timestamp) >= cutoff);
+  const rpm = recent.length / windowMinutes;
+
+  if (rpm >= highThreshold) return "high" as const;
+  if (rpm >= elevatedThreshold) return "elevated" as const;
+  return "low" as const;
+}
+
+export function resolveAdaptiveInferenceTuning(input: {
+  domain: PredictionDomain;
+  presetId?: LlmPresetId;
+  sloProfile: "latency" | "balanced" | "quality";
+  routingHints?: AdaptiveRoutingHints | null;
+}) : AdaptiveInferenceTuning {
+  const benchmarkMaturity = resolveBenchmarkMaturity();
+  const pressure = getRecentTrafficPressure();
+  const reasons: string[] = [];
+
+  let effectiveSloProfile: "latency" | "balanced" | "quality" = input.sloProfile;
+  let tokenMultiplier = 1;
+  let temperatureMultiplier = 1;
+  let topPMultiplier = 1;
+
+  if (pressure === "high" && input.sloProfile !== "quality") {
+    effectiveSloProfile = "latency";
+    tokenMultiplier *= 0.78;
+    temperatureMultiplier *= 0.94;
+    topPMultiplier *= 0.96;
+    reasons.push("traffic_high_latency_bias");
+  } else if (pressure === "elevated" && input.sloProfile === "balanced") {
+    tokenMultiplier *= 0.9;
+    reasons.push("traffic_elevated_token_trim");
+  }
+
+  if (benchmarkMaturity >= 0.85 && input.sloProfile === "quality") {
+    tokenMultiplier *= 1.12;
+    topPMultiplier *= 1.02;
+    reasons.push("benchmark_high_quality_expand");
+  } else if (benchmarkMaturity <= 0.4) {
+    tokenMultiplier *= 0.88;
+    temperatureMultiplier *= 0.93;
+    reasons.push("benchmark_low_stability_guard");
+  }
+
+  if (input.presetId === "deep_research" && pressure !== "high") {
+    tokenMultiplier *= 1.08;
+    reasons.push("preset_deep_research_bonus");
+  }
+
+  if (input.routingHints) {
+    tokenMultiplier *= input.routingHints.tokenMultiplierHint;
+    temperatureMultiplier *= input.routingHints.temperatureMultiplierHint;
+    topPMultiplier *= input.routingHints.topPMultiplierHint;
+
+    if (input.routingHints.sloBias === "latency" && effectiveSloProfile !== "quality") {
+      effectiveSloProfile = "latency";
+      reasons.push("routing_memory_latency_bias");
+    } else if (input.routingHints.sloBias === "quality" && pressure === "low") {
+      effectiveSloProfile = "quality";
+      reasons.push("routing_memory_quality_bias");
+    }
+
+    reasons.push(...input.routingHints.reasons.slice(0, 3));
+  }
+
+  return {
+    effectiveSloProfile,
+    tokenMultiplier: clamp(tokenMultiplier, 0.6, 1.35),
+    temperatureMultiplier: clamp(temperatureMultiplier, 0.7, 1.2),
+    topPMultiplier: clamp(topPMultiplier, 0.8, 1.08),
+    trafficPressure: pressure,
+    benchmarkMaturity: Number.parseFloat(benchmarkMaturity.toFixed(3)),
+    reasons,
   };
 }
 
@@ -872,6 +1009,7 @@ export function getPredictionRoutingOverrides() {
 }
 
 export type {
+    AdaptiveInferenceTuning,
     DomainRoutingGovernance, DomainRoutingOverrideMode, DomainSignal,
     LlmPresetConfig,
     LlmPresetId,

@@ -1,32 +1,61 @@
+import {
+    applyAccuracyConfidenceAdjustment,
+    recordAccuracyGovernorEvent,
+    resolveAccuracyGovernorPlan,
+} from "@/lib/ai/accuracy-governor";
+import {
+    getAdaptiveRoutingHints,
+    recordAdaptiveRoutingOutcome,
+} from "@/lib/ai/adaptive-routing-memory";
+import {
+    recordComplexProblemPlannerEvent,
+    resolveComplexProblemPlan,
+} from "@/lib/ai/complex-problem-planner";
 import { checkCredits, deductCredits, getCreditSnapshot } from "@/lib/ai/credit-system";
 import { buildTradeHaxSystemPrompt } from "@/lib/ai/custom-llm/system-prompt";
-import { cacheManager } from "@/lib/ai/response-cache";
-import { recordStreamTelemetry } from "@/lib/ai/telemetry-store";
 import { getLLMClient } from "@/lib/ai/hf-server";
+import {
+    buildPersonalizedDirective,
+    resolvePersonalizedIntelligenceContext,
+} from "@/lib/ai/individualized-intelligence";
 import { NeuralQuery, processNeuralCommand } from "@/lib/ai/kernel";
 import { buildLiveMarketContext } from "@/lib/ai/market-freshness";
 import { applyOdinChatTuning, resolveOdinRuntimeProfile } from "@/lib/ai/odin-profile";
 import {
-  inferPredictionDomain,
-  resolveLlmPreset,
-  resolvePredictionModel,
-} from "@/lib/ai/prediction-routing";
-import { formatRetrievalContext, retrieveRelevantContext } from "@/lib/ai/retriever";
+    getPersonalizedTrajectorySnapshot,
+    recordPersonalizedTrajectoryEvent,
+} from "@/lib/ai/personalized-trajectory-memory";
 import {
-  canConsumeFeature,
-  tierSupportsNeuralMode,
-  tryConsumeFeatureUsageSecure,
+    inferPredictionDomain,
+    recordPredictionTelemetry,
+    resolveAdaptiveInferenceTuning,
+    resolveLlmPreset,
+    resolvePredictionModel,
+} from "@/lib/ai/prediction-routing";
+import {
+  recordAdversarialVerifierEvent,
+  resolveAdversarialVerifierPlan,
+  verifyResponseAdversarially,
+} from "@/lib/ai/response-verifier";
+import { enqueueRetrainExportCandidate } from "@/lib/ai/retrain-export-queue";
+import { cacheManager } from "@/lib/ai/response-cache";
+import { formatRetrievalContext, retrieveRelevantContext } from "@/lib/ai/retriever";
+import { recordStreamTelemetry } from "@/lib/ai/telemetry-store";
+import {
+    canConsumeFeature,
+    tierSupportsNeuralMode,
+    tryConsumeFeatureUsageSecure,
 } from "@/lib/monetization/engine";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
 import {
-  enforceRateLimit,
-  enforceTrustedOrigin,
-  isJsonContentType,
-  sanitizePlainText,
+    enforceRateLimit,
+    enforceTrustedOrigin,
+    isJsonContentType,
+    sanitizePlainText,
 } from "@/lib/security";
 import { createUIMessageStream, createUIMessageStreamResponse, UIMessage } from "ai";
-import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "node:crypto";
 
 type ChatRole = "system" | "user" | "assistant";
 type NeuralTier = "STANDARD" | "UNCENSORED" | "OVERCLOCK" | "HFT_SIGNAL" | "GUITAR_LESSON";
@@ -378,6 +407,10 @@ function applySloPreset(profile: SloProfile, presetValues: { temperature: number
   };
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function rankModelCandidates(primaryModel: string, domainModel: string, sloProfile: SloProfile) {
   const ordered = [primaryModel, domainModel, ...parseFallbackModels()]
     .map((model) => sanitizeModelId(model, "Qwen/Qwen2.5-7B-Instruct"))
@@ -400,6 +433,25 @@ function rankModelCandidates(primaryModel: string, domainModel: string, sloProfi
     const bScore = scoreModelHealth(b) + bLatencyBias + bQualityBias + (b === primaryModel ? -8 : 0);
     return aScore - bScore;
   });
+}
+
+function prioritizeCandidatesWithHints(input: {
+  candidates: string[];
+  preferredModel: string | null;
+  avoidModels: string[];
+}) {
+  const avoid = new Set(input.avoidModels || []);
+  const filtered = input.candidates.filter((model) => !avoid.has(model));
+  const safeCandidates = filtered.length > 0 ? filtered : input.candidates;
+
+  if (!input.preferredModel || !safeCandidates.includes(input.preferredModel)) {
+    return safeCandidates;
+  }
+
+  return [
+    input.preferredModel,
+    ...safeCandidates.filter((model) => model !== input.preferredModel),
+  ];
 }
 
 function evaluateResponseQuality(text: string): QualitySummary {
@@ -760,12 +812,110 @@ export async function POST(request: NextRequest) {
       maxTokens: preset.maxTokens,
       topP: preset.topP,
     });
-    const tunedSlo = applySloPreset(sloProfile, tunedPreset);
+
+    const personalizedContext = await resolvePersonalizedIntelligenceContext({
+      userId,
+      domain: domainSignal.domain,
+      requestedSlo: sloProfile,
+    });
+
+    const complexityPlan = resolveComplexProblemPlan({
+      prompt: userPrompt,
+      objective: body.objective,
+      contextText: serializeContext(body.context),
+      conversationDepth: normalizedMessages.length,
+      requestedSloProfile: personalizedContext?.tuningHints.preferredSloProfile || sloProfile,
+      personalizedContext,
+    });
+
+    const initialTrajectorySnapshot = await getPersonalizedTrajectorySnapshot({
+      userId,
+      horizonHours: 72,
+    }).catch(() => null);
+
+    const accuracyPlan = resolveAccuracyGovernorPlan({
+      domain: domainSignal.domain,
+      requestedSloProfile:
+        complexityPlan?.suggestedSloProfile || personalizedContext?.tuningHints.preferredSloProfile || sloProfile,
+      prompt: userPrompt,
+      objective: body.objective,
+      complexityPlan,
+      personalizedContext,
+      trajectorySnapshot: initialTrajectorySnapshot,
+    });
+
+    const verifierPlan = resolveAdversarialVerifierPlan({
+      domain: domainSignal.domain,
+      prompt: userPrompt,
+      objective: body.objective,
+      complexityPlan,
+      accuracyPlan,
+    });
+
+    const requestedAdaptiveSlo =
+      accuracyPlan?.suggestedSloProfile
+      || complexityPlan?.suggestedSloProfile
+      || personalizedContext?.tuningHints.preferredSloProfile
+      || sloProfile;
+
+    const hintSeedCandidates = rankModelCandidates(
+      selectedModel,
+      sanitizeModelId(resolvePredictionModel(domainSignal.domain), selectedModel),
+      sloProfile,
+    );
+
+    const routingHints = await getAdaptiveRoutingHints({
+      domain: domainSignal.domain,
+      candidateModels: hintSeedCandidates,
+      horizonMinutes: 360,
+    });
+
+    const adaptiveTuning = resolveAdaptiveInferenceTuning({
+      domain: domainSignal.domain,
+      presetId: preset.id,
+      sloProfile: requestedAdaptiveSlo,
+      routingHints,
+    });
+
+    const effectiveSloProfile = adaptiveTuning.effectiveSloProfile as SloProfile;
+    const tunedSloBase = applySloPreset(effectiveSloProfile, tunedPreset);
+    const tunedSlo = {
+      temperature: clamp(
+        tunedSloBase.temperature
+          * adaptiveTuning.temperatureMultiplier
+          * (personalizedContext?.tuningHints.temperatureMultiplier || 1)
+          * (complexityPlan?.temperatureMultiplier || 1)
+          * (accuracyPlan?.temperatureMultiplier || 1),
+        0,
+        2,
+      ),
+      topP: clamp(
+        tunedSloBase.topP
+          * adaptiveTuning.topPMultiplier
+          * (personalizedContext?.tuningHints.topPMultiplier || 1)
+          * (complexityPlan?.topPMultiplier || 1)
+          * (accuracyPlan?.topPMultiplier || 1),
+        0.1,
+        1,
+      ),
+      maxTokens: Math.round(
+        clamp(
+          tunedSloBase.maxTokens
+            * adaptiveTuning.tokenMultiplier
+            * (personalizedContext?.tuningHints.tokenMultiplier || 1)
+            * (complexityPlan?.tokenMultiplier || 1)
+            * (accuracyPlan?.tokenMultiplier || 1),
+          128,
+          4096,
+        ),
+      ),
+      targetLatencyMs: tunedSloBase.targetLatencyMs,
+    };
 
     const resolvedStyle =
       body.responseStyle === "concise" || body.responseStyle === "operator" || body.responseStyle === "coach"
         ? body.responseStyle
-        : preset.responseStyle;
+        : (accuracyPlan?.styleBias || complexityPlan?.styleBias || personalizedContext?.tuningHints.styleBias || preset.responseStyle);
 
     const objective = sanitizePlainText(body.objective || "", 200);
     const conversationSignature = normalizedMessages
@@ -812,6 +962,21 @@ export async function POST(request: NextRequest) {
 
     if (liveMarket.enabled && liveMarket.summary) {
       promptLines.push(`Live market context:\n${liveMarket.summary}`);
+    }
+
+    const personalizedDirective = buildPersonalizedDirective(personalizedContext);
+    if (personalizedDirective) {
+      promptLines.push(personalizedDirective);
+    }
+
+    if (complexityPlan) {
+      promptLines.push(
+        `Complexity directive:\n${complexityPlan.directives.join(" ")}\nMode=${complexityPlan.mode}; Score=${complexityPlan.complexityScore}; StepBudget=${complexityPlan.stepBudget}.`,
+      );
+    }
+
+    if (accuracyPlan) {
+      promptLines.push(`Accuracy directive:\n${accuracyPlan.directives.join(" ")}\nStrictness=${accuracyPlan.strictness}.`);
     }
 
     for (const msg of normalizedMessages) {
@@ -880,11 +1045,17 @@ export async function POST(request: NextRequest) {
       debitRemaining = snapshot.balance;
     }
 
-    const modelCandidates = rankModelCandidates(
+    const modelCandidatesRaw = rankModelCandidates(
       selectedModel,
       sanitizeModelId(resolvePredictionModel(domainSignal.domain), selectedModel),
       sloProfile,
     );
+
+    const modelCandidates = prioritizeCandidatesWithHints({
+      candidates: modelCandidatesRaw,
+      preferredModel: routingHints.preferredModel,
+      avoidModels: routingHints.avoidModels,
+    });
 
     const stream = createUIMessageStream({
       originalMessages: Array.isArray(body.messages) ? (body.messages as UIMessage[]) : undefined,
@@ -909,8 +1080,15 @@ export async function POST(request: NextRequest) {
             slashCommand: slashResolution.command,
             preset: preset.id,
             sloProfile,
+            effectiveSloProfile,
             sloTargetLatencyMs: tunedSlo.targetLatencyMs,
             sloMaxTokens: tunedSlo.maxTokens,
+            adaptiveTuning,
+            routingHints,
+            personalizedContext,
+            complexityPlan,
+            accuracyPlan,
+            verifierPlan,
             tier: neuralTier,
             policyMode: body.freedomMode === "uncensored" ? "open-lawful" : "standard",
             lawfulOnly: true,
@@ -1049,8 +1227,124 @@ export async function POST(request: NextRequest) {
           });
         }
 
+        const verifierResult = verifyResponseAdversarially({
+          plan: verifierPlan,
+          prompt: userPrompt,
+          objective: body.objective,
+          response: assistantText,
+        });
+
+        if (verifierResult?.appendix) {
+          const appendixText = `\n\n${verifierResult.appendix}`;
+          assistantText += appendixText;
+          writer.write({
+            type: "text-delta",
+            id: textPartId,
+            delta: appendixText,
+          });
+        }
+
         const quality = evaluateResponseQuality(assistantText);
         const responseLatencyMs = Date.now() - startedAt;
+
+        recordComplexProblemPlannerEvent({
+          plan: complexityPlan,
+          qualityScore: quality.score,
+          latencyMs: responseLatencyMs,
+        });
+
+        const adjustedPredictionConfidence = applyAccuracyConfidenceAdjustment(
+          domainSignal.confidence,
+          accuracyPlan,
+        );
+
+        recordAccuracyGovernorEvent({
+          plan: accuracyPlan,
+          qualityScore: quality.score,
+          latencyMs: responseLatencyMs,
+          adjustedConfidence: adjustedPredictionConfidence,
+        });
+
+        recordAdversarialVerifierEvent({
+          plan: verifierPlan,
+          result: verifierResult,
+        });
+
+        recordPredictionTelemetry({
+          domain: domainSignal.domain,
+          model: effectiveModel,
+          confidence: adjustedPredictionConfidence,
+          provider: effectiveModel === "kernel-fallback" ? "kernel" : "huggingface",
+          fallback: failedModels.length > 0 || !modelCandidates.includes(effectiveModel),
+        });
+
+        await recordAdaptiveRoutingOutcome({
+          domain: domainSignal.domain,
+          model: effectiveModel,
+          sloProfile,
+          effectiveSloProfile,
+          latencyMs: responseLatencyMs,
+          qualityScore: quality.score,
+          fallbackTriggered: sloFallbackTriggered || failedModels.length > 0,
+          trafficPressure: adaptiveTuning.trafficPressure,
+          benchmarkMaturity: adaptiveTuning.benchmarkMaturity,
+        }).catch(() => {
+          // Non-blocking: adaptive memory persistence should never fail user responses.
+        });
+
+        await recordPersonalizedTrajectoryEvent({
+          userId,
+          domain: domainSignal.domain,
+          model: effectiveModel,
+          sloProfile,
+          effectiveSloProfile,
+          latencyMs: responseLatencyMs,
+          qualityScore: quality.score,
+          fallbackTriggered: sloFallbackTriggered || failedModels.length > 0,
+          profileWinRate: personalizedContext?.profile.winRate,
+          profileAvgPnlPercent: personalizedContext?.profile.avgPnlPercent,
+          profileConfidenceAvg: personalizedContext?.profile.confidenceAvg,
+          benchmarkMaturity: adaptiveTuning.benchmarkMaturity,
+        }).catch(() => {
+          // Non-blocking: trajectory memory persistence should never fail user responses.
+        });
+
+        const trajectorySnapshot = await getPersonalizedTrajectorySnapshot({
+          userId,
+          horizonHours: 72,
+        }).catch(() => null);
+
+        const shouldQueueRetrainExport =
+          Boolean(trajectorySnapshot?.retrain.shouldTrigger)
+          && (verifierResult?.riskLevel === "high" || verifierResult?.riskLevel === "critical");
+
+        const retrainQueueResult = shouldQueueRetrainExport
+          ? await enqueueRetrainExportCandidate({
+              userId,
+              domain: domainSignal.domain,
+              model: effectiveModel,
+              sloProfile,
+              effectiveSloProfile,
+              qualityScore: quality.score,
+              verifierScore: verifierResult?.score,
+              verifierRisk: verifierResult?.riskLevel,
+              retrainLevel: trajectorySnapshot?.retrain.level,
+              reasons: [
+                ...(trajectorySnapshot?.retrain.reasons || []),
+                ...(verifierResult?.flags || []),
+              ].filter(Boolean),
+              promptSnippet: userPrompt,
+              responseSnippet: assistantText,
+            }).catch(() => ({
+              queued: false,
+              reason: "queue_error",
+              mode: "memory" as const,
+            }))
+          : {
+              queued: false,
+              reason: "threshold_not_met",
+              mode: "memory" as const,
+            };
 
         // Store response in cache after streaming completes
         await cacheManager
@@ -1109,13 +1403,23 @@ export async function POST(request: NextRequest) {
             slashCommand: slashResolution.command,
             preset: preset.id,
             sloProfile,
+            effectiveSloProfile,
             sloTargetLatencyMs: tunedSlo.targetLatencyMs,
             sloMaxTokens: tunedSlo.maxTokens,
+            adaptiveTuning,
+            routingHints,
+            personalizedContext,
+            trajectorySnapshot,
+            complexityPlan,
+            accuracyPlan,
+            verifierPlan,
+            verifierResult,
+            retrainQueueResult,
             tier: neuralTier,
             policyMode: body.freedomMode === "uncensored" ? "open-lawful" : "standard",
             lawfulOnly: true,
             predictionDomain: domainSignal.domain,
-            predictionConfidence: domainSignal.confidence,
+            predictionConfidence: applyAccuracyConfidenceAdjustment(domainSignal.confidence, accuracyPlan),
             marketFreshnessEnabled: liveMarket.enabled,
             failedModels,
             quality,

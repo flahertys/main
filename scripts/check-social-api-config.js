@@ -2,9 +2,13 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const dotenv = require("dotenv");
 
 const envLocalPath = path.resolve(process.cwd(), ".env.local");
 const strictMode = process.argv.includes("--strict");
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+dotenv.config({ path: envLocalPath, override: true });
 
 const providerRequirements = {
   x: ["X_API_KEY", "X_API_KEY_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_TOKEN_SECRET"],
@@ -45,6 +49,12 @@ function normalizeProviders(raw) {
   if (!raw) {
     return Object.keys(providerRequirements);
   }
+
+  const normalizedRaw = String(raw).trim().toLowerCase();
+  if (["none", "off", "disabled", "false", "0"].includes(normalizedRaw)) {
+    return [];
+  }
+
   return raw
     .split(",")
     .map((v) => v.trim().toLowerCase())
@@ -74,6 +84,12 @@ function getEnvMap() {
       ? "Mode: STRICT (missing variables will fail this check)\n\n"
       : "Mode: WARN-ONLY (missing variables are informational and will not block deploy)\n\n",
   );
+
+  if (providers.length === 0) {
+    process.stdout.write("ℹ️  No social providers are in scope (TRADEHAX_SOCIAL_PROVIDERS=none/off).\n");
+    process.stdout.write("✅ Social API strict check passed because social publishing is intentionally disabled.\n");
+    process.exit(0);
+  }
 
   let warningCount = 0;
 
