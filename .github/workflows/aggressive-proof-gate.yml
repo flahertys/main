@@ -1,0 +1,104 @@
+name: Aggressive Proof Gate
+
+on:
+  schedule:
+    - cron: "12 6 * * *"
+  workflow_dispatch:
+    inputs:
+      strict:
+        description: "Run strict aggressive mode (fail-fast)"
+        required: false
+        default: "false"
+      minScore:
+        description: "Minimum excellence score threshold (0-100)"
+        required: false
+        default: "95"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/aggressive-dev-loop.js"
+      - "scripts/verify-aggressive-dev-report.js"
+      - "package.json"
+      - ".github/workflows/aggressive-proof-gate.yml"
+
+jobs:
+  proof-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve gate settings
+        id: settings
+        shell: bash
+        run: |
+          STRICT_INPUT="${{ github.event.inputs.strict || 'false' }}"
+          SCORE_INPUT="${{ github.event.inputs.minScore || '95' }}"
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            STRICT_INPUT="false"
+            SCORE_INPUT="95"
+          fi
+          echo "strict=$STRICT_INPUT" >> "$GITHUB_OUTPUT"
+          echo "minScore=$SCORE_INPUT" >> "$GITHUB_OUTPUT"
+
+      - name: Run aggressive loop (standard)
+        if: ${{ steps.settings.outputs.strict != 'true' }}
+        run: npm run dev:aggressive:quick
+
+      - name: Run aggressive loop (strict)
+        if: ${{ steps.settings.outputs.strict == 'true' }}
+        run: npm run dev:aggressive:quick:strict
+
+      - name: Verify report integrity + excellence threshold
+        run: npm run dev:aggressive:verify -- --min-score ${{ steps.settings.outputs.minScore }}
+
+      - name: Publish proof summary
+        if: always()
+        shell: bash
+        run: |
+          node -e "
+            const fs = require('fs');
+            const p = '.artifacts/aggressive-dev-report.json';
+            if (!fs.existsSync(p)) {
+              process.stdout.write('## Aggressive Proof Summary\\n\\nNo report generated.\\n');
+              process.exit(0);
+            }
+            const r = JSON.parse(fs.readFileSync(p, 'utf8'));
+            const lines = [
+              '## Aggressive Proof Summary',
+              '',
+              `- Success: ${r.execution?.success ? 'yes' : 'no'}`,
+              `- Mode: ${r.metadata?.mode}`,
+              `- Strict: ${r.metadata?.strict ? 'yes' : 'no'}`,
+              `- Coverage: ${r.summary?.coveragePct}%`,
+              `- Pass rate: ${r.summary?.passRatePct}%`,
+              `- Passed steps: ${r.summary?.passed}`,
+              `- Failed steps: ${r.summary?.failed}`,
+              `- Integrity hash: ${r.integrity?.hash}`,
+            ];
+            process.stdout.write(lines.join('\\n') + '\\n');
+          " >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload aggressive proof artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aggressive-proof-artifacts
+          retention-days: 14
+          path: |
+            .artifacts/aggressive-dev-report.json
+            .artifacts/aggressive-dev-report.sha256
+            .artifacts/aggressive-dev-plan.json

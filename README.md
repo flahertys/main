@@ -266,6 +266,9 @@ npm run dev:aggressive:verify
 
 # Run + verify in one command
 npm run dev:aggressive:prove
+
+# Elite threshold proof (95+)
+npm run dev:aggressive:prove:elite
 ```
 
 Each run outputs:
@@ -273,6 +276,8 @@ Each run outputs:
 - `.artifacts/aggressive-dev-report.json` (execution proof)
 - `.artifacts/aggressive-dev-report.sha256` (integrity checksum)
 - `.artifacts/aggressive-dev-plan.json` (planned objectives and step map)
+
+An autonomous CI workflow (`.github/workflows/aggressive-proof-gate.yml`) also runs this proof gate on schedule and key automation changes.
 
 ### Troubleshooting
 
