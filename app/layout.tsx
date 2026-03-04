@@ -164,7 +164,7 @@ export default function RootLayout({
                 className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-xl border-b border-white/5"
               >
                 <MarketTicker />
-                <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+                <div className="layout-shell container mx-auto h-16 flex items-center justify-between gap-3 sm:gap-4">
                   <div className="text-xl font-black tracking-tighter cursor-none">
                     <GlitchText text="TRADEHAX" />
                   </div>
@@ -190,7 +190,7 @@ export default function RootLayout({
                   <MobileMenu />
                 </div>
               </nav>
-              <main id="global-main-content" role="main" className="bg-cyber-grid pt-28">
+              <main id="global-main-content" role="main" className="bg-cyber-grid pt-24 sm:pt-28">
                 <PageTransition>
                   {children}
                 </PageTransition>
@@ -198,7 +198,7 @@ export default function RootLayout({
               <a
                 href="/ai-hub"
                 aria-label="Open AI Hub quick launch"
-                className="fixed bottom-6 left-4 z-40 inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/20 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-cyan-100 shadow-[0_0_24px_rgba(6,182,212,0.35)] transition-all hover:bg-cyan-500/30 hover:text-white md:bottom-8 md:left-8"
+                className="fixed bottom-4 left-3 z-40 hidden sm:inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/20 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-cyan-100 shadow-[0_0_24px_rgba(6,182,212,0.35)] transition-all hover:bg-cyan-500/30 hover:text-white md:bottom-8 md:left-8"
               >
                 <span aria-hidden>⚡</span>
                 <span>AI Quick Launch</span>
@@ -208,8 +208,8 @@ export default function RootLayout({
           </ChainSessionProvider>
           <Toaster position="bottom-right" theme="dark" closeButton />
           <Analytics />
-          <footer className="py-20 border-t border-white/5 bg-black">
-            <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+          <footer className="py-14 sm:py-20 border-t border-white/5 bg-black">
+            <div className="layout-shell container mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 sm:gap-12">
               <div className="col-span-1 md:col-span-2">
                 <div className="text-2xl font-black tracking-tighter mb-4">TRADEHAX</div>
                 <p className="text-zinc-500 text-sm max-w-xs leading-relaxed">
@@ -259,7 +259,7 @@ export default function RootLayout({
                 </ul>
               </div>
             </div>
-            <div className="container mx-auto px-6 mt-20 pt-8 border-t border-white/5 text-[10px] font-mono text-zinc-600 flex justify-between">
+            <div className="layout-shell container mx-auto mt-10 sm:mt-20 pt-6 sm:pt-8 border-t border-white/5 text-[10px] font-mono text-zinc-600 flex flex-col gap-2 sm:flex-row sm:justify-between text-center sm:text-left">
               <span>© 2024 TRADEHAX_SYSTEMS_INC.</span>
               <span>SYSTEM_STATUS: ALL_SYSTEMS_NOMINAL</span>
             </div>

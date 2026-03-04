@@ -62,13 +62,13 @@ export const MobileMenu = () => {
       )}
 
       {/* Drawer */}
-      <div id={menuPanelId} className={`fixed top-0 right-0 w-[85%] h-full z-[70] transform transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none motion-reduce:duration-0 bg-[rgba(10,12,16,0.9)] supports-[backdrop-filter]:bg-[rgba(10,12,16,0.86)] backdrop-blur-md border-l border-cyan-400/20 ${isOpen ? 'translate-x-0 shadow-[-20px_0_50px_rgba(6,182,212,0.16)]' : 'translate-x-full'}`}>
+      <div id={menuPanelId} className={`fixed top-0 right-0 h-full w-[min(90vw,420px)] z-[70] transform transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none motion-reduce:duration-0 bg-[rgba(10,12,16,0.9)] supports-[backdrop-filter]:bg-[rgba(10,12,16,0.86)] backdrop-blur-md border-l border-cyan-400/20 ${isOpen ? 'translate-x-0 shadow-[-20px_0_50px_rgba(6,182,212,0.16)]' : 'translate-x-full'}`}>
         <div className="absolute inset-0 scanline opacity-20" />
-        <div className="p-8 h-full flex flex-col relative z-10">
+        <div className="p-5 sm:p-8 h-full flex flex-col relative z-10 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <div className="flex justify-between items-center mb-16">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-              <span className="text-[10px] font-mono text-cyan-500 uppercase tracking-[0.4em]">Neural_Link_Active</span>
+              <span className="text-[10px] font-mono text-cyan-500 uppercase tracking-[0.22em] sm:tracking-[0.4em]">Neural_Link_Active</span>
             </div>
             <button onClick={toggleMenu} className="text-zinc-200 hover:text-white transition-colors motion-reduce:transition-none font-mono text-[11px] tracking-widest border border-white/20 px-3 py-1.5 rounded-full bg-white/10" aria-label="Close mobile menu">
               [ CLOSE ]
