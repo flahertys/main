@@ -241,6 +241,29 @@ node ./scripts/one-button-deploy.js --prod --dry-run
 
 The script uses `npx vercel@latest` so a global Vercel install is not required.
 
+### Aggressive Website + LLM Development Loop
+
+Run a high-intensity local loop that continuously hardens website quality, internal links, and LLM readiness checks with a report artifact:
+
+```bash
+# Full aggressive loop
+npm run dev:aggressive
+
+# Faster pass for frequent iteration
+npm run dev:aggressive:quick
+
+# Keep running remaining steps even if one fails
+npm run dev:aggressive:continue
+
+# Include deploy launcher dry-run audit
+npm run dev:aggressive:deploy-ready
+
+# Strict mode (fail fast)
+npm run dev:aggressive:strict
+```
+
+Each run outputs `.artifacts/aggressive-dev-report.json` with per-step status and duration for disciplined iteration.
+
 ### Troubleshooting
 
 If your site is not live after deployment:
