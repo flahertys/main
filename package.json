@@ -89,7 +89,9 @@
     "deploy:launch:no-watch": "node ./scripts/launch-website-deploy.js --no-watch",
     "launch:readiness": "npm run check:links && npm run pipeline:quality && npm run check:vercel && npm run snow:env:check",
     "launch:readiness:strict": "npm run ide:sync:deploy-ready && npm run ai:env:doctor:strict && npm run social:check && npm run snow:env:check:strict",
-    "launch:professional": "npm run launch:readiness:strict && npm run deploy:launch"
+    "launch:professional": "npm run launch:readiness:strict && npm run deploy:launch",
+    "perf:convert-images": "bash scripts/convert-images-to-webp.sh",
+    "perf:analyze": "ANALYZE=true npm run build"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.113",
@@ -136,6 +138,7 @@
     "postcss": "^8",
     "rimraf": "^5.0.0",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "@next/bundle-analyzer": "^15.0.0"
   }
 }

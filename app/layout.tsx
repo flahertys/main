@@ -17,6 +17,7 @@ import { GlitchText } from "@/components/ui/GlitchText";
 import { MarketTicker } from "@/components/ui/MarketTicker";
 import { MobileMenu } from "@/components/ui/MobileMenu";
 import { PageTransition } from "@/components/ui/PageTransition";
+import { PrefetchController } from "@/components/ui/PrefetchController";
 import { ServiceWorkerCleanup } from "@/components/ui/ServiceWorkerCleanup";
 import { scheduleLinks } from "@/lib/booking";
 import { businessProfile } from "@/lib/business-profile";
@@ -24,7 +25,7 @@ import { getLocalBusinessJsonLd } from "@/lib/seo";
 import { siteConfig } from "@/lib/site-config";
 import { WalletProvider } from "@/lib/wallet-provider";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -114,6 +115,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
+        {/* Preconnect to Google Fonts and CDN origins to reduce latency */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* DNS-prefetch for analytics and other third-party origins */}
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
         <Script id="tradehax-localbusiness-jsonld" type="application/ld+json" strategy="beforeInteractive">
           {JSON.stringify(localBusinessJsonLd)}
         </Script>
@@ -145,6 +152,7 @@ export default function RootLayout({
         </a>
         <AuthProvider>
           <ServiceWorkerCleanup />
+          <PrefetchController />
           <CinematicFxLayer />
           <CyberCursor />
           <HyperboreaIntroOverlay />

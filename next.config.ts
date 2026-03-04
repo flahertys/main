@@ -3,6 +3,15 @@ import { siteConfig } from "./lib/site-config";
 
 const useStaticExport = process.env.NEXT_FORCE_STATIC_EXPORT === "1";
 
+// Bundle analyzer is an optional dev tool; load it only when ANALYZE=true to
+// avoid a hard dependency on the package in production builds.
+type BundleAnalyzerWrapper = (config: NextConfig) => NextConfig;
+const withBundleAnalyzer: BundleAnalyzerWrapper =
+  process.env.ANALYZE === "true"
+    ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+      (require("@next/bundle-analyzer") as (opts: { enabled: boolean }) => BundleAnalyzerWrapper)({ enabled: true })
+    : (c) => c;
+
 const nextConfig: NextConfig = {
   // Enable static export only when explicitly requested.
   // Dynamic routes (OAuth, leaderboard APIs, claim queue) require server output.
@@ -37,7 +46,7 @@ const nextConfig: NextConfig = {
 
   // Experimental features - Enable ALL
   experimental: {
-    optimizePackageImports: ["lucide-react"],
+    optimizePackageImports: ["lucide-react", "framer-motion"],
     optimisticClientCache: true,
     // Enable all experimental features for maximum functionality
   },
@@ -62,6 +71,7 @@ const nextConfig: NextConfig = {
       return [];
     }
     return [
+      // ── Security headers for all routes ──────────────────────────────────
       {
         source: "/:path*",
         headers: [
@@ -87,6 +97,26 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // ── Immutable cache for fingerprinted static assets ───────────────────
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      // ── Long cache for public media assets ────────────────────────────────
+      {
+        source: "/:path*.(woff|woff2|ttf|otf|eot|ico|svg|png|jpg|jpeg|webp|avif|mp3|mp4|webm)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=604800, stale-while-revalidate=86400",
+          },
+        ],
+      },
     ];
   },
 
@@ -105,4 +135,5 @@ const nextConfig: NextConfig = {
   // Configure headers at the hosting level (GitHub Pages, Vercel, etc.)
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);
+
