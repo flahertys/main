@@ -36,14 +36,14 @@ export function HeroSection() {
       <div className="absolute inset-0 z-[1] bg-gradient-to-r from-black/40 via-transparent to-black/40 pointer-events-none" />
 
       {/* Radial glow behind content */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[460px] h-[460px] sm:w-[620px] sm:h-[620px] lg:w-[800px] lg:h-[800px] bg-[radial-gradient(circle,rgba(0,240,255,0.06)_0%,transparent_70%)] z-[1] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] sm:w-[620px] sm:h-[620px] lg:w-[800px] lg:h-[800px] bg-[radial-gradient(circle,rgba(0,240,255,0.06)_0%,transparent_70%)] z-[1] pointer-events-none" />
       <div className="mythic-circuit-overlay z-[1]" />
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 text-center pt-10 sm:pt-0">
+      <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 text-center pt-8 sm:pt-0">
         {/* Badge */}
         <div
-          className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 mb-8 sm:mb-10 rounded-full border border-[#00F0FF]/20 bg-[#00F0FF]/5 backdrop-blur-md text-[#00F0FF] text-xs sm:text-sm font-medium tracking-wide opacity-0 animate-slide-up-fade [animation-delay:0.1s]"
+          className="inline-flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 mb-7 sm:mb-10 rounded-full border border-[#00F0FF]/20 bg-[#00F0FF]/5 backdrop-blur-md text-[#00F0FF] text-[11px] sm:text-sm font-medium tracking-wide opacity-0 animate-slide-up-fade [animation-delay:0.1s]"
         >
           <span className="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse" />
           AI-Powered Multi-Chain Trading · ODIN Lattice
@@ -51,7 +51,7 @@ export function HeroSection() {
 
         {/* Main headline */}
         <h1
-          className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-bold tracking-tight mb-5 sm:mb-6 opacity-0 animate-slide-up-fade [animation-delay:0.2s]"
+          className="text-3xl sm:text-6xl md:text-8xl lg:text-9xl font-bold tracking-tight leading-[0.95] mb-4 sm:mb-6 opacity-0 animate-slide-up-fade [animation-delay:0.2s]"
         >
           <span className="block sm:inline bg-gradient-to-r from-white via-gray-100 to-gray-300 text-transparent bg-clip-text">
             Trade
@@ -63,7 +63,7 @@ export function HeroSection() {
 
         {/* Subheadline */}
         <p
-          className="text-base sm:text-xl md:text-2xl lg:text-3xl text-gray-400 font-light mb-4 max-w-3xl mx-auto opacity-0 animate-slide-up-fade [animation-delay:0.35s]"
+          className="text-sm sm:text-xl md:text-2xl lg:text-3xl text-gray-400 font-light mb-4 max-w-3xl mx-auto opacity-0 animate-slide-up-fade [animation-delay:0.35s]"
         >
           Smarter trading through{" "}
           <span className="text-white font-medium">artificial intelligence</span>{" "}
@@ -72,7 +72,7 @@ export function HeroSection() {
         </p>
 
         <p
-          className="text-sm sm:text-base md:text-lg text-gray-500 mb-10 sm:mb-12 max-w-2xl mx-auto opacity-0 animate-slide-up-fade [animation-delay:0.45s]"
+          className="text-xs sm:text-base md:text-lg text-gray-500 mb-8 sm:mb-12 max-w-2xl mx-auto opacity-0 animate-slide-up-fade [animation-delay:0.45s]"
         >
           Join 10,000+ traders leveraging real-time flow intelligence, catalyst-aware scenario engines,
           and decentralized execution across modern chains.
@@ -96,7 +96,7 @@ export function HeroSection() {
           >
             <Button
               size="lg"
-              className="relative w-full sm:w-auto bg-[#00F0FF] hover:bg-[#00d4e0] text-black font-semibold px-8 sm:px-10 py-6 sm:py-7 text-base sm:text-lg rounded-xl transition-all duration-300 shadow-[0_0_30px_rgba(0,240,255,0.3)] hover:shadow-[0_0_50px_rgba(0,240,255,0.5)] group"
+              className="relative w-full sm:w-auto bg-[#00F0FF] hover:bg-[#00d4e0] text-black font-semibold px-6 sm:px-10 py-4 sm:py-7 text-sm sm:text-lg rounded-xl transition-all duration-300 shadow-[0_0_30px_rgba(0,240,255,0.3)] hover:shadow-[0_0_50px_rgba(0,240,255,0.5)] group"
             >
               {primaryLabel}
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -114,7 +114,7 @@ export function HeroSection() {
             <Button
               size="lg"
               variant="outline"
-              className="w-full sm:w-auto border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 hover:bg-white/5 backdrop-blur-sm px-8 sm:px-10 py-6 sm:py-7 text-base sm:text-lg rounded-xl transition-all duration-300 group"
+              className="w-full sm:w-auto border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 hover:bg-white/5 backdrop-blur-sm px-6 sm:px-10 py-4 sm:py-7 text-sm sm:text-lg rounded-xl transition-all duration-300 group"
             >
               <Play className="mr-2 w-5 h-5 group-hover:scale-110 transition-transform" />
               {secondaryLabel}
@@ -152,7 +152,7 @@ export function HeroSection() {
               surface="landing_hero:route_matrix"
               conversionContext={{ placement: "route_matrix", variant: `scout:exp_${variant}`, audience: "new", experiment: "landing_hero_primary_cta" }}
               ariaLabel="Open Scout Mode in AI Hub"
-              className="interactive-surface rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3 sm:p-4 transition-colors hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70"
+              className="interactive-surface min-h-[130px] rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3 sm:p-4 transition-colors hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70"
             >
               <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-200/80">Beginner · Scout Mode</p>
               <p className="mt-1 text-sm font-semibold text-emerald-50">Start in 60 seconds</p>
@@ -165,7 +165,7 @@ export function HeroSection() {
               surface="landing_hero:route_matrix"
               conversionContext={{ placement: "route_matrix", variant: `forge:exp_${variant}`, audience: "returning", experiment: "landing_hero_primary_cta" }}
               ariaLabel="Open Forge Mode in AI Hub"
-              className="interactive-surface rounded-xl border border-cyan-400/25 bg-cyan-500/10 p-3 sm:p-4 transition-colors hover:bg-cyan-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+              className="interactive-surface min-h-[130px] rounded-xl border border-cyan-400/25 bg-cyan-500/10 p-3 sm:p-4 transition-colors hover:bg-cyan-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
             >
               <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-200/80">Intermediate · Forge Mode</p>
               <p className="mt-1 text-sm font-semibold text-cyan-50">Run your daily edge loop</p>
@@ -178,7 +178,7 @@ export function HeroSection() {
               surface="landing_hero:route_matrix"
               conversionContext={{ placement: "route_matrix", variant: `odin:exp_${variant}`, audience: "returning", experiment: "landing_hero_primary_cta" }}
               ariaLabel="Open ODIN advanced mode in AI Hub"
-              className="interactive-surface rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/10 p-3 sm:p-4 transition-colors hover:bg-fuchsia-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70"
+              className="interactive-surface min-h-[130px] rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/10 p-3 sm:p-4 transition-colors hover:bg-fuchsia-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70"
             >
               <p className="text-[11px] uppercase tracking-[0.18em] text-fuchsia-200/80">Advanced · ODIN Mode</p>
               <p className="mt-1 text-sm font-semibold text-fuchsia-50">Operator-grade control</p>

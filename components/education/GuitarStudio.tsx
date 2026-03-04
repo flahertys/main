@@ -9,21 +9,21 @@ const curriculum = [
 
 export const GuitarStudio = () => {
   return (
-    <section className="py-32 bg-black relative overflow-hidden">
+    <section className="py-16 sm:py-24 lg:py-32 bg-black relative overflow-hidden">
       {/* Background Ambience */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[260px] h-[260px] sm:w-[500px] sm:h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="container mx-auto px-6">
+      <div className="container mx-auto px-4 sm:px-6">
         {/* Header: The Meat & Potatoes */}
-        <div className="mb-20">
+        <div className="mb-12 sm:mb-20">
           <div className="flex items-center gap-4 mb-4">
             <div className="h-px w-12 bg-cyan-500" />
             <span className="text-[10px] font-mono text-cyan-500 uppercase tracking-[0.5em]">Primary_Transmission</span>
           </div>
-          <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter uppercase italic leading-none">
+          <h2 className="text-4xl sm:text-6xl md:text-8xl font-black text-white tracking-tighter uppercase italic leading-[0.95] break-words">
             GUITAR_<span className="text-cyan-500">STUDIO</span>
           </h2>
-          <p className="text-zinc-500 mt-6 max-w-2xl text-lg font-medium leading-relaxed">
+          <p className="text-zinc-500 mt-5 sm:mt-6 max-w-2xl text-base sm:text-lg font-medium leading-relaxed">
             Direct 1-on-1 elite instruction from the TradeHax lead architect.
             Bridging the gap between raw talent and high-performance session mastery.
           </p>
@@ -33,9 +33,9 @@ export const GuitarStudio = () => {
 
           {/* Main Visual: YouTube Console */}
           <div className="lg:col-span-8 space-y-6">
-            <div className="relative p-1 glass-panel rounded-[2.5rem] overflow-hidden shadow-2xl group">
+            <div className="relative p-1 glass-panel rounded-3xl sm:rounded-[2.5rem] overflow-hidden shadow-2xl group">
               <div className="scanline" />
-              <div className="aspect-video rounded-[2.2rem] overflow-hidden bg-black relative">
+              <div className="aspect-video rounded-[1.4rem] sm:rounded-[2.2rem] overflow-hidden bg-black relative">
                 <iframe
                   className="w-full h-full relative z-10 opacity-90 group-hover:opacity-100 transition-opacity"
                   src="https://www.youtube.com/embed?listType=user_uploads&list=tradehax"
@@ -49,25 +49,25 @@ export const GuitarStudio = () => {
 
             {/* Telemetry Board & Quick Links */}
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-6 bg-zinc-950 border border-white/5 rounded-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 sm:p-6 bg-zinc-950 border border-white/5 rounded-2xl">
                   <p className="text-[10px] text-zinc-600 font-mono uppercase mb-2 tracking-widest">Active_Students</p>
-                  <p className="text-2xl font-black text-white italic">0x42_SECURED</p>
+                  <p className="text-xl sm:text-2xl font-black text-white italic break-words">0x42_SECURED</p>
                 </div>
-                <div className="p-6 bg-zinc-950 border border-white/5 rounded-2xl">
+                <div className="p-4 sm:p-6 bg-zinc-950 border border-white/5 rounded-2xl">
                   <p className="text-[10px] text-zinc-600 font-mono uppercase mb-2 tracking-widest">Latency_Rating</p>
-                  <p className="text-2xl font-black text-cyan-500 italic">LOW_FILTER</p>
+                  <p className="text-xl sm:text-2xl font-black text-cyan-500 italic break-words">LOW_FILTER</p>
                 </div>
-                <div className="p-6 bg-zinc-950 border border-white/5 rounded-2xl">
+                <div className="p-4 sm:p-6 bg-zinc-950 border border-white/5 rounded-2xl">
                   <p className="text-[10px] text-zinc-600 font-mono uppercase mb-2 tracking-widest">Audio_Spec</p>
-                  <p className="text-2xl font-black text-white italic">48KHZ_SYNC</p>
+                  <p className="text-xl sm:text-2xl font-black text-white italic break-words">48KHZ_SYNC</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href={scheduleLinks.guitarLessons} className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-cyan-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Schedule_Meet</a>
-                <a href={scheduleLinks.guitarLessons} className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-purple-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Reserve_Zoom</a>
-                <a href={scheduleLinks.guitarLessons} className="flex items-center justify-center p-4 glass-panel rounded-xl hover:border-blue-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Sync_Teams</a>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <a href={scheduleLinks.guitarLessons} className="flex items-center justify-center min-h-[44px] p-4 glass-panel rounded-xl hover:border-cyan-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Schedule_Meet</a>
+                <a href={scheduleLinks.guitarLessons} className="flex items-center justify-center min-h-[44px] p-4 glass-panel rounded-xl hover:border-purple-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Reserve_Zoom</a>
+                <a href={scheduleLinks.guitarLessons} className="flex items-center justify-center min-h-[44px] p-4 glass-panel rounded-xl hover:border-blue-500/50 transition-all text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest">Sync_Teams</a>
               </div>
             </div>
           </div>
@@ -75,13 +75,13 @@ export const GuitarStudio = () => {
           {/* Instructor & Booking Sidebar */}
           <div className="lg:col-span-4 space-y-6">
             {/* Solo Instructor Card */}
-            <div className="p-8 bg-zinc-900/40 border border-cyan-500/20 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden group">
+            <div className="p-6 sm:p-8 bg-zinc-900/40 border border-cyan-500/20 rounded-3xl sm:rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent" />
               <div className="relative z-10">
                 <div className="w-20 h-20 rounded-2xl bg-zinc-800 mb-6 border border-white/10 flex items-center justify-center overflow-hidden">
                   <span className="text-3xl">🎸</span>
                 </div>
-                <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1">Michael S. Flaherty</h4>
+                <h4 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tighter mb-1">Michael S. Flaherty</h4>
                 <p className="text-cyan-500 font-mono text-[10px] uppercase tracking-widest mb-4">Lead_Instructor // TradeHax_Architect</p>
 
                 <div className="flex flex-wrap gap-1.5 mb-6">
@@ -101,16 +101,16 @@ export const GuitarStudio = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <a href={scheduleLinks.guitarLessons} className="flex-1 py-3 bg-white text-black text-[10px] font-black rounded-xl text-center hover:bg-cyan-500 hover:text-white transition-all">BOOK_SESSION</a>
-                  <a href={scheduleLinks.guitarLessons} className="flex-1 py-3 border border-zinc-800 text-zinc-400 text-[10px] font-black rounded-xl text-center hover:bg-zinc-800 hover:text-white transition-all uppercase">Calendar</a>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <a href={scheduleLinks.guitarLessons} className="flex-1 min-h-[44px] py-3 bg-white text-black text-[10px] font-black rounded-xl text-center hover:bg-cyan-500 hover:text-white transition-all">BOOK_SESSION</a>
+                  <a href={scheduleLinks.guitarLessons} className="flex-1 min-h-[44px] py-3 border border-zinc-800 text-zinc-400 text-[10px] font-black rounded-xl text-center hover:bg-zinc-800 hover:text-white transition-all uppercase">Calendar</a>
                 </div>
               </div>
             </div>
 
             {/* Google Calendar Hub */}
-            <div className="p-2 bg-zinc-900/50 border border-white/5 rounded-[2.5rem] overflow-hidden">
-              <div className="aspect-[4/5] rounded-[2.2rem] overflow-hidden bg-zinc-950">
+            <div className="p-2 bg-zinc-900/50 border border-white/5 rounded-3xl sm:rounded-[2.5rem] overflow-hidden">
+              <div className="aspect-[4/5] rounded-[1.4rem] sm:rounded-[2.2rem] overflow-hidden bg-zinc-950">
                 <iframe
                   src="https://calendar.google.com/calendar/embed?src=irishmikeflaherty%40gmail.com&ctz=America%2FNew_York"
                   title="TradeHax Guitar Studio Calendar"
@@ -122,14 +122,14 @@ export const GuitarStudio = () => {
         </div>
 
         {/* Curriculum Preview: The Depth */}
-        <div className="mt-20 border-t border-white/5 pt-20">
-          <div className="flex justify-between items-center mb-12">
-            <h3 className="text-2xl font-black text-white italic uppercase">Session_Archive</h3>
+        <div className="mt-14 sm:mt-20 border-t border-white/5 pt-12 sm:pt-20">
+          <div className="mb-8 sm:mb-12 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xl sm:text-2xl font-black text-white italic uppercase">Session_Archive</h3>
             <span className="text-[10px] font-mono text-zinc-600">ENCRYPTED_DATA_POOL</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {curriculum.map(lesson => (
-              <div key={lesson.id} className="p-8 bg-zinc-950 border border-white/5 rounded-3xl group hover:border-cyan-500/30 transition-all cursor-pointer">
+              <div key={lesson.id} className="p-6 sm:p-8 bg-zinc-950 border border-white/5 rounded-3xl group hover:border-cyan-500/30 transition-all cursor-pointer">
                 <span className="text-[10px] font-mono text-zinc-700 block mb-4">#{lesson.id}</span>
                 <h5 className="text-lg font-bold text-zinc-300 mb-2 group-hover:text-white transition-colors uppercase italic">{lesson.title}</h5>
                 <div className="flex justify-between items-center mt-6">

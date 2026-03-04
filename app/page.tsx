@@ -113,14 +113,14 @@ export default function Home() {
       <ExperimentReadoutPanel />
 
       {/* Hero + Guided Experience */}
-      <section className="relative overflow-hidden px-4 sm:px-6 pt-16 sm:pt-20 pb-12 sm:pb-14">
-        <div className="absolute top-[-8rem] right-[-6rem] w-[460px] h-[460px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-9rem] left-[-4rem] w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <section className="relative overflow-hidden px-4 sm:px-6 pt-14 sm:pt-20 pb-12 sm:pb-14">
+        <div className="absolute top-[-8rem] right-[-6rem] w-[280px] h-[280px] sm:w-[460px] sm:h-[460px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-9rem] left-[-4rem] w-[260px] h-[260px] sm:w-[400px] sm:h-[400px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto grid lg:grid-cols-[1.2fr_0.8fr] gap-6 sm:gap-8 items-start">
           <div className="theme-panel p-6 sm:p-8 md:p-12">
             <span className="theme-kicker mb-4">Operational Entry</span>
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter italic uppercase mb-5">
+            <h1 className="text-3xl sm:text-5xl md:text-7xl leading-tight font-black text-white tracking-tighter italic uppercase mb-5 break-words">
               <GlitchText text="TradeHax" />
             </h1>
             <p className="text-zinc-300 text-base sm:text-lg max-w-2xl leading-relaxed mb-8">
@@ -205,7 +205,7 @@ export default function Home() {
           <p className="text-zinc-300 max-w-2xl mb-10 sm:mb-12 text-base sm:text-lg">
             This matrix removes guesswork: select one lane, complete the route, then return for the next objective.
           </p>
-          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {intentLanes.map((lane) => (
               <article key={lane.title} className="theme-grid-card">
                 <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-500 mb-4">
