@@ -14,6 +14,7 @@ const navigation: NavItem[] = [
   { name: 'Home', href: '/' },
   { name: 'Services', href: '/services' },
   { name: 'AI Hub', href: '/ai-hub' },
+  { name: 'Blog', href: '/blog' },
   { name: 'About', href: '/about' },
   { name: 'Portfolio', href: '/portfolio' },
   { name: 'Contact', href: '/schedule' },
