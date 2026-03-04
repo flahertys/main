@@ -260,9 +260,19 @@ npm run dev:aggressive:deploy-ready
 
 # Strict mode (fail fast)
 npm run dev:aggressive:strict
+
+# Verify latest report integrity + consistency
+npm run dev:aggressive:verify
+
+# Run + verify in one command
+npm run dev:aggressive:prove
 ```
 
-Each run outputs `.artifacts/aggressive-dev-report.json` with per-step status and duration for disciplined iteration.
+Each run outputs:
+
+- `.artifacts/aggressive-dev-report.json` (execution proof)
+- `.artifacts/aggressive-dev-report.sha256` (integrity checksum)
+- `.artifacts/aggressive-dev-plan.json` (planned objectives and step map)
 
 ### Troubleshooting
 
