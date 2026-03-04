@@ -28,7 +28,7 @@ type StreamStatusData = {
   status?: string;
   provider?: string;
   model?: string;
-  slashCommand?: "plan" | "risk" | "parabolic" | "odinsignal" | null;
+  slashCommand?: "plan" | "risk" | "parabolic" | "odinsignal" | "sop" | "counter" | "debrief" | null;
   preset?: string;
   cached?: boolean;
   cachedAt?: string;
@@ -131,7 +131,7 @@ const ODIN_DEFAULTS = {
 };
 
 const SLASH_SHORTCUTS: Array<{
-  command: "/plan" | "/risk" | "/parabolic" | "/odinsignal";
+  command: "/plan" | "/risk" | "/parabolic" | "/odinsignal" | "/sop" | "/counter" | "/debrief";
   label: string;
   template: string;
 }> = [
@@ -154,6 +154,21 @@ const SLASH_SHORTCUTS: Array<{
     command: "/odinsignal",
     label: "ODIN Signal",
     template: "/odinsignal Generate a concise signal brief with confidence, catalysts, and operator next action.",
+  },
+  {
+    command: "/sop",
+    label: "SOP",
+    template: "/sop Convert this strategy into an SOP with prerequisites, execution steps, monitoring checks, and rollback criteria.",
+  },
+  {
+    command: "/counter",
+    label: "Counter",
+    template: "/counter Build the strongest opposing thesis and define what evidence would invalidate my current plan.",
+  },
+  {
+    command: "/debrief",
+    label: "Debrief",
+    template: "/debrief Analyze my last execution: wins, failures, violations, and protocol upgrades for next run.",
   },
 ];
 
@@ -1473,6 +1488,7 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
           ))}
         </div>
         <p className="mt-2 text-[10px] text-cyan-100/75">Commands: /plan, /risk, /parabolic, /odinsignal</p>
+        <p className="mt-1 text-[10px] text-cyan-100/75">Advanced: /sop, /counter, /debrief</p>
       </div>
 
       <div className="mb-3 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-100/90">

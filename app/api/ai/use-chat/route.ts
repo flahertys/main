@@ -95,7 +95,7 @@ type QualitySummary = {
 
 type SloProfile = "latency" | "balanced" | "quality";
 
-type SlashCommandId = "plan" | "risk" | "parabolic" | "odinsignal";
+type SlashCommandId = "plan" | "risk" | "parabolic" | "odinsignal" | "sop" | "counter" | "debrief";
 
 type SlashCommandResolution = {
   command: SlashCommandId | null;
@@ -226,6 +226,30 @@ function resolveSlashCommandPrompt(input: string): SlashCommandResolution {
       command: "odinsignal",
       argument,
       prompt: `Generate an ODIN signal brief with bias, confidence, catalyst stack, scenario probabilities, invalidation, and one actionable operator instruction.${argument ? ` Context: ${argument}` : ""}`,
+    };
+  }
+
+  if (command === "sop") {
+    return {
+      command: "sop",
+      argument,
+      prompt: `Create a production-ready SOP with objective, prerequisites, step-by-step execution, monitoring checks, escalation path, and rollback criteria.${argument ? ` Context: ${argument}` : ""}`,
+    };
+  }
+
+  if (command === "counter") {
+    return {
+      command: "counter",
+      argument,
+      prompt: `Challenge the current thesis with the strongest counter-argument set: invalidation evidence, alternate scenarios, asymmetric risks, and a decision threshold for rejecting the original plan.${argument ? ` Context: ${argument}` : ""}`,
+    };
+  }
+
+  if (command === "debrief") {
+    return {
+      command: "debrief",
+      argument,
+      prompt: `Run a post-execution debrief with: what worked, what failed, root causes, process violations, risk-control adherence, and a revised execution protocol for the next iteration.${argument ? ` Context: ${argument}` : ""}`,
     };
   }
 
