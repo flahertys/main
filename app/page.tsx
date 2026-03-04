@@ -102,6 +102,9 @@ export default function Home() {
     { label: "Book Service", href: scheduleLinks.root, conversionId: "open_schedule", variant: "book_service" },
     { label: "Open AI Hub", href: "/ai-hub", conversionId: "open_ai_chat", variant: "ai_hub" },
     { label: "View Pricing", href: "/pricing", conversionId: "open_pricing", variant: "pricing" },
+    { label: "Beginner AI Crypto", href: "/beginner-ai-crypto-trading-assistant", conversionId: "open_ai_chat", variant: "seo_beginner_crypto" },
+    { label: "Web3 Token Roadmap", href: "/web3-token-roadmap-consulting", conversionId: "open_crypto_project", variant: "seo_web3_roadmap" },
+    { label: "AI Guitar Lessons", href: "/ai-powered-guitar-lessons", conversionId: "open_music", variant: "seo_ai_guitar" },
   ] as const;
 
   return (

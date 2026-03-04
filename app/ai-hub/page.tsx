@@ -10,6 +10,7 @@ import { ShamrockHeader } from "@/components/shamrock/ShamrockHeader";
 import { createPageMetadata } from "@/lib/seo";
 import { Brain, ChevronDown, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import Script from "next/script";
 import { Suspense } from "react";
 
 export const metadata = createPageMetadata({
@@ -17,8 +18,50 @@ export const metadata = createPageMetadata({
   description:
     "A clear, beginner-friendly AI hub for crypto and stock workflows: chat, content creation, image generation, and guided next steps.",
   path: "/ai-hub",
-  keywords: ["ai trading", "crypto ai", "stock ai", "smart environment", "image generation", "ai assistants"],
+  keywords: [
+    "beginner ai crypto trading assistant",
+    "ai trading strategies for beginners",
+    "web3 token roadmap consulting",
+    "ai-powered guitar lessons",
+    "ai trading",
+    "crypto ai",
+    "stock ai",
+    "smart environment",
+    "image generation",
+    "ai assistants",
+  ],
 });
+
+const aiHubFaqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is a beginner AI crypto trading assistant?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "A beginner AI crypto trading assistant helps new traders understand market context, risk controls, and step-by-step execution plans before placing trades.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How does TradeHax support Web3 token roadmap consulting?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "TradeHax provides structured guidance for token utility phases, rollout milestones, and governance readiness so teams can launch responsibly.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can I use AI-powered guitar lessons on TradeHax?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. TradeHax combines lesson progression and personalized guidance to help users build technique and consistency with practical routines.",
+      },
+    },
+  ],
+};
 
 export default function AIHubPage({
   searchParams,
@@ -31,6 +74,9 @@ export default function AIHubPage({
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
+      <Script id="ai-hub-faq-jsonld" type="application/ld+json" strategy="afterInteractive">
+        {JSON.stringify(aiHubFaqJsonLd)}
+      </Script>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.14),transparent_60%)]" />
       <ShamrockHeader />
 
@@ -155,6 +201,55 @@ export default function AIHubPage({
               <ModelScoreboardPanel />
             </Suspense>
           </ToolAccordion>
+        </section>
+
+        <section className="mt-10 rounded-2xl border border-cyan-400/20 bg-cyan-500/5 p-4 sm:p-6">
+          <h2 className="text-xl font-semibold text-cyan-100">Beginner AI Trading + Web3 FAQ</h2>
+          <p className="mt-2 max-w-3xl text-sm text-zinc-300">
+            Structured answers for AI search engines and first-time users looking for practical next steps.
+          </p>
+
+          <div className="mt-4 space-y-4 text-sm text-zinc-200">
+            <div>
+              <h3 className="font-semibold text-white">What is a beginner AI crypto trading assistant?</h3>
+              <p className="mt-1 text-zinc-300">
+                It helps new users plan entries, risk limits, and invalidation levels with plain-language guidance before execution.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Do you support Web3 token roadmap consulting?</h3>
+              <p className="mt-1 text-zinc-300">
+                Yes — from utility design and phased rollout strategy to governance readiness and KPI mapping.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Is there an AI-powered guitar lesson path too?</h3>
+              <p className="mt-1 text-zinc-300">
+                Yes — we support consistent lesson progression with personalized routines and accountable milestones.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <TrackedCtaLink
+              href="/blog/automated-trading-strategies-2026"
+              conversionId="open_ai_chat"
+              surface="ai_hub:faq_cta"
+              conversionContext={{ placement: "faq", variant: "ai_trading_guide", audience: "all" }}
+              className="rounded-full border border-cyan-300/40 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-500/25"
+            >
+              Read AI Trading Guide
+            </TrackedCtaLink>
+            <TrackedCtaLink
+              href="/blog/small-business-web3-implementation-roadmap"
+              conversionId="open_service_catalog"
+              surface="ai_hub:faq_cta"
+              conversionContext={{ placement: "faq", variant: "web3_roadmap_guide", audience: "all" }}
+              className="rounded-full border border-fuchsia-300/40 bg-fuchsia-500/15 px-3 py-1.5 text-xs font-semibold text-fuchsia-100 transition hover:bg-fuchsia-500/25"
+            >
+              Web3 Roadmap Guide
+            </TrackedCtaLink>
+          </div>
         </section>
 
         <div className="mobile-action-shell md:hidden">

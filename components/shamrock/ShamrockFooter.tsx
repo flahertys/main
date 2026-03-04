@@ -186,6 +186,21 @@ export function ShamrockFooter() {
                   Music Platform
                 </Link>
               </li>
+              <li>
+                <Link href="/beginner-ai-crypto-trading-assistant" className="text-[#9cadcc] hover:text-[#8fffb6] transition-colors">
+                  Beginner AI Crypto Assistant
+                </Link>
+              </li>
+              <li>
+                <Link href="/web3-token-roadmap-consulting" className="text-[#9cadcc] hover:text-[#8fffb6] transition-colors">
+                  Web3 Token Roadmap Consulting
+                </Link>
+              </li>
+              <li>
+                <Link href="/ai-powered-guitar-lessons" className="text-[#9cadcc] hover:text-[#8fffb6] transition-colors">
+                  AI-Powered Guitar Lessons
+                </Link>
+              </li>
             </ul>
           </div>
 
