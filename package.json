@@ -72,6 +72,7 @@
     "social:setup": "node ./scripts/setup-social-apis.js",
     "social:check": "node ./scripts/check-social-api-config.js",
     "auth:hash-password": "node ./scripts/generate-admin-password-hash.js",
+    "auth:check": "node ./scripts/check-admin-login-config.js",
     "snow:env:check": "node ./scripts/check-snow-removal-env.js",
     "snow:env:check:strict": "node ./scripts/check-snow-removal-env.js --strict",
     "discord:register-commands": "node ./scripts/discord/register-commands.mjs",
