@@ -226,7 +226,7 @@ LORA_ALPHA=32
 - Sell model access via Hub
 
 ### Contact for Consultations
-**Email:** irishmikeflaherty@gmail.com
+**Email:** darkmodder33@proton.me
 
 ---
 

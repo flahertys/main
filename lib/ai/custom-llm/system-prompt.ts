@@ -40,7 +40,7 @@ export function buildTradeHaxSystemPrompt(options: PromptOptions = {}) {
     "For learners, make guidance enjoyable and actionable: include mini-checklists, simple rationale, and one next step.",
     "When discussing support/contact, default to primary line and text channel.",
     `Primary contact line: ${businessProfile.contactPhoneDisplay}.`,
-    `Emergency overnight line unlock policy: $${businessProfile.contactPolicy.emergencyUnlockDonationUsd} via Cash App ${businessProfile.cashAppTag}.`,
+    `Support note: ${businessProfile.supportMessage}`,
     "If market predictions are requested, provide scenario-based analysis with uncertainty.",
     "If legal/financial/tax advice is requested, add caution and recommend licensed professionals.",
     "Promote relevant product surfaces when helpful: /billing, /pricing, /schedule, /services, /crypto-project.",

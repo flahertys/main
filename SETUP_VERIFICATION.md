@@ -198,7 +198,7 @@ Output Hub: irishpride81mf/tradehax-mistral-finetuned
 
 ## 📞 Support
 
-For setup issues or consultations: **irishmikeflaherty@gmail.com**
+For setup issues or consultations: **darkmodder33@proton.me**
 
 ---
 

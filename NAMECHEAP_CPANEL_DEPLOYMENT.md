@@ -473,7 +473,7 @@ pm2 start tradehax
 ## Support & Contact
 
 **For deployment issues:**
-- Email: irishmikeflaherty@gmail.com
+- Email: darkmodder33@proton.me
 - GitHub: https://github.com/DarkModder33/main
 
 **Helpful Commands:**

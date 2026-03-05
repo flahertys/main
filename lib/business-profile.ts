@@ -4,8 +4,9 @@ const defaultPhoneE164 = "+18563208570";
 const defaultPhoneDisplay = "(856) 320-8570";
 const defaultEmergencyPhoneE164 = "+16094128878";
 const defaultEmergencyPhoneDisplay = "(609) 412-8878";
-const defaultEmail = "irishmikeflaherty@gmail.com";
-const defaultCashAppTag = "$hackavelli88";
+const defaultEmail = "darkmodder33@proton.me";
+const defaultCashAppTag = "$irishLivesMatter";
+const defaultSupportMessage = "You can support our Work CashApp $irishLivesMatter or https://buymeacoffee.com/hackavelli";
 
 const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL || defaultEmail;
 const contactPhoneE164 = process.env.NEXT_PUBLIC_CONTACT_PHONE_E164 || defaultPhoneE164;
@@ -16,6 +17,8 @@ const emergencyPhoneE164 =
 const emergencyPhoneDisplay =
   process.env.NEXT_PUBLIC_EMERGENCY_PHONE_DISPLAY || defaultEmergencyPhoneDisplay;
 const cashAppTag = process.env.NEXT_PUBLIC_CASHAPP_TAG || defaultCashAppTag;
+const supportMessage = process.env.NEXT_PUBLIC_SUPPORT_MESSAGE || defaultSupportMessage;
+const buyMeACoffeeUrl = process.env.NEXT_PUBLIC_BUYMEACOFFEE_URL || "https://buymeacoffee.com/hackavelli";
 const emergencyUnlockDonationRaw = Number.parseFloat(
   process.env.NEXT_PUBLIC_EMERGENCY_UNLOCK_DONATION_USD || "5",
 );
@@ -30,7 +33,7 @@ const textTemplate =
 const encodedTextTemplate = encodeURIComponent(textTemplate);
 
 const defaultCalendarEmbedUrl =
-  "https://calendar.google.com/calendar/embed?src=irishmikeflaherty%40gmail.com&ctz=America%2FNew_York";
+  "https://calendar.google.com/calendar/embed?src=darkmodder33%40proton.me&ctz=America%2FNew_York";
 
 function normalizeCalendarEmbedUrl(raw?: string) {
   const value = (raw || "").trim();
@@ -78,10 +81,12 @@ export const businessProfile = {
   contactPhoneE164,
   contactPhoneDisplay,
   textPreference:
-    `Call/text primary line ${contactPhoneDisplay}. Overnight emergency line unlock: $${emergencyUnlockDonationUsd} Cash App donation.`,
+    `Call/text primary line ${contactPhoneDisplay}. Overnight emergency line unlock: $${emergencyUnlockDonationUsd} donation. ${supportMessage}`,
   emergencyPhoneE164,
   emergencyPhoneDisplay,
   cashAppTag,
+  supportMessage,
+  buyMeACoffeeUrl,
   contactPolicy: {
     emergencyUnlockDonationUsd,
     emergencyPolicy:
@@ -96,6 +101,7 @@ export const businessProfile = {
     call: `tel:${contactPhoneE164}`,
     emergencyCall: `tel:${emergencyPhoneE164}`,
     cashApp: `https://cash.app/${cashAppTag.replace(/^\$/, "")}`,
+    buyMeACoffee: buyMeACoffeeUrl,
   },
   socialLinks: {
     x: process.env.NEXT_PUBLIC_SOCIAL_X_URL || "https://x.com/tradehaxai",

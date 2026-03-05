@@ -298,9 +298,7 @@ export default function SchedulePage({ searchParams }: { searchParams?: Schedule
             {businessProfile.textPreference}
           </p>
           <p className="mt-1 text-xs text-[#9ca9c5]">
-            Emergency line: {businessProfile.emergencyPhoneDisplay} after $
-            {businessProfile.contactPolicy.emergencyUnlockDonationUsd} Cash App donation (
-            {businessProfile.cashAppTag}).
+            {businessProfile.supportMessage}
           </p>
         </section>
 

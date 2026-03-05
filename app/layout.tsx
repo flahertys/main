@@ -109,8 +109,9 @@ export default function RootLayout({
   const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
   const safeGaMeasurementId =
     gaMeasurementId && /^G-[A-Z0-9]+$/.test(gaMeasurementId) ? gaMeasurementId : null;
-  const cashAppTag = businessProfile.cashAppTag;
   const cashAppLink = businessProfile.contactLinks.cashApp;
+  const supportMessage = businessProfile.supportMessage;
+  const buyMeACoffeeLink = businessProfile.contactLinks.buyMeACoffee;
 
   return (
     <html lang="en" className="dark">
@@ -228,11 +229,16 @@ export default function RootLayout({
                     rel="noopener noreferrer"
                     className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-bold tracking-wide text-emerald-300 transition-colors hover:bg-emerald-500/20 hover:text-emerald-200"
                   >
-                    Donate via Cash App
+                    Support via CashApp
                   </a>
-                  <span className="text-[11px] font-mono text-emerald-300">
-                    Cash App: {cashAppTag}
-                  </span>
+                  <a
+                    href={buyMeACoffeeLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] font-mono text-emerald-300 hover:text-emerald-200 transition-colors"
+                  >
+                    {supportMessage}
+                  </a>
                 </div>
               </div>
               <div>

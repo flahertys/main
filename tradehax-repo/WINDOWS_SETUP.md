@@ -232,7 +232,7 @@ If you don't have a local GPU:
 ## Support
 
 **For issues specific to Windows setup:**
-- Email: irishmikeflaherty@gmail.com
+- Email: darkmodder33@proton.me
 - GitHub: https://github.com/DarkModder33/main
 
 **Common Windows Python issues:**

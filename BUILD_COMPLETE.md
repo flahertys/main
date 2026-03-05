@@ -377,7 +377,7 @@ Automation Scripts:
   • scripts/namecheap-cpanel-deployment.js - cPanel automation
 
 Contact:
-  Email: irishmikeflaherty@gmail.com
+  Email: darkmodder33@proton.me
   GitHub: https://github.com/DarkModder33/main
 
 
