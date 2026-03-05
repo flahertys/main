@@ -1,5 +1,7 @@
 # Deployment Quickstart (Precision Guide)
 
+> Canonical doc navigation: [`DOCS_INDEX.md`](./DOCS_INDEX.md)
+
 ## Purpose
 
 Use this guide to deploy the latest `main` changes with minimal ambiguity.
@@ -34,7 +36,7 @@ If these fail, fix locally before deployment.
 
 ## 3) Path A — Vercel deployment
 
-### Required repository secrets
+### Required repository secrets (Vercel)
 
 Set in GitHub Actions secrets:
 
@@ -52,7 +54,7 @@ Set in GitHub Actions secrets:
 
 - Push to `main` **or** run your selected CI deploy workflow.
 
-### Verify live
+### Verify live (Vercel)
 
 - Visit `https://tradehax.net`.
 - Validate expected route removals/additions.
@@ -62,7 +64,7 @@ Set in GitHub Actions secrets:
 
 ## 4) Path B — Namecheap VPS deployment
 
-### Required repository secrets
+### Required repository secrets (Namecheap)
 
 Set in GitHub Actions secrets:
 
@@ -82,7 +84,7 @@ Optional but recommended:
 
 If deploy fails on `deploy:namecheap:check`, it means required Namecheap secrets are still missing.
 
-### Verify live
+### Verify live (Namecheap)
 
 - Visit `https://tradehax.net`.
 - Validate route behavior (e.g., removed routes return 404/redirect as intended).

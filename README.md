@@ -1,16 +1,10 @@
 # TradeHax AI - Automated Web3 Trading Platform
 
 [![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black)](https://vercel.com)
-[![Next.js](https://img.shields.io/badge/Next.js-15.4-black)](https://nextjs.org)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5.12-black)](https://nextjs.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **🚨 DEPLOYMENT ISSUES?**
-> - **DNS Configuration**: [DNS_QUICK_FIX.md](./DNS_QUICK_FIX.md) - Fix critical DNS issues (5 minutes) **⚡ START HERE**
-> - **Domain Setup**: [VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md) - Complete domain configuration guide
-> - **DNS Inspection**: [DNS_INSPECTION_REPORT.md](./DNS_INSPECTION_REPORT.md) - Detailed DNS analysis and troubleshooting
-> - **routes-manifest.json not found**: [VERCEL_STATIC_EXPORT_FIX.md](./VERCEL_STATIC_EXPORT_FIX.md) - Explains dual deployment strategy
-> - **"Could not read package.json"**: [VERCEL_BRANCH_FIX.md](./VERCEL_BRANCH_FIX.md) - Fix branch configuration (2 minutes)
-> - **Step-by-step guide**: [DEPLOYMENT_FIX_CHECKLIST.md](./DEPLOYMENT_FIX_CHECKLIST.md) - Complete checklist (10 minutes)
+> **📘 Start here:** Use [`DOCS_INDEX.md`](./DOCS_INDEX.md) as the canonical navigation for setup, deployment, DNS, and operations docs.
 
 A sophisticated automated Web3 trading platform built with Next.js, React, and powered by Solana blockchain technology. Trade smarter with AI-driven insights and decentralized technology.
 
