@@ -15,6 +15,7 @@ const strictDnsCheck = args.has("--strict-dns");
 const npmExecPath = process.env.npm_execpath;
 const nodeExecPath = process.execPath;
 const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+const vercelBypassSecret = String(process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "").trim();
 
 function resolveVercelScope() {
   const explicitScope = String(process.env.VERCEL_SCOPE || process.env.VERCEL_TEAM_SLUG || "").trim();
@@ -105,6 +106,7 @@ function runDeploy() {
   process.stdout.write("\nTradeHax One-Button Deploy\n");
   process.stdout.write(`Target: ${isProd ? "production" : "preview"}\n`);
   process.stdout.write(`Vercel scope: ${resolveVercelScope() || "<none>"}\n`);
+  process.stdout.write(`Vercel protection bypass: ${vercelBypassSecret ? "configured" : "not configured"}\n`);
   if (strictDnsCheck) {
     process.stdout.write("DNS mode: STRICT apex A record required\n");
   }

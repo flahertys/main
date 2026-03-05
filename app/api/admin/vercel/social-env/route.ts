@@ -86,6 +86,42 @@ function resolveDeployHook(target: "production" | "preview") {
   return target === "preview" ? previewHook || sharedHook : prodHook || sharedHook;
 }
 
+function resolveDeployHookBypassConfig(hookUrl: string) {
+  const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim() || "";
+
+  if (!bypassSecret) {
+    return {
+      hookUrl,
+      headers: {} as Record<string, string>,
+    };
+  }
+
+  const headers: Record<string, string> = {
+    "x-vercel-protection-bypass": bypassSecret,
+    "x-vercel-set-bypass-cookie": "true",
+  };
+
+  try {
+    const parsed = new URL(hookUrl);
+    if (!parsed.searchParams.get("x-vercel-protection-bypass")) {
+      parsed.searchParams.set("x-vercel-protection-bypass", bypassSecret);
+    }
+    if (!parsed.searchParams.get("x-vercel-set-bypass-cookie")) {
+      parsed.searchParams.set("x-vercel-set-bypass-cookie", "true");
+    }
+
+    return {
+      hookUrl: parsed.toString(),
+      headers,
+    };
+  } catch {
+    return {
+      hookUrl,
+      headers,
+    };
+  }
+}
+
 export async function POST(request: NextRequest) {
   const originBlock = enforceTrustedOrigin(request);
   if (originBlock) {
@@ -194,10 +230,12 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const pingResponse = await fetch(hookUrl, {
+        const bypassConfig = resolveDeployHookBypassConfig(hookUrl);
+        const pingResponse = await fetch(bypassConfig.hookUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...bypassConfig.headers,
           },
           body: JSON.stringify({
             source: "social-provider-wizard",
@@ -349,10 +387,12 @@ export async function POST(request: NextRequest) {
           };
         } else {
           try {
-            const deployResponse = await fetch(hookUrl, {
+            const bypassConfig = resolveDeployHookBypassConfig(hookUrl);
+            const deployResponse = await fetch(bypassConfig.hookUrl, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
+                ...bypassConfig.headers,
               },
               body: JSON.stringify({
                 source: "social-provider-wizard",

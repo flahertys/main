@@ -39,6 +39,9 @@
   "git.autoRepositoryDetection": "openEditors",
   "git.openRepositoryInParentFolders": "never",
   "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.env.windows": {
+    "VERCEL_AUTOMATION_BYPASS_SECRET": "otWDNt0dMxhdDDdkNEPwodop676ofPP1"
+  },
   "terminal.integrated.confirmOnExit": "never",
   "terminal.integrated.confirmOnKill": "never",
   "debug.inlineValues": true,
