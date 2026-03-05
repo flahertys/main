@@ -106,6 +106,29 @@ type TrustEnvelope = {
   fallbackTriggered: boolean;
 };
 
+type FusionEnvelope = {
+  score: number;
+  band: "prime" | "solid" | "fragile";
+  rawConfidence: number;
+  guardedConfidence: number;
+  sources: {
+    retrieval: number;
+    liveMarket: number;
+    personalization: number;
+    trust: number;
+  };
+  inputs: {
+    retrievalChunks: number;
+    averageRetrievalScore: number;
+    marketSources: number;
+    marketFreshnessMinutes: number;
+    personalizationSignals: number;
+    verifierRisk: "low" | "medium" | "high" | "critical" | "unknown";
+    trustPolicy: "trusted" | "review" | "guarded";
+  };
+  rationale: string[];
+};
+
 type SloProfile = "latency" | "balanced" | "quality";
 
 type SlashCommandId = "plan" | "risk" | "parabolic" | "odinsignal" | "sop" | "counter" | "debrief";
@@ -695,6 +718,171 @@ function buildTrustEnvelope(input: {
     verifierRisk,
     responseLatencyMs: Math.max(1, Math.round(input.responseLatencyMs)),
     fallbackTriggered: input.fallbackTriggered,
+  };
+}
+
+function toNormalizedPercent(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  if (value <= 1) {
+    return clamp(value * 100, 0, 100);
+  }
+  return clamp(value, 0, 100);
+}
+
+function resolveAverageRetrievalScore(retrievalChunks: Array<{ score: number }>) {
+  if (!Array.isArray(retrievalChunks) || retrievalChunks.length === 0) {
+    return 0;
+  }
+
+  const scores = retrievalChunks
+    .map((chunk) => Number(chunk?.score ?? 0))
+    .filter((score) => Number.isFinite(score));
+
+  if (scores.length === 0) {
+    return 0;
+  }
+
+  const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  return Math.round(toNormalizedPercent(average));
+}
+
+function resolvePersonalizationSignalDepth(personalizedContext: Awaited<ReturnType<typeof resolvePersonalizedIntelligenceContext>>) {
+  if (!personalizedContext) {
+    return 0;
+  }
+
+  let depth = 0;
+
+  if (personalizedContext.profile.tradesTracked > 0) depth += 1;
+  if (personalizedContext.profile.favoriteSymbols.length > 0) depth += 1;
+  if (personalizedContext.profile.preferredTimeframes.length > 0) depth += 1;
+  if (personalizedContext.profile.topIndicators.length > 0) depth += 1;
+  if (personalizedContext.tuningHints.reasons.length > 0) depth += 1;
+  if (personalizedContext.profileSource === "persisted") depth += 1;
+
+  return depth;
+}
+
+function buildFusionEnvelope(input: {
+  rawConfidence: number;
+  adjustedConfidence: number;
+  trustEnvelope: TrustEnvelope;
+  verifierResult: ReturnType<typeof verifyResponseAdversarially>;
+  retrievalChunks: Array<{ score: number }>;
+  liveMarket: {
+    enabled: boolean;
+    generatedAt: string;
+    sources: string[];
+  };
+  personalizedContext: Awaited<ReturnType<typeof resolvePersonalizedIntelligenceContext>>;
+  fallbackTriggered: boolean;
+}) : FusionEnvelope {
+  const retrievalChunkCount = input.retrievalChunks.length;
+  const averageRetrievalScore = resolveAverageRetrievalScore(input.retrievalChunks);
+  const retrievalScore = retrievalChunkCount > 0
+    ? clamp(averageRetrievalScore, 0, 100)
+    : 24;
+
+  const marketSources = Array.isArray(input.liveMarket.sources) ? input.liveMarket.sources.length : 0;
+  const marketTimestamp = Date.parse(input.liveMarket.generatedAt || "");
+  const marketFreshnessMinutes = Number.isFinite(marketTimestamp)
+    ? Math.max(0, (Date.now() - marketTimestamp) / 60_000)
+    : 120;
+
+  let liveMarketScore = input.liveMarket.enabled ? 58 : 36;
+  if (marketSources > 0) {
+    liveMarketScore += Math.min(20, marketSources * 8);
+  }
+  if (marketFreshnessMinutes > 10) {
+    liveMarketScore -= 16;
+  } else if (marketFreshnessMinutes > 5) {
+    liveMarketScore -= 8;
+  }
+  liveMarketScore = clamp(liveMarketScore, 0, 100);
+
+  const personalizationSignals = resolvePersonalizationSignalDepth(input.personalizedContext);
+  const personalizationScore = input.personalizedContext
+    ? clamp(52 + personalizationSignals * 8, 0, 100)
+    : 34;
+
+  const trustScore = clamp(input.trustEnvelope.score, 0, 100);
+
+  let score =
+    retrievalScore * 0.23
+    + liveMarketScore * 0.19
+    + personalizationScore * 0.18
+    + trustScore * 0.4;
+
+  const verifierRisk = input.verifierResult?.riskLevel || "unknown";
+  if (verifierRisk === "high") {
+    score -= 10;
+  } else if (verifierRisk === "critical") {
+    score -= 18;
+  }
+
+  if (input.trustEnvelope.policy === "guarded") {
+    score -= 8;
+  }
+
+  if (input.fallbackTriggered) {
+    score -= 6;
+  }
+
+  score = Math.round(clamp(score, 0, 100));
+
+  const band: FusionEnvelope["band"] =
+    score >= 82 ? "prime" : score >= 64 ? "solid" : "fragile";
+
+  let guardScale = 1;
+  if (band === "solid") {
+    guardScale *= 0.92;
+  } else if (band === "fragile") {
+    guardScale *= 0.8;
+  }
+
+  if (verifierRisk === "high") {
+    guardScale *= 0.88;
+  } else if (verifierRisk === "critical") {
+    guardScale *= 0.72;
+  }
+
+  if (input.trustEnvelope.policy === "review") {
+    guardScale *= 0.94;
+  } else if (input.trustEnvelope.policy === "guarded") {
+    guardScale *= 0.85;
+  }
+
+  const guardedConfidence = Math.round(clamp(input.adjustedConfidence * guardScale, 0, 100));
+
+  const rationale: string[] = [];
+  if (retrievalChunkCount < 2) rationale.push("low_retrieval_coverage");
+  if (marketFreshnessMinutes > 10) rationale.push("stale_market_context");
+  if (personalizationSignals < 3) rationale.push("thin_personalization_history");
+  if (verifierRisk === "high" || verifierRisk === "critical") rationale.push("elevated_verifier_risk");
+  if (input.fallbackTriggered) rationale.push("model_fallback_triggered");
+  if (rationale.length === 0) rationale.push("multi_source_alignment");
+
+  return {
+    score,
+    band,
+    rawConfidence: Math.round(clamp(input.rawConfidence, 0, 100)),
+    guardedConfidence,
+    sources: {
+      retrieval: Math.round(retrievalScore),
+      liveMarket: Math.round(liveMarketScore),
+      personalization: Math.round(personalizationScore),
+      trust: Math.round(trustScore),
+    },
+    inputs: {
+      retrievalChunks: retrievalChunkCount,
+      averageRetrievalScore,
+      marketSources,
+      marketFreshnessMinutes: Math.round(marketFreshnessMinutes),
+      personalizationSignals,
+      verifierRisk,
+      trustPolicy: input.trustEnvelope.policy,
+    },
+    rationale,
   };
 }
 
@@ -1496,8 +1684,9 @@ export async function POST(request: NextRequest) {
           latencyMs: responseLatencyMs,
         });
 
+        const rawPredictionConfidence = domainSignal.confidence;
         const adjustedPredictionConfidence = applyAccuracyConfidenceAdjustment(
-          domainSignal.confidence,
+          rawPredictionConfidence,
           accuracyPlan,
         );
 
@@ -1509,6 +1698,19 @@ export async function POST(request: NextRequest) {
           responseLatencyMs,
           fallbackTriggered: sloFallbackTriggered || failedModels.length > 0,
         });
+
+        const fusionEnvelope = buildFusionEnvelope({
+          rawConfidence: rawPredictionConfidence,
+          adjustedConfidence: adjustedPredictionConfidence,
+          trustEnvelope,
+          verifierResult,
+          retrievalChunks,
+          liveMarket,
+          personalizedContext,
+          fallbackTriggered: sloFallbackTriggered || failedModels.length > 0,
+        });
+
+        const guardedPredictionConfidence = fusionEnvelope.guardedConfidence;
 
         recordAccuracyGovernorEvent({
           plan: accuracyPlan,
@@ -1525,7 +1727,7 @@ export async function POST(request: NextRequest) {
         recordPredictionTelemetry({
           domain: domainSignal.domain,
           model: effectiveModel,
-          confidence: adjustedPredictionConfidence,
+          confidence: guardedPredictionConfidence,
           provider: effectiveModel === "kernel-fallback" ? "kernel" : "huggingface",
           fallback: failedModels.length > 0 || !modelCandidates.includes(effectiveModel),
         });
@@ -1628,7 +1830,7 @@ export async function POST(request: NextRequest) {
           model: effectiveModel,
           preset: preset.id,
           predictionDomain: domainSignal.domain,
-          predictionConfidence: domainSignal.confidence,
+          predictionConfidence: guardedPredictionConfidence,
           qualityScore: quality.score,
           qualityClass: quality.classification,
           responseLatencyMs,
@@ -1668,12 +1870,13 @@ export async function POST(request: NextRequest) {
             verifierResult,
             missionReliabilityContext,
             trustEnvelope,
+            fusionEnvelope,
             retrainQueueResult,
             tier: neuralTier,
             policyMode: body.freedomMode === "uncensored" ? "open-lawful" : "standard",
             lawfulOnly: true,
             predictionDomain: domainSignal.domain,
-            predictionConfidence: applyAccuracyConfidenceAdjustment(domainSignal.confidence, accuracyPlan),
+            predictionConfidence: guardedPredictionConfidence,
             marketFreshnessEnabled: liveMarket.enabled,
             failedModels,
             quality,
