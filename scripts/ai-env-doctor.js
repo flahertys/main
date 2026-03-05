@@ -18,15 +18,17 @@
 const path = require("path");
 const dotenv = require("dotenv");
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local"), override: true });
+dotenv.config({ path: path.resolve(process.cwd(), ".env"), quiet: true });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local"), override: true, quiet: true });
 
 const strictMode = process.argv.includes("--strict");
+const jsonMode = process.argv.includes("--json");
 
 const state = {
   pass: 0,
   warn: 0,
   fail: 0,
+  checks: [],
 };
 
 function print(kind, label, detail) {
@@ -34,8 +36,22 @@ function print(kind, label, detail) {
   if (kind === "WARN") state.warn += 1;
   if (kind === "FAIL") state.fail += 1;
 
-  const icon = kind === "PASS" ? "✅" : kind === "WARN" ? "⚠️" : "❌";
-  console.log(`${icon} [${kind}] ${label}${detail ? `: ${detail}` : ""}`);
+  state.checks.push({
+    kind,
+    label,
+    detail: detail || "",
+  });
+
+  if (!jsonMode) {
+    const icon = kind === "PASS" ? "✅" : kind === "WARN" ? "⚠️" : "❌";
+    console.log(`${icon} [${kind}] ${label}${detail ? `: ${detail}` : ""}`);
+  }
+}
+
+function writeLine(message = "") {
+  if (!jsonMode) {
+    console.log(message);
+  }
 }
 
 function get(key) {
@@ -102,7 +118,11 @@ function assertRequiredEnv(key, hint) {
 }
 
 function assertOneOfRequiredEnv(keys, label, hint) {
-  const selected = keys.find((key) => has(key));
+  const selected =
+    keys.find((key) => {
+      const value = get(key);
+      return Boolean(value) && !isPlaceholder(value);
+    }) || keys.find((key) => has(key));
   if (!selected) {
     print("FAIL", label, `Missing required variable. ${hint}`);
     return;
@@ -367,9 +387,9 @@ function checkHfIngestionConfig() {
 }
 
 function main() {
-  console.log("\n🧪 TradeHax AI Environment Doctor\n");
+  writeLine("\n🧪 TradeHax AI Environment Doctor\n");
 
-  console.log("[1/5] Core provider + model");
+  writeLine("[1/5] Core provider + model");
   assertOneOfRequiredEnv(
     ["HF_API_TOKEN", "HF_API_TOKEN_REICH", "HUGGINGFACE_API_TOKEN", "HF_TOKEN"],
     "HF_TOKEN",
@@ -378,12 +398,12 @@ function main() {
   assertRequiredEnv("HF_MODEL_ID", "Set your default primary chat model.");
   checkFallbackModels();
 
-  console.log("\n[2/5] Runtime tuning guardrails");
+  writeLine("\n[2/5] Runtime tuning guardrails");
   assertNumberRange("LLM_TEMPERATURE", { min: 0, max: 2, required: false });
   assertNumberRange("LLM_TOP_P", { min: 0.1, max: 1, required: false });
   assertNumberRange("LLM_MAX_LENGTH", { min: 64, max: 8192, required: false });
 
-  console.log("\n[3/5] Preset guardrails");
+  writeLine("\n[3/5] Preset guardrails");
   const presetTempKeys = [
     "TRADEHAX_PRESET_NAVIGATOR_TEMP",
     "TRADEHAX_PRESET_OPERATOR_TEMP",
@@ -408,32 +428,54 @@ function main() {
     assertNumberRange(key, { min: 0.1, max: 1, required: false });
   }
 
-  console.log("\n[4/5] Canary governance");
+  writeLine("\n[4/5] Canary governance");
   checkCanaryGovernance();
 
-  console.log("\n[5/5] Safety + mode checks");
+  writeLine("\n[5/5] Safety + mode checks");
   checkOpenModeGuardrails();
 
-  console.log("\n[extra] Optional provider token connections");
+  writeLine("\n[extra] Optional provider token connections");
   checkOptionalProviderTokens();
   checkUpstashVectorConnection();
   checkHfDatasetIntelligenceConfig();
   checkHfIngestionConfig();
 
   const total = state.pass + state.warn + state.fail;
-  console.log(`\nSummary: ${state.pass} pass, ${state.warn} warn, ${state.fail} fail (${total} checks).`);
+  writeLine(`\nSummary: ${state.pass} pass, ${state.warn} warn, ${state.fail} fail (${total} checks).`);
+
+  if (jsonMode) {
+    const scoreDenominator = total || 1;
+    const score = Number((((state.pass + 0.5 * state.warn) / scoreDenominator) * 100).toFixed(2));
+    const payload = {
+      strictMode,
+      summary: {
+        pass: state.pass,
+        warn: state.warn,
+        fail: state.fail,
+        total,
+        score,
+      },
+      checks: state.checks,
+      generatedAt: new Date().toISOString(),
+    };
+    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+  }
 
   if (state.fail > 0) {
-    console.error("\nAI environment doctor failed.");
+    if (!jsonMode) {
+      console.error("\nAI environment doctor failed.");
+    }
     process.exit(1);
   }
 
   if (strictMode && state.warn > 0) {
-    console.error("\nAI environment doctor strict mode failed due to warnings.");
+    if (!jsonMode) {
+      console.error("\nAI environment doctor strict mode failed due to warnings.");
+    }
     process.exit(1);
   }
 
-  console.log("\nAI environment doctor passed.");
+  writeLine("\nAI environment doctor passed.");
 }
 
 main();
