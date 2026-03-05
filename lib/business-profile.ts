@@ -131,7 +131,7 @@ export const businessProfile = {
       "https://www.linkedin.com/in/mcflaherty/",
     telegram:
       process.env.NEXT_PUBLIC_SOCIAL_TELEGRAM_URL ||
-      "https://t.me/Hackavelli88",
+      "https://t.me/tradehaxai",
     discord:
       process.env.NEXT_PUBLIC_SOCIAL_DISCORD_URL ||
       "https://discord.com/users/1450053974018494515",

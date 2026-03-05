@@ -26,7 +26,7 @@ function exportDataset() {
     console.log(`TOTAL_SAMPLES: ${rows.length}`);
     console.log(`RUNTIME_ACCEPTED_EVENTS: ${summary.acceptedEvents}`);
     console.log(`RUNTIME_TRAINING_EVENTS: ${summary.trainingEligibleEvents}`);
-    console.log("NEXT_STEP: Upload to Hugging Face (Hackavelli88/TradeHax) and run AutoTrain with GLM-4.7-Flash-Uncensored.");
+    console.log("NEXT_STEP: Upload to your Hugging Face org/repo and run AutoTrain with GLM-4.7-Flash-Uncensored.");
   } catch (error) {
     console.error("FAILURE: Could not export dataset.", error);
   }
