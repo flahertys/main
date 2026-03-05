@@ -322,7 +322,7 @@ Automation Scripts:
   • node scripts/namecheap-cpanel-deployment.js → cPanel setup
 
 Contact:
-  Email: irishmikeflaherty@gmail.com
+  Email: darkmodder33@proton.me
   GitHub: https://github.com/DarkModder33/main
   Hugging Face: https://huggingface.co/irishpride81mf/tradehax-mistral-finetuned
 

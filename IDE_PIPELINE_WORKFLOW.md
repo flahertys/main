@@ -404,7 +404,7 @@ The IDE sync workflow integrates with GitHub Actions for automated deployment:
 
 **Questions?** 
 
-Email: irishmikeflaherty@gmail.com  
+Email: darkmodder33@proton.me
 GitHub: https://github.com/DarkModder33/main
 
 **Check Also:**

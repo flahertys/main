@@ -239,7 +239,7 @@ Files Ready:
 ## 🆘 Support & Contact
 
 **For setup assistance or consultations:**
-- Email: irishmikeflaherty@gmail.com
+- Email: darkmodder33@proton.me
 - Repo: https://github.com/DarkModder33/main
 
 ---

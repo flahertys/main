@@ -318,7 +318,7 @@ export function MyComponent() {
 ## 📞 Support & Contact
 
 **For consultations, training data prep, or model fine-tuning:**
-- Email: **irishmikeflaherty@gmail.com**
+- Email: **darkmodder33@proton.me**
 - GitHub: https://github.com/DarkModder33/main
 
 ---

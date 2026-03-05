@@ -334,7 +334,7 @@ class AutomationRunner {
 
     log('\n' + '─'.repeat(70) + '\n', 'cyan');
     log('📞 SUPPORT\n', 'cyan');
-    log('Email: irishmikeflaherty@gmail.com', 'yellow');
+    log('Email: darkmodder33@proton.me', 'yellow');
     log('GitHub: https://github.com/DarkModder33/main', 'yellow');
     log('Hub: https://huggingface.co/irishpride81mf/tradehax-mistral-finetuned', 'yellow');
 

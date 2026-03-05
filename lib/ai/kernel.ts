@@ -73,7 +73,7 @@ export async function processNeuralCommand(query: NeuralQuery): Promise<string> 
   }
 
   if (compact === "BOOK" || compact === "LESSONS" || compact === "SCHEDULE") {
-    return "BOOKING_ROUTE: /schedule // Primary line (856) 320-8570 // Overnight emergency unlock available via Cash App.";
+    return "BOOKING_ROUTE: /schedule // Primary line (856) 320-8570 // You can support our Work CashApp $irishLivesMatter or https://buymeacoffee.com/hackavelli.";
   }
 
   if (compact === "GAME" || compact === "GAMES" || compact === "RUNNER") {
