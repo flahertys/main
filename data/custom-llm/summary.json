@@ -1,20 +1,30 @@
 {
-  "generatedAt": "2026-02-20T06:08:18.559Z",
+  "generatedAt": "2026-03-04T18:41:41.514Z",
   "sourceFiles": [
     "ai-training-set.jsonl",
     "tradehax-training-expanded.jsonl",
     "tradehax-crypto-education.jsonl",
-    "tradehax-domain-priority.jsonl"
+    "tradehax-domain-priority.jsonl",
+    "kalshi-seed.jsonl",
+    "xai-grok-image-capabilities.jsonl",
+    "xai-grok-trading-visual-prompts.jsonl"
   ],
   "weights": {
+    "kalshi": 6,
     "stockCrypto": 7,
     "musicTech": 3,
     "general": 1
   },
   "shuffleSeed": 42,
-  "samples": 197,
+  "uniqueRowsBeforeWeighting": 91,
+  "samplesAfterWeighting": 243,
+  "integrity": {
+    "trainFileSha256": "ae676d056c1486189640bf8e9cd4b48b33e6fc9132eacba7ff393aa8177fa72d",
+    "algorithm": "sha256",
+    "externalDatasetDirUsed": true
+  },
   "categoryDistribution": {
-    "GENERAL": 37,
+    "GENERAL": 47,
     "MUSIC_CREATION": 21,
     "BOT_SETUP": 14,
     "DEFI_EDUCATION": 14,
@@ -31,6 +41,12 @@
     "MARKET_PROCESS": 7,
     "MUSIC_GROWTH": 6,
     "MUSIC_PRODUCTION": 6,
+    "KALSHI_MARKETS": 6,
+    "KALSHI_RISK_MANAGEMENT": 6,
+    "KALSHI_EDUCATION": 6,
+    "KALSHI_WORKFLOW": 6,
+    "KALSHI_DATASET": 6,
+    "KALSHI_MULTIMODAL": 6,
     "TECH_PRODUCT": 3,
     "TECH_OPERATIONS": 3,
     "TECH_AI": 3,
