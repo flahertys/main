@@ -1,4 +1,5 @@
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
+import { recordAlertDispatchMetric } from "@/lib/intelligence/metrics";
 import { SubscriptionTier } from "@/lib/monetization/types";
 import { TradebotSignalOutlook } from "@/lib/trading/signal-outlook";
 
@@ -8,6 +9,9 @@ export type DiscordSignalDispatchResult = {
   deliveredCount: number;
   webhookConfigured: boolean;
   channelLabel: string;
+  qualityScore?: number;
+  qualityThreshold?: number;
+  qualityGateApplied?: boolean;
   error?: string;
   tier?: SubscriptionTier;
   cadenceWindow?: string;
@@ -104,19 +108,70 @@ function formatSignal(signal: TradebotSignalOutlook) {
   ].join("\n");
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function resolveQualityGateConfig() {
+  const enabledRaw = String(process.env.TRADEHAX_SIGNAL_QUALITY_GATE_ENABLED || "true").trim().toLowerCase();
+  const thresholdRaw = Number.parseFloat(String(process.env.TRADEHAX_SIGNAL_MIN_DISPATCH_QUALITY || "62"));
+
+  return {
+    enabled: ["1", "true", "yes", "on"].includes(enabledRaw),
+    threshold: Number.isFinite(thresholdRaw) ? clamp(Math.round(thresholdRaw), 1, 100) : 62,
+  };
+}
+
+function computeSignalQualityScore(signals: TradebotSignalOutlook[]) {
+  if (!signals.length) return 0;
+
+  const regimePenaltyMap: Record<TradebotSignalOutlook["marketRegime"], number> = {
+    bull_trend: 0,
+    bear_trend: 2,
+    range_bound: 4,
+    high_volatility: 10,
+    macro_shock: 14,
+  };
+
+  const perSignal = signals.map((signal) => {
+    const confidences = signal.timeframes.map((tf) => tf.confidence).filter((value) => Number.isFinite(value));
+    const avgConfidence = confidences.length > 0
+      ? confidences.reduce((sum, value) => sum + value, 0) / confidences.length
+      : 0.5;
+
+    const neutralCount = signal.timeframes.filter((tf) => tf.bias === "neutral").length;
+    const clarityPenalty = neutralCount >= 4 ? 6 : neutralCount >= 3 ? 4 : neutralCount >= 2 ? 2 : 0;
+    const regimePenalty = regimePenaltyMap[signal.marketRegime] || 0;
+
+    const base = avgConfidence * 100;
+    return clamp(base - clarityPenalty - regimePenalty, 0, 100);
+  });
+
+  return Math.round(perSignal.reduce((sum, value) => sum + value, 0) / perSignal.length);
+}
+
 export async function dispatchTradebotSignalsToDiscord(input: {
   userId: string;
   signals: TradebotSignalOutlook[];
   tier?: SubscriptionTier;
   cadenceWindow?: string;
+  allowLowQuality?: boolean;
 }) {
   const resolvedTier = input.tier || "pro";
   const webhook = resolveSignalWebhook(resolvedTier);
   const channelLabel = resolveChannelLabel(resolvedTier);
   const deliveredAt = new Date().toISOString();
+  const qualityScore = computeSignalQualityScore(input.signals);
+  const qualityGate = resolveQualityGateConfig();
+  const qualityGateApplied = qualityGate.enabled && !input.allowLowQuality;
 
-  const routeKey = `${resolvedTier}:${channelLabel}`;
-  if (!allowDispatchBurst(routeKey)) {
+  if (qualityGateApplied && qualityScore < qualityGate.threshold) {
+    recordAlertDispatchMetric({
+      ok: false,
+      latencyMs: 0,
+      attempted: input.signals.length,
+      delivered: 0,
+    });
     return {
       ok: false,
       deliveredAt,
@@ -125,11 +180,43 @@ export async function dispatchTradebotSignalsToDiscord(input: {
       channelLabel,
       tier: resolvedTier,
       cadenceWindow: input.cadenceWindow,
+      qualityScore,
+      qualityThreshold: qualityGate.threshold,
+      qualityGateApplied,
+      error: `Signal quality gate blocked dispatch (${qualityScore} < ${qualityGate.threshold}).`,
+    } satisfies DiscordSignalDispatchResult;
+  }
+
+  const routeKey = `${resolvedTier}:${channelLabel}`;
+  if (!allowDispatchBurst(routeKey)) {
+    recordAlertDispatchMetric({
+      ok: false,
+      latencyMs: 0,
+      attempted: input.signals.length,
+      delivered: 0,
+    });
+    return {
+      ok: false,
+      deliveredAt,
+      deliveredCount: 0,
+      webhookConfigured: Boolean(webhook),
+      channelLabel,
+      tier: resolvedTier,
+      cadenceWindow: input.cadenceWindow,
+      qualityScore,
+      qualityThreshold: qualityGate.threshold,
+      qualityGateApplied,
       error: "Signal dispatch burst protection triggered. Retry after cooldown window.",
     } satisfies DiscordSignalDispatchResult;
   }
 
   if (!webhook) {
+    recordAlertDispatchMetric({
+      ok: false,
+      latencyMs: 0,
+      attempted: input.signals.length,
+      delivered: 0,
+    });
     return {
       ok: false,
       deliveredAt,
@@ -138,6 +225,9 @@ export async function dispatchTradebotSignalsToDiscord(input: {
       channelLabel,
       tier: resolvedTier,
       cadenceWindow: input.cadenceWindow,
+      qualityScore,
+      qualityThreshold: qualityGate.threshold,
+      qualityGateApplied,
       error: "No Discord signal webhook configured.",
     } satisfies DiscordSignalDispatchResult;
   }
@@ -147,10 +237,13 @@ export async function dispatchTradebotSignalsToDiscord(input: {
     `Cadence: ${input.cadenceWindow || "manual"}`,
     `Tier: ${resolvedTier}`,
     `Channel: ${channelLabel}`,
+    `Quality score: ${qualityScore}/100${qualityGateApplied ? ` (threshold ${qualityGate.threshold})` : " (gate bypassed)"}`,
     `Generated: ${deliveredAt}`,
     "",
     ...input.signals.slice(0, 6).map(formatSignal),
   ].join("\n\n");
+
+  const dispatchStartedAt = Date.now();
 
   const response = await fetch(webhook, {
     method: "POST",
@@ -191,6 +284,12 @@ export async function dispatchTradebotSignalsToDiscord(input: {
   }
 
   if (!ok) {
+    recordAlertDispatchMetric({
+      ok: false,
+      latencyMs: Date.now() - dispatchStartedAt,
+      attempted: input.signals.length,
+      delivered: 0,
+    });
     return {
       ok: false,
       deliveredAt,
@@ -199,9 +298,19 @@ export async function dispatchTradebotSignalsToDiscord(input: {
       channelLabel,
       tier: resolvedTier,
       cadenceWindow: input.cadenceWindow,
+      qualityScore,
+      qualityThreshold: qualityGate.threshold,
+      qualityGateApplied,
       error: `Discord webhook failed with status ${response.status}`,
     } satisfies DiscordSignalDispatchResult;
   }
+
+  recordAlertDispatchMetric({
+    ok: true,
+    latencyMs: Date.now() - dispatchStartedAt,
+    attempted: Math.min(input.signals.length, 6),
+    delivered: Math.min(input.signals.length, 6),
+  });
 
   return {
     ok: true,
@@ -211,6 +320,9 @@ export async function dispatchTradebotSignalsToDiscord(input: {
     channelLabel,
     tier: resolvedTier,
     cadenceWindow: input.cadenceWindow,
+    qualityScore,
+    qualityThreshold: qualityGate.threshold,
+    qualityGateApplied,
   } satisfies DiscordSignalDispatchResult;
 }
 

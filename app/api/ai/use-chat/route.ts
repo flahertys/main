@@ -32,13 +32,13 @@ import {
     resolveLlmPreset,
     resolvePredictionModel,
 } from "@/lib/ai/prediction-routing";
+import { cacheManager } from "@/lib/ai/response-cache";
 import {
-  recordAdversarialVerifierEvent,
-  resolveAdversarialVerifierPlan,
-  verifyResponseAdversarially,
+    recordAdversarialVerifierEvent,
+    resolveAdversarialVerifierPlan,
+    verifyResponseAdversarially,
 } from "@/lib/ai/response-verifier";
 import { enqueueRetrainExportCandidate } from "@/lib/ai/retrain-export-queue";
-import { cacheManager } from "@/lib/ai/response-cache";
 import { formatRetrievalContext, retrieveRelevantContext } from "@/lib/ai/retriever";
 import { recordStreamTelemetry } from "@/lib/ai/telemetry-store";
 import {
@@ -91,6 +91,19 @@ type ModelHealthEntry = {
 type QualitySummary = {
   score: number;
   classification: "elite" | "strong" | "moderate" | "weak";
+};
+
+type TrustEnvelope = {
+  score: number;
+  grade: "A" | "B" | "C" | "D";
+  policy: "trusted" | "review" | "guarded";
+  domain: string;
+  confidence: number;
+  qualityScore: number;
+  verifierScore: number | null;
+  verifierRisk: "low" | "medium" | "high" | "critical" | "unknown";
+  responseLatencyMs: number;
+  fallbackTriggered: boolean;
 };
 
 type SloProfile = "latency" | "balanced" | "quality";
@@ -631,6 +644,58 @@ function evaluateResponseQuality(text: string): QualitySummary {
   if (score >= 70) return { score, classification: "strong" };
   if (score >= 52) return { score, classification: "moderate" };
   return { score, classification: "weak" };
+}
+
+function buildTrustEnvelope(input: {
+  domain: string;
+  confidence: number;
+  quality: QualitySummary;
+  verifierResult: ReturnType<typeof verifyResponseAdversarially>;
+  responseLatencyMs: number;
+  fallbackTriggered: boolean;
+}) : TrustEnvelope {
+  const verifierScore = input.verifierResult?.score ?? null;
+  const verifierRisk = input.verifierResult?.riskLevel || "unknown";
+
+  const qualityComponent = input.quality.score * 0.45;
+  const verifierComponent = (verifierScore ?? 60) * 0.35;
+  const confidenceComponent = clamp(input.confidence, 0, 100) * 0.2;
+
+  let score = qualityComponent + verifierComponent + confidenceComponent;
+
+  if (input.fallbackTriggered) {
+    score -= 6;
+  }
+  if (verifierRisk === "high") {
+    score -= 8;
+  } else if (verifierRisk === "critical") {
+    score -= 14;
+  }
+
+  score = Math.round(clamp(score, 0, 100));
+
+  const grade: TrustEnvelope["grade"] =
+    score >= 85 ? "A" : score >= 72 ? "B" : score >= 58 ? "C" : "D";
+
+  const policy: TrustEnvelope["policy"] =
+    verifierRisk === "critical" || score < 60
+      ? "guarded"
+      : verifierRisk === "high" || score < 75
+        ? "review"
+        : "trusted";
+
+  return {
+    score,
+    grade,
+    policy,
+    domain: input.domain,
+    confidence: Math.round(clamp(input.confidence, 0, 100)),
+    qualityScore: input.quality.score,
+    verifierScore,
+    verifierRisk,
+    responseLatencyMs: Math.max(1, Math.round(input.responseLatencyMs)),
+    fallbackTriggered: input.fallbackTriggered,
+  };
 }
 
 async function runLegacyFallbackChat(args: {
@@ -1436,6 +1501,15 @@ export async function POST(request: NextRequest) {
           accuracyPlan,
         );
 
+        const trustEnvelope = buildTrustEnvelope({
+          domain: domainSignal.domain,
+          confidence: adjustedPredictionConfidence,
+          quality,
+          verifierResult,
+          responseLatencyMs,
+          fallbackTriggered: sloFallbackTriggered || failedModels.length > 0,
+        });
+
         recordAccuracyGovernorEvent({
           plan: accuracyPlan,
           qualityScore: quality.score,
@@ -1593,6 +1667,7 @@ export async function POST(request: NextRequest) {
             verifierPlan,
             verifierResult,
             missionReliabilityContext,
+            trustEnvelope,
             retrainQueueResult,
             tier: neuralTier,
             policyMode: body.freedomMode === "uncensored" ? "open-lawful" : "standard",
