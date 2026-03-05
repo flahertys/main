@@ -342,6 +342,7 @@ type MissionRunnerState = {
     steps: string[];
     taskIds: string[];
   } | null;
+  circuitBreaker?: MissionCircuitBreakerState;
 };
 
 type MissionAnalyticsBucket = {
@@ -364,6 +365,19 @@ type MissionAnalyticsStore = {
 
 type MissionBranchMode = "stabilize" | "steady" | "accelerate";
 
+type MissionReliabilityTrend = "degrading" | "stable" | "improving";
+
+type MissionCircuitBreakerState = {
+  open: boolean;
+  reason: string;
+  openedAt: number;
+  cooldownUntil: number;
+  strikeCount: number;
+  unstableStreak: number;
+  stableStreak: number;
+  trend: MissionReliabilityTrend;
+};
+
 type MissionSignalSnapshot = {
   qualityAvg: number;
   confidenceAvg: number;
@@ -371,6 +385,19 @@ type MissionSignalSnapshot = {
   weakSignals: number;
   sampleSize: number;
 };
+
+const MISSION_CIRCUIT_BREAKER_COOLDOWN_MS = 90_000;
+
+const createInitialMissionCircuitBreaker = (): MissionCircuitBreakerState => ({
+  open: false,
+  reason: "",
+  openedAt: 0,
+  cooldownUntil: 0,
+  strikeCount: 0,
+  unstableStreak: 0,
+  stableStreak: 0,
+  trend: "stable",
+});
 
 const MISSION_BLUEPRINTS: MissionBlueprint[] = [
   {
@@ -438,6 +465,9 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
   const [missionRunUsedRecovery, setMissionRunUsedRecovery] = useState(false);
   const [missionBranchMode, setMissionBranchMode] = useState<MissionBranchMode>("steady");
   const [missionBranchSwitches, setMissionBranchSwitches] = useState(0);
+  const [missionCircuitBreaker, setMissionCircuitBreaker] = useState<MissionCircuitBreakerState>(
+    createInitialMissionCircuitBreaker,
+  );
   const [missionRunnerPlan, setMissionRunnerPlan] = useState<{
     id: MissionBlueprintId;
     label: string;
@@ -487,6 +517,31 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
           mode: missionBranchMode,
           switchesCurrentRun: missionBranchSwitches,
         },
+        reliability: {
+          trend: missionCircuitBreaker.trend,
+          score: Math.max(
+            10,
+            Math.min(
+              99,
+              Math.round(
+                100 -
+                  missionCircuitBreaker.strikeCount * 12 -
+                  missionCircuitBreaker.unstableStreak * 8 +
+                  missionCircuitBreaker.stableStreak * 4 -
+                  (missionCircuitBreaker.open ? 22 : 0),
+              ),
+            ),
+          ),
+          circuitOpen: missionCircuitBreaker.open,
+          circuitReason: missionCircuitBreaker.reason || undefined,
+          cooldownRemainingMs:
+            missionCircuitBreaker.open && missionCircuitBreaker.cooldownUntil > Date.now()
+              ? missionCircuitBreaker.cooldownUntil - Date.now()
+              : 0,
+          strikeCount: missionCircuitBreaker.strikeCount,
+          unstableStreak: missionCircuitBreaker.unstableStreak,
+          stableStreak: missionCircuitBreaker.stableStreak,
+        },
         lastStep: missionLastDispatchedStep,
       },
     };
@@ -501,6 +556,7 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     missionRunUsedRecovery,
     missionBranchMode,
     missionBranchSwitches,
+    missionCircuitBreaker,
     missionLastDispatchedStep,
   ]);
 
@@ -666,6 +722,25 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
               : "steady",
           );
           setMissionBranchSwitches(Math.max(0, Number(parsed.branchSwitches) || 0));
+          const parsedBreaker =
+            parsed.circuitBreaker && typeof parsed.circuitBreaker === "object" && !Array.isArray(parsed.circuitBreaker)
+              ? (parsed.circuitBreaker as Partial<MissionCircuitBreakerState>)
+              : null;
+          if (parsedBreaker) {
+            setMissionCircuitBreaker({
+              open: Boolean(parsedBreaker.open),
+              reason: typeof parsedBreaker.reason === "string" ? parsedBreaker.reason : "",
+              openedAt: Math.max(0, Number(parsedBreaker.openedAt) || 0),
+              cooldownUntil: Math.max(0, Number(parsedBreaker.cooldownUntil) || 0),
+              strikeCount: Math.max(0, Number(parsedBreaker.strikeCount) || 0),
+              unstableStreak: Math.max(0, Number(parsedBreaker.unstableStreak) || 0),
+              stableStreak: Math.max(0, Number(parsedBreaker.stableStreak) || 0),
+              trend:
+                parsedBreaker.trend === "degrading" || parsedBreaker.trend === "improving" || parsedBreaker.trend === "stable"
+                  ? parsedBreaker.trend
+                  : "stable",
+            });
+          }
           setMissionRunnerPauseReason(
             typeof parsed.pauseReason === "string" && parsed.pauseReason.trim().length > 0
               ? parsed.pauseReason
@@ -870,6 +945,7 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
       branchMode: missionBranchMode,
       branchSwitches: missionBranchSwitches,
       plan: missionRunnerPlan,
+      circuitBreaker: missionCircuitBreaker,
     };
 
     try {
@@ -888,6 +964,7 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     missionBranchMode,
     missionBranchSwitches,
     missionRunnerPlan,
+    missionCircuitBreaker,
   ]);
 
   useEffect(() => {
@@ -1186,6 +1263,120 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     return "steady";
   }, [missionRunnerPlan, recentMissionSignals]);
 
+  const missionReliabilityTrend = useMemo<MissionReliabilityTrend>(() => {
+    if (recentMissionSignals.sampleSize === 0) {
+      return "stable";
+    }
+
+    if (
+      recentMissionSignals.fallbackEvents >= 2 ||
+      recentMissionSignals.weakSignals >= 2 ||
+      (recentMissionSignals.qualityAvg > 0 && recentMissionSignals.qualityAvg < 66) ||
+      (recentMissionSignals.confidenceAvg > 0 && recentMissionSignals.confidenceAvg < 56)
+    ) {
+      return "degrading";
+    }
+
+    if (
+      recentMissionSignals.sampleSize >= 2 &&
+      recentMissionSignals.fallbackEvents === 0 &&
+      recentMissionSignals.weakSignals === 0 &&
+      recentMissionSignals.qualityAvg >= 84 &&
+      recentMissionSignals.confidenceAvg >= 72
+    ) {
+      return "improving";
+    }
+
+    return "stable";
+  }, [recentMissionSignals]);
+
+  const missionReliabilityScore = useMemo(() => {
+    const signalPenalty = recentMissionSignals.fallbackEvents * 7 + recentMissionSignals.weakSignals * 9;
+    const qualityPenalty = recentMissionSignals.qualityAvg > 0 ? Math.max(0, 74 - recentMissionSignals.qualityAvg) * 0.7 : 0;
+    const confidencePenalty = recentMissionSignals.confidenceAvg > 0 ? Math.max(0, 66 - recentMissionSignals.confidenceAvg) * 0.6 : 0;
+    const breakerPenalty =
+      missionCircuitBreaker.strikeCount * 6 +
+      missionCircuitBreaker.unstableStreak * 8 +
+      (missionCircuitBreaker.open ? 20 : 0);
+    const trendBoost = missionReliabilityTrend === "improving" ? 8 : missionReliabilityTrend === "degrading" ? -10 : 0;
+
+    return Math.max(
+      5,
+      Math.min(
+        99,
+        Math.round(86 - signalPenalty - qualityPenalty - confidencePenalty - breakerPenalty + trendBoost),
+      ),
+    );
+  }, [recentMissionSignals, missionCircuitBreaker, missionReliabilityTrend]);
+
+  useEffect(() => {
+    if (!missionRunnerPlan) return;
+
+    setMissionCircuitBreaker((prev) => {
+      const now = Date.now();
+      const isUnstable =
+        recentMissionSignals.fallbackEvents >= 2 ||
+        recentMissionSignals.weakSignals >= 2 ||
+        (recentMissionSignals.qualityAvg > 0 && recentMissionSignals.qualityAvg < 64) ||
+        (recentMissionSignals.confidenceAvg > 0 && recentMissionSignals.confidenceAvg < 52);
+      const isStable =
+        recentMissionSignals.sampleSize >= 2 &&
+        recentMissionSignals.fallbackEvents === 0 &&
+        recentMissionSignals.weakSignals === 0 &&
+        recentMissionSignals.qualityAvg >= 82 &&
+        recentMissionSignals.confidenceAvg >= 68;
+
+      const unstableStreak = isUnstable ? prev.unstableStreak + 1 : Math.max(0, prev.unstableStreak - 1);
+      const stableStreak = isStable ? prev.stableStreak + 1 : 0;
+      const strikeCount = isUnstable
+        ? prev.strikeCount + 1
+        : Math.max(0, prev.strikeCount - (isStable ? 1 : 0));
+
+      let open = prev.open;
+      let reason = prev.reason;
+      let openedAt = prev.openedAt;
+      let cooldownUntil = prev.cooldownUntil;
+
+      const shouldOpen =
+        !prev.open &&
+        (unstableStreak >= 2 ||
+          strikeCount >= 3 ||
+          (missionRecoveryAttempts >= 2 && recentMissionSignals.fallbackEvents >= 1));
+
+      if (shouldOpen) {
+        open = true;
+        openedAt = now;
+        cooldownUntil = now + MISSION_CIRCUIT_BREAKER_COOLDOWN_MS;
+        reason = "Reliability drift detected. Cooldown engaged before next mission step.";
+      }
+
+      const cooldownExpired = open && cooldownUntil > 0 && now >= cooldownUntil;
+      if (cooldownExpired && stableStreak >= 1) {
+        open = false;
+        openedAt = 0;
+        cooldownUntil = 0;
+        reason = "";
+      }
+
+      const nextState: MissionCircuitBreakerState = {
+        open,
+        reason,
+        openedAt,
+        cooldownUntil,
+        strikeCount,
+        unstableStreak,
+        stableStreak,
+        trend: missionReliabilityTrend,
+      };
+
+      if (JSON.stringify(nextState) === JSON.stringify(prev)) {
+        return prev;
+      }
+
+      return nextState;
+    });
+  }, [missionRunnerPlan, missionRecoveryAttempts, recentMissionSignals, missionReliabilityTrend]);
+
   useEffect(() => {
     if (!missionRunnerPlan) return;
     if (missionBranchMode === adaptiveBranchMode) return;
@@ -1463,6 +1654,7 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     setMissionRunUsedRecovery(false);
     setMissionBranchMode("steady");
     setMissionBranchSwitches(0);
+    setMissionCircuitBreaker(createInitialMissionCircuitBreaker());
     setMissionLastDispatchedStep(null);
     missionRecoveryAttemptedStepsRef.current.clear();
   };
@@ -1579,6 +1771,7 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     setMissionRunUsedRecovery(false);
     setMissionBranchMode("steady");
     setMissionBranchSwitches(0);
+    setMissionCircuitBreaker(createInitialMissionCircuitBreaker());
     missionRecoveryAttemptedStepsRef.current.clear();
     setMissionLastDispatchedStep(null);
     setMissionRunnerActive(true);
@@ -1612,6 +1805,20 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     const riskReliability = reliabilityScoreFor("risk-lock");
     const odinReliability = reliabilityScoreFor("odin-warroom");
 
+    if (missionCircuitBreaker.open) {
+      return {
+        id: "risk-lock" as const,
+        reason: `Circuit breaker is open and reliability is ${missionReliabilityScore}/100. Prioritize Risk Lock stabilization before advancing mission complexity.`,
+      };
+    }
+
+    if (missionReliabilityTrend === "degrading") {
+      return {
+        id: "risk-lock" as const,
+        reason: `Trend is degrading (${missionReliabilityScore}/100). Risk Lock provides the strongest control-first recovery path.`,
+      };
+    }
+
     if (!messages.length || skillLevel === "beginner") {
       return {
         id: "starter-loop" as const,
@@ -1636,7 +1843,14 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     if (experienceMode === "odin" || skillLevel === "advanced") {
       return {
         id: "odin-warroom" as const,
-        reason: `Profile supports operator-grade orchestration and scenario execution (reliability ${odinReliability}/100).`,
+        reason: `Profile supports operator-grade orchestration and scenario execution (run reliability ${odinReliability}/100, trend reliability ${missionReliabilityScore}/100).`,
+      };
+    }
+
+    if (missionReliabilityTrend === "improving" && missionReliabilityScore >= 82 && odinReliability >= riskReliability) {
+      return {
+        id: "odin-warroom" as const,
+        reason: `Reliability trend is improving (${missionReliabilityScore}/100) and supports controlled acceleration into ODIN Warroom.`,
       };
     }
 
@@ -1655,6 +1869,9 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     messages.length,
     skillLevel,
     experienceMode,
+    missionReliabilityTrend,
+    missionReliabilityScore,
+    missionCircuitBreaker.open,
     latestStatusData?.quality?.score,
     latestStatusData?.predictionConfidence,
     missionAnalytics.byBlueprint,
@@ -1664,6 +1881,28 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     if (!missionRunnerActive || !missionRunnerPlan || missionRunnerPaused) return;
     if (isStreaming) return;
     if (missionDispatchLockRef.current) return;
+
+    if (missionCircuitBreaker.open) {
+      const finalQuality = Math.round(latestStatusData?.quality?.score || 0);
+      const finalConfidence = Math.round(latestStatusData?.predictionConfidence || 0);
+      const cooldownRemainingMs = Math.max(0, missionCircuitBreaker.cooldownUntil - Date.now());
+      recordMissionOutcome({
+        blueprintId: missionRunnerPlan.id,
+        completed: false,
+        paused: true,
+        recoveryUsed: missionRunUsedRecovery,
+        qualityScore: finalQuality,
+        confidence: finalConfidence,
+      });
+      setMissionRunnerPaused(true);
+      setMissionRunnerActive(false);
+      setMissionRunnerPauseReason(
+        `Mission circuit breaker engaged${missionCircuitBreaker.reason ? `: ${missionCircuitBreaker.reason}` : "."}${
+          cooldownRemainingMs > 0 ? ` Cooldown ${Math.ceil(cooldownRemainingMs / 1000)}s before resume.` : ""
+        }`,
+      );
+      return;
+    }
 
     if (missionRunnerIndex >= missionRunnerPlan.steps.length) {
       const finalQuality = Math.round(latestStatusData?.quality?.score || 0);
@@ -1765,6 +2004,9 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     missionRunUsedRecovery,
     missionRecoveryAttempts,
     missionBranchMode,
+    missionCircuitBreaker.open,
+    missionCircuitBreaker.reason,
+    missionCircuitBreaker.cooldownUntil,
     isStreaming,
     latestStatusData?.quality?.classification,
     latestStatusData?.quality?.score,
@@ -1839,6 +2081,14 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     const qualityScore = Math.round(latestStatusData?.quality?.score || 0);
     const confidence = Math.round(latestStatusData?.predictionConfidence || 0);
 
+    if (missionCircuitBreaker.open) {
+      return "Reliability circuit breaker is open—hold expansion, run diagnostic/counter pass, and re-enter only after cooldown with one deterministic action.";
+    }
+
+    if (missionReliabilityTrend === "degrading") {
+      return `Reliability trend is degrading (${missionReliabilityScore}/100)—bias to balanced/quality profile and enforce explicit invalidation before any execution.`;
+    }
+
     if (!messages.length) {
       return "Start with one guided prompt, then use post-response actions to turn output into execution artifacts.";
     }
@@ -1855,8 +2105,20 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
       return "ODIN mode active—promote this response into an operator brief and execute highest-impact action first.";
     }
 
+    if (missionReliabilityTrend === "improving" && missionReliabilityScore >= 82) {
+      return `Reliability trend is improving (${missionReliabilityScore}/100)—safe to compress output and focus on highest-leverage operator execution.`;
+    }
+
     return "Signal quality is stable—convert this into a checklist and complete the first two actions now.";
-  }, [latestStatusData?.predictionConfidence, latestStatusData?.quality?.score, messages.length, experienceMode]);
+  }, [
+    latestStatusData?.predictionConfidence,
+    latestStatusData?.quality?.score,
+    messages.length,
+    experienceMode,
+    missionCircuitBreaker.open,
+    missionReliabilityTrend,
+    missionReliabilityScore,
+  ]);
 
   const applyQualityBoost = () => {
     setSloProfile("quality");
@@ -2234,6 +2496,14 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
               {recentMissionSignals.sampleSize > 0
                 ? ` · q${recentMissionSignals.qualityAvg}/c${recentMissionSignals.confidenceAvg} · fallback ${recentMissionSignals.fallbackEvents}`
                 : ""}
+            </p>
+            <p className="text-[10px] text-violet-100/70">
+              Reliability: {missionCircuitBreaker.trend}
+              {` · score ${missionReliabilityScore}/100`}
+              {` · strikes ${missionCircuitBreaker.strikeCount}`}
+              {missionCircuitBreaker.open
+                ? ` · breaker open (${Math.max(0, Math.ceil((missionCircuitBreaker.cooldownUntil - Date.now()) / 1000))}s)`
+                : " · breaker closed"}
             </p>
             {missionRunnerPaused ? (
               <div className="flex flex-wrap items-center gap-2">

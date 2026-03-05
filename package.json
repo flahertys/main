@@ -118,6 +118,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.3.1",
+    "express": "^5.2.1",
     "framer-motion": "^11.0.8",
     "lucide-react": "^0.479.0",
     "next": "15.5.12",
@@ -138,6 +139,8 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@next/bundle-analyzer": "^15.0.0",
+    "@types/express": "^5.0.6",
     "@types/node": "^20",
     "@types/nodemailer": "^7.0.11",
     "@types/react": "^19",
@@ -149,7 +152,6 @@
     "postcss": "^8",
     "rimraf": "^5.0.0",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5",
-    "@next/bundle-analyzer": "^15.0.0"
+    "typescript": "^5"
   }
 }

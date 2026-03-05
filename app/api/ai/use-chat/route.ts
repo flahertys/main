@@ -308,6 +308,21 @@ function resolveMissionDirective(context: unknown) {
     ? sanitizePlainText(branch.mode, 20)
     : "";
   const branchSwitches = branch ? Number(branch.switchesCurrentRun) : 0;
+  const reliabilityRaw = mission.reliability;
+  const reliability = reliabilityRaw && typeof reliabilityRaw === "object" && !Array.isArray(reliabilityRaw)
+    ? (reliabilityRaw as Record<string, unknown>)
+    : null;
+  const reliabilityTrend = reliability && typeof reliability.trend === "string"
+    ? sanitizePlainText(reliability.trend, 20)
+    : "";
+  const circuitOpen = reliability ? Boolean(reliability.circuitOpen) : false;
+  const circuitReason = reliability && typeof reliability.circuitReason === "string"
+    ? sanitizePlainText(reliability.circuitReason, 220)
+    : "";
+  const cooldownRemainingMs = reliability ? Number(reliability.cooldownRemainingMs) : 0;
+  const strikeCount = reliability ? Number(reliability.strikeCount) : 0;
+  const unstableStreak = reliability ? Number(reliability.unstableStreak) : 0;
+  const stableStreak = reliability ? Number(reliability.stableStreak) : 0;
   const lastStepRaw = mission.lastStep;
   const lastStep =
     lastStepRaw && typeof lastStepRaw === "object" && !Array.isArray(lastStepRaw)
@@ -336,6 +351,15 @@ function resolveMissionDirective(context: unknown) {
     recoveryEngaged ? "RecoveryEngaged=true" : "RecoveryEngaged=false",
     branchMode ? `BranchMode=${branchMode}` : "",
     Number.isFinite(branchSwitches) ? `BranchSwitches=${Math.max(0, branchSwitches)}` : "",
+    reliabilityTrend ? `ReliabilityTrend=${reliabilityTrend}` : "",
+    Number.isFinite(strikeCount) ? `ReliabilityStrikes=${Math.max(0, strikeCount)}` : "",
+    Number.isFinite(unstableStreak) ? `UnstableStreak=${Math.max(0, unstableStreak)}` : "",
+    Number.isFinite(stableStreak) ? `StableStreak=${Math.max(0, stableStreak)}` : "",
+    circuitOpen ? "CircuitBreaker=OPEN" : "CircuitBreaker=CLOSED",
+    circuitOpen && Number.isFinite(cooldownRemainingMs)
+      ? `CircuitCooldownRemainingMs=${Math.max(0, Math.floor(cooldownRemainingMs))}`
+      : "",
+    circuitOpen && circuitReason ? `CircuitReason=${circuitReason}` : "",
     lastCommand ? `LastCommand=/${lastCommand}` : "",
     lastPrompt ? `LastPrompt=${lastPrompt}` : "",
     branchMode === "stabilize"
@@ -343,6 +367,9 @@ function resolveMissionDirective(context: unknown) {
       : branchMode === "accelerate"
         ? "Branch directive: accelerate output by avoiding repeated caveats and prioritizing concise, execution-ready operator actions."
         : "",
+    circuitOpen
+      ? "Reliability directive: mission circuit breaker is open. Prioritize diagnostic clarity, no speculative branching, and return one safe go/no-go next action only."
+      : "",
     recoveryEngaged
       ? "When recovering, prioritize contradiction checks, root-cause isolation, and a go/no-go next action before continuing mission flow."
       : "",
@@ -350,6 +377,40 @@ function resolveMissionDirective(context: unknown) {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function resolveMissionReliabilityContext(context: unknown): {
+  trend: "degrading" | "stable" | "improving";
+  score: number;
+  circuitOpen: boolean;
+} | null {
+  if (!context || typeof context !== "object" || Array.isArray(context)) {
+    return null;
+  }
+
+  const missionRaw = (context as Record<string, unknown>).mission;
+  if (!missionRaw || typeof missionRaw !== "object" || Array.isArray(missionRaw)) {
+    return null;
+  }
+
+  const mission = missionRaw as Record<string, unknown>;
+  const reliabilityRaw = mission.reliability;
+  if (!reliabilityRaw || typeof reliabilityRaw !== "object" || Array.isArray(reliabilityRaw)) {
+    return null;
+  }
+
+  const reliability = reliabilityRaw as Record<string, unknown>;
+  const trendRaw = typeof reliability.trend === "string" ? reliability.trend.toLowerCase() : "stable";
+  const trend: "degrading" | "stable" | "improving" =
+    trendRaw === "degrading" || trendRaw === "improving" ? trendRaw : "stable";
+  const score = Math.max(0, Math.min(100, Number(reliability.score) || 0));
+  const circuitOpen = Boolean(reliability.circuitOpen);
+
+  return {
+    trend,
+    score,
+    circuitOpen,
+  };
 }
 
 function readRolloutPercent() {
@@ -952,8 +1013,19 @@ export async function POST(request: NextRequest) {
       accuracyPlan,
     });
 
+    const missionReliabilityContext = resolveMissionReliabilityContext(body.context);
+    const missionReliabilitySloBias: SloProfile | null =
+      missionReliabilityContext?.circuitOpen
+        ? "quality"
+        : missionReliabilityContext?.trend === "degrading"
+          ? "balanced"
+          : missionReliabilityContext?.trend === "improving" && missionReliabilityContext.score >= 82
+            ? (sloProfile === "latency" ? "latency" : null)
+            : null;
+
     const requestedAdaptiveSlo =
-      accuracyPlan?.suggestedSloProfile
+      missionReliabilitySloBias
+      || accuracyPlan?.suggestedSloProfile
       || complexityPlan?.suggestedSloProfile
       || personalizedContext?.tuningHints.preferredSloProfile
       || sloProfile;
@@ -1194,6 +1266,7 @@ export async function POST(request: NextRequest) {
             complexityPlan,
             accuracyPlan,
             verifierPlan,
+            missionReliabilityContext,
             tier: neuralTier,
             policyMode: body.freedomMode === "uncensored" ? "open-lawful" : "standard",
             lawfulOnly: true,
@@ -1519,6 +1592,7 @@ export async function POST(request: NextRequest) {
             accuracyPlan,
             verifierPlan,
             verifierResult,
+            missionReliabilityContext,
             retrainQueueResult,
             tier: neuralTier,
             policyMode: body.freedomMode === "uncensored" ? "open-lawful" : "standard",
