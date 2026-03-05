@@ -1,262 +1,126 @@
-# Vercel Deployment Setup - Quick Start
+# Deployment Quickstart (Precision Guide)
 
-## Overview
-This repository is configured for automatic deployment to **https://tradehaxai.tech** when you push to the `main` branch.
+## Purpose
 
-## 🚀 Quick Setup (5 Steps)
+Use this guide to deploy the latest `main` changes with minimal ambiguity.
 
-### Step 1: Configure GitHub Secrets (5 minutes)
-
-You need to add three secrets to your GitHub repository for automated deployments:
-
-1. Go to: https://github.com/DarkModder33/main/settings/secrets/actions
-2. Add these three secrets (click "New repository secret" for each):
-   - `VERCEL_TOKEN` - Get from Vercel Dashboard → Settings → Tokens
-   - `VERCEL_ORG_ID` - Get from running `vercel link` locally
-   - `VERCEL_PROJECT_ID` - Get from running `vercel link` locally
-
-**📖 Detailed instructions:** [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)
+**Current production objective:** `https://tradehax.net`
 
 ---
 
-### Step 2: Add Domain Verification Record (2 minutes)
+## 1) Choose exactly one production path
 
-**⚠️ CRITICAL:** Add this TXT record to your DNS provider (Namecheap, GoDaddy, etc.):
+Do **not** mix these in the same release window.
 
-```
-Type: TXT
-Name: _vercel
-Value: vc-domain-verify=tradehaxai.tech,9b1517380c738599577c
-TTL: 3600
-```
+- **Path A — Vercel**: managed hosting and dashboard-driven deploys.
+- **Path B — Namecheap VPS**: script-driven deploy workflow from this repository.
 
-This is **required** for Vercel to allow your custom domain.
+If you are migrating from one path to the other, complete migration checklist steps first before expecting route changes to appear live.
 
 ---
 
-### Step 3: Configure DNS Records (5 minutes)
+## 2) Preflight checks (always)
 
-Add these DNS records in your domain registrar:
+Run local quality + structure checks before deploy:
 
-**A Record (apex domain):**
-```
-Type: A
-Host: @
-Value: 76.76.21.21
-TTL: 3600
-```
+- `npm run check:links`
+- `npm run lint`
+- `npm run type-check`
+- `npm run build`
 
-**CNAME Record (www subdomain):**
-```
-Type: CNAME
-Host: www
-Value: cname.vercel-dns.com.
-TTL: 3600
-```
-
-**📖 Detailed instructions:** [VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md)
+If these fail, fix locally before deployment.
 
 ---
 
-### Step 4: Add Domain in Vercel Dashboard (2 minutes)
+## 3) Path A — Vercel deployment
 
-1. Log into [Vercel Dashboard](https://vercel.com/dashboard)
-2. Go to your project (it will be named after your GitHub repository)
-3. Click **Settings** → **Domains**
-3. Click **Add Domain**
-4. Enter: `tradehaxai.tech`
-5. Click **Add**
-6. Vercel will verify DNS records and issue SSL certificate
+### Required repository secrets
 
----
+Set in GitHub Actions secrets:
 
-### Step 5: Push to Main Branch (Automatic)
+- `VERCEL_TOKEN`
+- `VERCEL_ORG_ID`
+- `VERCEL_PROJECT_ID`
 
-Once the above steps are complete:
+### Required platform setup
 
-```bash
-git add .
-git commit -m "your changes"
-git push origin main
-```
+- Vercel project linked to this repository.
+- Domain(s) configured in Vercel dashboard.
+- Required environment variables present in Vercel.
 
-The deployment happens automatically:
-1. GitHub Actions workflow runs
-2. Code is built and tested
-3. Deployed to Vercel
-4. Live at https://tradehaxai.tech within 3-5 minutes
+### Trigger deploy
+
+- Push to `main` **or** run your selected CI deploy workflow.
+
+### Verify live
+
+- Visit `https://tradehax.net`.
+- Validate expected route removals/additions.
+- Confirm deployment status is `Ready` in Vercel.
 
 ---
 
-## ✅ Verification
+## 4) Path B — Namecheap VPS deployment
 
-After setup, verify everything works:
+### Required repository secrets
 
-1. **Check GitHub Actions**: https://github.com/DarkModder33/main/actions
-   - Should show green checkmark for "Deploy to Vercel"
+Set in GitHub Actions secrets:
 
-2. **Check DNS Propagation**: https://dnschecker.org
-   - Enter `tradehaxai.tech`, should show `76.76.21.21`
+- `NAMECHEAP_VPS_HOST`
+- `NAMECHEAP_VPS_USER`
+- `NAMECHEAP_VPS_SSH_KEY`
 
-3. **Check Vercel Dashboard**: 
-   - Domain should show "Valid Configuration" ✅
-   - SSL certificate should show "Active" ✅
+Optional but recommended:
 
-4. **Visit Site**: https://tradehaxai.tech
-   - Should load with HTTPS padlock
-   - No errors in browser console
+- `NAMECHEAP_VPS_PORT`
+- `NAMECHEAP_APP_ROOT`
+- `NAMECHEAP_APP_PORT`
 
----
+### Trigger deploy from repo scripts
 
-## 🆘 Troubleshooting
+- Run: `npm run deploy:launch`
 
-If something doesn't work:
+If deploy fails on `deploy:namecheap:check`, it means required Namecheap secrets are still missing.
 
-### Site Not Loading?
-1. Wait 5-60 minutes for DNS propagation
-2. Check DNS records are correct
-3. Verify domain verification TXT record was added
-4. Check [VERCEL_DEPLOYMENT_TROUBLESHOOTING.md](./VERCEL_DEPLOYMENT_TROUBLESHOOTING.md)
+### Verify live
 
-### GitHub Actions Failing?
-1. Verify all three GitHub secrets are set correctly
-2. Check workflow logs for specific error
-3. See [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md) troubleshooting section
-
-### Build Failing?
-1. Test locally: `npm run build`
-2. Fix any errors in code
-3. Check Vercel deployment logs
-4. See [VERCEL_DEPLOYMENT_TROUBLESHOOTING.md](./VERCEL_DEPLOYMENT_TROUBLESHOOTING.md)
+- Visit `https://tradehax.net`.
+- Validate route behavior (e.g., removed routes return 404/redirect as intended).
+- Confirm server logs/health checks for successful rollout.
 
 ---
 
-## 📚 Documentation
+## 5) Definition of "deployed"
 
-Complete guides available:
+A commit is considered deployed only when **all** are true:
 
-- **[GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)**
-  - How to get and configure GitHub secrets
-  - VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
-  - Security best practices
-
-- **[VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md)**
-  - Complete domain configuration guide
-  - DNS records setup
-  - Domain verification
-  - SSL certificate setup
-
-- **[VERCEL_DEPLOYMENT_TROUBLESHOOTING.md](./VERCEL_DEPLOYMENT_TROUBLESHOOTING.md)**
-  - Comprehensive troubleshooting guide
-  - Common issues and solutions
-  - Emergency rollback procedures
-  - Vercel dashboard health checks
-
-- **[README.md](./README.md)**
-  - Project overview
-  - Local development setup
-  - Environment variables
-  - Project structure
+1. Commit exists on `origin/main`.
+2. Selected deploy path completed successfully.
+3. Live site behavior matches the commit.
 
 ---
 
-## 🔄 Workflow
+## 6) Fast troubleshooting
 
-### Automatic Deployment Workflow
-
-```
-Push to main branch
-       ↓
-GitHub Actions triggered
-       ↓
-1. Checkout code
-2. Install Vercel CLI
-3. Pull Vercel environment
-4. Build project
-5. Deploy to Vercel
-       ↓
-Live at https://tradehaxai.tech
-```
-
-### What Happens on Each Push
-
-- **Main branch**: Deploys to production (tradehaxai.tech)
-- **Pull requests**: Creates preview deployment + comment with URL
-- **Other branches**: No automatic deployment
+- **Code pushed but live unchanged:** deploy path did not run or failed.
+- **Namecheap deploy check fails:** missing required Namecheap secrets.
+- **Vercel deploy succeeds but old content appears:** check project/domain mapping and cache.
+- **Broken routes after cleanup:** run `npm run check:links` and fix stale links.
 
 ---
 
-## 🔒 Security Notes
+## 7) Recommended operating cadence
 
-### Required for Security
-- TXT record verifies domain ownership
-- GitHub secrets keep tokens secure
-- HTTPS enforced automatically by Vercel
-- CSP headers configured in `vercel.json`
+For precise change control:
 
-### Best Practices
-- Never commit `.env` files
-- Rotate VERCEL_TOKEN every 3-6 months
-- Use environment variables for all secrets
-- Keep dependencies updated: `npm audit`
+1. Make scoped changes.
+2. Run local quality checks.
+3. Commit and push.
+4. Trigger one deploy path.
+5. Verify live URLs immediately.
 
 ---
 
-## 🎯 Project Stack
-
-- **Framework**: Next.js 15.5.10
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS 4
-- **Blockchain**: Solana Web3.js
-- **Deployment**: Vercel
-- **CI/CD**: GitHub Actions
-- **Domain**: tradehaxai.tech
-
----
-
-## 📞 Support
-
-### Documentation Issues
-- Check troubleshooting guide first
-- Review GitHub Actions logs
-- Check Vercel deployment logs
-
-### External Support
-- **Vercel Support**: https://vercel.com/support
-- **GitHub Actions**: https://docs.github.com/en/actions
-- **Domain/DNS**: Your domain registrar's support
-
-### Tools
-- **DNS Checker**: https://dnschecker.org
-- **SSL Checker**: https://www.sslshopper.com/ssl-checker.html
-- **Vercel Status**: https://vercel-status.com
-
----
-
-## 📝 Maintenance Checklist
-
-### After Initial Setup
-- [ ] Test deployment by pushing to main
-- [ ] Verify site loads at https://tradehaxai.tech
-- [ ] Check SSL certificate is active
-- [ ] Set up environment variables in Vercel
-- [ ] Configure monitoring/alerts
-
-### Monthly
-- [ ] Check GitHub Actions are working
-- [ ] Verify DNS records are correct
-- [ ] Update dependencies: `npm update`
-- [ ] Run security audit: `npm audit`
-
-### Quarterly
-- [ ] Rotate VERCEL_TOKEN
-- [ ] Review and update documentation
-- [ ] Test rollback procedures
-- [ ] Check Vercel usage/billing
-
----
-
-**Last Updated**: 2026-01-28  
-**Repository**: https://github.com/DarkModder33/main  
-**Live Site**: https://tradehaxai.tech  
-**Status**: ✅ Production Ready
+**Last Updated:** 2026-03-05
+**Repository:** `DarkModder33/main`
+**Canonical Production URL:** `https://tradehax.net`

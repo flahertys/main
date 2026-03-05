@@ -21,7 +21,7 @@ A sophisticated automated Web3 trading platform built with Next.js, React, and p
 
 ## ✨ Features
 
-- 🚀 **Modern Stack**: Built with Next.js 15.4, React 19, TypeScript
+- 🚀 **Modern Stack**: Built with Next.js 15.5.12, React 19, TypeScript
 - 🔗 **Solana Integration**: Native Web3 wallet support with Solana blockchain
 - 🎨 **Beautiful UI**: Tailwind CSS 4 with custom design system
 - 📱 **Responsive Design**: Mobile-first, works perfectly on all devices
@@ -65,8 +65,8 @@ bun install
 3. **Set up environment variables**
 
 ```bash
-# Copy the sample environment file
-cp sample.env .env.local
+# Copy the canonical environment template
+cp .env.example .env.local
 
 # Edit .env.local with your configuration
 # See .env.example for all available options
@@ -117,112 +117,21 @@ npm run start
 npm run lint
 ```
 
-## 🌍 Deployment to Vercel
+## 🌍 Deployment (Precision Paths)
 
-This project is configured for automatic deployment to https://tradehaxai.tech via Vercel and GitHub Actions.
+TradeHax currently supports two deployment paths. Pick one and keep it as the source of truth for production:
 
-### Automatic Deployment (Recommended)
+- **Path A: Vercel** (managed hosting + domain wiring)
+- **Path B: Namecheap VPS** (custom VPS workflow via deploy scripts)
 
-**The project automatically deploys when you push to the `main` branch.**
+For precise setup and troubleshooting, use:
 
-Every push to `main` triggers:
-1. GitHub Actions workflow runs
-2. Code is built and tested
-3. Deployed to Vercel production
-4. Available at https://tradehaxai.tech
+- **`DEPLOYMENT_QUICKSTART.md`** (current decision tree + minimum required setup)
+- **`GITHUB_SECRETS_SETUP.md`** (GitHub Actions secrets)
+- **`VERCEL_DOMAIN_SETUP.md`** and **`VERCEL_DEPLOYMENT_TROUBLESHOOTING.md`** (Vercel path)
+- **`NAMECHEAP_CPANEL_DEPLOYMENT.md`** and **`NAMECHEAP_MIGRATION_CHECKLIST.md`** (Namecheap path)
 
-**Required Setup:**
-- GitHub Secrets must be configured (see [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md))
-- DNS must be configured for custom domain (see [VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md))
-
-**Note:** This project uses GitHub Actions for deployment control. If you also have Vercel's automatic Git deployments enabled, you may want to disable them in Vercel Dashboard → Settings → Git to avoid duplicate deployments.
-
-### 📚 Deployment Documentation
-
-Comprehensive guides are available for setting up and troubleshooting deployments:
-
-- **[DEPLOYMENT_QUICKSTART.md](./DEPLOYMENT_QUICKSTART.md)** - ⚡ Quick 5-step setup guide for immediate deployment
-  - Fast setup in 15 minutes
-  - Essential steps only
-  - Quick verification checklist
-
-- **[VERCEL_STATIC_EXPORT_FIX.md](./VERCEL_STATIC_EXPORT_FIX.md)** - 🔧 Fix for "routes-manifest.json not found" error
-  - Explains conditional static export strategy
-  - Dual deployment (GitHub Pages + Vercel)
-  - Verification steps and troubleshooting
-
-- **[VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md)** - Complete guide for configuring the custom domain `tradehaxai.tech`
-  - Domain verification TXT record instructions
-  - DNS configuration (A and CNAME records)
-  - SSL certificate setup
-  - Step-by-step Vercel dashboard configuration
-
-- **[GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)** - Guide for configuring GitHub Secrets for automated deployments
-  - How to get VERCEL_TOKEN
-  - How to get VERCEL_ORG_ID and VERCEL_PROJECT_ID
-  - Testing the workflow
-  - Security best practices
-
-- **[VERCEL_DEPLOYMENT_TROUBLESHOOTING.md](./VERCEL_DEPLOYMENT_TROUBLESHOOTING.md)** - Comprehensive troubleshooting guide
-  - Common deployment issues and solutions
-  - Vercel dashboard health checks
-  - DNS and SSL certificate problems
-  - Emergency rollback procedures
-
-### Quick Setup Checklist
-
-To deploy this project to production:
-
-- [ ] **Configure GitHub Secrets** (see [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md))
-  - Add `VERCEL_TOKEN`
-  - Add `VERCEL_ORG_ID`
-  - Add `VERCEL_PROJECT_ID`
-
-- [ ] **Configure DNS** (see [VERCEL_DOMAIN_SETUP.md](./VERCEL_DOMAIN_SETUP.md))
-  - Add domain verification TXT record: `_vercel` → `vc-domain-verify=tradehaxai.tech,9b1517380c738599577c`
-  - Add A record: `@` → `76.76.21.21`
-  - Add CNAME record: `www` → `cname.vercel-dns.com.`
-
-- [ ] **Add Domain in Vercel Dashboard**
-  - Add `tradehaxai.tech` in Settings → Domains
-  - Wait for DNS propagation (5-60 minutes)
-  - Verify SSL certificate is issued
-
-- [ ] **Configure Environment Variables** (in Vercel Dashboard)
-  - Set required production environment variables
-  - See `.env.example` for all available variables
-
-- [ ] **Push to Main Branch**
-  - Commits to `main` automatically trigger deployment
-  - Monitor deployment in GitHub Actions tab
-
-### Manual Deployment via Vercel CLI (Alternative)
-
-If you prefer manual deployment:
-
-1. **Install Vercel CLI**
-```bash
-npm install -g vercel
-```
-
-2. **Login to Vercel**
-```bash
-vercel login
-```
-
-3. **Link Project** (first time only)
-```bash
-vercel link
-```
-
-4. **Deploy**
-```bash
-# Deploy to preview
-vercel
-
-# Deploy to production
-vercel --prod
-```
+> Operational rule: a commit being in `main` does **not** mean production is updated until the selected deploy path completes successfully.
 
 ### One-Button Deploy (Local Ops)
 
