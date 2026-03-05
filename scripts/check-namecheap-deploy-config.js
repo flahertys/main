@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+const path = require("node:path");
+const dotenv = require("dotenv");
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local"), override: true });
+
 const required = [
   "NAMECHEAP_VPS_HOST",
   "NAMECHEAP_VPS_USER",
