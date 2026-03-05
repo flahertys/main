@@ -63,6 +63,11 @@ function has(key) {
   return get(key).length > 0;
 }
 
+function hasRealValue(key) {
+  const value = get(key);
+  return Boolean(value) && !isPlaceholder(value);
+}
+
 function isPlaceholder(value) {
   const raw = String(value || "").toLowerCase();
   return (
@@ -120,8 +125,7 @@ function assertRequiredEnv(key, hint) {
 function assertOneOfRequiredEnv(keys, label, hint) {
   const selected =
     keys.find((key) => {
-      const value = get(key);
-      return Boolean(value) && !isPlaceholder(value);
+      return hasRealValue(key);
     }) || keys.find((key) => has(key));
   if (!selected) {
     print("FAIL", label, `Missing required variable. ${hint}`);
@@ -233,7 +237,7 @@ function checkOptionalProviderTokens() {
   const requiredProviders = parseCsvSet(get("TRADEHAX_REQUIRED_AI_PROVIDERS") || "huggingface");
 
   for (const [providerId, label, keys] of providers) {
-    const connected = keys.some((key) => has(key));
+    const connected = keys.some((key) => hasRealValue(key));
     if (connected) {
       print("PASS", `${label}_TOKEN_CONNECTION`, "configured (masked)");
     } else if (requiredProviders.has(String(providerId))) {
