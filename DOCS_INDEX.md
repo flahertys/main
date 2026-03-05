@@ -49,6 +49,17 @@ Use this before opening any other markdown guide.
 - `archive/docs/**` contains historical references and prior implementation records.
 - Do **not** treat archive docs as source-of-truth for current deployment behavior.
 
+## Root legacy redirect stubs
+
+The following root docs are intentionally retained as lightweight redirects to avoid breaking historical links:
+
+- `COMPLETE_DEPLOYMENT_GUIDE.md`
+- `DEPLOYMENT_CHECKLIST.md`
+- `DEPLOYMENT_FINAL_SUMMARY.md`
+- `DEPLOYMENT_FIX_CHECKLIST.md`
+- `DEPLOYMENT_FIX_SUMMARY.md`
+- `DEPLOYMENT_PATHS.md`
+
 ## Precision operating rule
 
 A change is considered complete only when:
