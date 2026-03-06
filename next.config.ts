@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 import { siteConfig } from "./lib/site-config";
 
 const useStaticExport = process.env.NEXT_FORCE_STATIC_EXPORT === "1";
@@ -135,5 +136,15 @@ const nextConfig: NextConfig = {
   // Configure headers at the hosting level (GitHub Pages, Vercel, etc.)
 };
 
-export default withBundleAnalyzer(nextConfig);
+const analyzedConfig = withBundleAnalyzer(nextConfig);
 
+export default withSentryConfig(analyzedConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: true,
+});
