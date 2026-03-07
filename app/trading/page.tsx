@@ -9,6 +9,7 @@ import {
   BrainCircuit,
   FlaskConical,
   LayoutDashboard,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -41,6 +42,13 @@ interface FeatureCard {
 }
 
 const FEATURES: FeatureCard[] = [
+  {
+    href: "/polymarket",
+    icon: TrendingUp,
+    title: "Polymarket Terminal",
+    description: "Live prediction market trading with Fibonacci, Full Kelly, Bayesian, Monte Carlo, and multi-timeframe analysis. Polygon wallet support.",
+    badge: "Live",
+  },
   {
     href: "/trading/portfolio",
     icon: LayoutDashboard,

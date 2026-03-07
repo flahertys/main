@@ -144,7 +144,13 @@ export default withSentryConfig(analyzedConfig, {
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  hideSourceMaps: true,
-  disableLogger: true,
-  automaticVercelMonitors: true,
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+  webpack: {
+    automaticVercelMonitors: true,
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
 });
