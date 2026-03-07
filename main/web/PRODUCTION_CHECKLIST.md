@@ -20,21 +20,21 @@ Production checklist for the `web/` module deployed to `tradehax.net` with `/tra
 - [x] Static assets cache policy configured
 - [x] Health endpoint no-store cache policy configured
 
-## Deployment Ready ⏳ NEXT STEP
-```powershell
-cd C:\tradez\main\web
-npx --yes vercel@50.28.0 --prod --yes --scope hackavelliz
-```
+## Deployment ✅ COMPLETE
+- [x] Vercel CLI authenticated
+- [x] Team scope identified (`hackavelliz`)
+- [x] Production deploy executed
+- [x] Domain attached (`tradehax.net`)
 
-## Post-Deploy Validation (To Be Run After Deployment)
-- [ ] `https://tradehax.net/` loads launcher page
-- [ ] `https://tradehax.net/tradehax` loads terminal UI
-- [ ] hard refresh on `/tradehax` works
-- [ ] `https://tradehax.net/__health` returns `{"ok":true,...}`
-- [ ] no blocking console errors in browser
+## Post-Deploy Validation ✅ COMPLETE
+- [x] `https://tradehax.net/` loads launcher page
+- [x] `https://tradehax.net/tradehax` loads terminal UI
+- [x] hard refresh on `/tradehax` works (SPA routing verified)
+- [x] `https://tradehax.net/__health` returns `{"ok":true,...}`
+- [x] no blocking console errors in browser
 
 ## Domain Strategy ✅ CONFIRMED
-- [x] Keep `tradehax.net` canonical
+- [x] Keep `tradehax.net` canonical (LIVE)
 - [x] Keep `tradehaxai.tech` as forward/secondary until split is justified by KPIs
 
 ## Rollback Plan ✅ READY
@@ -45,14 +45,21 @@ npx --yes vercel@50.28.0 --prod --yes --scope hackavelliz
   npx --yes vercel@50.28.0 alias set <PREVIOUS_URL> tradehax.net --scope hackavelliz
   ```
 
-## Authorization
+## Authorization & Go-Live ✅ APPROVED
 - [x] Code is production-ready (all tests passing)
 - [x] Infrastructure is configured (vercel.json + health endpoint)
 - [x] Vercel team scope identified (hackavelliz)
-- [x] Security headers implemented
-- [x] SPA routing configured
+- [x] Security headers implemented and verified
+- [x] SPA routing configured and tested
 - [x] Mobile/browser optimizations complete
+- [x] Vercel deployment token provided and authenticated
+- [x] Production deployment executed successfully
 
-**STATUS: ✅ AUTHORIZED FOR PRODUCTION DEPLOYMENT**
+**STATUS: ✅ LIVE ON PRODUCTION**
 
-See `DEPLOYMENT_READY_GO_LIVE.md` for complete step-by-step instructions.
+**Domain:** https://tradehax.net  
+**Version:** 1.1.0  
+**Launch Date:** March 7, 2026  
+**Vercel Team:** hackavelliz  
+
+See `DEPLOYMENT_COMPLETE.md` for detailed post-deployment documentation.
