@@ -5,10 +5,17 @@ This folder packages your provided file `tradehax-final.jsx` into a runnable web
 ## Included
 
 - `src/TradeHaxFinal.jsx` - merged app component with local quant AI fallback (no direct Anthropic dependency)
+- `src/App.jsx` - router shell with pages `/` and `/tradehax`
 - `src/main.jsx` - app entry point
-- `package.json` - dependency manifest (includes `ethers`)
+- `package.json` - dependency manifest (includes `ethers`, `react-router-dom`)
 - `vite.config.js` - dev/build config
 - `scripts/smoke-test.js` - verification harness
+
+## Routes
+
+- `/` - lightweight launcher page
+- `/tradehax` - full TradeHax GPT interface page
+- External future option link is included to `https://tradehaxai.tech`
 
 ## Features
 
