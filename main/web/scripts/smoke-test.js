@@ -7,6 +7,7 @@ const required = [
   "package.json",
   "vite.config.js",
   path.join("src", "main.jsx"),
+  path.join("src", "App.jsx"),
   path.join("src", "TradeHaxFinal.jsx")
 ];
 
@@ -15,6 +16,15 @@ for (const rel of required) {
   const file = path.join(root, rel);
   if (!fs.existsSync(file)) {
     console.error(`Missing file: ${rel}`);
+    failed = true;
+  }
+}
+
+const appPath = path.join(root, "src", "App.jsx");
+if (fs.existsSync(appPath)) {
+  const appText = fs.readFileSync(appPath, "utf8");
+  if (!appText.includes('path="/tradehax"')) {
+    console.error("Router page /tradehax route not found in App.jsx.");
     failed = true;
   }
 }
