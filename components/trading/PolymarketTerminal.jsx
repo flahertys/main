@@ -589,7 +589,7 @@ const requestAdapter = async (payload) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
-export default function TradeHaxGPT() {
+export default function PolymarketTerminal() {
   // State
   const [view, setView]         = useState("scanner");
   const [markets, setMarkets]   = useState([]);
