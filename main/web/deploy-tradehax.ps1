@@ -13,7 +13,7 @@ param(
     [string]$VercelOrgId = $env:VERCEL_ORG_ID
 )
 
-Set-ErrorActionPreference "Stop"
+$ErrorActionPreference = "Stop"
 
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $WebRoot = (Resolve-Path -LiteralPath $ScriptRoot).Path

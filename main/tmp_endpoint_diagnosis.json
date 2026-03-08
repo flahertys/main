@@ -1,0 +1,38 @@
+[
+    {
+        "url":  "https://tradehax.net/",
+        "status":  200,
+        "server":  "Vercel",
+        "via":  "",
+        "xvercelid":  "iad1::xsphd-1773004879612-6b002cd7cd38",
+        "contentType":  "text/html; charset=utf-8",
+        "bodySnippet":  "\u003c!DOCTYPE html\u003e\u003c!--kGIMJlXMS63jsKIkR19Iq--\u003e\u003chtml lang=\"en\" class=\"dark\"\u003e\u003chead\u003e\u003cmeta charSet=\"utf-8\"/\u003e\u003cmeta name=\"viewport\" content=\"width=de"
+    },
+    {
+        "url":  "https://tradehax.net/__health",
+        "status":  404,
+        "server":  "",
+        "via":  "",
+        "xvercelid":  "",
+        "contentType":  "",
+        "bodySnippet":  ""
+    },
+    {
+        "url":  "https://tradehax.net/tradehax",
+        "status":  404,
+        "server":  "",
+        "via":  "",
+        "xvercelid":  "",
+        "contentType":  "",
+        "bodySnippet":  ""
+    },
+    {
+        "url":  "https://tradehax.net/api/health",
+        "status":  200,
+        "server":  "Vercel",
+        "via":  "",
+        "xvercelid":  "iad1::iad1::twgvt-1773004880148-2d8009d5534d",
+        "contentType":  "application/json",
+        "bodySnippet":  "{\"status\":\"ok\",\"service\":\"tradehax\",\"version\":\"1.1.0\",\"timestamp\":\"2026-03-08T21:21:20.222Z\"}"
+    }
+]

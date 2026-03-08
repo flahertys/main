@@ -33,9 +33,9 @@ echo 2^) Click Manage next to tradehax.net.
 echo 3^) Open the Advanced DNS tab.
 echo 4^) Delete existing records for host @ and www.
 echo 5^) Add this record:
-echo    Type: CNAME
+echo    Type: A
 echo    Host: @
-echo    Value: cname.vercel-dns.com
+echo    Value: 76.76.21.21
 echo    TTL: Automatic
 echo 6^) Add this record:
 echo    Type: CNAME

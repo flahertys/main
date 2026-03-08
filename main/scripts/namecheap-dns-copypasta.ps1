@@ -17,9 +17,9 @@ Namecheap Advanced DNS - copy/paste these values
 Delete existing records for host '@' and 'www' first.
 
 Record 1
-  Type : CNAME
+  Type : A
   Host : @
-  Value: $Target
+  Value: 76.76.21.21
   TTL  : $Ttl
 
 Record 2
@@ -34,31 +34,80 @@ After saving, run:
 }
 
 function Verify-Dns {
-    $answers = @()
+    # Accept both direct CNAME target and Vercel apex flattening IP.
+    $acceptedApexIps = @("76.76.21.21")
+
+    $apexAnswers = @()
+    $wwwAnswers = @()
+
     try {
-        $answers += Resolve-DnsName -Name $Domain -Type CNAME -ErrorAction Stop | Select-Object -ExpandProperty NameHost
+        $apexAnswers += Resolve-DnsName -Name $Domain -Type CNAME -ErrorAction Stop | Select-Object -ExpandProperty NameHost
     } catch {}
 
-    if ($answers.Count -eq 0) {
+    if ($apexAnswers.Count -eq 0) {
         try {
-            $answers += Resolve-DnsName -Name $Domain -Type A -ErrorAction Stop | Select-Object -ExpandProperty IPAddress
+            $apexAnswers += Resolve-DnsName -Name $Domain -Type A -ErrorAction Stop | Select-Object -ExpandProperty IPAddress
+        } catch {}
+    }
+
+    $wwwDomain = "www.$Domain"
+    try {
+        $wwwAnswers += Resolve-DnsName -Name $wwwDomain -Type CNAME -ErrorAction Stop | Select-Object -ExpandProperty NameHost
+    } catch {}
+
+    if ($wwwAnswers.Count -eq 0) {
+        try {
+            $wwwAnswers += Resolve-DnsName -Name $wwwDomain -Type A -ErrorAction Stop | Select-Object -ExpandProperty IPAddress
         } catch {}
     }
 
     Write-Output "DNS lookup for ${Domain}:"
-    if ($answers.Count -eq 0) {
+    if ($apexAnswers.Count -eq 0) {
         Write-Output "No DNS answer returned."
     } else {
-        $answers | ForEach-Object { Write-Output $_ }
+        $apexAnswers | ForEach-Object { Write-Output $_ }
     }
     Write-Output ""
 
-    if (($answers -join "`n") -match [regex]::Escape($Target)) {
-        Write-Output "OK: $Domain appears to point to $Target."
+    Write-Output "DNS lookup for ${wwwDomain}:"
+    if ($wwwAnswers.Count -eq 0) {
+        Write-Output "No DNS answer returned."
     } else {
-        Write-Output "WARN: $Domain does not appear to point to $Target yet."
-        Write-Output "Propagation may take a few minutes."
+        $wwwAnswers | ForEach-Object { Write-Output $_ }
     }
+    Write-Output ""
+
+    $apexText = ($apexAnswers -join "`n")
+    $wwwText = ($wwwAnswers -join "`n")
+
+    $apexOk = $false
+    if ($apexText -match [regex]::Escape($Target)) {
+        $apexOk = $true
+    } else {
+        foreach ($ip in $acceptedApexIps) {
+            if ($apexText -match [regex]::Escape($ip)) {
+                $apexOk = $true
+                break
+            }
+        }
+    }
+
+    $wwwOk = $wwwText -match [regex]::Escape($Target)
+
+    if ($apexOk -and $wwwOk) {
+        Write-Output "OK: $Domain and $wwwDomain appear correctly pointed for Vercel."
+        return
+    }
+
+    if (-not $apexOk) {
+        Write-Output "WARN: $Domain does not appear to point to $Target or accepted Vercel apex IP(s): $($acceptedApexIps -join ', ')."
+    }
+
+    if (-not $wwwOk) {
+        Write-Output "WARN: $wwwDomain does not appear to point to $Target yet."
+    }
+
+    Write-Output "Propagation may take a few minutes."
 }
 
 function Set-HostsViaApi {
@@ -86,8 +135,8 @@ function Set-HostsViaApi {
         SLD = $sld
         TLD = $tld
         HostName1 = "@"
-        RecordType1 = "CNAME"
-        Address1 = $Target
+        RecordType1 = "A"
+        Address1 = "76.76.21.21"
         TTL1 = "60"
         HostName2 = "www"
         RecordType2 = "CNAME"
@@ -116,4 +165,3 @@ switch ($Command) {
     "verify" { Verify-Dns }
     "api" { Set-HostsViaApi }
 }
-
