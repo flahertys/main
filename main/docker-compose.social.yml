@@ -1,10 +1,15 @@
 version: '3.9'
 
+# Canonical local root: C:\tradez\main
+# Recommended invocation:
+#   cd C:\tradez\main
+#   docker compose -f docker-compose.social.yml up -d
+
 services:
   # ========================================================================
   # Social Media MCP Servers
   # ========================================================================
-  
+
   social-orchestrator:
     container_name: social-orchestrator
     build:
@@ -214,21 +219,21 @@ volumes:
 
 # ========================================================================
 # Usage:
-# 
-# Start all social media services:
-#   docker-compose up -d
+#
+# Start all social media services (from C:\tradez\main):
+#   docker compose -f docker-compose.social.yml up -d
 #
 # Start specific service:
-#   docker-compose up -d discord-mcp
+#   docker compose -f docker-compose.social.yml up -d discord-mcp
 #
 # View logs:
-#   docker-compose logs -f social-orchestrator
-#   docker-compose logs -f discord-mcp
+#   docker compose -f docker-compose.social.yml logs -f social-orchestrator
+#   docker compose -f docker-compose.social.yml logs -f discord-mcp
 #
 # Stop services:
-#   docker-compose down
+#   docker compose -f docker-compose.social.yml down
 #
 # Verify services:
-#   docker-compose ps
+#   docker compose -f docker-compose.social.yml ps
 #
 # ========================================================================

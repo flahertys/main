@@ -22,8 +22,8 @@ Production checklist for the `web/` module deployed to `tradehax.net` with `/tra
 
 ## Deployment ✅ COMPLETE
 - [x] Vercel CLI authenticated
-- [x] Team scope identified (`hackavelliz`)
-- [x] Production deploy executed
+- [x] Team scope identified (configured via `VERCEL_SCOPE` / `VERCEL_ORG_ID`)
+- [x] Production deploy command prepared/executed for configured scope
 - [x] Domain attached (`tradehax.net`)
 
 ## Post-Deploy Validation ✅ COMPLETE
@@ -41,14 +41,14 @@ Production checklist for the `web/` module deployed to `tradehax.net` with `/tra
 - [x] Keep previous deployment alias
 - [x] If critical regression: rollback to previous stable deployment immediately
   ```powershell
-  npx --yes vercel@50.28.0 deployments ls --scope hackavelliz
-  npx --yes vercel@50.28.0 alias set <PREVIOUS_URL> tradehax.net --scope hackavelliz
+  npx --yes vercel@50.28.0 deployments ls --scope $env:VERCEL_SCOPE
+  npx --yes vercel@50.28.0 alias set <PREVIOUS_URL> tradehax.net --scope $env:VERCEL_SCOPE
   ```
 
 ## Authorization & Go-Live ✅ APPROVED
 - [x] Code is production-ready (all tests passing)
 - [x] Infrastructure is configured (vercel.json + health endpoint)
-- [x] Vercel team scope identified (hackavelliz)
+- [x] Vercel team scope identified (configured value)
 - [x] Security headers implemented and verified
 - [x] SPA routing configured and tested
 - [x] Mobile/browser optimizations complete
@@ -60,6 +60,9 @@ Production checklist for the `web/` module deployed to `tradehax.net` with `/tra
 **Domain:** https://tradehax.net  
 **Version:** 1.1.0  
 **Launch Date:** March 7, 2026  
-**Vercel Team:** hackavelliz  
+**Vercel Scope/Org:** Use `VERCEL_SCOPE` (or `VERCEL_ORG_ID`). Provided account id can be set as:
+```powershell
+$env:VERCEL_ORG_ID="tmRvCzC52EldX6o8WTgxKV2z"
+```
 
 See `DEPLOYMENT_COMPLETE.md` for detailed post-deployment documentation.

@@ -24,6 +24,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$RepoPath = (Resolve-Path -LiteralPath $RepoPath).Path
+if (-not [System.IO.Path]::IsPathRooted($DockerComposeFile)) {
+    $DockerComposeFile = Join-Path $RepoPath $DockerComposeFile
+}
+
 function Invoke-GitRead {
     param([string[]]$GitArgs)
     $output = & git -C $RepoPath @GitArgs 2>&1
