@@ -22,7 +22,7 @@ if ([string]::IsNullOrWhiteSpace($VercelScope) -and -not [string]::IsNullOrWhite
     $VercelScope = $VercelOrgId
 }
 if ([string]::IsNullOrWhiteSpace($VercelScope)) {
-    $VercelScope = "hackai"
+    $VercelScope = "hackavelliz"
 }
 
 Write-Host "===============================================================" -ForegroundColor Cyan
