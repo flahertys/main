@@ -1,0 +1,59 @@
+﻿curl.exe :   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+At line:1 char:120
++ ... Encoding utf8; curl.exe -v https://tradehax.net/tradehax 2>&1 | Out-F ...
++                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (  % Total    % ... Time   Current:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+                                 Dload  Upload  Total   Spent   Left   Speed
+
+  0      0   0      0   0      0      0      0                              0* Host tradehax.net:443 was resolved.
+* IPv6: (none)
+* IPv4: 76.76.21.21
+*   Trying 76.76.21.21:443...
+* schannel: disabled automatic use of client certificate
+* ALPN: curl offers http/1.1
+* ALPN: server accepted http/1.1
+* Established connection to tradehax.net (76.76.21.21 port 443) from 10.0.0.75 port 54009 
+* using HTTP/1.x
+> GET /tradehax HTTP/1.1
+
+> Host: tradehax.net
+
+> User-Agent: curl/8.18.0
+
+> Accept: */*
+
+> 
+
+* Request completely sent off
+* schannel: remote party requests renegotiation
+* schannel: renegotiating SSL/TLS connection
+* schannel: SSL/TLS connection renegotiated
+Redirecting...
+< HTTP/1.1 307 Temporary Redirect
+
+< Cache-Control: public, max-age=0, must-revalidate
+
+< Content-Type: text/plain
+
+< Date: Sun, 08 Mar 2026 21:59:18 GMT
+
+< Location: https://www.tradehax.net/tradehax
+
+< Server: Vercel
+
+< Strict-Transport-Security: max-age=63072000
+
+< X-Vercel-Id: iad1::fvs7m-1773007158673-68c491a194d9
+
+< Transfer-Encoding: chunked
+
+< 
+
+{ [25 bytes data]
+
+100     15   0     15   0      0     99      0                              0
+100     15   0     15   0      0     99      0                              0
+100     15   0     15   0      0     99      0                              0
+* Connection #0 to host tradehax.net:443 left intact
