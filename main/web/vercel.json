@@ -27,10 +27,15 @@
       ]
     }
   ],
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/__health", "dest": "/__health" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "redirects": [
+    {
+      "source": "/tradehax",
+      "destination": "/",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    { "source": "/__health", "destination": "/__health" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
-
