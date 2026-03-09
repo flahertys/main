@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
+import NeuralHub from "./NeuralHub.jsx";
 import TradeHaxFinal from "./TradeHaxFinal.jsx";
 
 const T = {
@@ -191,9 +192,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<TradeHaxFinal />} />
+        <Route path="/" element={<NeuralHub />} />
+        <Route path="/tradehax" element={<TradeHaxFinal />} />
         <Route path="/about" element={<HomePage />} />
-        <Route path="/tradehax" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
