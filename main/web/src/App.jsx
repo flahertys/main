@@ -1,7 +1,5 @@
 import React from "react";
-import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
 import NeuralHub from "./NeuralHub.jsx";
-import TradeHaxFinal from "./TradeHaxFinal.jsx";
 
 const T = {
   bg: "#090B10",
