@@ -4,10 +4,27 @@
  * /trading/backtest — Backtesting Sandbox page.
  */
 
-import { useState } from "react";
 import { BacktestForm } from "@/components/trading/backtest/BacktestForm";
 import { BacktestResults } from "@/components/trading/backtest/BacktestResults";
 import type { BacktestConfig, BacktestResult } from "@/types/trading";
+import { useState } from "react";
+import useSWR from "swr";
+
+type PhaseStatusResponse = {
+  ok: boolean;
+  status?: {
+    complete?: boolean;
+    confidence?: number;
+  };
+};
+
+const fetcher = async (url: string): Promise<PhaseStatusResponse> => {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${url}`);
+  }
+  return (await response.json()) as PhaseStatusResponse;
+};
 
 // ─── Skeleton loader ──────────────────────────────────────────────────────────
 
@@ -28,6 +45,11 @@ function Skeleton() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BacktestPage() {
+  const { data: phaseStatus } = useSWR("/api/phase03/status", fetcher, {
+    refreshInterval: 30_000,
+    dedupingInterval: 10_000,
+    revalidateOnFocus: false,
+  });
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +87,11 @@ export default function BacktestPage() {
         <p className="text-sm text-muted-foreground mt-1">
           Simulate your trading strategy against historical price data. Powered by RSI-based signal generation.
         </p>
+        {phaseStatus?.ok && (
+          <p className="text-xs text-muted-foreground mt-2">
+            System status: {phaseStatus.status?.complete ? "ready" : "warming"}
+          </p>
+        )}
       </div>
 
       {/* Config form */}

@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-micro
+  labels:
+    app: ai-micro
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-micro
+  template:
+    metadata:
+      labels:
+        app: ai-micro
+    spec:
+      containers:
+        - name: ai-micro
+          image: ghcr.io/darkmodder33/main/ai-micro:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: HF_MODEL_ID
+              value: "Qwen/Qwen2.5-7B-Instruct"
+            - name: HF_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ai-micro-secrets
+                  key: HF_API_TOKEN
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-micro
+spec:
+  selector:
+    app: ai-micro
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP

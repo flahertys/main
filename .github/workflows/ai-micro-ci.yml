@@ -1,0 +1,37 @@
+name: AI Microservice CI
+
+on:
+    push:
+        paths:
+            - "ai-micro/**"
+            - ".github/workflows/ai-micro-ci.yml"
+    pull_request:
+        paths:
+            - "ai-micro/**"
+
+jobs:
+    test-build:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ai-micro
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: npm
+                  cache-dependency-path: ai-micro/package-lock.json
+
+            - name: Install deps
+              run: npm ci
+
+            - name: Build
+              run: npm run build
+
+            - name: Docker build
+              run: docker build -t tradehax/ai-micro:ci .

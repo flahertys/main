@@ -1,0 +1,21 @@
+{
+    "name": "tradehax-ai-micro",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "build": "tsc -p tsconfig.json",
+        "start": "node dist/index.js",
+        "test": "echo \"No tests yet\""
+    },
+    "dependencies": {
+        "express": "^5.2.1"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.6",
+        "@types/node": "^20.19.18",
+        "tsx": "^4.20.4",
+        "typescript": "^5.9.2"
+    }
+}

@@ -48,6 +48,17 @@ export function enforceRateLimit(
   request: Request,
   options: Partial<RateLimitOptions> = {},
 ) {
+  if (process.env.ENABLE_RATE_LIMITING === "false") {
+    const max = options.max ?? DEFAULT_API_RATE_LIMIT.max;
+    return {
+      allowed: true,
+      headers: {
+        "X-RateLimit-Limit": String(max),
+        "X-RateLimit-Remaining": String(max),
+      },
+    };
+  }
+
   const config: RateLimitOptions = {
     ...DEFAULT_API_RATE_LIMIT,
     ...options,

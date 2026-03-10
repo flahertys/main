@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import { mkdir, readFile, writeFile } from "fs/promises";
+import path from "path";
 
 export type CacheKey = string;
 export type CachedResponse = {
@@ -127,6 +129,48 @@ export class MemoryCacheBackend implements CacheBackend {
   }
 }
 
+export class FileCacheBackend implements CacheBackend {
+  private cacheDir: string;
+
+  constructor(cacheDir?: string) {
+    this.cacheDir = cacheDir ?? path.join(process.cwd(), "cache", "llm");
+  }
+
+  private keyToPath(key: CacheKey) {
+    const safe = key.replace(/[^a-zA-Z0-9:_-]/g, "_");
+    return path.join(this.cacheDir, `${safe}.json`);
+  }
+
+  async get(key: CacheKey): Promise<CachedResponse | null> {
+    const filePath = this.keyToPath(key);
+    try {
+      const raw = await readFile(filePath, "utf8");
+      const parsed = JSON.parse(raw) as CachedResponse;
+      if (parsed.expiresAt < Date.now()) {
+        return null;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  async set(key: CacheKey, value: CachedResponse, ttlSeconds: number): Promise<void> {
+    await mkdir(this.cacheDir, { recursive: true });
+    const filePath = this.keyToPath(key);
+    const payload: CachedResponse = {
+      ...value,
+      expiresAt: Date.now() + ttlSeconds * 1000,
+    };
+    await writeFile(filePath, JSON.stringify(payload), "utf8");
+  }
+
+  async has(key: CacheKey): Promise<boolean> {
+    const value = await this.get(key);
+    return value != null;
+  }
+}
+
 /**
  * Determine cache TTL based on user tier and session freshness.
  * Free tier: 30 min (session-scoped).
@@ -205,4 +249,9 @@ export class ResponseCacheManager {
 }
 
 // Export singleton instance
-export const cacheManager = new ResponseCacheManager();
+const cacheBackend =
+  process.env.TRADEHAX_FILE_CACHE_ENABLED === "true"
+    ? new FileCacheBackend(process.env.TRADEHAX_FILE_CACHE_DIR)
+    : new MemoryCacheBackend();
+
+export const cacheManager = new ResponseCacheManager(cacheBackend);

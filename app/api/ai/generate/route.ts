@@ -4,15 +4,17 @@
  */
 
 import { getLLMClient } from "@/lib/ai/hf-server";
+import { callAiMicroPredict } from "@/lib/ai/micro-client";
 import { applyOdinChatTuning, resolveOdinRuntimeProfile } from "@/lib/ai/odin-profile";
 import { canConsumeFeature, tryConsumeFeatureUsageSecure } from "@/lib/monetization/engine";
 import { resolveRequestUserId } from "@/lib/monetization/identity";
 import {
-    enforceRateLimit,
-    enforceTrustedOrigin,
-    isJsonContentType,
-    sanitizePlainText,
+  enforceRateLimit,
+  enforceTrustedOrigin,
+  isJsonContentType,
+  sanitizePlainText,
 } from "@/lib/security";
+import { enforceRedisRateLimit } from "@/lib/security-redis";
 import { NextRequest, NextResponse } from "next/server";
 
 interface GenerateRequest {
@@ -57,11 +59,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Expected JSON body." }, { status: 415 });
   }
 
-  const rateLimit = enforceRateLimit(request, {
+  const redisRateLimit = await enforceRedisRateLimit(request, {
     keyPrefix: "ai:generate",
     max: 60,
     windowMs: 60_000,
   });
+  const rateLimit =
+    redisRateLimit ??
+    enforceRateLimit(request, {
+      keyPrefix: "ai:generate",
+      max: 60,
+      windowMs: 60_000,
+    });
   if (!rateLimit.allowed) {
     return rateLimit.response;
   }
@@ -104,13 +113,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = getLLMClient({ modelId, temperature: tuned.temperature, maxTokens: tuned.maxTokens, topP: tuned.topP });
-    const response = await client.generate(prompt, {
+    const microResponse = await callAiMicroPredict({
+      prompt,
       modelId,
       temperature: tuned.temperature,
       maxTokens: tuned.maxTokens,
       topP: tuned.topP,
     });
+
+    const response =
+      microResponse && microResponse.text
+        ? {
+          text: microResponse.text,
+          model: microResponse.model ?? modelId,
+          tokensUsed: 0,
+        }
+        : await (async () => {
+          const client = getLLMClient({ modelId, temperature: tuned.temperature, maxTokens: tuned.maxTokens, topP: tuned.topP });
+          return client.generate(prompt, {
+            modelId,
+            temperature: tuned.temperature,
+            maxTokens: tuned.maxTokens,
+            topP: tuned.topP,
+          });
+        })();
 
     const idempotencyKey = request.headers.get("x-idempotency-key") || "";
     const usageCommit = tryConsumeFeatureUsageSecure(userId, "ai_chat", 1, {

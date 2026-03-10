@@ -31,6 +31,9 @@ export const metadata = createPageMetadata({
   ],
 });
 
+// ISR for mostly-static trading hub content to keep TTFB low under traffic.
+export const revalidate = 300;
+
 // ─── Feature cards ────────────────────────────────────────────────────────────
 
 interface FeatureCard {

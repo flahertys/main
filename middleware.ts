@@ -1,5 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 
+type EdgeRateEntry = { count: number; resetAt: number };
+
+const edgeRateStore = (() => {
+  const globalRef = globalThis as typeof globalThis & {
+    __TRADEHAX_EDGE_RATE__?: Map<string, EdgeRateEntry>;
+  };
+  if (!globalRef.__TRADEHAX_EDGE_RATE__) {
+    globalRef.__TRADEHAX_EDGE_RATE__ = new Map<string, EdgeRateEntry>();
+  }
+  return globalRef.__TRADEHAX_EDGE_RATE__;
+})();
+
+function edgeAllow(request: NextRequest, keyPrefix: string, max: number, windowMs: number) {
+  if (process.env.ENABLE_RATE_LIMITING === "false") {
+    return { ok: true };
+  }
+
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const now = Date.now();
+  const key = `${keyPrefix}:${ip}`;
+  const current = edgeRateStore.get(key);
+
+  if (!current || current.resetAt <= now) {
+    edgeRateStore.set(key, { count: 1, resetAt: now + windowMs });
+    return { ok: true };
+  }
+
+  if (current.count >= max) {
+    return {
+      ok: false,
+      retryAfter: Math.max(1, Math.ceil((current.resetAt - now) / 1000)),
+    };
+  }
+
+  edgeRateStore.set(key, { ...current, count: current.count + 1 });
+  return { ok: true };
+}
+
 /**
  * Edge Middleware – runs on every request at the CDN edge before rendering.
  *
@@ -19,6 +57,24 @@ export function middleware(request: NextRequest) {
 
   // ── 1. API routes – no public caching ────────────────────────────────────
   if (pathname.startsWith("/api/")) {
+    if (pathname.startsWith("/api/ai/") || pathname === "/api/llm") {
+      const check = edgeAllow(request, "edge-ai", 120, 60_000);
+      if (!check.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Rate limit exceeded at edge.",
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(check.retryAfter ?? 60),
+            },
+          },
+        );
+      }
+    }
+
     response.headers.set("Cache-Control", "no-store");
     return response;
   }
