@@ -74,7 +74,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${NAMECHEAP_VPS_SSH_KEY}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          PORT="${NAMECHEAP_VPS_PORT:-22}"
+          PORT="${NAMECHEAP_VPS_PORT:-21098}"
           ssh-keyscan -T 10 -p "$PORT" -H "${NAMECHEAP_VPS_HOST}" >> ~/.ssh/known_hosts || true
           echo "SSH bootstrap complete (known_hosts best-effort)."
 
@@ -84,7 +84,7 @@ jobs:
           APP_ROOT="${{ steps.meta.outputs.app_root }}"
           RELEASE_ID="${{ steps.meta.outputs.release_id }}"
           REMOTE="${NAMECHEAP_VPS_USER}@${NAMECHEAP_VPS_HOST}"
-          PORT="${NAMECHEAP_VPS_PORT:-22}"
+          PORT="${NAMECHEAP_VPS_PORT:-21098}"
           SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
           ssh $SSH_OPTS -p "$PORT" "$REMOTE" "mkdir -p $APP_ROOT/releases/$RELEASE_ID"
@@ -103,7 +103,7 @@ jobs:
           APP_PORT="${{ steps.meta.outputs.app_port }}"
           RELEASE_ID="${{ steps.meta.outputs.release_id }}"
           REMOTE="${NAMECHEAP_VPS_USER}@${NAMECHEAP_VPS_HOST}"
-          PORT="${NAMECHEAP_VPS_PORT:-22}"
+          PORT="${NAMECHEAP_VPS_PORT:-21098}"
           SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
           ssh $SSH_OPTS -p "$PORT" "$REMOTE" \
