@@ -48,8 +48,13 @@ export async function callAiMicroPredict(args: {
         return null;
     }
 
+    const timeoutMs = Number(process.env.AI_MICRO_TIMEOUT_MS || 8000);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), Number.isFinite(timeoutMs) ? timeoutMs : 8000);
+
     try {
-        const response = await fetch(`${baseUrl.replace(/\/$/, "")}/predict`, {
+        const normalizedBaseUrl = baseUrl.replace(/\/$/, "");
+        const response = await fetch(`${normalizedBaseUrl}/predict`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -62,6 +67,7 @@ export async function callAiMicroPredict(args: {
                 topP: args.topP,
             }),
             cache: "no-store",
+            signal: controller.signal,
         });
 
         const body = (await response.json().catch(() => ({}))) as AiMicroPredictResponse;
@@ -75,5 +81,7 @@ export async function callAiMicroPredict(args: {
         };
     } catch {
         return null;
+    } finally {
+        clearTimeout(timeout);
     }
 }

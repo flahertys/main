@@ -10,4 +10,9 @@ describe("ai micro client", () => {
         const text = extractGeneratedText({ summary_text: "brief summary" });
         expect(text).toBe("brief summary");
     });
+
+    test("extractGeneratedText supports text object", () => {
+        const text = extractGeneratedText({ text: "plain output" });
+        expect(text).toBe("plain output");
+    });
 });

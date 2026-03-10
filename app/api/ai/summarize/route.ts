@@ -19,6 +19,13 @@ interface SummarizeRequest {
   maxLength?: number;
 }
 
+function resolveMaxLength(value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 256;
+  }
+  return Math.min(1024, Math.max(64, Math.floor(value)));
+}
+
 export async function POST(request: NextRequest) {
   const originBlock = enforceTrustedOrigin(request);
   if (originBlock) {
@@ -66,7 +73,7 @@ export async function POST(request: NextRequest) {
     const microResponse = await callAiMicroPredict({
       prompt: `Summarize this text in concise bullets and one-line takeaway:\n\n${truncatedText}`,
       temperature: 0.5,
-      maxTokens: body.maxLength ?? 256,
+      maxTokens: resolveMaxLength(body.maxLength),
       topP: 0.9,
     });
 

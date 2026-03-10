@@ -12,6 +12,14 @@ type MicroRequest = {
 };
 
 export async function POST(request: NextRequest) {
+    const internalToken = process.env.AI_MICRO_INTERNAL_TOKEN;
+    if (internalToken) {
+        const provided = request.headers.get("x-internal-service-token") ?? "";
+        if (provided !== internalToken) {
+            return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+        }
+    }
+
     const originBlock = enforceTrustedOrigin(request);
     if (originBlock) return originBlock;
 
