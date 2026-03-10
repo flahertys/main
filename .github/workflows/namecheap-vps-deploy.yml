@@ -94,11 +94,11 @@ jobs:
 
           ssh $SSH_OPTS -p "$PORT" "$REMOTE" "mkdir -p $APP_ROOT/releases/$RELEASE_ID"
 
-          rsync -az --delete \
-            --exclude .git \
-            --exclude node_modules \
-            -e "ssh $SSH_OPTS -p $PORT" \
-            ./ "$REMOTE:$APP_ROOT/releases/$RELEASE_ID/"
+          tar --exclude='.git' \
+              --exclude='node_modules' \
+              --exclude='.next/cache' \
+              -czf - . \
+            | ssh $SSH_OPTS -p "$PORT" "$REMOTE" "tar -xzf - -C $APP_ROOT/releases/$RELEASE_ID"
 
       - name: Run remote deploy script
         if: steps.precheck.outputs.can_deploy == 'true'
