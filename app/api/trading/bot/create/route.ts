@@ -1,8 +1,12 @@
 /**
  * POST /api/trading/bot/create
  * Create a new TradeHax bot
+ *
+ * ⚠️ BETA FEATURE: This endpoint requires full database persistence and execution logic.
+ * Currently disabled pending completion. See /lib/feature-flags.ts
  */
 
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import {
   enforceRateLimit,
   enforceTrustedOrigin,
@@ -19,6 +23,18 @@ interface CreateBotRequest {
 }
 
 export async function POST(request: NextRequest) {
+  // Feature flag check: Bot creation is BETA
+  if (!isFeatureEnabled("trading.bot-creation")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Trading bot creation is currently in beta testing. Please check back soon.",
+        status: "BETA_UNAVAILABLE",
+      },
+      { status: 503 }
+    );
+  }
+
   const originBlock = enforceTrustedOrigin(request);
   if (originBlock) {
     return originBlock;

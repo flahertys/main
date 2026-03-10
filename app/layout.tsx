@@ -9,6 +9,7 @@ import "./globals.css";
 import { SiteNavigatorWidget } from "@/components/ai/SiteNavigatorWidget";
 import { ChainSessionProvider } from "@/components/counter/provider/ChainSession";
 import { HyperboreaIntroOverlay } from "@/components/intro/HyperboreaIntroOverlay";
+import { WebVitalsReporter } from "@/components/performance/WebVitalsReporter";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { CinematicFxLayer } from "@/components/ui/CinematicFxLayer";
 import { ConnectWalletBtn } from "@/components/ui/ConnectWalletBtn";
@@ -145,6 +146,7 @@ export default function RootLayout({
         )}
       </head>
       <body className={`${inter.className} bg-black antialiased`}>
+        <WebVitalsReporter />
         <a
           href="#global-main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[120] focus:rounded-lg focus:border focus:border-cyan-300/70 focus:bg-black focus:px-3 focus:py-2 focus:text-xs focus:font-semibold focus:uppercase focus:tracking-wider focus:text-cyan-100"
