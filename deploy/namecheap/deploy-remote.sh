@@ -91,6 +91,9 @@ fi
 cd "$RELEASE_SOURCE"
 ln -sfn "$SHARED_ENV_FILE" .env.production
 
+# Ensure locally installed CLIs (next, eslint, etc.) are resolvable in non-login shells.
+export PATH="$RELEASE_SOURCE/node_modules/.bin:$PATH"
+
 ensure_node_toolchain
 ensure_pm2
 
@@ -102,7 +105,10 @@ echo "==> Installing dependencies"
 npm ci
 
 echo "==> Building Next.js app"
-npm run build
+if ! npm run build; then
+  echo "WARN: npm run build failed, retrying via npx next build"
+  npx next build
+fi
 
 echo "==> Switching current symlink"
 ln -sfn "$RELEASE_SOURCE" "$CURRENT_LINK"
