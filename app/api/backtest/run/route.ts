@@ -2,20 +2,36 @@
  * POST /api/backtest/run
  *
  * Accepts a BacktestConfig and returns a full BacktestResult.
+ *
+ * ⚠️ BETA FEATURE: Backtesting engine is under development.
+ * Currently disabled pending full feature completion. See /lib/feature-flags.ts
  */
 
-import { runBacktest } from "@/lib/trading/backtest-engine";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import {
   enforceRateLimit,
   enforceTrustedOrigin,
   isJsonContentType,
   sanitizePlainText,
 } from "@/lib/security";
-import { NextRequest, NextResponse } from "next/server";
-import type { BacktestConfig } from "@/types/trading";
+import { runBacktest } from "@/lib/trading/backtest-engine";
 import { nanoid } from "@/lib/utils";
+import type { BacktestConfig } from "@/types/trading";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
+  // Feature flag check: Backtesting is BETA
+  if (!isFeatureEnabled("trading.backtesting")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Strategy backtesting is currently in beta testing. Please check back soon.",
+        status: "BETA_UNAVAILABLE",
+      },
+      { status: 503 }
+    );
+  }
+
   const originBlock = enforceTrustedOrigin(request);
   if (originBlock) return originBlock;
 
