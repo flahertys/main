@@ -20,8 +20,23 @@ if [[ ! -d "$RELEASE_SOURCE" ]]; then
 fi
 
 if [[ ! -f "$SHARED_ENV_FILE" ]]; then
-  echo "ERROR: Missing shared env file: $SHARED_ENV_FILE" >&2
-  exit 1
+  echo "WARN: Missing shared env file: $SHARED_ENV_FILE"
+  echo "==> Bootstrapping shared env file"
+  mkdir -p "$(dirname "$SHARED_ENV_FILE")"
+
+  if [[ -f "$RELEASE_SOURCE/.env.production" ]]; then
+    cp "$RELEASE_SOURCE/.env.production" "$SHARED_ENV_FILE"
+  elif [[ -f "$RELEASE_SOURCE/.env" ]]; then
+    cp "$RELEASE_SOURCE/.env" "$SHARED_ENV_FILE"
+  else
+    cat > "$SHARED_ENV_FILE" <<EOF
+NODE_ENV=production
+PORT=$APP_PORT
+NEXT_PUBLIC_SITE_URL=https://tradehax.net
+EOF
+  fi
+
+  chmod 600 "$SHARED_ENV_FILE" || true
 fi
 
 cd "$RELEASE_SOURCE"
