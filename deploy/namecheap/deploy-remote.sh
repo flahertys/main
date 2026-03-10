@@ -131,7 +131,24 @@ if [[ "$USE_PREBUILT_STANDALONE" == "true" ]]; then
   if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
     pm2 delete "$APP_NAME" || true
   fi
-  PORT="$APP_PORT" pm2 start node --name "$APP_NAME" -- "$CURRENT_LINK/.next/standalone/server.js"
+  # Create PM2 ecosystem config to ensure env vars are loaded
+  cat > "$RELEASE_SOURCE/.pm2.config.js" <<'PMEOF'
+module.exports = {
+  apps: [{
+    name: process.env.APP_NAME || 'tradehax',
+    script: './.next/standalone/server.js',
+    cwd: process.env.RELEASE_SOURCE || './',
+    instances: 1,
+    exec_mode: 'fork',
+    env: {
+      NODE_ENV: 'production',
+      PORT: process.env.APP_PORT || 3000,
+      NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'https://tradehax.net'
+    }
+  }]
+};
+PMEOF
+  pm2 start "$RELEASE_SOURCE/.pm2.config.js"
 else
   if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
     pm2 restart "$APP_NAME" --update-env
