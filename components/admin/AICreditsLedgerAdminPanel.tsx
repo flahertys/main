@@ -44,7 +44,7 @@ export function AICreditsLedgerAdminPanel() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [adminMode, setAdminMode] = useState("");
-  const [summary, setSummary] = useState<LedgerPayload["summary"]>(null);
+  const [summary, setSummary] = useState<LedgerPayload["summary"] | null>(null);
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [copyStatus, setCopyStatus] = useState<CopyToastState | null>(null);
 
@@ -377,11 +377,10 @@ export function AICreditsLedgerAdminPanel() {
           </div>
           {copyStatus ? (
             <div
-              className={`pointer-events-none absolute -top-2 right-0 z-10 rounded-full px-3 py-1 text-[11px] font-medium shadow-[0_8px_24px_rgba(6,182,212,0.2)] backdrop-blur-sm ${
-                copyStatus.tone === "success"
+              className={`pointer-events-none absolute -top-2 right-0 z-10 rounded-full px-3 py-1 text-[11px] font-medium shadow-[0_8px_24px_rgba(6,182,212,0.2)] backdrop-blur-sm ${copyStatus.tone === "success"
                   ? "border border-emerald-300/35 bg-emerald-500/20 text-emerald-100"
                   : "border border-rose-300/35 bg-rose-500/20 text-rose-100"
-              }`}
+                }`}
             >
               <span className="inline-flex items-center gap-1.5">
                 {copyStatus.tone === "success" ? (
@@ -427,11 +426,10 @@ export function AICreditsLedgerAdminPanel() {
                     <td className="px-3 py-2 font-mono text-xs">{entry.userId}</td>
                     <td className="px-3 py-2">
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs ${
-                          entry.eventType === "purchase"
+                        className={`rounded-full px-2 py-0.5 text-xs ${entry.eventType === "purchase"
                             ? "bg-emerald-500/20 text-emerald-200"
                             : "bg-rose-500/20 text-rose-200"
-                        }`}
+                          }`}
                       >
                         {entry.eventType}
                       </span>

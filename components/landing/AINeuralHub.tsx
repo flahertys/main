@@ -2,9 +2,9 @@
 
 import { useArtifactPreferences } from "@/components/landing/hub/hooks/useArtifactPreferences";
 import { useBranchReplayControls } from "@/components/landing/hub/hooks/useBranchReplayControls";
+import { useBriefComposerActions } from "@/components/landing/hub/hooks/useBriefComposerActions";
 import { useChatCommandControls } from "@/components/landing/hub/hooks/useChatCommandControls";
 import { useChatUtilityActions } from "@/components/landing/hub/hooks/useChatUtilityActions";
-import { useBriefComposerActions } from "@/components/landing/hub/hooks/useBriefComposerActions";
 import { useCommandPaletteControls } from "@/components/landing/hub/hooks/useCommandPaletteControls";
 import { useCorePreferences } from "@/components/landing/hub/hooks/useCorePreferences";
 import { useKidsModeLock } from "@/components/landing/hub/hooks/useKidsModeLock";
@@ -41,32 +41,31 @@ import { HubCreateWorkspace } from "@/components/landing/hub/workspaces/HubCreat
 import { HubLibraryWorkspace } from "@/components/landing/hub/workspaces/HubLibraryWorkspace";
 import { HubMarketWorkspaceView } from "@/components/landing/hub/workspaces/HubMarketWorkspaceView";
 import {
-    getLocalNeuralVault,
+  getLocalNeuralVault,
 } from "@/lib/ai/site-neural-memory";
-import { HAX_TOKEN_CONFIG } from "@/lib/trading/hax-token";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-    Bookmark,
-    BookOpen,
-    Brain,
-    Coins,
-    Command,
-    Copy,
-    Cpu,
-    Download,
-    Eraser,
-    List,
-    Lock,
-    Pencil,
-    RotateCcw,
-    RotateCw,
-    Send,
-    ShieldAlert,
-    ShieldCheck,
-    SlidersHorizontal,
-    Trash2,
-    TrendingUp,
-    Zap
+  Bookmark,
+  BookOpen,
+  Brain,
+  Coins,
+  Command,
+  Copy,
+  Cpu,
+  Download,
+  Eraser,
+  List,
+  Lock,
+  Pencil,
+  RotateCcw,
+  RotateCw,
+  Send,
+  ShieldAlert,
+  ShieldCheck,
+  SlidersHorizontal,
+  Trash2,
+  TrendingUp,
+  Zap
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -216,7 +215,6 @@ interface SocialOpsSnapshot {
 const FREE_USAGE_LIMIT = 3;
 const PAYMENT_AMOUNT_SOL = 0.05;
 const PAYMENT_AMOUNT_HAX = 100;
-const TREASURY_WALLET = "tradehax_treasury_main";
 
 const CHAT_MODELS = [
   {
@@ -267,26 +265,26 @@ const LLM_WORKFLOW_TEMPLATES: Array<{
   prompt: string;
   context?: string;
 }> = [
-  {
-    id: "exec",
-    label: "Exec Brief",
-    task: "summarize",
-    prompt: "Summarize this into: key signals, risks, opportunities, and one immediate action for today.",
-  },
-  {
-    id: "thread",
-    label: "Social Thread",
-    task: "generate",
-    prompt: "Turn this into a high-converting social thread with hook, value bullets, CTA, and risk-aware language.",
-  },
-  {
-    id: "sop",
-    label: "Risk SOP",
-    task: "qa",
-    prompt: "Create a strict execution SOP with pre-trade checks, invalidation triggers, and post-trade review steps.",
-    context: "Use only the context provided here. Do not infer unsupported facts.",
-  },
-];
+    {
+      id: "exec",
+      label: "Exec Brief",
+      task: "summarize",
+      prompt: "Summarize this into: key signals, risks, opportunities, and one immediate action for today.",
+    },
+    {
+      id: "thread",
+      label: "Social Thread",
+      task: "generate",
+      prompt: "Turn this into a high-converting social thread with hook, value bullets, CTA, and risk-aware language.",
+    },
+    {
+      id: "sop",
+      label: "Risk SOP",
+      task: "qa",
+      prompt: "Create a strict execution SOP with pre-trade checks, invalidation triggers, and post-trade review steps.",
+      context: "Use only the context provided here. Do not infer unsupported facts.",
+    },
+  ];
 
 const PROMPT_LIBRARY: PromptLibraryItem[] = [
   {
@@ -926,8 +924,8 @@ export const AINeuralHub = () => {
       kidsModeEnabled
         ? "Mode: Kids Safe. Keep it playful, clear, and educational while preserving safety and privacy."
         : effectiveOpenMode
-        ? "Mode: Mystic Open. Be direct and creative while preserving safety and privacy."
-        : "Mode: Guardian Standard. Be conservative, compliance-friendly, and explicit about uncertainty.",
+          ? "Mode: Mystic Open. Be direct and creative while preserving safety and privacy."
+          : "Mode: Guardian Standard. Be conservative, compliance-friendly, and explicit about uncertainty.",
     ].join(" ");
   }
 
@@ -1607,1102 +1605,1097 @@ export const AINeuralHub = () => {
   return (
     <HubShell background={<NeuralBackground />}>
 
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-12">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
-                  <Cpu className="w-4 h-4 text-cyan-400" />
-                </div>
-                <span className="text-xs font-mono text-cyan-500 uppercase tracking-[0.3em]">Neural_Core_Platform</span>
-              </div>
-              <h2 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">
-                Access the <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">TradeHax Intelligence</span>
-              </h2>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-12">
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
+              <Cpu className="w-4 h-4 text-cyan-400" />
             </div>
+            <span className="text-xs font-mono text-cyan-500 uppercase tracking-[0.3em]">Neural_Core_Platform</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">
+            Access the <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">TradeHax Intelligence</span>
+          </h2>
+        </div>
 
-            <div className="flex w-full md:w-auto flex-col items-stretch sm:items-end gap-2">
-              <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-3 p-1 bg-zinc-900/50 rounded-full border border-white/5">
-                {(["CHAT", "IMAGE_GEN", "MARKET"] as HubTab[]).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-3.5 sm:px-6 py-1.5 sm:py-2 rounded-full text-[9px] sm:text-[10px] font-black tracking-[0.12em] sm:tracking-widest transition-all ${
-                      activeTab === tab
-                        ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]"
-                        : "text-zinc-500 hover:text-white"
-                    }`}
-                  >
-                    {tab === "CHAT" ? "AI_CHAT" : tab === "IMAGE_GEN" ? "IMAGE_TOOL" : "MARKET_TOOLS"}
-                  </button>
-                ))}
-              </div>
-              <div className="w-full max-w-[280px] sm:max-w-[300px] md:w-[300px] rounded-xl border border-cyan-500/25 bg-[rgba(10,12,16,0.88)] px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-[0_0_18px_rgba(6,182,212,0.12)]">
-                <label className="mb-1 block text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.16em] sm:tracking-[0.2em] text-cyan-300/85">
-                  Model (optional)
-                </label>
-                <select
-                  value={selectedChatModel}
-                  onChange={(event) => setSelectedChatModel(event.target.value)}
-                  className="w-full rounded-lg border border-cyan-500/35 bg-black/60 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs font-semibold text-zinc-100 outline-none transition-colors hover:border-cyan-400/60 focus:border-cyan-300"
-                  title="Select model for GPT_CHAT"
-                >
-                  {CHAT_MODELS.map((model) => (
-                    <option key={model.id} value={model.id} title={model.hint}>
-                      {model.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="self-end flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-zinc-900/80 border border-white/5">
-                <div className={`w-1.5 h-1.5 rounded-full ${isCharging ? 'bg-red-500' : 'bg-emerald-500'} animate-pulse`} />
-                <span className="text-[9px] sm:text-[10px] font-mono text-zinc-400 uppercase">
-                  {isCharging ? 'USAGE_LIMIT_REACHED' : `FREE_TRIAL: ${FREE_USAGE_LIMIT - usageCount}/${FREE_USAGE_LIMIT} REMAINING`}
-                </span>
-              </div>
-
+        <div className="flex w-full md:w-auto flex-col items-stretch sm:items-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-3 p-1 bg-zinc-900/50 rounded-full border border-white/5">
+            {(["CHAT", "IMAGE_GEN", "MARKET"] as HubTab[]).map((tab) => (
               <button
-                onClick={() => setOpenModeEnabled((prev) => !prev)}
-                disabled={kidsModeEnabled}
-                className="self-end rounded-full border border-fuchsia-500/30 bg-fuchsia-600/10 px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase text-fuchsia-200 hover:border-fuchsia-400/60 disabled:cursor-not-allowed disabled:opacity-50"
-                title={kidsModeEnabled ? "Kids Mode is enabled; uncensored mode is locked off" : "Toggle uncensored open mode for chat and image generation"}
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3.5 sm:px-6 py-1.5 sm:py-2 rounded-full text-[9px] sm:text-[10px] font-black tracking-[0.12em] sm:tracking-widest transition-all ${activeTab === tab
+                    ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                    : "text-zinc-500 hover:text-white"
+                  }`}
               >
-                {kidsModeEnabled ? "KIDS_LOCKED" : effectiveOpenMode ? "UNCENSORED_ON" : "STANDARD_MODE"}
+                {tab === "CHAT" ? "AI_CHAT" : tab === "IMAGE_GEN" ? "IMAGE_TOOL" : "MARKET_TOOLS"}
               </button>
+            ))}
+          </div>
+          <div className="w-full max-w-[280px] sm:max-w-[300px] md:w-[300px] rounded-xl border border-cyan-500/25 bg-[rgba(10,12,16,0.88)] px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-[0_0_18px_rgba(6,182,212,0.12)]">
+            <label className="mb-1 block text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.16em] sm:tracking-[0.2em] text-cyan-300/85">
+              Model (optional)
+            </label>
+            <select
+              value={selectedChatModel}
+              onChange={(event) => setSelectedChatModel(event.target.value)}
+              className="w-full rounded-lg border border-cyan-500/35 bg-black/60 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs font-semibold text-zinc-100 outline-none transition-colors hover:border-cyan-400/60 focus:border-cyan-300"
+              title="Select model for GPT_CHAT"
+            >
+              {CHAT_MODELS.map((model) => (
+                <option key={model.id} value={model.id} title={model.hint}>
+                  {model.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="self-end flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-zinc-900/80 border border-white/5">
+            <div className={`w-1.5 h-1.5 rounded-full ${isCharging ? 'bg-red-500' : 'bg-emerald-500'} animate-pulse`} />
+            <span className="text-[9px] sm:text-[10px] font-mono text-zinc-400 uppercase">
+              {isCharging ? 'USAGE_LIMIT_REACHED' : `FREE_TRIAL: ${FREE_USAGE_LIMIT - usageCount}/${FREE_USAGE_LIMIT} REMAINING`}
+            </span>
+          </div>
 
+          <button
+            onClick={() => setOpenModeEnabled((prev) => !prev)}
+            disabled={kidsModeEnabled}
+            className="self-end rounded-full border border-fuchsia-500/30 bg-fuchsia-600/10 px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase text-fuchsia-200 hover:border-fuchsia-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+            title={kidsModeEnabled ? "Kids Mode is enabled; uncensored mode is locked off" : "Toggle uncensored open mode for chat and image generation"}
+          >
+            {kidsModeEnabled ? "KIDS_LOCKED" : effectiveOpenMode ? "UNCENSORED_ON" : "STANDARD_MODE"}
+          </button>
+
+          <button
+            onClick={() => {
+              const status = toggleKidsMode();
+              if (status) setChatStatus(status);
+            }}
+            className={`self-end rounded-full border px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase transition-colors ${kidsModeEnabled
+                ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+                : "border-emerald-500/30 bg-emerald-600/10 text-emerald-200 hover:border-emerald-400/60"
+              }`}
+            title="Toggle kid-safe mode with extra safeguards and simple language"
+          >
+            {kidsModeEnabled ? "KIDS_MODE_ON" : "KIDS_MODE_OFF"}
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-6 rounded-xl border border-cyan-500/25 bg-[rgba(8,14,20,0.75)] px-4 py-3 text-[11px] text-cyan-100/85">
+        <p className="font-semibold uppercase tracking-wide">Quick start</p>
+        <p className="mt-1">
+          1) Open <strong>AI_CHAT</strong>, 2) ask your goal in simple words, 3) use IMAGE_TOOL or MARKET_TOOLS as needed.
+          {kidsModeEnabled ? " Kids Mode is active: responses stay simpler and safety-first." : ""}
+        </p>
+
+        <div className="mt-3 rounded-lg border border-white/10 bg-black/35 px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Kids Mode Parent Lock</p>
+            <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+              {kidsModePin ? "PIN_SET" : "NO_PIN"}
+            </span>
+          </div>
+
+          {!kidsModePin ? (
+            <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+              <input
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={kidsModePinDraft}
+                onChange={(event) => setKidsModePinDraft(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="Set PIN (4-8 digits)"
+                className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
+              />
+              <input
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={kidsModePinConfirm}
+                onChange={(event) => setKidsModePinConfirm(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="Confirm PIN"
+                className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
+              />
               <button
+                type="button"
                 onClick={() => {
-                  const status = toggleKidsMode();
+                  const status = saveKidsModePin();
                   if (status) setChatStatus(status);
                 }}
-                className={`self-end rounded-full border px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase transition-colors ${
-                  kidsModeEnabled
-                    ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
-                    : "border-emerald-500/30 bg-emerald-600/10 text-emerald-200 hover:border-emerald-400/60"
-                }`}
-                title="Toggle kid-safe mode with extra safeguards and simple language"
+                className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
               >
-                {kidsModeEnabled ? "KIDS_MODE_ON" : "KIDS_MODE_OFF"}
+                Save PIN
               </button>
             </div>
-          </div>
-
-          <div className="mb-6 rounded-xl border border-cyan-500/25 bg-[rgba(8,14,20,0.75)] px-4 py-3 text-[11px] text-cyan-100/85">
-            <p className="font-semibold uppercase tracking-wide">Quick start</p>
-            <p className="mt-1">
-              1) Open <strong>AI_CHAT</strong>, 2) ask your goal in simple words, 3) use IMAGE_TOOL or MARKET_TOOLS as needed.
-              {kidsModeEnabled ? " Kids Mode is active: responses stay simpler and safety-first." : ""}
-            </p>
-
-            <div className="mt-3 rounded-lg border border-white/10 bg-black/35 px-3 py-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Kids Mode Parent Lock</p>
-                <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
-                  {kidsModePin ? "PIN_SET" : "NO_PIN"}
-                </span>
-              </div>
-
-              {!kidsModePin ? (
-                <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={kidsModePinDraft}
-                    onChange={(event) => setKidsModePinDraft(event.target.value.replace(/\D/g, "").slice(0, 8))}
-                    placeholder="Set PIN (4-8 digits)"
-                    className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
-                  />
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={kidsModePinConfirm}
-                    onChange={(event) => setKidsModePinConfirm(event.target.value.replace(/\D/g, "").slice(0, 8))}
-                    placeholder="Confirm PIN"
-                    className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const status = saveKidsModePin();
-                      if (status) setChatStatus(status);
-                    }}
-                    className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
-                  >
-                    Save PIN
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setChatStatus(clearKidsModePin())}
-                    className="rounded-full border border-rose-300/30 bg-rose-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-rose-100"
-                  >
-                    Remove PIN
-                  </button>
-                  <p className="text-[10px] text-zinc-400">Disabling Kids Mode now requires this PIN.</p>
-                </div>
-              )}
-
-              {showKidsUnlockPrompt && (
-                <div className="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto]">
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={kidsModeUnlockInput}
-                    onChange={(event) => setKidsModeUnlockInput(event.target.value.replace(/\D/g, "").slice(0, 8))}
-                    placeholder="Enter PIN to disable Kids Mode"
-                    className="rounded-md border border-emerald-300/25 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-emerald-300/60"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const status = attemptKidsModeUnlock();
-                      if (status) setChatStatus(status);
-                    }}
-                    className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100"
-                  >
-                    Unlock
-                  </button>
-                  <button
-                    type="button"
-                    onClick={cancelKidsModeUnlock}
-                    className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-[10px] uppercase text-zinc-300"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-
-              {kidsModePinError && (
-                <p className="mt-2 text-[10px] text-rose-300">{kidsModePinError}</p>
-              )}
+          ) : (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setChatStatus(clearKidsModePin())}
+                className="rounded-full border border-rose-300/30 bg-rose-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-rose-100"
+              >
+                Remove PIN
+              </button>
+              <p className="text-[10px] text-zinc-400">Disabling Kids Mode now requires this PIN.</p>
             </div>
-          </div>
+          )}
 
-          <div className={`mb-8 grid gap-3 rounded-2xl border ${selectedTheme.heroBorder} ${selectedTheme.heroGradient} p-4 md:grid-cols-[1.1fr_1fr]`}>
-            <div>
-              <p className={`text-[10px] font-mono uppercase tracking-[0.2em] ${selectedTheme.badgeTone}`}>Neural Guide Bond</p>
-              <h3 className="mt-1 text-lg font-black italic text-white">Your Mystical Trading Companion</h3>
-              <p className="mt-2 text-xs text-zinc-300">
-                Name your guide, run a quick ritual prompt, and build a persistent GPT relationship tuned to your style while preserving a secure, privacy-first session.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[...QUICK_RITUAL_PROMPTS, ...activePromptPack].map((prompt) => (
-                  <button
-                    key={`hero-${prompt.label}`}
-                    onClick={() => applyRitualPrompt(prompt.value)}
-                    className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-wide hover:opacity-90 ${selectedTheme.actionTone}`}
-                    title={`Load ritual: ${prompt.label}`}
-                  >
-                    {prompt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-black/35 p-3">
-              <label className="text-[10px] font-mono uppercase tracking-[0.16em] text-cyan-200/90" htmlFor="guide-name-input">
-                Guide Name
-              </label>
+          {showKidsUnlockPrompt && (
+            <div className="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto]">
               <input
-                id="guide-name-input"
-                value={guideName}
-                onChange={(event) => setGuideName(normalizeGuideName(event.target.value) || "Trader")}
-                className="mt-2 w-full rounded-lg border border-cyan-400/30 bg-black/60 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
-                placeholder="e.g. Oracle Nyx"
-                maxLength={24}
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={kidsModeUnlockInput}
+                onChange={(event) => setKidsModeUnlockInput(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="Enter PIN to disable Kids Mode"
+                className="rounded-md border border-emerald-300/25 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-emerald-300/60"
               />
+              <button
+                type="button"
+                onClick={() => {
+                  const status = attemptKidsModeUnlock();
+                  if (status) setChatStatus(status);
+                }}
+                className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+              >
+                Unlock
+              </button>
+              <button
+                type="button"
+                onClick={cancelKidsModeUnlock}
+                className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-[10px] uppercase text-zinc-300"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
 
-              <div className="mt-3 space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Style</label>
-                    <select
-                      value={responseStyle}
-                      onChange={(event) => setResponseStyle(event.target.value as ResponseStyle)}
-                      className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white"
-                      title="Choose assistant response style"
-                    >
-                      <option value="coach">Coach</option>
-                      <option value="concise">Concise</option>
-                      <option value="operator">Operator</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Risk</label>
-                    <select
-                      value={riskStance}
-                      onChange={(event) => setRiskStance(event.target.value as RiskStance)}
-                      className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white"
-                      title="Choose risk stance"
-                    >
-                      <option value="guarded">Guarded</option>
-                      <option value="balanced">Balanced</option>
-                      <option value="aggressive">Aggressive</option>
-                    </select>
-                  </div>
-                </div>
+          {kidsModePinError && (
+            <p className="mt-2 text-[10px] text-rose-300">{kidsModePinError}</p>
+          )}
+        </div>
+      </div>
 
-                <div>
-                  <label className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Persona Preset</label>
-                  <select
-                    value={personaPreset}
-                    onChange={(event) => setPersonaPreset(event.target.value as PersonaPresetId)}
-                    className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white"
-                    title="Choose assistant persona preset"
-                  >
-                    {PERSONA_PRESETS.map((preset) => (
-                      <option key={preset.id} value={preset.id}>
-                        {preset.label}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-[10px] text-zinc-400">{selectedPersona.description}</p>
-                </div>
+      <div className={`mb-8 grid gap-3 rounded-2xl border ${selectedTheme.heroBorder} ${selectedTheme.heroGradient} p-4 md:grid-cols-[1.1fr_1fr]`}>
+        <div>
+          <p className={`text-[10px] font-mono uppercase tracking-[0.2em] ${selectedTheme.badgeTone}`}>Neural Guide Bond</p>
+          <h3 className="mt-1 text-lg font-black italic text-white">Your Mystical Trading Companion</h3>
+          <p className="mt-2 text-xs text-zinc-300">
+            Name your guide, run a quick ritual prompt, and build a persistent GPT relationship tuned to your style while preserving a secure, privacy-first session.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[...QUICK_RITUAL_PROMPTS, ...activePromptPack].map((prompt) => (
+              <button
+                key={`hero-${prompt.label}`}
+                onClick={() => applyRitualPrompt(prompt.value)}
+                className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-wide hover:opacity-90 ${selectedTheme.actionTone}`}
+                title={`Load ritual: ${prompt.label}`}
+              >
+                {prompt.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Focus Symbol</label>
-                    <input
-                      value={focusSymbol}
-                      onChange={(event) => setFocusSymbol(normalizeSymbol(event.target.value) || "SOL")}
-                      className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white"
-                      placeholder="SOL"
-                      maxLength={12}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Intent</label>
-                    <input
-                      value={sessionIntent}
-                      onChange={(event) => setSessionIntent(event.target.value.slice(0, 72))}
-                      className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white"
-                      placeholder="Build disciplined consistency"
-                      maxLength={72}
-                    />
-                  </div>
-                </div>
+        <div className="rounded-xl border border-white/10 bg-black/35 p-3">
+          <label className="text-[10px] font-mono uppercase tracking-[0.16em] text-cyan-200/90" htmlFor="guide-name-input">
+            Guide Name
+          </label>
+          <input
+            id="guide-name-input"
+            value={guideName}
+            onChange={(event) => setGuideName(normalizeGuideName(event.target.value) || "Trader")}
+            className="mt-2 w-full rounded-lg border border-cyan-400/30 bg-black/60 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
+            placeholder="e.g. Oracle Nyx"
+            maxLength={24}
+          />
 
-                <div className="flex items-center justify-between text-[10px] font-mono uppercase text-zinc-300">
-                  <span>Relationship Tier</span>
-                  <span className="text-cyan-300">{relationshipTier}</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-zinc-900/80">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${relationshipScore}%` }}
-                    transition={{ duration: 0.45, ease: "easeOut" }}
-                    className="h-1.5 rounded-full bg-gradient-to-r from-fuchsia-400 via-cyan-300 to-emerald-300"
-                  />
-                </div>
-                <div className="flex items-center gap-2 text-[10px] text-zinc-300">
-                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
-                  <span>{secureSessionLabel}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[10px] text-zinc-300">
-                  <Lock className="h-3.5 w-3.5 text-cyan-300" />
-                  <span>{modeLabel}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[10px] text-zinc-300">
-                  <TrendingUp className="h-3.5 w-3.5 text-amber-300" />
-                  <span>Regime: {detectedMarketRegime}</span>
-                </div>
+          <div className="mt-3 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Style</label>
+                <select
+                  value={responseStyle}
+                  onChange={(event) => setResponseStyle(event.target.value as ResponseStyle)}
+                  className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white"
+                  title="Choose assistant response style"
+                >
+                  <option value="coach">Coach</option>
+                  <option value="concise">Concise</option>
+                  <option value="operator">Operator</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Risk</label>
+                <select
+                  value={riskStance}
+                  onChange={(event) => setRiskStance(event.target.value as RiskStance)}
+                  className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white"
+                  title="Choose risk stance"
+                >
+                  <option value="guarded">Guarded</option>
+                  <option value="balanced">Balanced</option>
+                  <option value="aggressive">Aggressive</option>
+                </select>
               </div>
             </div>
+
+            <div>
+              <label className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Persona Preset</label>
+              <select
+                value={personaPreset}
+                onChange={(event) => setPersonaPreset(event.target.value as PersonaPresetId)}
+                className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white"
+                title="Choose assistant persona preset"
+              >
+                {PERSONA_PRESETS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[10px] text-zinc-400">{selectedPersona.description}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Focus Symbol</label>
+                <input
+                  value={focusSymbol}
+                  onChange={(event) => setFocusSymbol(normalizeSymbol(event.target.value) || "SOL")}
+                  className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white"
+                  placeholder="SOL"
+                  maxLength={12}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-mono uppercase tracking-[0.12em] text-zinc-300">Intent</label>
+                <input
+                  value={sessionIntent}
+                  onChange={(event) => setSessionIntent(event.target.value.slice(0, 72))}
+                  className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2 py-1 text-[11px] text-white"
+                  placeholder="Build disciplined consistency"
+                  maxLength={72}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] font-mono uppercase text-zinc-300">
+              <span>Relationship Tier</span>
+              <span className="text-cyan-300">{relationshipTier}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-zinc-900/80">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${relationshipScore}%` }}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+                className="h-1.5 rounded-full bg-gradient-to-r from-fuchsia-400 via-cyan-300 to-emerald-300"
+              />
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-zinc-300">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
+              <span>{secureSessionLabel}</span>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-zinc-300">
+              <Lock className="h-3.5 w-3.5 text-cyan-300" />
+              <span>{modeLabel}</span>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-zinc-300">
+              <TrendingUp className="h-3.5 w-3.5 text-amber-300" />
+              <span>Regime: {detectedMarketRegime}</span>
+            </div>
           </div>
+        </div>
+      </div>
 
-          <div className="grid lg:grid-cols-12 gap-8">
-            {/* Left Column: Feature Interface */}
-            <div className="lg:col-span-8">
-              <div className="theme-panel min-h-[500px] flex flex-col relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+      <div className="grid lg:grid-cols-12 gap-8">
+        {/* Left Column: Feature Interface */}
+        <div className="lg:col-span-8">
+          <div className="theme-panel min-h-[500px] flex flex-col relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
-                {isCharging && (
-                  <div className="absolute inset-0 z-50 backdrop-blur-xl bg-black/80 flex flex-col items-center justify-center p-8 text-center border border-cyan-500/20">
-                    <div className="relative mb-8">
-                      <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full animate-pulse" />
-                      <ShieldAlert className="w-20 h-20 text-cyan-500 relative z-10" />
-                    </div>
-                    <h3 className="text-3xl font-black text-white mb-4 italic uppercase tracking-tighter">Neural Limit Reached</h3>
-                    <p className="text-zinc-400 max-w-sm mb-10 text-sm leading-relaxed">
-                      Your 3 free neural sessions have been consumed. To continue accessing uncensored AI models and real-time market pickers, settle a micro-transaction of <span className="text-cyan-400 font-bold">{PAYMENT_AMOUNT_HAX} $HAX</span> or <span className="text-cyan-400 font-bold">{PAYMENT_AMOUNT_SOL} native units</span>.
-                    </p>
-                    <div className="flex flex-col gap-4 w-full max-w-md">
-                      {!connected ? (
-                        <div className="flex flex-col gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const generated = `acct_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-                              setChainAccountId(generated);
-                              setConnected(true);
-                              setChatStatus(`Connected chain account: ${generated}`);
-                            }}
-                            className="w-full px-8 py-4 bg-cyan-500 text-black font-black rounded-2xl text-xs hover:bg-white hover:scale-[1.02] transition-all uppercase italic flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(6,182,212,0.3)]"
-                          >
-                            Connect_Chain_Account
-                          </button>
-                          <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">
-                            Chain-agnostic session connector (replace with production signer)
-                          </p>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            onClick={handlePayment}
-                            disabled={isPaying}
-                            className="w-full px-8 py-4 bg-cyan-500 text-black font-black rounded-2xl text-xs hover:bg-white hover:scale-[1.02] transition-all uppercase italic flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(6,182,212,0.3)] disabled:opacity-50"
-                          >
-                            {isPaying ? (
-                              <>
-                                <RotateCw className="w-4 h-4 animate-spin" />
-                                Verifying_On_Chain...
-                              </>
-                            ) : (
-                              <>
-                                <Coins className="w-4 h-4" />
-                                Pay_{PAYMENT_AMOUNT_HAX}_$HAX
-                              </>
-                            )}
-                          </button>
-                          <button
-                            onClick={handlePayment}
-                            disabled={isPaying}
-                            className="w-full px-8 py-4 bg-zinc-900 border border-white/10 text-white font-black rounded-2xl text-xs hover:border-cyan-500/50 transition-all uppercase italic flex items-center justify-center gap-2"
-                          >
-                            <Zap className="w-4 h-4" />
-                            Alternative:_{PAYMENT_AMOUNT_SOL}_Native
-                          </button>
-                        </>
-                      )}
-                      <a
-                        href={process.env.NEXT_PUBLIC_HAX_SWAP_URL || "https://tradehax.example/swap"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full px-8 py-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-black rounded-2xl text-[10px] hover:bg-emerald-500/20 transition-all uppercase italic text-center"
+            {isCharging && (
+              <div className="absolute inset-0 z-50 backdrop-blur-xl bg-black/80 flex flex-col items-center justify-center p-8 text-center border border-cyan-500/20">
+                <div className="relative mb-8">
+                  <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full animate-pulse" />
+                  <ShieldAlert className="w-20 h-20 text-cyan-500 relative z-10" />
+                </div>
+                <h3 className="text-3xl font-black text-white mb-4 italic uppercase tracking-tighter">Neural Limit Reached</h3>
+                <p className="text-zinc-400 max-w-sm mb-10 text-sm leading-relaxed">
+                  Your 3 free neural sessions have been consumed. To continue accessing uncensored AI models and real-time market pickers, settle a micro-transaction of <span className="text-cyan-400 font-bold">{PAYMENT_AMOUNT_HAX} $HAX</span> or <span className="text-cyan-400 font-bold">{PAYMENT_AMOUNT_SOL} native units</span>.
+                </p>
+                <div className="flex flex-col gap-4 w-full max-w-md">
+                  {!connected ? (
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const generated = `acct_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+                          setChainAccountId(generated);
+                          setConnected(true);
+                          setChatStatus(`Connected chain account: ${generated}`);
+                        }}
+                        className="w-full px-8 py-4 bg-cyan-500 text-black font-black rounded-2xl text-xs hover:bg-white hover:scale-[1.02] transition-all uppercase italic flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(6,182,212,0.3)]"
                       >
-                        Open_$HAX_Swap
-                      </a>
+                        Connect_Chain_Account
+                      </button>
+                      <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">
+                        Chain-agnostic session connector (replace with production signer)
+                      </p>
                     </div>
-                    <p className="mt-8 text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Secure_SSL_Encrypted_Handshake</p>
-                  </div>
-                )}
-
-                <AnimatePresence mode="wait">
-                  {activeTab === "CHAT" && (
-                    <HubChatWorkspace>
-                      <motion.div
-                        key="chat"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="flex-1 flex flex-col p-6 h-full"
+                  ) : (
+                    <>
+                      <button
+                        onClick={handlePayment}
+                        disabled={isPaying}
+                        className="w-full px-8 py-4 bg-cyan-500 text-black font-black rounded-2xl text-xs hover:bg-white hover:scale-[1.02] transition-all uppercase italic flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(6,182,212,0.3)] disabled:opacity-50"
                       >
-                      <div ref={chatViewportRef} className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2 custom-scrollbar">
-                        <div className="rounded-xl border border-white/10 bg-[rgba(10,14,18,0.75)] px-3 py-2">
-                          <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono uppercase">
-                            <span className="text-cyan-200">Guide: {guideName}</span>
-                            <span className="text-fuchsia-200">Bond {relationshipScore}%</span>
-                            <span className="text-emerald-200">Secure Layer: Active</span>
-                          </div>
-                        </div>
-
-                        <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-2">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-300">Experience Mode</p>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setBeginnerFocusMode((prev) => !prev);
-                                  if (beginnerFocusMode) {
-                                    setShowOperatorDock(false);
-                                  } else {
-                                    setShowOperatorDock(true);
-                                  }
-                                }}
-                                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${
-                                  beginnerFocusMode
-                                    ? "border-cyan-300/35 bg-cyan-500/10 text-cyan-100"
-                                    : "border-fuchsia-300/35 bg-fuchsia-500/10 text-fuchsia-100"
-                                }`}
-                              >
-                                {beginnerFocusMode ? "Beginner Focus" : "Pro Operator"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setShowOperatorDock((prev) => !prev)}
-                                className="rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-[10px] font-semibold uppercase text-zinc-200"
-                                title="Open or close advanced operator panels"
-                              >
-                                {showOperatorDock ? "Hide Advanced" : "Show Advanced"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => latestMessageAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })}
-                                className="rounded-full border border-emerald-300/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-100"
-                                title="Jump to latest assistant reply"
-                              >
-                                Jump to Reply
-                              </button>
-                            </div>
-                          </div>
-                          {beginnerFocusMode && !showOperatorDock && (
-                            <p className="mt-2 text-[11px] text-zinc-400">
-                              Beginner Focus keeps the conversation visible first. Use <strong>Show Advanced</strong> whenever you want full operator controls.
-                            </p>
-                          )}
-                        </div>
-
-                        {(!beginnerFocusMode || showOperatorDock) && (
+                        {isPaying ? (
                           <>
-
-                        {branchTrail.length > 0 && (
-                          <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-2">
-                            <div className="mb-2 flex items-center justify-between gap-2">
-                              <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-300">Branch Timeline</p>
-                              <button
-                                type="button"
-                                onClick={clearBranchTrail}
-                                className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-400 hover:border-red-300/30"
-                                title="Clear branch history"
-                              >
-                                Clear
-                              </button>
-                            </div>
-                            <div className="mb-2 rounded-lg border border-white/10 bg-black/30 px-2 py-2">
-                              <svg viewBox="0 0 300 56" className="h-14 w-full" role="img" aria-label="Branch mini map">
-                                <path
-                                  d={branchGraphEntries
-                                    .map((entry, idx) => {
-                                      const x = 20 + idx * 38;
-                                      const y = entry.kind === "edit-retry" ? 18 : 38;
-                                      return `${idx === 0 ? "M" : "L"}${x} ${y}`;
-                                    })
-                                    .join(" ")}
-                                  stroke="rgba(34,211,238,0.55)"
-                                  strokeWidth="2"
-                                  fill="none"
-                                  strokeLinecap="round"
-                                />
-                                {branchGraphEntries.map((entry, idx) => {
-                                  const x = 20 + idx * 38;
-                                  const y = entry.kind === "edit-retry" ? 18 : 38;
-                                  return (
-                                    <motion.circle
-                                      key={entry.id}
-                                      cx={x}
-                                      cy={y}
-                                      r={idx === branchGraphEntries.length - 1 ? 5 : 4}
-                                      fill={entry.kind === "edit-retry" ? "rgba(232,121,249,0.95)" : "rgba(34,211,238,0.95)"}
-                                      initial={{ scale: 0.8, opacity: 0.6 }}
-                                      animate={{ scale: [0.9, 1.12, 0.96], opacity: [0.65, 1, 0.85] }}
-                                      transition={{ duration: 1.6, repeat: Infinity, delay: idx * 0.06 }}
-                                    />
-                                  );
-                                })}
-                              </svg>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {branchTrail.slice(0, 6).map((entry) => (
-                                <button
-                                  key={entry.id}
-                                  type="button"
-                                  onClick={() => setChatInput(entry.preview)}
-                                  className="rounded-full border border-cyan-300/20 bg-cyan-500/5 px-2.5 py-1 text-left text-[10px] text-cyan-100 hover:border-cyan-300/40"
-                                  title="Load branch prompt into input"
-                                >
-                                  {entry.kind === "edit-retry" ? "EDIT" : "RETRY"} • #{entry.fromIndex + 1}
-                                </button>
-                              ))}
-                            </div>
-
-                            <div className="mt-3 rounded-lg border border-white/10 bg-black/30 p-2.5">
-                              <div className="mb-2 flex items-center justify-between gap-2">
-                                <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-300">Replay Mode</p>
-                                <span className="text-[9px] font-mono text-zinc-500">
-                                  {replayEntries.length > 0 ? `${Math.min(replayCursor + 1, replayEntries.length)} / ${replayEntries.length}` : "0 / 0"}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => stepReplay(-1)}
-                                  disabled={replayEntries.length === 0 || replayCursor <= 0}
-                                  className="rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[9px] uppercase text-zinc-300 disabled:opacity-50"
-                                  title="Previous branch snapshot"
-                                >
-                                  Prev
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => stepReplay(1)}
-                                  disabled={replayEntries.length === 0 || replayCursor >= replayEntries.length - 1}
-                                  className="rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[9px] uppercase text-zinc-300 disabled:opacity-50"
-                                  title="Next branch snapshot"
-                                >
-                                  Next
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => restoreReplayEntry(activeReplayEntry)}
-                                  disabled={!activeReplayEntry}
-                                  className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1 text-[9px] uppercase text-cyan-100 disabled:opacity-50"
-                                  title="Restore selected snapshot into chat input"
-                                >
-                                  Restore
-                                </button>
-                              </div>
-
-                              {activeReplayEntry ? (
-                                <div className="mt-2 rounded-md border border-white/10 bg-black/40 p-2">
-                                  <p className="text-[9px] font-mono uppercase text-zinc-400">
-                                    {activeReplayEntry.kind === "edit-retry" ? "EDIT BRANCH" : "RETRY BRANCH"} • #{activeReplayEntry.fromIndex + 1}
-                                  </p>
-                                  <p className="mt-1 text-[10px] text-zinc-200 line-clamp-2">{activeReplayEntry.preview}</p>
-                                </div>
-                              ) : (
-                                <p className="mt-2 text-[10px] text-zinc-500">No branch snapshots yet.</p>
-                              )}
-                            </div>
-                          </div>
+                            <RotateCw className="w-4 h-4 animate-spin" />
+                            Verifying_On_Chain...
+                          </>
+                        ) : (
+                          <>
+                            <Coins className="w-4 h-4" />
+                            Pay_{PAYMENT_AMOUNT_HAX}_$HAX
+                          </>
                         )}
+                      </button>
+                      <button
+                        onClick={handlePayment}
+                        disabled={isPaying}
+                        className="w-full px-8 py-4 bg-zinc-900 border border-white/10 text-white font-black rounded-2xl text-xs hover:border-cyan-500/50 transition-all uppercase italic flex items-center justify-center gap-2"
+                      >
+                        <Zap className="w-4 h-4" />
+                        Alternative:_{PAYMENT_AMOUNT_SOL}_Native
+                      </button>
+                    </>
+                  )}
+                  <a
+                    href={process.env.NEXT_PUBLIC_HAX_SWAP_URL || "https://tradehax.example/swap"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full px-8 py-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-black rounded-2xl text-[10px] hover:bg-emerald-500/20 transition-all uppercase italic text-center"
+                  >
+                    Open_$HAX_Swap
+                  </a>
+                </div>
+                <p className="mt-8 text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Secure_SSL_Encrypted_Handshake</p>
+              </div>
+            )}
 
-                        <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-2">
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={startNewChat}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-100"
-                              title="Start a fresh chat"
-                            >
-                              <Eraser className="h-3.5 w-3.5" />
-                              New Chat
-                            </button>
-                            <button
-                              type="button"
-                              onClick={regenerateLastResponse}
-                              disabled={isChatLoading}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-2.5 py-1 text-[10px] font-semibold text-fuchsia-100 disabled:opacity-60"
-                              title="Regenerate the latest response"
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" />
-                              Regenerate
-                            </button>
-                            <button
-                              type="button"
-                              onClick={copyLastReply}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-100"
-                              title="Copy the last assistant reply"
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                              Copy Reply
-                            </button>
-                            <button
-                              type="button"
-                              onClick={rememberLastPrompt}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-indigo-300/30 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-semibold text-indigo-100"
-                              title="Store latest user prompt as session memory"
-                            >
-                              <Brain className="h-3.5 w-3.5" />
-                              Remember Prompt
-                            </button>
-                            <button
-                              type="button"
-                              onClick={pinCurrentFocus}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-violet-300/30 bg-violet-500/10 px-2.5 py-1 text-[10px] font-semibold text-violet-100"
-                              title="Pin current focus and intent"
-                            >
-                              <Bookmark className="h-3.5 w-3.5" />
-                              Pin Focus
-                            </button>
-                            <button
-                              type="button"
-                              onClick={exportTranscript}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-100"
-                              title="Export this chat transcript"
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                              Export Chat
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setIsPromptLibraryOpen((prev) => !prev)}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-100"
-                              title="Toggle prompt library drawer"
-                            >
-                              <List className="h-3.5 w-3.5" />
-                              Prompt Library
-                            </button>
+            <AnimatePresence mode="wait">
+              {activeTab === "CHAT" && (
+                <HubChatWorkspace>
+                  <motion.div
+                    key="chat"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex-1 flex flex-col p-6 h-full"
+                  >
+                    <div ref={chatViewportRef} className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2 custom-scrollbar">
+                      <div className="rounded-xl border border-white/10 bg-[rgba(10,14,18,0.75)] px-3 py-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono uppercase">
+                          <span className="text-cyan-200">Guide: {guideName}</span>
+                          <span className="text-fuchsia-200">Bond {relationshipScore}%</span>
+                          <span className="text-emerald-200">Secure Layer: Active</span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-300">Experience Mode</p>
+                          <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
                               onClick={() => {
-                                setCommandQuery("");
-                                setIsCommandPaletteOpen(true);
-                                setActiveTab("CHAT");
+                                setBeginnerFocusMode((prev) => !prev);
+                                if (beginnerFocusMode) {
+                                  setShowOperatorDock(false);
+                                } else {
+                                  setShowOperatorDock(true);
+                                }
                               }}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-2.5 py-1 text-[10px] font-semibold text-fuchsia-100"
-                              title="Open command palette (Ctrl/Cmd + K)"
+                              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${beginnerFocusMode
+                                  ? "border-cyan-300/35 bg-cyan-500/10 text-cyan-100"
+                                  : "border-fuchsia-300/35 bg-fuchsia-500/10 text-fuchsia-100"
+                                }`}
                             >
-                              <Command className="h-3.5 w-3.5" />
-                              Command Palette
+                              {beginnerFocusMode ? "Beginner Focus" : "Pro Operator"}
                             </button>
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[10px] text-zinc-300">
-                              <SlidersHorizontal className="h-3.5 w-3.5" />
-                              {responseStyle.toUpperCase()} • {riskStance.toUpperCase()}
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShowOperatorDock((prev) => !prev)}
+                              className="rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-[10px] font-semibold uppercase text-zinc-200"
+                              title="Open or close advanced operator panels"
+                            >
+                              {showOperatorDock ? "Hide Advanced" : "Show Advanced"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => latestMessageAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })}
+                              className="rounded-full border border-emerald-300/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                              title="Jump to latest assistant reply"
+                            >
+                              Jump to Reply
+                            </button>
                           </div>
                         </div>
+                        {beginnerFocusMode && !showOperatorDock && (
+                          <p className="mt-2 text-[11px] text-zinc-400">
+                            Beginner Focus keeps the conversation visible first. Use <strong>Show Advanced</strong> whenever you want full operator controls.
+                          </p>
+                        )}
+                      </div>
 
-                        <div className="rounded-xl border border-cyan-400/20 bg-[rgba(6,10,16,0.82)] px-3 py-3">
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-cyan-200">Phase 4 · Session Continuity</p>
-                            <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
-                              {sessionPresets.length} presets
-                            </span>
-                          </div>
+                      {(!beginnerFocusMode || showOperatorDock) && (
+                        <>
 
-                          <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-                            <input
-                              value={sessionPresetName}
-                              onChange={(event) => setSessionPresetName(event.target.value.slice(0, 42))}
-                              placeholder="Preset name (optional)"
-                              className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
-                            />
-                            <button
-                              type="button"
-                              onClick={createSessionPreset}
-                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100 hover:border-cyan-300/55"
-                            >
-                              Save Preset
-                            </button>
-                          </div>
-
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={exportSessionSnapshot}
-                              className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-100"
-                            >
-                              Export Snapshot
-                            </button>
-                            <button
-                              type="button"
-                              onClick={importSessionSnapshotFromPrompt}
-                              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
-                            >
-                              Import Snapshot
-                            </button>
-                          </div>
-
-                          {sessionPresets.length > 0 ? (
-                            <div className="mt-2 space-y-1.5">
-                              {sessionPresets.slice(0, 6).map((preset) => (
-                                <div
-                                  key={preset.id}
-                                  className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-black/35 px-2.5 py-1.5"
+                          {branchTrail.length > 0 && (
+                            <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                              <div className="mb-2 flex items-center justify-between gap-2">
+                                <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-300">Branch Timeline</p>
+                                <button
+                                  type="button"
+                                  onClick={clearBranchTrail}
+                                  className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-400 hover:border-red-300/30"
+                                  title="Clear branch history"
                                 >
+                                  Clear
+                                </button>
+                              </div>
+                              <div className="mb-2 rounded-lg border border-white/10 bg-black/30 px-2 py-2">
+                                <svg viewBox="0 0 300 56" className="h-14 w-full" role="img" aria-label="Branch mini map">
+                                  <path
+                                    d={branchGraphEntries
+                                      .map((entry, idx) => {
+                                        const x = 20 + idx * 38;
+                                        const y = entry.kind === "edit-retry" ? 18 : 38;
+                                        return `${idx === 0 ? "M" : "L"}${x} ${y}`;
+                                      })
+                                      .join(" ")}
+                                    stroke="rgba(34,211,238,0.55)"
+                                    strokeWidth="2"
+                                    fill="none"
+                                    strokeLinecap="round"
+                                  />
+                                  {branchGraphEntries.map((entry, idx) => {
+                                    const x = 20 + idx * 38;
+                                    const y = entry.kind === "edit-retry" ? 18 : 38;
+                                    return (
+                                      <motion.circle
+                                        key={entry.id}
+                                        cx={x}
+                                        cy={y}
+                                        r={idx === branchGraphEntries.length - 1 ? 5 : 4}
+                                        fill={entry.kind === "edit-retry" ? "rgba(232,121,249,0.95)" : "rgba(34,211,238,0.95)"}
+                                        initial={{ scale: 0.8, opacity: 0.6 }}
+                                        animate={{ scale: [0.9, 1.12, 0.96], opacity: [0.65, 1, 0.85] }}
+                                        transition={{ duration: 1.6, repeat: Infinity, delay: idx * 0.06 }}
+                                      />
+                                    );
+                                  })}
+                                </svg>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {branchTrail.slice(0, 6).map((entry) => (
                                   <button
+                                    key={entry.id}
                                     type="button"
-                                    onClick={() => applySessionPreset(preset)}
-                                    className="min-w-0 flex-1 truncate text-left text-[10px] font-semibold text-cyan-100"
-                                    title={`${preset.personaPreset} • ${preset.focusSymbol} • ${preset.responseStyle}`}
+                                    onClick={() => setChatInput(entry.preview)}
+                                    className="rounded-full border border-cyan-300/20 bg-cyan-500/5 px-2.5 py-1 text-left text-[10px] text-cyan-100 hover:border-cyan-300/40"
+                                    title="Load branch prompt into input"
                                   >
-                                    {preset.name}
+                                    {entry.kind === "edit-retry" ? "EDIT" : "RETRY"} • #{entry.fromIndex + 1}
                                   </button>
-                                  <span className="rounded-full border border-white/15 bg-black/30 px-1.5 py-0.5 text-[9px] uppercase text-zinc-400">
-                                    {preset.personaPreset}
+                                ))}
+                              </div>
+
+                              <div className="mt-3 rounded-lg border border-white/10 bg-black/30 p-2.5">
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                  <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-300">Replay Mode</p>
+                                  <span className="text-[9px] font-mono text-zinc-500">
+                                    {replayEntries.length > 0 ? `${Math.min(replayCursor + 1, replayEntries.length)} / ${replayEntries.length}` : "0 / 0"}
                                   </span>
+                                </div>
+
+                                <div className="flex items-center gap-2">
                                   <button
                                     type="button"
-                                    onClick={() => deleteSessionPreset(preset.id)}
-                                    className="rounded-full border border-rose-300/25 bg-rose-500/10 p-1 text-rose-200 hover:border-rose-300/45"
-                                    aria-label={`Delete preset ${preset.name}`}
-                                    title="Delete preset"
+                                    onClick={() => stepReplay(-1)}
+                                    disabled={replayEntries.length === 0 || replayCursor <= 0}
+                                    className="rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[9px] uppercase text-zinc-300 disabled:opacity-50"
+                                    title="Previous branch snapshot"
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    Prev
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => stepReplay(1)}
+                                    disabled={replayEntries.length === 0 || replayCursor >= replayEntries.length - 1}
+                                    className="rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[9px] uppercase text-zinc-300 disabled:opacity-50"
+                                    title="Next branch snapshot"
+                                  >
+                                    Next
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => restoreReplayEntry(activeReplayEntry)}
+                                    disabled={!activeReplayEntry}
+                                    className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1 text-[9px] uppercase text-cyan-100 disabled:opacity-50"
+                                    title="Restore selected snapshot into chat input"
+                                  >
+                                    Restore
                                   </button>
                                 </div>
-                              ))}
+
+                                {activeReplayEntry ? (
+                                  <div className="mt-2 rounded-md border border-white/10 bg-black/40 p-2">
+                                    <p className="text-[9px] font-mono uppercase text-zinc-400">
+                                      {activeReplayEntry.kind === "edit-retry" ? "EDIT BRANCH" : "RETRY BRANCH"} • #{activeReplayEntry.fromIndex + 1}
+                                    </p>
+                                    <p className="mt-1 text-[10px] text-zinc-200 line-clamp-2">{activeReplayEntry.preview}</p>
+                                  </div>
+                                ) : (
+                                  <p className="mt-2 text-[10px] text-zinc-500">No branch snapshots yet.</p>
+                                )}
+                              </div>
                             </div>
-                          ) : (
-                            <p className="mt-2 text-[10px] text-zinc-500">No presets saved yet. Save one to instantly restore your full operator setup.</p>
                           )}
-                        </div>
 
-                        <div className="rounded-xl border border-fuchsia-400/20 bg-[rgba(12,8,20,0.82)] px-3 py-3">
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-fuchsia-200">Phase 5 · Workspace Timeline</p>
-                            <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
-                              {workspaceSnapshots.length} snapshots
-                            </span>
+                          <div className="rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={startNewChat}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-100"
+                                title="Start a fresh chat"
+                              >
+                                <Eraser className="h-3.5 w-3.5" />
+                                New Chat
+                              </button>
+                              <button
+                                type="button"
+                                onClick={regenerateLastResponse}
+                                disabled={isChatLoading}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-2.5 py-1 text-[10px] font-semibold text-fuchsia-100 disabled:opacity-60"
+                                title="Regenerate the latest response"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Regenerate
+                              </button>
+                              <button
+                                type="button"
+                                onClick={copyLastReply}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-100"
+                                title="Copy the last assistant reply"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                                Copy Reply
+                              </button>
+                              <button
+                                type="button"
+                                onClick={rememberLastPrompt}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-indigo-300/30 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-semibold text-indigo-100"
+                                title="Store latest user prompt as session memory"
+                              >
+                                <Brain className="h-3.5 w-3.5" />
+                                Remember Prompt
+                              </button>
+                              <button
+                                type="button"
+                                onClick={pinCurrentFocus}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-violet-300/30 bg-violet-500/10 px-2.5 py-1 text-[10px] font-semibold text-violet-100"
+                                title="Pin current focus and intent"
+                              >
+                                <Bookmark className="h-3.5 w-3.5" />
+                                Pin Focus
+                              </button>
+                              <button
+                                type="button"
+                                onClick={exportTranscript}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-100"
+                                title="Export this chat transcript"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                Export Chat
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setIsPromptLibraryOpen((prev) => !prev)}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-100"
+                                title="Toggle prompt library drawer"
+                              >
+                                <List className="h-3.5 w-3.5" />
+                                Prompt Library
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCommandQuery("");
+                                  setIsCommandPaletteOpen(true);
+                                  setActiveTab("CHAT");
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-2.5 py-1 text-[10px] font-semibold text-fuchsia-100"
+                                title="Open command palette (Ctrl/Cmd + K)"
+                              >
+                                <Command className="h-3.5 w-3.5" />
+                                Command Palette
+                              </button>
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[10px] text-zinc-300">
+                                <SlidersHorizontal className="h-3.5 w-3.5" />
+                                {responseStyle.toUpperCase()} • {riskStance.toUpperCase()}
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
-                            <input
-                              value={workspaceSnapshotName}
-                              onChange={(event) => setWorkspaceSnapshotName(event.target.value.slice(0, 56))}
-                              placeholder="Snapshot label (optional)"
-                              className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-fuchsia-300/55"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => createWorkspaceSnapshot()}
-                              className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
-                            >
-                              Capture
-                            </button>
-                            <button
-                              type="button"
-                              onClick={restorePreviousWorkspaceSnapshot}
-                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
-                            >
-                              Undo
-                            </button>
-                          </div>
+                          <div className="rounded-xl border border-cyan-400/20 bg-[rgba(6,10,16,0.82)] px-3 py-3">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-cyan-200">Phase 4 · Session Continuity</p>
+                              <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                                {sessionPresets.length} presets
+                              </span>
+                            </div>
 
-                          {workspaceSnapshots.length > 0 ? (
-                            <div className="mt-2 space-y-1.5">
-                              {workspaceSnapshots.slice(0, 8).map((snapshot) => (
-                                <div
-                                  key={snapshot.id}
-                                  className={`rounded-md border px-2.5 py-1.5 ${
-                                    selectedWorkspaceSnapshot?.id === snapshot.id
-                                      ? "border-fuchsia-300/40 bg-fuchsia-500/10"
-                                      : "border-white/10 bg-black/35"
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between gap-2">
+                            <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                              <input
+                                value={sessionPresetName}
+                                onChange={(event) => setSessionPresetName(event.target.value.slice(0, 42))}
+                                placeholder="Preset name (optional)"
+                                className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-cyan-300/55"
+                              />
+                              <button
+                                type="button"
+                                onClick={createSessionPreset}
+                                className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100 hover:border-cyan-300/55"
+                              >
+                                Save Preset
+                              </button>
+                            </div>
+
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={exportSessionSnapshot}
+                                className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                              >
+                                Export Snapshot
+                              </button>
+                              <button
+                                type="button"
+                                onClick={importSessionSnapshotFromPrompt}
+                                className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
+                              >
+                                Import Snapshot
+                              </button>
+                            </div>
+
+                            {sessionPresets.length > 0 ? (
+                              <div className="mt-2 space-y-1.5">
+                                {sessionPresets.slice(0, 6).map((preset) => (
+                                  <div
+                                    key={preset.id}
+                                    className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-black/35 px-2.5 py-1.5"
+                                  >
                                     <button
                                       type="button"
-                                      onClick={() => setSelectedWorkspaceSnapshotId(snapshot.id)}
-                                      className="min-w-0 flex-1 truncate text-left text-[10px] font-semibold text-fuchsia-100"
-                                      title={`v${snapshot.version} • ${new Date(snapshot.createdAt).toLocaleString()}`}
+                                      onClick={() => applySessionPreset(preset)}
+                                      className="min-w-0 flex-1 truncate text-left text-[10px] font-semibold text-cyan-100"
+                                      title={`${preset.personaPreset} • ${preset.focusSymbol} • ${preset.responseStyle}`}
                                     >
-                                      v{snapshot.version} • {snapshot.name}
+                                      {preset.name}
                                     </button>
-                                    <div className="flex items-center gap-1.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => restoreWorkspaceSnapshot(snapshot)}
-                                        className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2 py-0.5 text-[9px] uppercase text-cyan-100"
-                                        title="Restore this snapshot"
-                                      >
-                                        Restore
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => deleteWorkspaceSnapshot(snapshot.id)}
-                                        className="rounded-full border border-rose-300/25 bg-rose-500/10 p-1 text-rose-200 hover:border-rose-300/45"
-                                        aria-label={`Delete workspace snapshot ${snapshot.name}`}
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </button>
-                                    </div>
+                                    <span className="rounded-full border border-white/15 bg-black/30 px-1.5 py-0.5 text-[9px] uppercase text-zinc-400">
+                                      {preset.personaPreset}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteSessionPreset(preset.id)}
+                                      className="rounded-full border border-rose-300/25 bg-rose-500/10 p-1 text-rose-200 hover:border-rose-300/45"
+                                      aria-label={`Delete preset ${preset.name}`}
+                                      title="Delete preset"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
                                   </div>
-                                  <p className="mt-1 text-[9px] text-zinc-500">{new Date(snapshot.createdAt).toLocaleString()}</p>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="mt-2 text-[10px] text-zinc-500">No timeline snapshots yet. Capture one before risky edits and experiments.</p>
-                          )}
-
-                          {selectedWorkspaceSnapshot && selectedWorkspaceSnapshotDiff && (
-                            <div className="mt-2 rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
-                              <div className="mb-1 flex items-center justify-between gap-2">
-                                <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Diff preview vs live workspace</p>
-                                <span className="rounded-full border border-white/15 bg-black/30 px-1.5 py-0.5 text-[9px] text-zinc-300">
-                                  {selectedWorkspaceSnapshot.name}
-                                </span>
+                                ))}
                               </div>
-                              <div className="flex flex-wrap gap-1.5 text-[9px]">
-                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
-                                  Settings changed: {selectedWorkspaceSnapshotDiff.changedSettings.length}
-                                </span>
-                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
-                                  Prompt packs Δ {selectedWorkspaceSnapshotDiff.customPromptDelta}
-                                </span>
-                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
-                                  Memory Δ {selectedWorkspaceSnapshotDiff.memoryDelta}
-                                </span>
-                                <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
-                                  Presets Δ {selectedWorkspaceSnapshotDiff.presetsDelta}
-                                </span>
-                              </div>
-                              {selectedWorkspaceSnapshotDiff.changedSettings.length > 0 ? (
-                                <p className="mt-1 text-[10px] text-zinc-400">
-                                  {selectedWorkspaceSnapshotDiff.changedSettings.join(", ")}
-                                </p>
-                              ) : (
-                                <p className="mt-1 text-[10px] text-zinc-500">No settings drift from current workspace.</p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        <HubSitewideNeuralSmartness
-                          neuralVaultCount={neuralVaultCount}
-                          datasetName={datasetName}
-                          onDatasetNameChange={setDatasetName}
-                          datasetRows={datasetRows}
-                          onDatasetRowsChange={setDatasetRows}
-                          datasetNotes={datasetNotes}
-                          onDatasetNotesChange={setDatasetNotes}
-                          onSaveDataset={saveDatasetNeuralArtifact}
-                          behaviorLabel={behaviorLabel}
-                          onBehaviorLabelChange={setBehaviorLabel}
-                          behaviorObservation={behaviorObservation}
-                          onBehaviorObservationChange={setBehaviorObservation}
-                          onSaveBehavior={saveUserBehaviorNeuralArtifact}
-                          tickerBehaviorSymbol={tickerBehaviorSymbol}
-                          onTickerBehaviorSymbolChange={setTickerBehaviorSymbol}
-                          tickerBehaviorPattern={tickerBehaviorPattern}
-                          onTickerBehaviorPatternChange={setTickerBehaviorPattern}
-                          onSaveTickerPattern={saveTickerBehaviorNeuralArtifact}
-                          learningEnvironmentName={learningEnvironmentName}
-                          onLearningEnvironmentNameChange={setLearningEnvironmentName}
-                          learningEnvironmentHypothesis={learningEnvironmentHypothesis}
-                          onLearningEnvironmentHypothesisChange={setLearningEnvironmentHypothesis}
-                          onSaveEnvironment={saveLearningEnvironmentNeuralArtifact}
-                          onExportNeuralVault={exportNeuralVaultDataset}
-                        />
-
-                        <HubVideoAiInfusion
-                          videoSourceUrl={videoSourceUrl}
-                          onVideoSourceUrlChange={setVideoSourceUrl}
-                          videoInstructionGoal={videoInstructionGoal}
-                          onVideoInstructionGoalChange={setVideoInstructionGoal}
-                          videoCue={videoCue}
-                          onVideoCueChange={setVideoCue}
-                          onInsertBrief={insertVideoInstructionBrief}
-                          onStoreBrief={rememberVideoInstructionBrief}
-                        />
-
-                        <HubAutomationWorkspace>
-                          <HubWebsiteSocialAutopilot
-                            websiteSourceUrl={websiteSourceUrl}
-                            onWebsiteSourceUrlChange={setWebsiteSourceUrl}
-                            autopilotFocus={autopilotFocus}
-                            onAutopilotFocusChange={setAutopilotFocus}
-                            socialChannels={SOCIAL_AUTOPILOT_CHANNELS}
-                            autopilotChannels={autopilotChannels}
-                            onToggleAutopilotChannel={toggleAutopilotChannel}
-                            isGeneratingAutopilot={isGeneratingAutopilot}
-                            onGenerateDrafts={generateWebsiteAutopilotDraft}
-                            autopilotOpsLoading={autopilotOpsLoading}
-                            onSaveToOps={saveCurrentAutopilotDraftToOps}
-                            onRefreshOps={refreshAutopilotOps}
-                            autopilotOpsDraftId={autopilotOpsDraftId}
-                            onAutopilotOpsDraftIdChange={setAutopilotOpsDraftId}
-                            autopilotScheduleAt={autopilotScheduleAt}
-                            onAutopilotScheduleAtChange={setAutopilotScheduleAt}
-                            onSubmitApproval={submitAutopilotForApproval}
-                            onApproveDraft={approveAutopilotDraft}
-                            onScheduleQueue={scheduleAutopilotDraft}
-                            onPublishNow={publishAutopilotNow}
-                            onRunDueJobs={runDueAutopilotJobs}
-                            autopilotImpressions={autopilotImpressions}
-                            onAutopilotImpressionsChange={setAutopilotImpressions}
-                            autopilotEngagements={autopilotEngagements}
-                            onAutopilotEngagementsChange={setAutopilotEngagements}
-                            autopilotClicks={autopilotClicks}
-                            onAutopilotClicksChange={setAutopilotClicks}
-                            onSyncMetrics={syncAutopilotPerformance}
-                            autopilotOpsSnapshot={autopilotOpsSnapshot}
-                          />
-                        </HubAutomationWorkspace>
-
-                        <HubCompetitiveEdgeLab
-                          focusSymbol={focusSymbol}
-                          riskStance={riskStance}
-                          marketRegime={detectedMarketRegime}
-                          onInjectBrief={insertCompetitiveEdgeBrief}
-                          onStoreBrief={rememberCompetitiveEdgeBrief}
-                        />
-
-                        <HubPostTradeForensics
-                          focusSymbol={focusSymbol}
-                          riskStance={riskStance}
-                          marketRegime={detectedMarketRegime}
-                          onInjectBrief={insertPostTradeForensicsBrief}
-                          onStoreBrief={rememberPostTradeForensicsBrief}
-                        />
-
-                        <HubRegimeShiftSentinel
-                          focusSymbol={focusSymbol}
-                          riskStance={riskStance}
-                          marketRegime={detectedMarketRegime}
-                          onInjectBrief={insertRegimeShiftSentinelBrief}
-                          onStoreBrief={rememberRegimeShiftSentinelBrief}
-                        />
-
-                        <HubExecutionLatencyGuard
-                          focusSymbol={focusSymbol}
-                          riskStance={riskStance}
-                          marketRegime={detectedMarketRegime}
-                          onInjectBrief={insertExecutionLatencyGuardBrief}
-                          onStoreBrief={rememberExecutionLatencyGuardBrief}
-                        />
-
-                        <HubSessionDriftGovernor
-                          focusSymbol={focusSymbol}
-                          riskStance={riskStance}
-                          marketRegime={detectedMarketRegime}
-                          onInjectBrief={insertSessionDriftGovernorBrief}
-                          onStoreBrief={rememberSessionDriftGovernorBrief}
-                        />
-
-                        <HubCapitalPreservationCircuit
-                          focusSymbol={focusSymbol}
-                          riskStance={riskStance}
-                          marketRegime={detectedMarketRegime}
-                          onInjectBrief={insertCapitalPreservationCircuitBrief}
-                          onStoreBrief={rememberCapitalPreservationCircuitBrief}
-                        />
-
-                        <HubOpportunityCostRadar
-                          focusSymbol={focusSymbol}
-                          riskStance={riskStance}
-                          marketRegime={detectedMarketRegime}
-                          onInjectBrief={insertOpportunityCostRadarBrief}
-                          onStoreBrief={rememberOpportunityCostRadarBrief}
-                        />
-
-                        <HubConvictionCalibrationEngine
-                          focusSymbol={focusSymbol}
-                          riskStance={riskStance}
-                          marketRegime={detectedMarketRegime}
-                          onInjectBrief={insertConvictionCalibrationBrief}
-                          onStoreBrief={rememberConvictionCalibrationBrief}
-                        />
-
-                        <div className="rounded-xl border border-white/10 bg-[rgba(10,14,20,0.72)] px-3 py-3">
-                          <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-wide text-zinc-300">
-                            <BookOpen className="h-3.5 w-3.5 text-cyan-300" />
-                            Memory Cards
-                            <span className="rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[9px] text-zinc-400">
-                              {longMemoryCards.length} pinned • {shortMemoryCards.length} session
-                            </span>
+                            ) : (
+                              <p className="mt-2 text-[10px] text-zinc-500">No presets saved yet. Save one to instantly restore your full operator setup.</p>
+                            )}
                           </div>
 
-                          {memoryCards.length === 0 ? (
-                            <p className="text-[11px] text-zinc-500">No memories stored yet. Save prompts or pin your focus.</p>
-                          ) : (
-                            <div className="space-y-2">
-                              {memoryCards.map((card) => (
-                                <div key={card.id} className="rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
-                                  <div className="flex items-center justify-between gap-2">
-                                    {editingMemoryId === card.id ? (
-                                      <div className="w-full space-y-2">
-                                        <label className="sr-only" htmlFor={`memory-title-${card.id}`}>Edit memory title</label>
-                                        <input
-                                          id={`memory-title-${card.id}`}
-                                          value={editingMemoryTitle}
-                                          onChange={(event) => setEditingMemoryTitle(event.target.value.slice(0, 40))}
-                                          className="w-full rounded-md border border-cyan-400/25 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300"
-                                          title="Edit memory title"
-                                          placeholder="Memory title"
-                                        />
-                                        <label className="sr-only" htmlFor={`memory-content-${card.id}`}>Edit memory content</label>
-                                        <textarea
-                                          id={`memory-content-${card.id}`}
-                                          value={editingMemoryContent}
-                                          onChange={(event) => setEditingMemoryContent(event.target.value.slice(0, 160))}
-                                          rows={3}
-                                          className="w-full rounded-md border border-cyan-400/25 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300"
-                                          title="Edit memory content"
-                                          placeholder="Memory content"
-                                        />
-                                        <div className="flex items-center gap-2">
-                                          <button
-                                            type="button"
-                                            onClick={() => handleSaveEditMemory(card.id)}
-                                            className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1 text-[9px] uppercase text-cyan-100"
-                                          >
-                                            Save
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={cancelEditMemory}
-                                            className="rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[9px] uppercase text-zinc-300"
-                                          >
-                                            Cancel
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ) : (
+                          <div className="rounded-xl border border-fuchsia-400/20 bg-[rgba(12,8,20,0.82)] px-3 py-3">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-fuchsia-200">Phase 5 · Workspace Timeline</p>
+                              <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                                {workspaceSnapshots.length} snapshots
+                              </span>
+                            </div>
+
+                            <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
+                              <input
+                                value={workspaceSnapshotName}
+                                onChange={(event) => setWorkspaceSnapshotName(event.target.value.slice(0, 56))}
+                                placeholder="Snapshot label (optional)"
+                                className="rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-fuchsia-300/55"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => createWorkspaceSnapshot()}
+                                className="rounded-full border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-fuchsia-100"
+                              >
+                                Capture
+                              </button>
+                              <button
+                                type="button"
+                                onClick={restorePreviousWorkspaceSnapshot}
+                                className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-100"
+                              >
+                                Undo
+                              </button>
+                            </div>
+
+                            {workspaceSnapshots.length > 0 ? (
+                              <div className="mt-2 space-y-1.5">
+                                {workspaceSnapshots.slice(0, 8).map((snapshot) => (
+                                  <div
+                                    key={snapshot.id}
+                                    className={`rounded-md border px-2.5 py-1.5 ${selectedWorkspaceSnapshot?.id === snapshot.id
+                                        ? "border-fuchsia-300/40 bg-fuchsia-500/10"
+                                        : "border-white/10 bg-black/35"
+                                      }`}
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
                                       <button
                                         type="button"
-                                        onClick={() => applyMemoryToInput(card)}
-                                        className="text-left"
-                                        title="Inject memory into chat input"
+                                        onClick={() => setSelectedWorkspaceSnapshotId(snapshot.id)}
+                                        className="min-w-0 flex-1 truncate text-left text-[10px] font-semibold text-fuchsia-100"
+                                        title={`v${snapshot.version} • ${new Date(snapshot.createdAt).toLocaleString()}`}
                                       >
-                                        <p className="text-[10px] font-semibold uppercase tracking-wide text-cyan-100">{card.title}</p>
-                                        <p className="text-[11px] text-zinc-300">{card.content}</p>
-                                        <div className="mt-1 flex items-center gap-2">
-                                          <span className="text-[9px] uppercase tracking-wide text-zinc-400">Confidence {getDecayedConfidence(card)}%</span>
-                                          <div className="h-1 w-20 overflow-hidden rounded-full bg-zinc-800">
-                                            <motion.div
-                                              initial={{ width: 0 }}
-                                              animate={{ width: `${getDecayedConfidence(card)}%` }}
-                                              transition={{ duration: 0.35, ease: "easeOut" }}
-                                              className="h-1 rounded-full bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-emerald-400"
-                                            />
+                                        v{snapshot.version} • {snapshot.name}
+                                      </button>
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => restoreWorkspaceSnapshot(snapshot)}
+                                          className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-2 py-0.5 text-[9px] uppercase text-cyan-100"
+                                          title="Restore this snapshot"
+                                        >
+                                          Restore
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => deleteWorkspaceSnapshot(snapshot.id)}
+                                          className="rounded-full border border-rose-300/25 bg-rose-500/10 p-1 text-rose-200 hover:border-rose-300/45"
+                                          aria-label={`Delete workspace snapshot ${snapshot.name}`}
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <p className="mt-1 text-[9px] text-zinc-500">{new Date(snapshot.createdAt).toLocaleString()}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="mt-2 text-[10px] text-zinc-500">No timeline snapshots yet. Capture one before risky edits and experiments.</p>
+                            )}
+
+                            {selectedWorkspaceSnapshot && selectedWorkspaceSnapshotDiff && (
+                              <div className="mt-2 rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
+                                <div className="mb-1 flex items-center justify-between gap-2">
+                                  <p className="text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Diff preview vs live workspace</p>
+                                  <span className="rounded-full border border-white/15 bg-black/30 px-1.5 py-0.5 text-[9px] text-zinc-300">
+                                    {selectedWorkspaceSnapshot.name}
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 text-[9px]">
+                                  <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                    Settings changed: {selectedWorkspaceSnapshotDiff.changedSettings.length}
+                                  </span>
+                                  <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                    Prompt packs Δ {selectedWorkspaceSnapshotDiff.customPromptDelta}
+                                  </span>
+                                  <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                    Memory Δ {selectedWorkspaceSnapshotDiff.memoryDelta}
+                                  </span>
+                                  <span className="rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-zinc-300">
+                                    Presets Δ {selectedWorkspaceSnapshotDiff.presetsDelta}
+                                  </span>
+                                </div>
+                                {selectedWorkspaceSnapshotDiff.changedSettings.length > 0 ? (
+                                  <p className="mt-1 text-[10px] text-zinc-400">
+                                    {selectedWorkspaceSnapshotDiff.changedSettings.join(", ")}
+                                  </p>
+                                ) : (
+                                  <p className="mt-1 text-[10px] text-zinc-500">No settings drift from current workspace.</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <HubSitewideNeuralSmartness
+                            neuralVaultCount={neuralVaultCount}
+                            datasetName={datasetName}
+                            onDatasetNameChange={setDatasetName}
+                            datasetRows={datasetRows}
+                            onDatasetRowsChange={setDatasetRows}
+                            datasetNotes={datasetNotes}
+                            onDatasetNotesChange={setDatasetNotes}
+                            onSaveDataset={saveDatasetNeuralArtifact}
+                            behaviorLabel={behaviorLabel}
+                            onBehaviorLabelChange={setBehaviorLabel}
+                            behaviorObservation={behaviorObservation}
+                            onBehaviorObservationChange={setBehaviorObservation}
+                            onSaveBehavior={saveUserBehaviorNeuralArtifact}
+                            tickerBehaviorSymbol={tickerBehaviorSymbol}
+                            onTickerBehaviorSymbolChange={setTickerBehaviorSymbol}
+                            tickerBehaviorPattern={tickerBehaviorPattern}
+                            onTickerBehaviorPatternChange={setTickerBehaviorPattern}
+                            onSaveTickerPattern={saveTickerBehaviorNeuralArtifact}
+                            learningEnvironmentName={learningEnvironmentName}
+                            onLearningEnvironmentNameChange={setLearningEnvironmentName}
+                            learningEnvironmentHypothesis={learningEnvironmentHypothesis}
+                            onLearningEnvironmentHypothesisChange={setLearningEnvironmentHypothesis}
+                            onSaveEnvironment={saveLearningEnvironmentNeuralArtifact}
+                            onExportNeuralVault={exportNeuralVaultDataset}
+                          />
+
+                          <HubVideoAiInfusion
+                            videoSourceUrl={videoSourceUrl}
+                            onVideoSourceUrlChange={setVideoSourceUrl}
+                            videoInstructionGoal={videoInstructionGoal}
+                            onVideoInstructionGoalChange={setVideoInstructionGoal}
+                            videoCue={videoCue}
+                            onVideoCueChange={setVideoCue}
+                            onInsertBrief={insertVideoInstructionBrief}
+                            onStoreBrief={rememberVideoInstructionBrief}
+                          />
+
+                          <HubAutomationWorkspace>
+                            <HubWebsiteSocialAutopilot
+                              websiteSourceUrl={websiteSourceUrl}
+                              onWebsiteSourceUrlChange={setWebsiteSourceUrl}
+                              autopilotFocus={autopilotFocus}
+                              onAutopilotFocusChange={setAutopilotFocus}
+                              socialChannels={SOCIAL_AUTOPILOT_CHANNELS}
+                              autopilotChannels={autopilotChannels}
+                              onToggleAutopilotChannel={toggleAutopilotChannel}
+                              isGeneratingAutopilot={isGeneratingAutopilot}
+                              onGenerateDrafts={generateWebsiteAutopilotDraft}
+                              autopilotOpsLoading={autopilotOpsLoading}
+                              onSaveToOps={saveCurrentAutopilotDraftToOps}
+                              onRefreshOps={refreshAutopilotOps}
+                              autopilotOpsDraftId={autopilotOpsDraftId}
+                              onAutopilotOpsDraftIdChange={setAutopilotOpsDraftId}
+                              autopilotScheduleAt={autopilotScheduleAt}
+                              onAutopilotScheduleAtChange={setAutopilotScheduleAt}
+                              onSubmitApproval={submitAutopilotForApproval}
+                              onApproveDraft={approveAutopilotDraft}
+                              onScheduleQueue={scheduleAutopilotDraft}
+                              onPublishNow={publishAutopilotNow}
+                              onRunDueJobs={runDueAutopilotJobs}
+                              autopilotImpressions={autopilotImpressions}
+                              onAutopilotImpressionsChange={setAutopilotImpressions}
+                              autopilotEngagements={autopilotEngagements}
+                              onAutopilotEngagementsChange={setAutopilotEngagements}
+                              autopilotClicks={autopilotClicks}
+                              onAutopilotClicksChange={setAutopilotClicks}
+                              onSyncMetrics={syncAutopilotPerformance}
+                              autopilotOpsSnapshot={autopilotOpsSnapshot}
+                            />
+                          </HubAutomationWorkspace>
+
+                          <HubCompetitiveEdgeLab
+                            focusSymbol={focusSymbol}
+                            riskStance={riskStance}
+                            marketRegime={detectedMarketRegime}
+                            onInjectBrief={insertCompetitiveEdgeBrief}
+                            onStoreBrief={rememberCompetitiveEdgeBrief}
+                          />
+
+                          <HubPostTradeForensics
+                            focusSymbol={focusSymbol}
+                            riskStance={riskStance}
+                            marketRegime={detectedMarketRegime}
+                            onInjectBrief={insertPostTradeForensicsBrief}
+                            onStoreBrief={rememberPostTradeForensicsBrief}
+                          />
+
+                          <HubRegimeShiftSentinel
+                            focusSymbol={focusSymbol}
+                            riskStance={riskStance}
+                            marketRegime={detectedMarketRegime}
+                            onInjectBrief={insertRegimeShiftSentinelBrief}
+                            onStoreBrief={rememberRegimeShiftSentinelBrief}
+                          />
+
+                          <HubExecutionLatencyGuard
+                            focusSymbol={focusSymbol}
+                            riskStance={riskStance}
+                            marketRegime={detectedMarketRegime}
+                            onInjectBrief={insertExecutionLatencyGuardBrief}
+                            onStoreBrief={rememberExecutionLatencyGuardBrief}
+                          />
+
+                          <HubSessionDriftGovernor
+                            focusSymbol={focusSymbol}
+                            riskStance={riskStance}
+                            marketRegime={detectedMarketRegime}
+                            onInjectBrief={insertSessionDriftGovernorBrief}
+                            onStoreBrief={rememberSessionDriftGovernorBrief}
+                          />
+
+                          <HubCapitalPreservationCircuit
+                            focusSymbol={focusSymbol}
+                            riskStance={riskStance}
+                            marketRegime={detectedMarketRegime}
+                            onInjectBrief={insertCapitalPreservationCircuitBrief}
+                            onStoreBrief={rememberCapitalPreservationCircuitBrief}
+                          />
+
+                          <HubOpportunityCostRadar
+                            focusSymbol={focusSymbol}
+                            riskStance={riskStance}
+                            marketRegime={detectedMarketRegime}
+                            onInjectBrief={insertOpportunityCostRadarBrief}
+                            onStoreBrief={rememberOpportunityCostRadarBrief}
+                          />
+
+                          <HubConvictionCalibrationEngine
+                            focusSymbol={focusSymbol}
+                            riskStance={riskStance}
+                            marketRegime={detectedMarketRegime}
+                            onInjectBrief={insertConvictionCalibrationBrief}
+                            onStoreBrief={rememberConvictionCalibrationBrief}
+                          />
+
+                          <div className="rounded-xl border border-white/10 bg-[rgba(10,14,20,0.72)] px-3 py-3">
+                            <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-wide text-zinc-300">
+                              <BookOpen className="h-3.5 w-3.5 text-cyan-300" />
+                              Memory Cards
+                              <span className="rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[9px] text-zinc-400">
+                                {longMemoryCards.length} pinned • {shortMemoryCards.length} session
+                              </span>
+                            </div>
+
+                            {memoryCards.length === 0 ? (
+                              <p className="text-[11px] text-zinc-500">No memories stored yet. Save prompts or pin your focus.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {memoryCards.map((card) => (
+                                  <div key={card.id} className="rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                      {editingMemoryId === card.id ? (
+                                        <div className="w-full space-y-2">
+                                          <label className="sr-only" htmlFor={`memory-title-${card.id}`}>Edit memory title</label>
+                                          <input
+                                            id={`memory-title-${card.id}`}
+                                            value={editingMemoryTitle}
+                                            onChange={(event) => setEditingMemoryTitle(event.target.value.slice(0, 40))}
+                                            className="w-full rounded-md border border-cyan-400/25 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300"
+                                            title="Edit memory title"
+                                            placeholder="Memory title"
+                                          />
+                                          <label className="sr-only" htmlFor={`memory-content-${card.id}`}>Edit memory content</label>
+                                          <textarea
+                                            id={`memory-content-${card.id}`}
+                                            value={editingMemoryContent}
+                                            onChange={(event) => setEditingMemoryContent(event.target.value.slice(0, 160))}
+                                            rows={3}
+                                            className="w-full rounded-md border border-cyan-400/25 bg-black/50 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-300"
+                                            title="Edit memory content"
+                                            placeholder="Memory content"
+                                          />
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleSaveEditMemory(card.id)}
+                                              className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2.5 py-1 text-[9px] uppercase text-cyan-100"
+                                            >
+                                              Save
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={cancelEditMemory}
+                                              className="rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[9px] uppercase text-zinc-300"
+                                            >
+                                              Cancel
+                                            </button>
                                           </div>
                                         </div>
-                                      </button>
-                                    )}
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => applyMemoryToInput(card)}
+                                          className="text-left"
+                                          title="Inject memory into chat input"
+                                        >
+                                          <p className="text-[10px] font-semibold uppercase tracking-wide text-cyan-100">{card.title}</p>
+                                          <p className="text-[11px] text-zinc-300">{card.content}</p>
+                                          <div className="mt-1 flex items-center gap-2">
+                                            <span className="text-[9px] uppercase tracking-wide text-zinc-400">Confidence {getDecayedConfidence(card)}%</span>
+                                            <div className="h-1 w-20 overflow-hidden rounded-full bg-zinc-800">
+                                              <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${getDecayedConfidence(card)}%` }}
+                                                transition={{ duration: 0.35, ease: "easeOut" }}
+                                                className="h-1 rounded-full bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-emerald-400"
+                                              />
+                                            </div>
+                                          </div>
+                                        </button>
+                                      )}
 
-                                    <div className="flex items-center gap-1.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => beginEditMemory(card)}
-                                        className="rounded-full border border-white/15 bg-black/40 p-1 text-zinc-300 hover:border-cyan-300/40"
-                                        title="Edit memory card"
-                                      >
-                                        <Pencil className="h-3 w-3" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleMemoryScope(card.id)}
-                                        className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300 hover:border-cyan-300/40"
-                                        title={card.scope === "long" ? "Move to session memory" : "Pin as long-term memory"}
-                                      >
-                                        {card.scope === "long" ? "Pinned" : "Session"}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => deleteMemoryCard(card.id)}
-                                        className="rounded-full border border-red-300/20 bg-red-500/10 p-1 text-red-200 hover:border-red-300/40"
-                                        title="Delete memory card"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </button>
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => beginEditMemory(card)}
+                                          className="rounded-full border border-white/15 bg-black/40 p-1 text-zinc-300 hover:border-cyan-300/40"
+                                          title="Edit memory card"
+                                        >
+                                          <Pencil className="h-3 w-3" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleMemoryScope(card.id)}
+                                          className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] uppercase text-zinc-300 hover:border-cyan-300/40"
+                                          title={card.scope === "long" ? "Move to session memory" : "Pin as long-term memory"}
+                                        >
+                                          {card.scope === "long" ? "Pinned" : "Session"}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => deleteMemoryCard(card.id)}
+                                          className="rounded-full border border-red-300/20 bg-red-500/10 p-1 text-red-200 hover:border-red-300/40"
+                                          title="Delete memory card"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
 
-                          </>
-                        )}
+                        </>
+                      )}
 
-                        {messages.map((msg, i) => {
-                          const isLatestAssistant = msg.role === "assistant" && i === latestAssistantIndex;
-                          return (
+                      {messages.map((msg, i) => {
+                        const isLatestAssistant = msg.role === "assistant" && i === latestAssistantIndex;
+                        return (
                           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${
-                              msg.role === 'user'
+                            <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${msg.role === 'user'
                                 ? "bg-cyan-500/10 border border-cyan-500/20 text-cyan-100"
                                 : `bg-zinc-900/80 border ${isLatestAssistant && latestReplyPulse ? "border-cyan-300/60 shadow-[0_0_20px_rgba(34,211,238,0.25)]" : "border-white/5"} text-zinc-300`
-                            }`}>
+                              }`}>
                               <div className="mb-1 flex items-center justify-between gap-2">
                                 <p className="font-mono text-[10px] opacity-50 uppercase tracking-widest">{msg.role === "assistant" ? `${guideName}_guide` : msg.role}</p>
                                 {msg.role === "user" && (
@@ -2797,195 +2790,193 @@ export const AINeuralHub = () => {
                               )}
                             </div>
                           </div>
-                          );
-                        })}
-                        {isChatLoading && (
-                          <div className="flex justify-start">
-                            <div className="bg-zinc-900/80 border border-white/5 p-4 rounded-2xl">
-                              <div className="flex gap-1">
-                                <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce" />
-                                <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce delay-75" />
-                                <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce delay-150" />
-                              </div>
+                        );
+                      })}
+                      {isChatLoading && (
+                        <div className="flex justify-start">
+                          <div className="bg-zinc-900/80 border border-white/5 p-4 rounded-2xl">
+                            <div className="flex gap-1">
+                              <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce" />
+                              <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce delay-75" />
+                              <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce delay-150" />
                             </div>
-                          </div>
-                        )}
-                        <div ref={latestMessageAnchorRef} />
-                      </div>
-
-                      <div className="mb-3 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100/85">
-                        {workflowTask === "chat"
-                          ? "Try: I&apos;m new to trading. Give me a safe beginner plan for this week."
-                          : workflowTask === "generate"
-                            ? "Generate mode tip: ask for exact format (e.g. 5 bullets + 1 action)."
-                            : workflowTask === "summarize"
-                              ? "Summarize mode tip: paste the full source text for stronger compression quality."
-                              : "Q&A mode tip: add context below so answers stay grounded and factual."}
-                      </div>
-
-                      {!hasUserMessages && !isChatLoading && (
-                        <div className="mb-3 rounded-xl border border-emerald-400/20 bg-[rgba(6,18,14,0.75)] px-3 py-3">
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-emerald-200">Quick Start Actions</p>
-                            <span className="rounded-full border border-white/15 bg-black/30 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
-                              1-click setup
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTab("CHAT");
-                                setWorkflowTask("chat");
-                                setChatInput("I&apos;m new to trading. Build a beginner-safe 7-day plan with strict risk limits and one daily checklist.");
-                                setChatStatus("Starter plan loaded. Press send when ready.");
-                              }}
-                              className="rounded-full border border-emerald-300/35 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-semibold text-emerald-100"
-                            >
-                              Start with Chat Plan
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTab("IMAGE_GEN");
-                                setImgPrompt("Create a clean, modern crypto market dashboard hero image with neon cyan accents and clear readability.");
-                              }}
-                              className="rounded-full border border-cyan-300/35 bg-cyan-500/15 px-2.5 py-1 text-[10px] font-semibold text-cyan-100"
-                            >
-                              Open Image Tool
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTab("MARKET");
-                                setChatStatus("Switched to Market Tools.");
-                              }}
-                              className="rounded-full border border-fuchsia-300/35 bg-fuchsia-500/15 px-2.5 py-1 text-[10px] font-semibold text-fuchsia-100"
-                            >
-                              Open Market Tools
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTab("CHAT");
-                                setIsPromptLibraryOpen(true);
-                                setChatStatus("Prompt Library opened.");
-                              }}
-                              className="rounded-full border border-amber-300/35 bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-100"
-                            >
-                              Browse Prompt Library
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTab("CHAT");
-                                setChatInput("/help");
-                                setChatStatus("Slash help ready. Press send.");
-                              }}
-                              className="rounded-full border border-white/20 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-zinc-200"
-                            >
-                              Show Slash Help
-                            </button>
                           </div>
                         </div>
                       )}
+                      <div ref={latestMessageAnchorRef} />
+                    </div>
 
-                      <div className="mb-3 rounded-xl border border-white/10 bg-[rgba(8,12,18,0.82)] px-3 py-3">
-                        <div className="mb-2 flex flex-wrap items-center gap-2">
-                          <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-zinc-300">Operator Workflow Dock</p>
-                          <span className="rounded-full border border-cyan-300/20 bg-cyan-500/10 px-2 py-0.5 text-[9px] uppercase text-cyan-100">Industry-grade controls</span>
+                    <div className="mb-3 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100/85">
+                      {workflowTask === "chat"
+                        ? "Try: I&apos;m new to trading. Give me a safe beginner plan for this week."
+                        : workflowTask === "generate"
+                          ? "Generate mode tip: ask for exact format (e.g. 5 bullets + 1 action)."
+                          : workflowTask === "summarize"
+                            ? "Summarize mode tip: paste the full source text for stronger compression quality."
+                            : "Q&A mode tip: add context below so answers stay grounded and factual."}
+                    </div>
+
+                    {!hasUserMessages && !isChatLoading && (
+                      <div className="mb-3 rounded-xl border border-emerald-400/20 bg-[rgba(6,18,14,0.75)] px-3 py-3">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-emerald-200">Quick Start Actions</p>
+                          <span className="rounded-full border border-white/15 bg-black/30 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                            1-click setup
+                          </span>
                         </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("CHAT");
+                              setWorkflowTask("chat");
+                              setChatInput("I&apos;m new to trading. Build a beginner-safe 7-day plan with strict risk limits and one daily checklist.");
+                              setChatStatus("Starter plan loaded. Press send when ready.");
+                            }}
+                            className="rounded-full border border-emerald-300/35 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-semibold text-emerald-100"
+                          >
+                            Start with Chat Plan
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("IMAGE_GEN");
+                              setImgPrompt("Create a clean, modern crypto market dashboard hero image with neon cyan accents and clear readability.");
+                            }}
+                            className="rounded-full border border-cyan-300/35 bg-cyan-500/15 px-2.5 py-1 text-[10px] font-semibold text-cyan-100"
+                          >
+                            Open Image Tool
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("MARKET");
+                              setChatStatus("Switched to Market Tools.");
+                            }}
+                            className="rounded-full border border-fuchsia-300/35 bg-fuchsia-500/15 px-2.5 py-1 text-[10px] font-semibold text-fuchsia-100"
+                          >
+                            Open Market Tools
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("CHAT");
+                              setIsPromptLibraryOpen(true);
+                              setChatStatus("Prompt Library opened.");
+                            }}
+                            className="rounded-full border border-amber-300/35 bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-100"
+                          >
+                            Browse Prompt Library
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("CHAT");
+                              setChatInput("/help");
+                              setChatStatus("Slash help ready. Press send.");
+                            }}
+                            className="rounded-full border border-white/20 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-zinc-200"
+                          >
+                            Show Slash Help
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
-                        <div className="mb-2 flex flex-wrap gap-2">
-                          {LLM_WORKFLOW_TASKS.map((task) => (
-                            <button
-                              key={task.id}
-                              type="button"
-                              onClick={() => setWorkflowTask(task.id)}
-                              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-                                workflowTask === task.id
-                                  ? "border-cyan-300/40 bg-cyan-500/15 text-cyan-100"
-                                  : "border-white/15 bg-black/35 text-zinc-300 hover:border-cyan-300/30"
+                    <div className="mb-3 rounded-xl border border-white/10 bg-[rgba(8,12,18,0.82)] px-3 py-3">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-zinc-300">Operator Workflow Dock</p>
+                        <span className="rounded-full border border-cyan-300/20 bg-cyan-500/10 px-2 py-0.5 text-[9px] uppercase text-cyan-100">Industry-grade controls</span>
+                      </div>
+
+                      <div className="mb-2 flex flex-wrap gap-2">
+                        {LLM_WORKFLOW_TASKS.map((task) => (
+                          <button
+                            key={task.id}
+                            type="button"
+                            onClick={() => setWorkflowTask(task.id)}
+                            className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${workflowTask === task.id
+                                ? "border-cyan-300/40 bg-cyan-500/15 text-cyan-100"
+                                : "border-white/15 bg-black/35 text-zinc-300 hover:border-cyan-300/30"
                               }`}
-                              title={task.hint}
-                            >
-                              {task.label}
-                            </button>
-                          ))}
-                        </div>
+                            title={task.hint}
+                          >
+                            {task.label}
+                          </button>
+                        ))}
+                      </div>
 
-                        <div className="grid gap-2 md:grid-cols-[1fr_1fr]">
-                          <div>
-                            <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400">Depth</p>
-                            <div className="mt-1 flex gap-1.5">
-                              {(["quick", "balanced", "deep"] as LlmDepth[]).map((depth) => (
-                                <button
-                                  key={depth}
-                                  type="button"
-                                  onClick={() => setWorkflowDepth(depth)}
-                                  className={`rounded-full border px-2 py-0.5 text-[9px] uppercase ${
-                                    workflowDepth === depth
-                                      ? "border-fuchsia-300/40 bg-fuchsia-500/15 text-fuchsia-100"
-                                      : "border-white/15 bg-black/35 text-zinc-300"
+                      <div className="grid gap-2 md:grid-cols-[1fr_1fr]">
+                        <div>
+                          <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400">Depth</p>
+                          <div className="mt-1 flex gap-1.5">
+                            {(["quick", "balanced", "deep"] as LlmDepth[]).map((depth) => (
+                              <button
+                                key={depth}
+                                type="button"
+                                onClick={() => setWorkflowDepth(depth)}
+                                className={`rounded-full border px-2 py-0.5 text-[9px] uppercase ${workflowDepth === depth
+                                    ? "border-fuchsia-300/40 bg-fuchsia-500/15 text-fuchsia-100"
+                                    : "border-white/15 bg-black/35 text-zinc-300"
                                   }`}
-                                >
-                                  {depth}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="workflow-creativity-range">
-                              <span>Creativity</span>
-                              <span>{workflowCreativity}%</span>
-                            </label>
-                            <input
-                              id="workflow-creativity-range"
-                              type="range"
-                              min={20}
-                              max={100}
-                              value={workflowCreativity}
-                              onChange={(event) => setWorkflowCreativity(Number(event.target.value))}
-                              className="mt-1 w-full accent-cyan-400"
-                              title="Adjust generation creativity"
-                            />
+                              >
+                                {depth}
+                              </button>
+                            ))}
                           </div>
                         </div>
 
-                        {workflowTask === "qa" && (
-                          <div className="mt-2">
-                            <label className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="workflow-context-input">
-                              Context (used by Q&A task)
-                            </label>
-                            <textarea
-                              id="workflow-context-input"
-                              value={workflowContext}
-                              onChange={(event) => setWorkflowContext(event.target.value.slice(0, 2000))}
-                              rows={3}
-                              className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2.5 py-2 text-[11px] text-white outline-none focus:border-cyan-300/60"
-                              placeholder="Paste source context here so answers remain grounded."
-                            />
-                          </div>
-                        )}
-
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {LLM_WORKFLOW_TEMPLATES.map((template) => (
-                            <button
-                              key={template.id}
-                              type="button"
-                              onClick={() => applyWorkflowTemplate(template.id)}
-                              className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-100"
-                              title={`Load ${template.label} template`}
-                            >
-                              {template.label}
-                            </button>
-                          ))}
+                        <div>
+                          <label className="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="workflow-creativity-range">
+                            <span>Creativity</span>
+                            <span>{workflowCreativity}%</span>
+                          </label>
+                          <input
+                            id="workflow-creativity-range"
+                            type="range"
+                            min={20}
+                            max={100}
+                            value={workflowCreativity}
+                            onChange={(event) => setWorkflowCreativity(Number(event.target.value))}
+                            className="mt-1 w-full accent-cyan-400"
+                            title="Adjust generation creativity"
+                          />
                         </div>
                       </div>
 
-                      {isPromptLibraryOpen && (
-                        <HubLibraryWorkspace>
+                      {workflowTask === "qa" && (
+                        <div className="mt-2">
+                          <label className="text-[10px] font-mono uppercase tracking-[0.1em] text-zinc-400" htmlFor="workflow-context-input">
+                            Context (used by Q&A task)
+                          </label>
+                          <textarea
+                            id="workflow-context-input"
+                            value={workflowContext}
+                            onChange={(event) => setWorkflowContext(event.target.value.slice(0, 2000))}
+                            rows={3}
+                            className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2.5 py-2 text-[11px] text-white outline-none focus:border-cyan-300/60"
+                            placeholder="Paste source context here so answers remain grounded."
+                          />
+                        </div>
+                      )}
+
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {LLM_WORKFLOW_TEMPLATES.map((template) => (
+                          <button
+                            key={template.id}
+                            type="button"
+                            onClick={() => applyWorkflowTemplate(template.id)}
+                            className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-100"
+                            title={`Load ${template.label} template`}
+                          >
+                            {template.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {isPromptLibraryOpen && (
+                      <HubLibraryWorkspace>
                         <div className="mb-3 rounded-xl border border-cyan-400/20 bg-[rgba(6,10,16,0.84)] px-3 py-3">
                           <div className="mb-2 flex items-center justify-between gap-2">
                             <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-cyan-200">Prompt Library</p>
@@ -3095,169 +3086,169 @@ export const AINeuralHub = () => {
                             </div>
                           )}
                         </div>
-                        </HubLibraryWorkspace>
-                      )}
+                      </HubLibraryWorkspace>
+                    )}
 
-                      <div className="mb-3 flex flex-wrap gap-2">
-                        {[...activePromptPack, ...QUICK_RITUAL_PROMPTS].map((prompt) => (
-                          <button
-                            key={`chat-${prompt.label}`}
-                            onClick={() => applyRitualPrompt(prompt.value)}
-                            type="button"
-                            className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold text-cyan-100 hover:border-cyan-300/60"
-                            title={`Load ritual: ${prompt.label}`}
-                          >
-                            {prompt.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      <form onSubmit={handleSendMessage} className="relative">
-                        <input
-                          type="text"
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          placeholder="Ask in plain language (example: What should I do first?)"
-                          className="w-full bg-zinc-900/50 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-cyan-500/50 transition-all"
-                        />
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {[...activePromptPack, ...QUICK_RITUAL_PROMPTS].map((prompt) => (
                         <button
-                          type="submit"
-                          aria-label="Send chat message"
-                          title="Send chat message"
-                          className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 bg-cyan-500 rounded-xl flex items-center justify-center text-black hover:scale-105 transition-transform"
+                          key={`chat-${prompt.label}`}
+                          onClick={() => applyRitualPrompt(prompt.value)}
+                          type="button"
+                          className="rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold text-cyan-100 hover:border-cyan-300/60"
+                          title={`Load ritual: ${prompt.label}`}
                         >
-                          <Send className="w-4 h-4" />
+                          {prompt.label}
                         </button>
-                      </form>
-                      {filteredSlashCommands.length > 0 && (
-                        <div className="mt-2 rounded-lg border border-white/10 bg-black/40 px-2 py-2">
-                          <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Slash commands</p>
-                          <div className="space-y-1">
-                            {filteredSlashCommands.slice(0, 6).map((command) => (
-                              <button
-                                key={command.id}
-                                type="button"
-                                onClick={() => applySlashCommand(command)}
-                                className="flex w-full items-center justify-between rounded-md border border-white/10 bg-black/35 px-2 py-1 text-left hover:border-cyan-300/35"
-                              >
-                                <span className="text-[10px] font-semibold text-cyan-100">{command.label}</span>
-                                <span className="text-[9px] text-zinc-400">{command.description}</span>
-                              </button>
-                            ))}
-                          </div>
+                      ))}
+                    </div>
+
+                    <form onSubmit={handleSendMessage} className="relative">
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask in plain language (example: What should I do first?)"
+                        className="w-full bg-zinc-900/50 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-cyan-500/50 transition-all"
+                      />
+                      <button
+                        type="submit"
+                        aria-label="Send chat message"
+                        title="Send chat message"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 bg-cyan-500 rounded-xl flex items-center justify-center text-black hover:scale-105 transition-transform"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </form>
+                    {filteredSlashCommands.length > 0 && (
+                      <div className="mt-2 rounded-lg border border-white/10 bg-black/40 px-2 py-2">
+                        <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Slash commands</p>
+                        <div className="space-y-1">
+                          {filteredSlashCommands.slice(0, 6).map((command) => (
+                            <button
+                              key={command.id}
+                              type="button"
+                              onClick={() => applySlashCommand(command)}
+                              className="flex w-full items-center justify-between rounded-md border border-white/10 bg-black/35 px-2 py-1 text-left hover:border-cyan-300/35"
+                            >
+                              <span className="text-[10px] font-semibold text-cyan-100">{command.label}</span>
+                              <span className="text-[9px] text-zinc-400">{command.description}</span>
+                            </button>
+                          ))}
                         </div>
-                      )}
-                      {chatStatus && (
-                        <p className="mt-3 text-[11px] text-cyan-300/80 font-mono">{chatStatus}</p>
-                      )}
-                      {qualitySnapshot && (
-                        <div className="mt-3 rounded-xl border border-white/10 bg-black/35 px-3 py-2">
-                          <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-wide text-zinc-300">
-                            <span className="text-cyan-200">Response Scorecard</span>
-                            <span className="rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[9px] text-zinc-400">
-                              {qualitySnapshot.task.toUpperCase()} • {qualitySnapshot.model}
-                            </span>
-                          </div>
-                          <div className="grid gap-2 md:grid-cols-3">
-                            {[
-                              { label: "Clarity", value: qualitySnapshot.clarity, tone: "from-cyan-400 to-blue-400" },
-                              { label: "Actionability", value: qualitySnapshot.actionability, tone: "from-emerald-400 to-teal-400" },
-                              { label: "Risk Discipline", value: qualitySnapshot.riskDiscipline, tone: "from-fuchsia-400 to-purple-400" },
-                            ].map((metric) => (
-                              <div key={metric.label} className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5">
-                                <div className="mb-1 flex items-center justify-between text-[10px] text-zinc-300">
-                                  <span>{metric.label}</span>
-                                  <span>{metric.value}%</span>
-                                </div>
-                                <div className="h-1.5 rounded-full bg-zinc-800/80">
-                                  <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${metric.value}%` }}
-                                    transition={{ duration: 0.4, ease: "easeOut" }}
-                                    className={`h-1.5 rounded-full bg-gradient-to-r ${metric.tone}`}
-                                  />
-                                </div>
+                      </div>
+                    )}
+                    {chatStatus && (
+                      <p className="mt-3 text-[11px] text-cyan-300/80 font-mono">{chatStatus}</p>
+                    )}
+                    {qualitySnapshot && (
+                      <div className="mt-3 rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                        <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-wide text-zinc-300">
+                          <span className="text-cyan-200">Response Scorecard</span>
+                          <span className="rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[9px] text-zinc-400">
+                            {qualitySnapshot.task.toUpperCase()} • {qualitySnapshot.model}
+                          </span>
+                        </div>
+                        <div className="grid gap-2 md:grid-cols-3">
+                          {[
+                            { label: "Clarity", value: qualitySnapshot.clarity, tone: "from-cyan-400 to-blue-400" },
+                            { label: "Actionability", value: qualitySnapshot.actionability, tone: "from-emerald-400 to-teal-400" },
+                            { label: "Risk Discipline", value: qualitySnapshot.riskDiscipline, tone: "from-fuchsia-400 to-purple-400" },
+                          ].map((metric) => (
+                            <div key={metric.label} className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5">
+                              <div className="mb-1 flex items-center justify-between text-[10px] text-zinc-300">
+                                <span>{metric.label}</span>
+                                <span>{metric.value}%</span>
                               </div>
-                            ))}
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-zinc-400">
-                            <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Latency: {qualitySnapshot.latencyMs}ms</span>
-                            <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Words: {qualitySnapshot.words}</span>
-                            <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Chars: {qualitySnapshot.chars}</span>
+                              <div className="h-1.5 rounded-full bg-zinc-800/80">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${metric.value}%` }}
+                                  transition={{ duration: 0.4, ease: "easeOut" }}
+                                  className={`h-1.5 rounded-full bg-gradient-to-r ${metric.tone}`}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-zinc-400">
+                          <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Latency: {qualitySnapshot.latencyMs}ms</span>
+                          <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Words: {qualitySnapshot.words}</span>
+                          <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5">Chars: {qualitySnapshot.chars}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {compareSnapshot && (
+                      <div className="mt-3 rounded-xl border border-fuchsia-300/25 bg-[rgba(14,10,22,0.86)] px-3 py-3">
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-fuchsia-200">Original vs Improved</p>
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
+                              {compareSnapshot.mode}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setCompareSnapshot(null)}
+                              className="rounded-full border border-white/15 bg-black/35 px-2 py-0.5 text-[9px] uppercase text-zinc-300"
+                            >
+                              Close
+                            </button>
                           </div>
                         </div>
-                      )}
 
-                      {compareSnapshot && (
-                        <div className="mt-3 rounded-xl border border-fuchsia-300/25 bg-[rgba(14,10,22,0.86)] px-3 py-3">
-                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-fuchsia-200">Original vs Improved</p>
-                            <div className="flex items-center gap-2">
-                              <span className="rounded-full border border-white/10 bg-black/35 px-2 py-0.5 text-[9px] uppercase text-zinc-300">
-                                {compareSnapshot.mode}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setCompareSnapshot(null)}
-                                className="rounded-full border border-white/15 bg-black/35 px-2 py-0.5 text-[9px] uppercase text-zinc-300"
-                              >
-                                Close
-                              </button>
-                            </div>
+                        <div className="grid gap-2 md:grid-cols-2">
+                          <div className="rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
+                            <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Original</p>
+                            <p className="whitespace-pre-wrap text-[11px] text-zinc-200/90">{compareSnapshot.original}</p>
                           </div>
-
-                          <div className="grid gap-2 md:grid-cols-2">
-                            <div className="rounded-lg border border-white/10 bg-black/35 px-2.5 py-2">
-                              <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-zinc-400">Original</p>
-                              <p className="whitespace-pre-wrap text-[11px] text-zinc-200/90">{compareSnapshot.original}</p>
-                            </div>
-                            <div className="rounded-lg border border-fuchsia-300/25 bg-fuchsia-500/10 px-2.5 py-2">
-                              <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-fuchsia-200">Improved</p>
-                              <p className="whitespace-pre-wrap text-[11px] text-fuchsia-50">{compareSnapshot.transformed}</p>
-                            </div>
+                          <div className="rounded-lg border border-fuchsia-300/25 bg-fuchsia-500/10 px-2.5 py-2">
+                            <p className="mb-1 text-[9px] font-mono uppercase tracking-[0.12em] text-fuchsia-200">Improved</p>
+                            <p className="whitespace-pre-wrap text-[11px] text-fuchsia-50">{compareSnapshot.transformed}</p>
                           </div>
                         </div>
-                      )}
-                      </motion.div>
-                    </HubChatWorkspace>
-                  )}
+                      </div>
+                    )}
+                  </motion.div>
+                </HubChatWorkspace>
+              )}
 
-                  {activeTab === "IMAGE_GEN" && (
-                    <HubCreateWorkspace>
-                      <HubImageWorkspace
-                        imageModels={imageModels}
-                        selectedModel={selectedModel}
-                        onSelectModel={setSelectedModel}
-                        imgPrompt={imgPrompt}
-                        onImgPromptChange={setImgPrompt}
-                        onGenerateImage={handleGenerateImage}
-                        isImgLoading={isImgLoading}
-                        generatedImg={generatedImg}
-                        imageStatus={imageStatus}
-                      />
-                    </HubCreateWorkspace>
-                  )}
+              {activeTab === "IMAGE_GEN" && (
+                <HubCreateWorkspace>
+                  <HubImageWorkspace
+                    imageModels={imageModels}
+                    selectedModel={selectedModel}
+                    onSelectModel={setSelectedModel}
+                    imgPrompt={imgPrompt}
+                    onImgPromptChange={setImgPrompt}
+                    onGenerateImage={handleGenerateImage}
+                    isImgLoading={isImgLoading}
+                    generatedImg={generatedImg}
+                    imageStatus={imageStatus}
+                  />
+                </HubCreateWorkspace>
+              )}
 
-                  {activeTab === "MARKET" && (
-                    <HubMarketWorkspaceView>
-                      <HubMarketWorkspace
-                        watchlist={watchlist}
-                        marketTransport={marketTransport}
-                        marketStatus={marketStatus}
-                        marketFeedUpdatedAt={marketFeedUpdatedAt}
-                        focusSymbol={focusSymbol}
-                      />
-                    </HubMarketWorkspaceView>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-
-            {/* Right Column: AI Metrics & State */}
-            <div className="lg:col-span-4 space-y-6">
-              <HubMetricsRail isCharging={isCharging} relationshipTier={relationshipTier} />
-            </div>
+              {activeTab === "MARKET" && (
+                <HubMarketWorkspaceView>
+                  <HubMarketWorkspace
+                    watchlist={watchlist}
+                    marketTransport={marketTransport}
+                    marketStatus={marketStatus}
+                    marketFeedUpdatedAt={marketFeedUpdatedAt}
+                    focusSymbol={focusSymbol}
+                  />
+                </HubMarketWorkspaceView>
+              )}
+            </AnimatePresence>
           </div>
+        </div>
+
+        {/* Right Column: AI Metrics & State */}
+        <div className="lg:col-span-4 space-y-6">
+          <HubMetricsRail isCharging={isCharging} relationshipTier={relationshipTier} />
+        </div>
+      </div>
 
       <HubCommandPalette
         isOpen={isCommandPaletteOpen}

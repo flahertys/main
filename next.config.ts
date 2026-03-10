@@ -1,5 +1,5 @@
-import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import type { NextConfig } from "next";
 import { siteConfig } from "./lib/site-config";
 
 const useStaticExport = process.env.NEXT_FORCE_STATIC_EXPORT === "1";
@@ -10,7 +10,7 @@ type BundleAnalyzerWrapper = (config: NextConfig) => NextConfig;
 const withBundleAnalyzer: BundleAnalyzerWrapper =
   process.env.ANALYZE === "true"
     ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-      (require("@next/bundle-analyzer") as (opts: { enabled: boolean }) => BundleAnalyzerWrapper)({ enabled: true })
+    (require("@next/bundle-analyzer") as (opts: { enabled: boolean }) => BundleAnalyzerWrapper)({ enabled: true })
     : (c) => c;
 
 const nextConfig: NextConfig = {
@@ -122,7 +122,7 @@ const nextConfig: NextConfig = {
   },
 
   // Webpack configuration - Maximum permissiveness
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,

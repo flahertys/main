@@ -1,5 +1,4 @@
 "use client";
-import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 
 const nodes = [
@@ -15,7 +14,7 @@ export const NeuralDataVis = () => {
     <div className="w-full h-[600px] relative bg-zinc-950/20 rounded-[3rem] border border-white/5 overflow-hidden backdrop-blur-3xl group">
       <div className="absolute inset-0 bg-cyber-grid opacity-10" />
       <div className="scanline opacity-10" />
-      
+
       {/* SVG Connections Line Layer */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
         <defs>
@@ -36,28 +35,28 @@ export const NeuralDataVis = () => {
         <motion.div
           key={node.id}
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ 
-            opacity: 1, 
+          animate={{
+            opacity: 1,
             scale: 1,
             y: [0, -10, 0],
           }}
-          transition={{ 
-            duration: 4, 
-            repeat: Infinity, 
+          transition={{
+            duration: 4,
+            repeat: Infinity,
             ease: "easeInOut",
             delay: node.id * 0.2
           }}
           className="absolute group/node cursor-none"
           style={{ left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
         >
-          <div 
+          <div
             className={`relative flex items-center justify-center rounded-full transition-all duration-500 border border-white/10 group-hover/node:border-white/40
               ${node.color} bg-opacity-10 backdrop-blur-md`}
             style={{ width: node.size, height: node.size }}
           >
             {/* Glowing Pulse */}
             <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${node.color}`} />
-            
+
             <div className="text-center">
               <p className="text-[8px] font-mono text-zinc-500 uppercase tracking-tighter mb-1">{node.label}</p>
               <p className="text-xl font-black text-white italic">{node.val}</p>

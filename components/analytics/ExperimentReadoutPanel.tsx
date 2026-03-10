@@ -2,16 +2,16 @@
 
 import {
   applyExperimentRecommendation,
+  clearAssignedExperimentVariant,
+  clearExperimentGuardrailEvents,
   clearExperimentPolicyAdaptiveState,
   clearExperimentPolicyDiagnostics,
   clearExperimentPolicySwitchEvents,
-  clearExperimentSessionRollup,
-  clearAssignedExperimentVariant,
-  clearExperimentGuardrailEvents,
   clearExperimentRampEvents,
   clearExperimentRolloutTarget,
-  EXPERIMENT_POLICY_PROFILES,
+  clearExperimentSessionRollup,
   evaluateExperimentDecision,
+  EXPERIMENT_POLICY_PROFILES,
   getExperimentAllocatorDriftState,
   getExperimentPolicyAdaptiveEnabled,
   getExperimentPolicyAdaptiveState,
@@ -22,20 +22,20 @@ import {
   getExperimentPolicyRegimeState,
   getExperimentPolicySettings,
   getExperimentSessionRollup,
+  listAssignedExperimentVariants,
   listExperimentGuardrailEvents,
+  listExperimentNames,
   listExperimentPolicySwitchEvents,
   listExperimentRampEvents,
   listExperimentRolloutTargets,
-  listExperimentNames,
-  listAssignedExperimentVariants,
-  runExperimentPolicyAutoswitch,
   runExperimentGuardrailAutoRollback,
+  runExperimentPolicyAutoswitch,
   runExperimentRampAutopilot,
+  setAssignedExperimentVariant,
   setExperimentPolicyAdaptiveEnabled,
   setExperimentPolicyAutoswitchEnabled,
   setExperimentPolicyProfile,
   setExperimentRolloutTarget,
-  setAssignedExperimentVariant,
   type ExperimentPolicyProfile,
 } from "@/lib/experiments";
 import { useEffect, useMemo, useState } from "react";
@@ -163,7 +163,6 @@ export function ExperimentReadoutPanel() {
         typeof window !== "undefined" && window.localStorage.getItem(RAMP_AUTOPILOT_STORAGE_KEY) === "1";
       const policyAutoswitchEnabled = getExperimentPolicyAutoswitchEnabled();
       const policyAdaptiveEnabled = getExperimentPolicyAdaptiveEnabled();
-      const currentPolicyProfile = getExperimentPolicyProfile();
 
       const rollupSnapshot = getExperimentSessionRollup();
 
@@ -359,11 +358,10 @@ export function ExperimentReadoutPanel() {
                 setState((previous) => ({ ...previous, policyAdaptiveEnabled: nextEnabled }));
                 refreshReadout();
               }}
-              className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${
-                state.policyAdaptiveEnabled
+              className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${state.policyAdaptiveEnabled
                   ? "border-emerald-400/40 text-emerald-200"
                   : "border-white/15 text-zinc-400 hover:text-white"
-              }`}
+                }`}
             >
               adaptive {state.policyAdaptiveEnabled ? "on" : "off"}
             </button>
@@ -375,11 +373,10 @@ export function ExperimentReadoutPanel() {
                 setState((previous) => ({ ...previous, policyAutoswitchEnabled: nextEnabled }));
                 refreshReadout();
               }}
-              className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${
-                state.policyAutoswitchEnabled
+              className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${state.policyAutoswitchEnabled
                   ? "border-fuchsia-400/40 text-fuchsia-200"
                   : "border-white/15 text-zinc-400 hover:text-white"
-              }`}
+                }`}
             >
               autoswitch {state.policyAutoswitchEnabled ? "on" : "off"}
             </button>
@@ -396,11 +393,10 @@ export function ExperimentReadoutPanel() {
                     setState((previous) => ({ ...previous, policyProfile: profile }));
                     refreshReadout();
                   }}
-                  className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${
-                    selected
+                  className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${selected
                       ? "border-cyan-400/40 text-cyan-200"
                       : "border-white/15 text-zinc-400 hover:text-white"
-                  }`}
+                    }`}
                 >
                   {profile}
                 </button>

@@ -1,7 +1,7 @@
 "use client";
-import React, { useState } from 'react';
-import { CommunityLeaderboard } from './CommunityLeaderboard';
+import { useState } from 'react';
 import { NeuralVault } from '../dashboard/NeuralVault';
+import { CommunityLeaderboard } from './CommunityLeaderboard';
 
 export const HaxHub = () => {
   const [activeTab, setActiveTab] = useState<'UPGRADES' | 'LEADERBOARD' | 'VAULT'>('UPGRADES');
@@ -10,12 +10,6 @@ export const HaxHub = () => {
     { id: 'shield_v2', name: 'Shield_v2.0', cost: 2500, desc: '+2s Duration', icon: '🛡️' },
     { id: 'magnet_v1', name: 'Magnet_Mod', cost: 5000, desc: 'Auto-collects Packets', icon: '🧲' },
     { id: 'multiplier_x2', name: 'Link_Boost', cost: 10000, desc: 'Permanent 1.2x Multiplier', icon: '🚀' },
-  ];
-
-  const leaders = [
-    { rank: 1, user: "0xCyber_Ghost", score: 1420500, rewards: "5000 $HAX" },
-    { rank: 2, user: "Mainframe_Hacker", score: 980200, rewards: "2500 $HAX" },
-    { rank: 3, user: "Sol_Whale_01", score: 850000, rewards: "1200 $HAX" },
   ];
 
   return (

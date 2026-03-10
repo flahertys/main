@@ -19,18 +19,16 @@ export function WebGLDiagnostics() {
 
   useEffect(() => {
     const canvas = document.createElement("canvas");
-    
+
     let gl: WebGLRenderingContext | WebGL2RenderingContext | null = null;
-    let isWebGL2 = false;
 
     try {
       // Try WebGL 2.0 first (Three.js prefers this)
-      gl = canvas.getContext("webgl2", { 
+      gl = canvas.getContext("webgl2", {
         antialias: true,
         powerPreference: "high-performance",
         failIfMajorPerformanceCaveat: false
       }) as WebGL2RenderingContext | null;
-      isWebGL2 = true;
 
       if (!gl) {
         // Fallback to WebGL 1.0
@@ -39,7 +37,6 @@ export function WebGLDiagnostics() {
           powerPreference: "high-performance",
           failIfMajorPerformanceCaveat: false
         }) as WebGLRenderingContext | null;
-        isWebGL2 = false;
       }
     } catch (error) {
       setInfo({
@@ -59,8 +56,8 @@ export function WebGLDiagnostics() {
 
     try {
       const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
-      const vendor = debugInfo 
-        ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) 
+      const vendor = debugInfo
+        ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL)
         : gl.getParameter(gl.VENDOR);
       const renderer = debugInfo
         ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
@@ -72,9 +69,9 @@ export function WebGLDiagnostics() {
 
       // Get supported extensions
       const allExtensions = gl.getSupportedExtensions() || [];
-      const keyExtensions = allExtensions.filter(ext => 
-        ext.includes("texture") || 
-        ext.includes("shader") || 
+      const keyExtensions = allExtensions.filter(ext =>
+        ext.includes("texture") ||
+        ext.includes("shader") ||
         ext.includes("shadow") ||
         ext.includes("anisotropic")
       );

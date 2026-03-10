@@ -6,7 +6,7 @@ interface HomeHeroActionsProps {
   scheduleHref: string;
 }
 
-export function HomeHeroActions({ scheduleHref }: HomeHeroActionsProps) {
+export function HomeHeroActions({ scheduleHref: _scheduleHref }: HomeHeroActionsProps) {
   return (
     <div className="flex flex-wrap gap-3">
       <TrackedCtaLink

@@ -83,17 +83,11 @@ export function GameHUD({
 }: GameHUDProps) {
   const energyPercentage = Math.min((energy / 100) * 100, 100);
   const portalUnlocked = energy >= 100;
-  const relicsLabel = cloversCollected === 1 ? "1 relic" : `${cloversCollected} relics`;
   const hasUtilityRewards =
     typeof utilityPoints === "number" && typeof projectedTokenUnits === "number";
   const utilityRemainder = hasUtilityRewards
     ? ((utilityPoints % UTILITY_POINTS_PER_TOKEN_UNIT) + UTILITY_POINTS_PER_TOKEN_UNIT) %
-      UTILITY_POINTS_PER_TOKEN_UNIT
-    : 0;
-  const pointsToNextToken = hasUtilityRewards
-    ? utilityRemainder === 0
-      ? UTILITY_POINTS_PER_TOKEN_UNIT
-      : UTILITY_POINTS_PER_TOKEN_UNIT - utilityRemainder
+    UTILITY_POINTS_PER_TOKEN_UNIT
     : 0;
   const utilityProgressPercent = hasUtilityRewards
     ? Math.max(0, Math.min((utilityRemainder / UTILITY_POINTS_PER_TOKEN_UNIT) * 100, 100))
@@ -161,9 +155,8 @@ export function GameHUD({
         {/* Top HUD - Mobile Optimized Grid */}
         <div className="grid grid-cols-2 sm:flex sm:flex-row items-stretch sm:items-start justify-between gap-1.5 sm:gap-4">
           {/* Energy Bar - Spans 2 columns on mobile */}
-          <div className={`col-span-2 bg-black/85 backdrop-blur-sm border rounded-lg p-2 sm:p-4 transition-all ${
-            showEnergyPulse ? 'scale-[1.02] border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.3)]' : 'border-purple-500/20'
-          }`}>
+          <div className={`col-span-2 bg-black/85 backdrop-blur-sm border rounded-lg p-2 sm:p-4 transition-all ${showEnergyPulse ? 'scale-[1.02] border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.3)]' : 'border-purple-500/20'
+            }`}>
             <div className="flex items-center gap-2 mb-1 sm:mb-2">
               <Zap className={`w-4 h-4 sm:w-5 sm:h-5 ${showEnergyPulse ? 'text-yellow-300 animate-pulse' : 'text-yellow-400'}`} />
               <span className="text-white font-bold text-xs sm:text-base">Energy</span>
@@ -171,19 +164,17 @@ export function GameHUD({
             </div>
             <div className="w-full h-1.5 sm:h-3 bg-gray-900/80 rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all duration-300 ${
-                  portalUnlocked
+                className={`h-full transition-all duration-300 ${portalUnlocked
                     ? 'bg-gradient-to-r from-cyan-400 to-purple-500 animate-pulse shadow-lg shadow-cyan-500/50'
                     : 'bg-gradient-to-r from-purple-500 to-pink-500'
-                } ${energyWidthClass}`}
+                  } ${energyWidthClass}`}
               />
             </div>
           </div>
 
           {/* Relics & Score Row on Mobile */}
-          <div className={`bg-black/85 backdrop-blur-sm border rounded-lg p-2 sm:p-4 transition-all ${
-            showCloverPulse ? 'scale-[1.02] border-pink-400 shadow-[0_0_10px_rgba(244,114,182,0.3)]' : 'border-purple-500/20'
-          }`}>
+          <div className={`bg-black/85 backdrop-blur-sm border rounded-lg p-2 sm:p-4 transition-all ${showCloverPulse ? 'scale-[1.02] border-pink-400 shadow-[0_0_10px_rgba(244,114,182,0.3)]' : 'border-purple-500/20'
+            }`}>
             <div className="flex items-center gap-1.5 sm:gap-2">
               <span className={`text-xl sm:text-3xl transition-transform ${showCloverPulse ? 'scale-125' : ''}`}>🍀</span>
               <div className="min-w-0">

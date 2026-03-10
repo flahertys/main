@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 interface GlitchTextProps {
   text: string;
@@ -16,9 +16,9 @@ export const GlitchText: React.FC<GlitchTextProps> = ({ text, className = "", sp
   const scramble = useCallback(() => {
     let iteration = 0;
     const interval = setInterval(() => {
-      setDisplayText(prev => 
+      setDisplayText(_prev =>
         text.split("")
-          .map((char, index) => {
+          .map((_char, index) => {
             if (index < iteration) return text[index];
             return CHARS[Math.floor(Math.random() * CHARS.length)];
           })
@@ -43,7 +43,7 @@ export const GlitchText: React.FC<GlitchTextProps> = ({ text, className = "", sp
   }, [isHovering, text, scramble]);
 
   return (
-    <span 
+    <span
       className={`inline-block font-mono ${className}`}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}

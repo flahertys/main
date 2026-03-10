@@ -8,7 +8,7 @@ import { LessonStudioEmbed } from '@/components/music/LessonStudioEmbed';
 import { ShamrockFooter } from '@/components/shamrock/ShamrockFooter';
 import { ShamrockHeader } from '@/components/shamrock/ShamrockHeader';
 import { createPageMetadata } from "@/lib/seo";
-import { ArrowLeft, ArrowRight, BrainCircuit, Calendar, CheckCircle2, ChevronDown, CreditCard, Gem, Shield, Sparkles, Swords, Trophy, UserRound, Video } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BrainCircuit, Calendar, CheckCircle2, ChevronDown, CreditCard, Gem, Shield, Swords, Trophy, UserRound, Video } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 

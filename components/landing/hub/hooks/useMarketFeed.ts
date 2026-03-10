@@ -25,7 +25,7 @@ export function useMarketFeed() {
     let fallbackStarted = false;
 
     const hydrateItems = (payload: { items?: unknown; generatedAt?: unknown; source?: unknown }) => {
-      if (!Array.isArray(payload.items)) return;
+      if (!Array.isArray(payload.items)) return 0;
 
       const items = payload.items
         .map((item: Partial<MarketAsset>) => {

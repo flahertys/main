@@ -703,7 +703,7 @@ export function SpadesGame() {
         },
       };
 
-      phaserRef.current = new Phaser.Game(config);
+      phaserRef.current = new Phaser.Game(config) as unknown as { destroy: (removeCanvas?: boolean) => void };
 
       if (isMounted) {
         setStatus((prev) =>

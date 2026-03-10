@@ -5,8 +5,8 @@
  * Shows similar past signals and their outcomes.
  */
 
-import { CheckCircle, XCircle, Clock } from "lucide-react";
 import type { SimilarSignal } from "@/types/trading";
+import { CheckCircle, Clock, XCircle } from "lucide-react";
 
 interface SignalTimelineProps {
   signals: SimilarSignal[];
@@ -32,7 +32,7 @@ export function SignalTimeline({ signals }: SignalTimelineProps) {
       <div className="absolute left-2 top-0 bottom-0 w-px bg-border" aria-hidden="true" />
 
       <div className="flex flex-col gap-4">
-        {signals.map((sig, i) => {
+        {signals.map((sig) => {
           const date = new Date(sig.generatedAt).toLocaleDateString(undefined, {
             month: "short",
             day: "numeric",

@@ -8,7 +8,7 @@ type HubMetricsRailProps = {
   relationshipTier: string;
 };
 
-export function HubMetricsRail({ isCharging, relationshipTier }: HubMetricsRailProps) {
+export function HubMetricsRail({ isCharging: _isCharging, relationshipTier }: HubMetricsRailProps) {
   return (
     <>
       <div className="theme-panel p-6 border-cyan-500/20">

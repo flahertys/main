@@ -1,11 +1,11 @@
 "use client";
 
-import { Clapperboard, Image as ImageIcon, Loader2, Mic, MicOff, Search, Send, Square } from "lucide-react";
+import { ContextSignalPanel } from "@/components/ai/ContextSignalPanel";
+import { SafetyStateBanner } from "@/components/ai/SafetyStateBanner";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { Clapperboard, Image as ImageIcon, Loader2, Mic, MicOff, Search, Send, Square } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { SafetyStateBanner } from "@/components/ai/SafetyStateBanner";
-import { ContextSignalPanel } from "@/components/ai/ContextSignalPanel";
 
 type VoiceRecognition = {
   start: () => void;
@@ -137,42 +137,42 @@ const SLASH_SHORTCUTS: Array<{
   label: string;
   template: string;
 }> = [
-  {
-    command: "/plan",
-    label: "Plan",
-    template: "/plan Build a 7-day execution roadmap with milestones and one measurable KPI per day.",
-  },
-  {
-    command: "/risk",
-    label: "Risk",
-    template: "/risk Analyze downside risk, invalidation levels, and mitigation checklist for this setup.",
-  },
-  {
-    command: "/parabolic",
-    label: "Parabolic",
-    template: "/parabolic Model bullish/base/bear paths with trigger levels and position sizing guardrails.",
-  },
-  {
-    command: "/odinsignal",
-    label: "ODIN Signal",
-    template: "/odinsignal Generate a concise signal brief with confidence, catalysts, and operator next action.",
-  },
-  {
-    command: "/sop",
-    label: "SOP",
-    template: "/sop Convert this strategy into an SOP with prerequisites, execution steps, monitoring checks, and rollback criteria.",
-  },
-  {
-    command: "/counter",
-    label: "Counter",
-    template: "/counter Build the strongest opposing thesis and define what evidence would invalidate my current plan.",
-  },
-  {
-    command: "/debrief",
-    label: "Debrief",
-    template: "/debrief Analyze my last execution: wins, failures, violations, and protocol upgrades for next run.",
-  },
-];
+    {
+      command: "/plan",
+      label: "Plan",
+      template: "/plan Build a 7-day execution roadmap with milestones and one measurable KPI per day.",
+    },
+    {
+      command: "/risk",
+      label: "Risk",
+      template: "/risk Analyze downside risk, invalidation levels, and mitigation checklist for this setup.",
+    },
+    {
+      command: "/parabolic",
+      label: "Parabolic",
+      template: "/parabolic Model bullish/base/bear paths with trigger levels and position sizing guardrails.",
+    },
+    {
+      command: "/odinsignal",
+      label: "ODIN Signal",
+      template: "/odinsignal Generate a concise signal brief with confidence, catalysts, and operator next action.",
+    },
+    {
+      command: "/sop",
+      label: "SOP",
+      template: "/sop Convert this strategy into an SOP with prerequisites, execution steps, monitoring checks, and rollback criteria.",
+    },
+    {
+      command: "/counter",
+      label: "Counter",
+      template: "/counter Build the strongest opposing thesis and define what evidence would invalidate my current plan.",
+    },
+    {
+      command: "/debrief",
+      label: "Debrief",
+      template: "/debrief Analyze my last execution: wins, failures, violations, and protocol upgrades for next run.",
+    },
+  ];
 
 const SKILL_LEVEL_META: Record<SkillLevel, { label: string; hint: string }> = {
   beginner: {
@@ -525,10 +525,10 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
               99,
               Math.round(
                 100 -
-                  missionCircuitBreaker.strikeCount * 12 -
-                  missionCircuitBreaker.unstableStreak * 8 +
-                  missionCircuitBreaker.stableStreak * 4 -
-                  (missionCircuitBreaker.open ? 22 : 0),
+                missionCircuitBreaker.strikeCount * 12 -
+                missionCircuitBreaker.unstableStreak * 8 +
+                missionCircuitBreaker.stableStreak * 4 -
+                (missionCircuitBreaker.open ? 22 : 0),
               ),
             ),
           ),
@@ -617,7 +617,7 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
     if (typeof window === "undefined") return;
     const supported = Boolean(
       (window as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition ||
-        (window as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).webkitSpeechRecognition,
+      (window as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).webkitSpeechRecognition,
     );
     setVoiceSupported(supported);
   }, []);
@@ -696,17 +696,17 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
         const parsed = JSON.parse(rawMissionState) as Partial<MissionRunnerState>;
         const validPlan =
           parsed.plan &&
-          typeof parsed.plan.id === "string" &&
-          typeof parsed.plan.label === "string" &&
-          Array.isArray(parsed.plan.steps) &&
-          Array.isArray(parsed.plan.taskIds)
+            typeof parsed.plan.id === "string" &&
+            typeof parsed.plan.label === "string" &&
+            Array.isArray(parsed.plan.steps) &&
+            Array.isArray(parsed.plan.taskIds)
             ? {
-                id: parsed.plan.id as MissionBlueprintId,
-                label: parsed.plan.label,
-                runId: Number(parsed.plan.runId) || Date.now(),
-                steps: parsed.plan.steps.map((step) => String(step)).filter(Boolean),
-                taskIds: parsed.plan.taskIds.map((id) => String(id)).filter(Boolean),
-              }
+              id: parsed.plan.id as MissionBlueprintId,
+              label: parsed.plan.label,
+              runId: Number(parsed.plan.runId) || Date.now(),
+              steps: parsed.plan.steps.map((step) => String(step)).filter(Boolean),
+              taskIds: parsed.plan.taskIds.map((id) => String(id)).filter(Boolean),
+            }
             : null;
 
         if (validPlan && validPlan.steps.length > 0 && validPlan.taskIds.length === validPlan.steps.length) {
@@ -757,7 +757,7 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
       const rawMissionAnalytics = window.localStorage.getItem(MISSION_ANALYTICS_KEY);
       if (rawMissionAnalytics) {
         const parsed = JSON.parse(rawMissionAnalytics) as Partial<MissionAnalyticsStore>;
-        const byBlueprint = parsed.byBlueprint || {};
+        const byBlueprint: Partial<Record<MissionBlueprintId, MissionAnalyticsBucket>> = parsed.byBlueprint ?? {};
         setMissionAnalytics((prev) => ({
           byBlueprint: {
             "starter-loop": {
@@ -1793,11 +1793,11 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
       const conf = Math.max(0, Math.min(100, stats.confidenceAvg || 0));
       return Math.round(
         completionRate * 52 +
-          (1 - pauseRate) * 18 +
-          quality * 0.11 +
-          conf * 0.08 +
-          (1 - Math.min(1, recoveryRate)) * 6 +
-          Math.min(1, recoveredCompletionRate) * 6,
+        (1 - pauseRate) * 18 +
+        quality * 0.11 +
+        conf * 0.08 +
+        (1 - Math.min(1, recoveryRate)) * 6 +
+        Math.min(1, recoveredCompletionRate) * 6,
       );
     };
 
@@ -1897,8 +1897,7 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
       setMissionRunnerPaused(true);
       setMissionRunnerActive(false);
       setMissionRunnerPauseReason(
-        `Mission circuit breaker engaged${missionCircuitBreaker.reason ? `: ${missionCircuitBreaker.reason}` : "."}${
-          cooldownRemainingMs > 0 ? ` Cooldown ${Math.ceil(cooldownRemainingMs / 1000)}s before resume.` : ""
+        `Mission circuit breaker engaged${missionCircuitBreaker.reason ? `: ${missionCircuitBreaker.reason}` : "."}${cooldownRemainingMs > 0 ? ` Cooldown ${Math.ceil(cooldownRemainingMs / 1000)}s before resume.` : ""
         }`,
       );
       return;
@@ -1939,8 +1938,7 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
           setMissionRunUsedRecovery(true);
           setMissionRecoveryAttempts((prev) => prev + 1);
           setMissionRunnerPauseReason(
-            `Auto-recovery injected after step ${priorStepIndex + 1} due to ${
-              weakQuality ? `quality ${priorQuality}/100` : `confidence ${priorConfidence}%`
+            `Auto-recovery injected after step ${priorStepIndex + 1} due to ${weakQuality ? `quality ${priorQuality}/100` : `confidence ${priorConfidence}%`
             } signal drift.`,
           );
 
@@ -2234,11 +2232,10 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
               {messages.map((message) => (
                 <article
                   key={message.id}
-                  className={`rounded-lg border px-3 py-2 text-sm ${
-                    message.role === "user"
+                  className={`rounded-lg border px-3 py-2 text-sm ${message.role === "user"
                       ? "border-cyan-400/25 bg-cyan-500/10 text-cyan-50"
                       : "border-emerald-400/25 bg-emerald-500/10 text-emerald-50"
-                  }`}
+                    }`}
                 >
                   <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider opacity-75">{message.role}</p>
                   <p className="whitespace-pre-wrap">
@@ -2328,221 +2325,217 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
       </div>
 
       {showSetupPanels ? (
-      <>
-      <div className="mb-3 rounded-lg border border-white/15 bg-black/30 p-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex rounded-lg border border-white/15 bg-black/35 p-1">
-            <button
-              type="button"
-              onClick={() => applyExperienceMode("beginner")}
-              className={`rounded px-3 py-1.5 text-xs font-semibold transition ${
-                experienceMode === "beginner" ? "bg-emerald-500/30 text-emerald-100" : "text-zinc-200/80 hover:bg-white/10"
-              }`}
-            >
-              Beginner Autopilot
-            </button>
-            <button
-              type="button"
-              onClick={() => applyExperienceMode("odin")}
-              className={`rounded px-3 py-1.5 text-xs font-semibold transition ${
-                experienceMode === "odin" ? "bg-fuchsia-500/30 text-fuchsia-100" : "text-zinc-200/80 hover:bg-white/10"
-              }`}
-            >
-              ODIN Pro
-            </button>
-          </div>
-          <p className="text-[11px] text-zinc-300/80">Shortcut: <span className="font-semibold text-zinc-100">Ctrl+Shift+O</span></p>
-        </div>
-        <p className="mt-2 text-[11px] text-zinc-300/80">
-          {experienceMode === "beginner"
-            ? "Autopilot keeps safer defaults, clearer guidance, and lower complexity for new users."
-            : "ODIN Pro prioritizes operator-depth reasoning, richer context windows, and power controls."}
-        </p>
-      </div>
-
-      <div className="mb-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5">
-        <p className="text-[11px] font-semibold text-emerald-100">Skill Profile</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {(Object.keys(SKILL_LEVEL_META) as SkillLevel[]).map((level) => (
-            <button
-              key={level}
-              type="button"
-              onClick={() => applySkillDefaults(level)}
-              className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
-                skillLevel === level
-                  ? "border-emerald-300/50 bg-emerald-500/25 text-emerald-100"
-                  : "border-white/20 bg-black/30 text-zinc-100/80 hover:bg-black/45"
-              }`}
-              title={SKILL_LEVEL_META[level].hint}
-            >
-              {SKILL_LEVEL_META[level].label}
-            </button>
-          ))}
-        </div>
-        <p className="mt-2 text-[11px] text-emerald-100/80">{SKILL_LEVEL_META[skillLevel].hint}</p>
-      </div>
-
-      <div className="mb-3 rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-2.5">
-        <p className="text-[11px] font-semibold text-cyan-100">Guided Launchpad</p>
-        <div className="mt-2 grid gap-2 md:grid-cols-3">
-          {LAUNCHPAD_PLAYBOOKS.map((playbook) => (
-            <button
-              key={playbook.id}
-              type="button"
-              onClick={() => applyLaunchpadPlaybook(playbook)}
-              className="rounded-lg border border-cyan-300/25 bg-black/30 p-2 text-left transition hover:border-cyan-300/45 hover:bg-black/45"
-            >
-              <p className="text-xs font-semibold text-cyan-100">{playbook.label}</p>
-              <p className="mt-1 text-[11px] text-cyan-100/75">{playbook.description}</p>
-              <p className="mt-2 text-[10px] text-cyan-100/60">Recommended: {SKILL_LEVEL_META[playbook.recommendedSkill].label}</p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-3 rounded-lg border border-sky-400/25 bg-sky-500/10 p-2.5">
-        <p className="text-[11px] font-semibold text-sky-100">One-Tap Guided Start</p>
-        <p className="mt-1 text-[10px] text-sky-100/75">Applies route defaults and sends the first high-quality prompt automatically.</p>
-        <div className="mt-2 grid gap-2 md:grid-cols-3">
-          {LAUNCHPAD_PLAYBOOKS.map((playbook) => (
-            <button
-              key={`${playbook.id}-instant`}
-              type="button"
-              onClick={() => {
-                void launchPlaybookNow(playbook);
-              }}
-              disabled={isStreaming}
-              className="rounded-lg border border-sky-300/25 bg-black/35 px-2.5 py-2 text-left text-[11px] font-semibold text-sky-100 transition hover:bg-black/50 disabled:opacity-50"
-            >
-              <span className="block uppercase tracking-[0.18em] text-[10px] text-sky-200/80">{SKILL_LEVEL_META[playbook.recommendedSkill].label}</span>
-              <span className="mt-1 block">{playbook.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-3 rounded-lg border border-violet-500/25 bg-violet-500/10 p-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold text-violet-100">Autonomous Mission Runner</p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setMissionAutoRecoveryEnabled((prev) => !prev)}
-              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${
-                missionAutoRecoveryEnabled
-                  ? "border-emerald-300/40 bg-emerald-500/20 text-emerald-100"
-                  : "border-zinc-300/35 bg-black/35 text-zinc-100/80"
-              }`}
-            >
-              Auto-Recover {missionAutoRecoveryEnabled ? "On" : "Off"}
-            </button>
-            {missionRunnerActive && missionRunnerPlan ? (
-              <button
-                type="button"
-                onClick={stopMissionRunner}
-                className="rounded-full border border-rose-300/40 bg-rose-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-rose-100"
-              >
-                Stop Mission
-              </button>
-            ) : null}
-          </div>
-        </div>
-        <p className="mt-1 text-[10px] text-violet-100/75">Runs multi-step command chains automatically for deeper execution quality.</p>
-        <div className="mt-2 rounded-lg border border-violet-300/20 bg-black/30 px-2.5 py-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold text-violet-100">Recommended mission: {MISSION_BLUEPRINTS.find((b) => b.id === recommendedMission.id)?.label}</p>
-            <button
-              type="button"
-              disabled={isStreaming}
-              onClick={() => {
-                const target = MISSION_BLUEPRINTS.find((b) => b.id === recommendedMission.id);
-                if (target) startMissionRunner(target);
-              }}
-              className="rounded-full border border-violet-300/35 bg-violet-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-violet-100 disabled:opacity-50"
-            >
-              Run Recommended
-            </button>
-          </div>
-          <p className="mt-1 text-[10px] text-violet-100/75">{recommendedMission.reason}</p>
-        </div>
-        <div className="mt-2 grid gap-2 md:grid-cols-3">
-          {MISSION_BLUEPRINTS.map((blueprint) => (
-            <button
-              key={blueprint.id}
-              type="button"
-              disabled={isStreaming}
-              onClick={() => startMissionRunner(blueprint)}
-              className="rounded-lg border border-violet-300/25 bg-black/35 p-2 text-left transition hover:bg-black/50 disabled:opacity-50"
-            >
-              <p className="text-xs font-semibold text-violet-100">{blueprint.label}</p>
-              <p className="mt-1 text-[11px] text-violet-100/75">{blueprint.description}</p>
-              <p className="mt-2 text-[10px] text-violet-100/60">
-                {blueprint.steps.length} steps · {SKILL_LEVEL_META[blueprint.recommendedSkill].label}
-              </p>
-            </button>
-          ))}
-        </div>
-        {missionRunnerPlan ? (
-          <div className="mt-2 space-y-1">
-            <p className="text-[10px] text-violet-100/80">
-              Active mission: <span className="font-semibold">{missionRunnerPlan.label}</span> · dispatched {Math.min(missionRunnerIndex, missionRunnerPlan.steps.length)}/{missionRunnerPlan.steps.length}
-            </p>
-            <p className="text-[10px] text-violet-100/70">
-              Recovery status: {missionAutoRecoveryEnabled ? "armed" : "disabled"} · attempts this run {missionRecoveryAttempts}
-              {missionRunUsedRecovery ? " · recovery engaged" : ""}
-            </p>
-            <p className="text-[10px] text-violet-100/70">
-              Branch mode: {missionBranchMode} · switches {missionBranchSwitches}
-              {recentMissionSignals.sampleSize > 0
-                ? ` · q${recentMissionSignals.qualityAvg}/c${recentMissionSignals.confidenceAvg} · fallback ${recentMissionSignals.fallbackEvents}`
-                : ""}
-            </p>
-            <p className="text-[10px] text-violet-100/70">
-              Reliability: {missionCircuitBreaker.trend}
-              {` · score ${missionReliabilityScore}/100`}
-              {` · strikes ${missionCircuitBreaker.strikeCount}`}
-              {missionCircuitBreaker.open
-                ? ` · breaker open (${Math.max(0, Math.ceil((missionCircuitBreaker.cooldownUntil - Date.now()) / 1000))}s)`
-                : " · breaker closed"}
-            </p>
-            {missionRunnerPaused ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[10px] text-amber-100/90">{missionRunnerPauseReason || "Mission paused."}</p>
+        <>
+          <div className="mb-3 rounded-lg border border-white/15 bg-black/30 p-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="inline-flex rounded-lg border border-white/15 bg-black/35 p-1">
                 <button
                   type="button"
-                  onClick={resumeMissionRunner}
-                  className="rounded-full border border-amber-300/35 bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-100"
+                  onClick={() => applyExperienceMode("beginner")}
+                  className={`rounded px-3 py-1.5 text-xs font-semibold transition ${experienceMode === "beginner" ? "bg-emerald-500/30 text-emerald-100" : "text-zinc-200/80 hover:bg-white/10"
+                    }`}
                 >
-                  Resume
+                  Beginner Autopilot
                 </button>
+                <button
+                  type="button"
+                  onClick={() => applyExperienceMode("odin")}
+                  className={`rounded px-3 py-1.5 text-xs font-semibold transition ${experienceMode === "odin" ? "bg-fuchsia-500/30 text-fuchsia-100" : "text-zinc-200/80 hover:bg-white/10"
+                    }`}
+                >
+                  ODIN Pro
+                </button>
+              </div>
+              <p className="text-[11px] text-zinc-300/80">Shortcut: <span className="font-semibold text-zinc-100">Ctrl+Shift+O</span></p>
+            </div>
+            <p className="mt-2 text-[11px] text-zinc-300/80">
+              {experienceMode === "beginner"
+                ? "Autopilot keeps safer defaults, clearer guidance, and lower complexity for new users."
+                : "ODIN Pro prioritizes operator-depth reasoning, richer context windows, and power controls."}
+            </p>
+          </div>
+
+          <div className="mb-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5">
+            <p className="text-[11px] font-semibold text-emerald-100">Skill Profile</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(Object.keys(SKILL_LEVEL_META) as SkillLevel[]).map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => applySkillDefaults(level)}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${skillLevel === level
+                      ? "border-emerald-300/50 bg-emerald-500/25 text-emerald-100"
+                      : "border-white/20 bg-black/30 text-zinc-100/80 hover:bg-black/45"
+                    }`}
+                  title={SKILL_LEVEL_META[level].hint}
+                >
+                  {SKILL_LEVEL_META[level].label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[11px] text-emerald-100/80">{SKILL_LEVEL_META[skillLevel].hint}</p>
+          </div>
+
+          <div className="mb-3 rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-2.5">
+            <p className="text-[11px] font-semibold text-cyan-100">Guided Launchpad</p>
+            <div className="mt-2 grid gap-2 md:grid-cols-3">
+              {LAUNCHPAD_PLAYBOOKS.map((playbook) => (
+                <button
+                  key={playbook.id}
+                  type="button"
+                  onClick={() => applyLaunchpadPlaybook(playbook)}
+                  className="rounded-lg border border-cyan-300/25 bg-black/30 p-2 text-left transition hover:border-cyan-300/45 hover:bg-black/45"
+                >
+                  <p className="text-xs font-semibold text-cyan-100">{playbook.label}</p>
+                  <p className="mt-1 text-[11px] text-cyan-100/75">{playbook.description}</p>
+                  <p className="mt-2 text-[10px] text-cyan-100/60">Recommended: {SKILL_LEVEL_META[playbook.recommendedSkill].label}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-3 rounded-lg border border-sky-400/25 bg-sky-500/10 p-2.5">
+            <p className="text-[11px] font-semibold text-sky-100">One-Tap Guided Start</p>
+            <p className="mt-1 text-[10px] text-sky-100/75">Applies route defaults and sends the first high-quality prompt automatically.</p>
+            <div className="mt-2 grid gap-2 md:grid-cols-3">
+              {LAUNCHPAD_PLAYBOOKS.map((playbook) => (
+                <button
+                  key={`${playbook.id}-instant`}
+                  type="button"
+                  onClick={() => {
+                    void launchPlaybookNow(playbook);
+                  }}
+                  disabled={isStreaming}
+                  className="rounded-lg border border-sky-300/25 bg-black/35 px-2.5 py-2 text-left text-[11px] font-semibold text-sky-100 transition hover:bg-black/50 disabled:opacity-50"
+                >
+                  <span className="block uppercase tracking-[0.18em] text-[10px] text-sky-200/80">{SKILL_LEVEL_META[playbook.recommendedSkill].label}</span>
+                  <span className="mt-1 block">{playbook.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-3 rounded-lg border border-violet-500/25 bg-violet-500/10 p-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold text-violet-100">Autonomous Mission Runner</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMissionAutoRecoveryEnabled((prev) => !prev)}
+                  className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${missionAutoRecoveryEnabled
+                      ? "border-emerald-300/40 bg-emerald-500/20 text-emerald-100"
+                      : "border-zinc-300/35 bg-black/35 text-zinc-100/80"
+                    }`}
+                >
+                  Auto-Recover {missionAutoRecoveryEnabled ? "On" : "Off"}
+                </button>
+                {missionRunnerActive && missionRunnerPlan ? (
+                  <button
+                    type="button"
+                    onClick={stopMissionRunner}
+                    className="rounded-full border border-rose-300/40 bg-rose-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-rose-100"
+                  >
+                    Stop Mission
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <p className="mt-1 text-[10px] text-violet-100/75">Runs multi-step command chains automatically for deeper execution quality.</p>
+            <div className="mt-2 rounded-lg border border-violet-300/20 bg-black/30 px-2.5 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold text-violet-100">Recommended mission: {MISSION_BLUEPRINTS.find((b) => b.id === recommendedMission.id)?.label}</p>
+                <button
+                  type="button"
+                  disabled={isStreaming}
+                  onClick={() => {
+                    const target = MISSION_BLUEPRINTS.find((b) => b.id === recommendedMission.id);
+                    if (target) startMissionRunner(target);
+                  }}
+                  className="rounded-full border border-violet-300/35 bg-violet-500/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-violet-100 disabled:opacity-50"
+                >
+                  Run Recommended
+                </button>
+              </div>
+              <p className="mt-1 text-[10px] text-violet-100/75">{recommendedMission.reason}</p>
+            </div>
+            <div className="mt-2 grid gap-2 md:grid-cols-3">
+              {MISSION_BLUEPRINTS.map((blueprint) => (
+                <button
+                  key={blueprint.id}
+                  type="button"
+                  disabled={isStreaming}
+                  onClick={() => startMissionRunner(blueprint)}
+                  className="rounded-lg border border-violet-300/25 bg-black/35 p-2 text-left transition hover:bg-black/50 disabled:opacity-50"
+                >
+                  <p className="text-xs font-semibold text-violet-100">{blueprint.label}</p>
+                  <p className="mt-1 text-[11px] text-violet-100/75">{blueprint.description}</p>
+                  <p className="mt-2 text-[10px] text-violet-100/60">
+                    {blueprint.steps.length} steps · {SKILL_LEVEL_META[blueprint.recommendedSkill].label}
+                  </p>
+                </button>
+              ))}
+            </div>
+            {missionRunnerPlan ? (
+              <div className="mt-2 space-y-1">
+                <p className="text-[10px] text-violet-100/80">
+                  Active mission: <span className="font-semibold">{missionRunnerPlan.label}</span> · dispatched {Math.min(missionRunnerIndex, missionRunnerPlan.steps.length)}/{missionRunnerPlan.steps.length}
+                </p>
+                <p className="text-[10px] text-violet-100/70">
+                  Recovery status: {missionAutoRecoveryEnabled ? "armed" : "disabled"} · attempts this run {missionRecoveryAttempts}
+                  {missionRunUsedRecovery ? " · recovery engaged" : ""}
+                </p>
+                <p className="text-[10px] text-violet-100/70">
+                  Branch mode: {missionBranchMode} · switches {missionBranchSwitches}
+                  {recentMissionSignals.sampleSize > 0
+                    ? ` · q${recentMissionSignals.qualityAvg}/c${recentMissionSignals.confidenceAvg} · fallback ${recentMissionSignals.fallbackEvents}`
+                    : ""}
+                </p>
+                <p className="text-[10px] text-violet-100/70">
+                  Reliability: {missionCircuitBreaker.trend}
+                  {` · score ${missionReliabilityScore}/100`}
+                  {` · strikes ${missionCircuitBreaker.strikeCount}`}
+                  {missionCircuitBreaker.open
+                    ? ` · breaker open (${Math.max(0, Math.ceil((missionCircuitBreaker.cooldownUntil - Date.now()) / 1000))}s)`
+                    : " · breaker closed"}
+                </p>
+                {missionRunnerPaused ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[10px] text-amber-100/90">{missionRunnerPauseReason || "Mission paused."}</p>
+                    <button
+                      type="button"
+                      onClick={resumeMissionRunner}
+                      className="rounded-full border border-amber-300/35 bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-100"
+                    >
+                      Resume
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
-        ) : null}
-      </div>
 
-      <div className="mb-3 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100/90">
-        <p className="font-semibold">Development Goal Status</p>
-        <div className="mt-2 grid gap-1 sm:grid-cols-2">
-          {developmentGoalStatus.map((item) => (
-            <div key={item.id} className="flex items-center gap-2 text-[11px]">
-              <span className={`inline-block h-2.5 w-2.5 rounded-full ${item.ok ? "bg-emerald-300" : "bg-amber-300"}`} />
-              <span>{item.label}</span>
+          <div className="mb-3 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100/90">
+            <p className="font-semibold">Development Goal Status</p>
+            <div className="mt-2 grid gap-1 sm:grid-cols-2">
+              {developmentGoalStatus.map((item) => (
+                <div key={item.id} className="flex items-center gap-2 text-[11px]">
+                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${item.ok ? "bg-emerald-300" : "bg-amber-300"}`} />
+                  <span>{item.label}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      <div className="mb-3 grid gap-2 md:grid-cols-[1fr_auto]">
-        <input
-          value={objective}
-          onChange={(e) => setObjective(e.target.value)}
-          placeholder="Optional objective (e.g. Build a safer 7-day plan)"
-          className="rounded-lg border border-emerald-500/30 bg-black/35 px-3 py-2 text-sm text-emerald-100 outline-none placeholder:text-emerald-100/45 md:col-span-2"
-        />
-      </div>
+          <div className="mb-3 grid gap-2 md:grid-cols-[1fr_auto]">
+            <input
+              value={objective}
+              onChange={(e) => setObjective(e.target.value)}
+              placeholder="Optional objective (e.g. Build a safer 7-day plan)"
+              className="rounded-lg border border-emerald-500/30 bg-black/35 px-3 py-2 text-sm text-emerald-100 outline-none placeholder:text-emerald-100/45 md:col-span-2"
+            />
+          </div>
 
-      </>
+        </>
       ) : null}
 
       <div className="mb-3 grid gap-2 sm:grid-cols-4">
@@ -2645,18 +2638,16 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
           <button
             type="button"
             onClick={() => setActiveTab("text")}
-            className={`rounded px-3 py-1.5 text-xs font-semibold transition ${
-              activeTab === "text" ? "bg-emerald-500/25 text-emerald-100" : "text-zinc-200/80 hover:bg-white/10"
-            }`}
+            className={`rounded px-3 py-1.5 text-xs font-semibold transition ${activeTab === "text" ? "bg-emerald-500/25 text-emerald-100" : "text-zinc-200/80 hover:bg-white/10"
+              }`}
           >
             Text
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("image")}
-            className={`inline-flex items-center gap-1 rounded px-3 py-1.5 text-xs font-semibold transition ${
-              activeTab === "image" ? "bg-cyan-500/25 text-cyan-100" : "text-zinc-200/80 hover:bg-white/10"
-            }`}
+            className={`inline-flex items-center gap-1 rounded px-3 py-1.5 text-xs font-semibold transition ${activeTab === "image" ? "bg-cyan-500/25 text-cyan-100" : "text-zinc-200/80 hover:bg-white/10"
+              }`}
           >
             <ImageIcon className="h-3.5 w-3.5" />
             Image
@@ -2664,9 +2655,8 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
           <button
             type="button"
             onClick={() => setActiveTab("video")}
-            className={`inline-flex items-center gap-1 rounded px-3 py-1.5 text-xs font-semibold transition ${
-              activeTab === "video" ? "bg-fuchsia-500/25 text-fuchsia-100" : "text-zinc-200/80 hover:bg-white/10"
-            }`}
+            className={`inline-flex items-center gap-1 rounded px-3 py-1.5 text-xs font-semibold transition ${activeTab === "video" ? "bg-fuchsia-500/25 text-fuchsia-100" : "text-zinc-200/80 hover:bg-white/10"
+              }`}
           >
             <Clapperboard className="h-3.5 w-3.5" />
             Video Concept
@@ -2929,11 +2919,10 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
                 {messages.map((message) => (
                   <article
                     key={message.id}
-                    className={`rounded-lg border px-3 py-2 text-sm ${
-                      message.role === "user"
+                    className={`rounded-lg border px-3 py-2 text-sm ${message.role === "user"
                         ? "border-cyan-400/25 bg-cyan-500/10 text-cyan-50"
                         : "border-emerald-400/25 bg-emerald-500/10 text-emerald-50"
-                    }`}
+                      }`}
                   >
                     <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider opacity-75">{message.role}</p>
                     <p className="whitespace-pre-wrap">
@@ -3005,9 +2994,8 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
                 key={style}
                 type="button"
                 onClick={() => setImageStyle(style)}
-                className={`rounded px-2 py-1.5 text-xs font-semibold uppercase ${
-                  imageStyle === style ? "bg-cyan-500 text-white" : "bg-black/35 text-cyan-100/80"
-                }`}
+                className={`rounded px-2 py-1.5 text-xs font-semibold uppercase ${imageStyle === style ? "bg-cyan-500 text-white" : "bg-black/35 text-cyan-100/80"
+                  }`}
               >
                 {style}
               </button>

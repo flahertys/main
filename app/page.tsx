@@ -1,32 +1,23 @@
-import { TrackedCtaLink } from "@/components/monetization/TrackedCtaLink";
-import { HomeEngagementTracker } from "@/components/analytics/HomeEngagementTracker";
 import { ExperimentReadoutPanel } from "@/components/analytics/ExperimentReadoutPanel";
+import { HomeEngagementTracker } from "@/components/analytics/HomeEngagementTracker";
 import { HomeHeroActions } from "@/components/landing/HomeHeroActions";
+import { TrackedCtaLink } from "@/components/monetization/TrackedCtaLink";
 import { DeferredRender } from '@/components/ui/DeferredRender';
 import { GlitchText } from '@/components/ui/GlitchText';
 import { scheduleLinks } from "@/lib/booking";
 import { businessProfile } from "@/lib/business-profile";
 import {
-    ArrowRight,
-    CheckCircle2,
-    CircuitBoard,
-    Guitar,
-    MessageSquare,
-    MonitorSmartphone,
-    Sparkles,
-    Wrench,
+  ArrowRight,
+  CheckCircle2,
+  CircuitBoard,
+  Guitar,
+  MessageSquare,
+  MonitorSmartphone,
+  Sparkles,
+  Wrench,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from 'next/link';
-
-const WalletButton = dynamic(
-  () => import("@/components/counter/WalletButton").then((mod) => mod.WalletButton),
-  {
-    loading: () => (
-      <div className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.02]" aria-hidden="true" />
-    ),
-  },
-);
 
 const LiveActivity = dynamic(
   () => import("@/components/ui/LiveActivity").then((mod) => mod.LiveActivity),
@@ -54,59 +45,7 @@ const Roadmap = dynamic(
   },
 );
 
-const intentLanes = [
-  {
-    title: "Need Service Now",
-    detail: "Phone/computer repair, optimization, and urgent troubleshooting with rapid intake.",
-    href: scheduleLinks.techSupport,
-    external: false,
-    conversionId: "book_repair_quote",
-    surface: "home:intent_lane",
-    cta: "Start Tech Support Intake",
-    icon: Wrench,
-  },
-  {
-    title: "Need a Build Partner",
-    detail: "Website creation, app development, blockchain/crypto systems, and AI automation delivery.",
-    href: scheduleLinks.webDevConsult,
-    external: false,
-    conversionId: "book_web3_consult",
-    surface: "home:intent_lane",
-    cta: "Book Build Consultation",
-    icon: MonitorSmartphone,
-  },
-  {
-    title: "Music Lessons and Artist Growth",
-    detail: "Private guitar lessons, platform growth, and scholarship/reward infrastructure.",
-    href: "/music",
-    external: false,
-    conversionId: "open_music",
-    surface: "home:intent_lane",
-    cta: "Explore Music Services",
-    icon: Guitar,
-  },
-  {
-    title: "Trading Research and Token Roadmap",
-    detail: "Follow market discussions, project updates, and utility-token roadmap progress.",
-    href: "/crypto-project",
-    external: false,
-    conversionId: "open_crypto_project",
-    surface: "home:intent_lane",
-    cta: "Review Crypto Project",
-    icon: CircuitBoard,
-  },
-] as const;
-
 export default function Home() {
-  const quickPathLinks = [
-    { label: "Book Service", href: scheduleLinks.root, conversionId: "open_schedule", variant: "book_service" },
-    { label: "Open AI Hub", href: "/ai-hub", conversionId: "open_ai_chat", variant: "ai_hub" },
-    { label: "View Pricing", href: "/pricing", conversionId: "open_pricing", variant: "pricing" },
-    { label: "Beginner AI Crypto", href: "/beginner-ai-crypto-trading-assistant", conversionId: "open_ai_chat", variant: "seo_beginner_crypto" },
-    { label: "Web3 Token Roadmap", href: "/web3-token-roadmap-consulting", conversionId: "open_crypto_project", variant: "seo_web3_roadmap" },
-    { label: "AI Guitar Lessons", href: "/ai-powered-guitar-lessons", conversionId: "open_music", variant: "seo_ai_guitar" },
-  ] as const;
-
   return (
     <main className="min-h-screen bg-black">
       <HomeEngagementTracker />

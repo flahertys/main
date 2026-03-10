@@ -193,10 +193,11 @@ const serviceSwitcherOptions = [
   { key: "ecommerce-consult", label: "E-Commerce" },
 ] as const;
 
-export default function SchedulePage({ searchParams }: { searchParams?: ScheduleSearchParams }) {
-  const serviceParamRaw = Array.isArray(searchParams?.service)
-    ? searchParams?.service[0]
-    : searchParams?.service;
+export default async function SchedulePage({ searchParams }: { searchParams?: Promise<ScheduleSearchParams> }) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const serviceParamRaw = Array.isArray(resolvedSearchParams?.service)
+    ? resolvedSearchParams?.service[0]
+    : resolvedSearchParams?.service;
   const requestedService = serviceParamRaw?.trim().toLowerCase() ?? null;
   const highlightedKey = requestedService
     ? serviceAliasToOption[requestedService] ?? null
@@ -207,8 +208,8 @@ export default function SchedulePage({ searchParams }: { searchParams?: Schedule
   const hasKnownRequestedService = Boolean(requestedService && highlightedKey);
   const prioritizedBookingOptions = highlightedKey
     ? [...bookingOptions].sort(
-        (a, b) => Number(b.key === highlightedKey) - Number(a.key === highlightedKey)
-      )
+      (a, b) => Number(b.key === highlightedKey) - Number(a.key === highlightedKey)
+    )
     : bookingOptions;
 
   return (
@@ -240,11 +241,10 @@ export default function SchedulePage({ searchParams }: { searchParams?: Schedule
                     <Link
                       href={`/schedule?service=${option.key}#booking-options`}
                       aria-current={isSelected ? "page" : undefined}
-                      className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#040a13] ${
-                        isSelected
+                      className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#040a13] ${isSelected
                           ? "border-cyan-300/70 bg-cyan-400/15 text-cyan-100"
                           : "border-[#5f769f]/40 bg-[#0a1422] text-[#cdd8ee] hover:border-cyan-300/50 hover:text-white"
-                      }`}
+                        }`}
                     >
                       {option.label}
                     </Link>
@@ -307,34 +307,35 @@ export default function SchedulePage({ searchParams }: { searchParams?: Schedule
             const isHighlighted = highlightedKey === item.key;
 
             return (
-            <article
-              key={item.title}
-              className={`theme-grid-card ${isHighlighted ? "border-cyan-300/65 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.35)]" : ""}`}
-            >
-              {isHighlighted && (
-                <span className="inline-flex w-fit rounded-full border border-cyan-300/40 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-100">
-                  Recommended
-                </span>
-              )}
-              <CalendarCheck2 className="w-5 h-5 text-[#77f9a8]" />
-              <h2 className="text-base sm:text-lg font-semibold">{item.title}</h2>
-              <p>{item.detail}</p>
-              <TrackedCtaLink
-                href={item.href}
-                conversionId={item.conversionId}
-                surface={`schedule:card:${item.title.toLowerCase().replace(/\s+/g, "_")}`}
-                external
-                className="theme-cta theme-cta--compact mt-1 self-start"
+              <article
+                key={item.title}
+                className={`theme-grid-card ${isHighlighted ? "border-cyan-300/65 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.35)]" : ""}`}
               >
-                {isHighlighted ? "Continue Booking" : "Open Booking"}
-                <Link2 className="w-4 h-4" />
-              </TrackedCtaLink>
-            </article>
-          );})}
+                {isHighlighted && (
+                  <span className="inline-flex w-fit rounded-full border border-cyan-300/40 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-100">
+                    Recommended
+                  </span>
+                )}
+                <CalendarCheck2 className="w-5 h-5 text-[#77f9a8]" />
+                <h2 className="text-base sm:text-lg font-semibold">{item.title}</h2>
+                <p>{item.detail}</p>
+                <TrackedCtaLink
+                  href={item.href}
+                  conversionId={item.conversionId}
+                  surface={`schedule:card:${item.title.toLowerCase().replace(/\s+/g, "_")}`}
+                  external
+                  className="theme-cta theme-cta--compact mt-1 self-start"
+                >
+                  {isHighlighted ? "Continue Booking" : "Open Booking"}
+                  <Link2 className="w-4 h-4" />
+                </TrackedCtaLink>
+              </article>
+            );
+          })}
         </section>
 
         <section className="theme-panel p-5 sm:p-6 mb-8">
-            <h2 className="theme-title text-2xl font-bold mb-4">
+          <h2 className="theme-title text-2xl font-bold mb-4">
             Calendar View
           </h2>
           <div className="rounded-xl overflow-hidden border border-[#5f769f]/45 bg-[#040a13]">

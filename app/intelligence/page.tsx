@@ -8,20 +8,19 @@ import { formatCompactUsd } from "@/lib/intelligence/format";
 import { getIntelligenceSnapshot } from "@/lib/intelligence/provider";
 import { createPageMetadata } from "@/lib/seo";
 import {
-    ActivitySquare,
-    ArrowRight,
-    BarChart3,
-    BellRing,
-    BookOpen,
-    Bot,
-    CandlestickChart,
-    CheckCircle2,
-    Crosshair,
-    Newspaper,
-    Radar,
-    Shield,
-    Sparkles,
-    TrendingUp,
+  ActivitySquare,
+  ArrowRight,
+  BarChart3,
+  BellRing,
+  BookOpen,
+  Bot,
+  CandlestickChart,
+  Crosshair,
+  Newspaper,
+  Radar,
+  Shield,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
 
 export const metadata = createPageMetadata({

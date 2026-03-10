@@ -430,7 +430,7 @@ export function resolveAdaptiveInferenceTuning(input: {
   presetId?: LlmPresetId;
   sloProfile: "latency" | "balanced" | "quality";
   routingHints?: AdaptiveRoutingHints | null;
-}) : AdaptiveInferenceTuning {
+}): AdaptiveInferenceTuning {
   const benchmarkMaturity = resolveBenchmarkMaturity();
   const pressure = getRecentTrafficPressure();
   const reasons: string[] = [];
@@ -682,10 +682,10 @@ function resolveDomainGovernance(domain: PredictionDomain): DomainRoutingGoverna
 
   if (state.activeMode === "canary") {
     const fallbackBreach =
-      Boolean(canaryPerf) && canaryPerf.fallbackRate > gates.maxFallbackRate + gates.hysteresis;
+      canaryPerf != null && canaryPerf.fallbackRate > gates.maxFallbackRate + gates.hysteresis;
     const confidenceRegression =
-      Boolean(canaryPerf) &&
-      Boolean(stablePerf) &&
+      canaryPerf != null &&
+      stablePerf != null &&
       canaryPerf.avgConfidence + gates.hysteresis < stablePerf.avgConfidence;
 
     if (fallbackBreach || confidenceRegression) {
@@ -719,8 +719,8 @@ function resolveDomainGovernance(domain: PredictionDomain): DomainRoutingGoverna
       reason = state.lastReason;
     } else {
       const hasSamples =
-        Boolean(stablePerf) &&
-        Boolean(canaryPerf) &&
+        stablePerf != null &&
+        canaryPerf != null &&
         stablePerf.requests >= gates.minRequests &&
         canaryPerf.requests >= gates.minRequests;
 
@@ -1009,12 +1009,12 @@ export function getPredictionRoutingOverrides() {
 }
 
 export type {
-    AdaptiveInferenceTuning,
-    DomainRoutingGovernance, DomainRoutingOverrideMode, DomainSignal,
-    LlmPresetConfig,
-    LlmPresetId,
-    LlmPresetResolution,
-    PredictionDomain,
-    PredictionTelemetrySummary
+  AdaptiveInferenceTuning,
+  DomainRoutingGovernance, DomainRoutingOverrideMode, DomainSignal,
+  LlmPresetConfig,
+  LlmPresetId,
+  LlmPresetResolution,
+  PredictionDomain,
+  PredictionTelemetrySummary
 };
 

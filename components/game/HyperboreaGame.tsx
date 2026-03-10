@@ -1,21 +1,21 @@
 "use client";
 
 import {
-    ELDER_FUTHARK_RUNES,
-    calculateRuneScore,
-    getRuneForArtifact,
-    getRuneParticleConfig,
-    type ElderFutharkRune,
-    type RuneProperties,
+  ELDER_FUTHARK_RUNES,
+  calculateRuneScore,
+  getRuneForArtifact,
+  getRuneParticleConfig,
+  type ElderFutharkRune,
+  type RuneProperties,
 } from "@/lib/game/elder-futhark";
 import { generateDefaultLevel001 } from "@/lib/game/level-generator";
 import type {
-    ArtifactCollectionEvent,
-    GameRunSummary,
-    GameScoreSnapshot,
-    HyperboreaLevelDefinition,
-    LevelArtifact,
-    LevelPuzzleNode,
+  ArtifactCollectionEvent,
+  GameRunSummary,
+  GameScoreSnapshot,
+  HyperboreaLevelDefinition,
+  LevelArtifact,
+  LevelPuzzleNode,
 } from "@/lib/game/level-types";
 import { calculateUtilityYield } from "@/lib/game/scoring-engine";
 import { useEffect, useRef } from "react";
@@ -97,9 +97,6 @@ const CELL_SIZE = 4;
 const WALL_HEIGHT = 3.5;
 const PLAYER_RADIUS = 0.38;
 const EYE_HEIGHT = 1.5;
-const INTERACT_DISTANCE = 3.9;
-const AUTO_PICKUP_DISTANCE = 2.2;
-const AUTO_RUNE_DISTANCE = 1.25;
 const UTILITY_POINTS_PER_TOKEN_UNIT = 25;
 const FALLBACK_RUNE: ElderFutharkRune = "fehu";
 const NAVIGATION_KEYS = new Set([
@@ -126,10 +123,10 @@ function resolveArtifactRune(artifact: Partial<LevelArtifact>, index = 0) {
     typeof artifact.rune === "string" && artifact.rune in ELDER_FUTHARK_RUNES
       ? (artifact.rune as ElderFutharkRune)
       : getRuneForArtifact(
-          artifact.pantheon === "celtic" ? "celtic" : "norse",
-          artifact.rarity ?? "common",
-          index,
-        );
+        artifact.pantheon === "celtic" ? "celtic" : "norse",
+        artifact.rarity ?? "common",
+        index,
+      );
 
   const rune = runeCandidate in ELDER_FUTHARK_RUNES ? runeCandidate : FALLBACK_RUNE;
   const runeProps = ELDER_FUTHARK_RUNES[rune] ?? ELDER_FUTHARK_RUNES[FALLBACK_RUNE];
@@ -1317,8 +1314,8 @@ export function HyperboreaGame({
     const resizeObserver =
       typeof ResizeObserver !== "undefined"
         ? new ResizeObserver(() => {
-            handleResize();
-          })
+          handleResize();
+        })
         : null;
     resizeObserver?.observe(currentMount);
 
@@ -1616,16 +1613,12 @@ export function HyperboreaGame({
         // Enhanced rune-based animations
         const runeProps = artifact.runeProps;
         const baseRotation = 0.035;
-        const baseBobSpeed = 0.004;
-        const baseBobAmplitude = 0.08;
 
         // Higher multiplier runes spin faster and pulse more dramatically
         const multiplier = runeProps.scoreMultiplier;
         const intensityFactor = (multiplier - 1.0) / 1.5; // Normalize based on multiplier range
 
         artifact.mesh.rotation.y += baseRotation * (1 + intensityFactor * 0.8);
-        const bobSpeed = baseBobSpeed * (1 + intensityFactor * 0.5);
-        const bobAmplitude = baseBobAmplitude * (1 + intensityFactor * 0.6);
       }
 
       simulationFrame += 1;

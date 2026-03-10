@@ -13,27 +13,27 @@ import { trackEvent } from "@/lib/analytics";
 import type { LeaderboardEntry, LeaderboardSubmission } from "@/lib/game/leaderboard-types";
 import { generateDefaultLevel001 } from "@/lib/game/level-generator";
 import type {
-    ArtifactCollectionEvent,
-    GameRunSummary,
-    GameScoreSnapshot,
-    HyperboreaLevelDefinition,
+  ArtifactCollectionEvent,
+  GameRunSummary,
+  GameScoreSnapshot,
+  HyperboreaLevelDefinition,
 } from "@/lib/game/level-types";
 import { isHyperboreaLevelDefinition } from "@/lib/game/level-types";
 import { useWallet } from "@/lib/wallet-provider";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-    Gamepad2,
-    HelpCircle,
-    LogIn,
-    LogOut,
-    Medal,
-    Pause,
-    Play,
-    RotateCcw,
-    Star,
-    Trophy,
-    X,
-    Zap,
+  Gamepad2,
+  HelpCircle,
+  LogIn,
+  LogOut,
+  Medal,
+  Pause,
+  Play,
+  RotateCcw,
+  Star,
+  Trophy,
+  X,
+  Zap,
 } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -44,8 +44,8 @@ const stripSensitiveLeaderboardFields = (entry: LeaderboardEntry): LeaderboardEn
   const { oauthProvider, oauthUserId, ...rest } = entry;
   return {
     ...(rest as LeaderboardEntry),
-    oauthProvider: undefined,
-    oauthUserId: undefined,
+    oauthProvider: undefined as any,
+    oauthUserId: undefined as any,
   };
 };
 
@@ -294,8 +294,7 @@ export default function GamePage() {
           setActiveLevel(fallbackLevel);
           setLevelLoadState("fallback");
           setLevelLoadMessage(
-            `Using generated fallback level. ${
-              error instanceof Error ? error.message : lastErrorMessage
+            `Using generated fallback level. ${error instanceof Error ? error.message : lastErrorMessage
             }`,
           );
         }
@@ -453,16 +452,14 @@ export default function GamePage() {
         }
 
         setClaimFeedback(
-          `Relic ${event.lockedAtPickup ? "capture" : "claim"} queued: ${event.artifactName} (+${event.tokenRewardUnits} ${tokenConfig.l2TokenSymbol})${
-            event.utilityTokenBonusUnits
-              ? ` | Utility snapshot: ${event.utilityTokenBonusUnits} ${tokenConfig.l2TokenSymbol}`
-              : ""
+          `Relic ${event.lockedAtPickup ? "capture" : "claim"} queued: ${event.artifactName} (+${event.tokenRewardUnits} ${tokenConfig.l2TokenSymbol})${event.utilityTokenBonusUnits
+            ? ` | Utility snapshot: ${event.utilityTokenBonusUnits} ${tokenConfig.l2TokenSymbol}`
+            : ""
           }`,
         );
       } catch (error) {
         setClaimFeedback(
-          `Relic captured locally. Queue retry pending (${
-            error instanceof Error ? error.message : "claim queue unavailable"
+          `Relic captured locally. Queue retry pending (${error instanceof Error ? error.message : "claim queue unavailable"
           }).`,
         );
       }
@@ -862,9 +859,8 @@ export default function GamePage() {
                 <div>
                   Utility: {artifact.utilityPointsAfterEvent.toLocaleString()} pts
                   {artifact.utilityTokenBonusUnits
-                    ? ` | ${artifact.utilityTokenBonusUnits} projected ${
-                        activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"
-                      }`
+                    ? ` | ${artifact.utilityTokenBonusUnits} projected ${activeLevel?.tokenConfig.l2TokenSymbol ?? "THX"
+                    }`
                     : ""}
                 </div>
               )}
@@ -999,19 +995,17 @@ export default function GamePage() {
         {/* Center crosshair + contextual interaction prompt */}
         <div className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center px-3">
           <div
-            className={`h-5 w-5 rounded-full border bg-cyan-100/10 transition-all duration-200 ${
-              isInteractionReady
+            className={`h-5 w-5 rounded-full border bg-cyan-100/10 transition-all duration-200 ${isInteractionReady
                 ? "border-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.8)] scale-110"
                 : "border-cyan-300/70"
-            }`}
+              }`}
           />
           {interactionHint && (
             <div
-              className={`mt-3 max-w-sm rounded-md border px-3 py-1.5 text-center text-[11px] sm:text-xs backdrop-blur transition-all duration-200 ${
-                isInteractionReady
+              className={`mt-3 max-w-sm rounded-md border px-3 py-1.5 text-center text-[11px] sm:text-xs backdrop-blur transition-all duration-200 ${isInteractionReady
                   ? "border-emerald-300/50 bg-emerald-500/15 text-emerald-100 shadow-lg"
                   : "border-cyan-300/40 bg-black/55 text-cyan-100"
-              }`}
+                }`}
             >
               {interactionHint}
             </div>
@@ -1057,9 +1051,8 @@ export default function GamePage() {
               type="button"
               aria-label="Use or interact"
               onClick={() => emitControlAction("use", true)}
-              className={`theme-cta px-4 py-3 text-sm font-semibold ${
-                isInteractionReady ? "theme-cta--loud animate-pulse" : "theme-cta--secondary"
-              }`}
+              className={`theme-cta px-4 py-3 text-sm font-semibold ${isInteractionReady ? "theme-cta--loud animate-pulse" : "theme-cta--secondary"
+                }`}
             >
               Use
             </button>
@@ -1113,11 +1106,10 @@ export default function GamePage() {
               type="button"
               aria-label="Use or interact"
               onClick={() => emitControlAction("use", true)}
-              className={`w-24 h-24 rounded-full flex items-center justify-center text-xs font-black uppercase tracking-widest shadow-2xl transition-all [touch-action:manipulation] ${
-                isInteractionReady
+              className={`w-24 h-24 rounded-full flex items-center justify-center text-xs font-black uppercase tracking-widest shadow-2xl transition-all [touch-action:manipulation] ${isInteractionReady
                   ? "bg-emerald-500 text-white border-4 border-emerald-300 animate-pulse scale-110 shadow-[0_0_20px_rgba(16,185,129,0.5)]"
                   : "bg-white/15 text-white/60 border-2 border-white/15 active:scale-95"
-              }`}
+                }`}
             >
               {isInteractionReady ? "USE" : "ACTION"}
             </button>

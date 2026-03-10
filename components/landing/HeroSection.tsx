@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useExperimentVariant } from "@/components/analytics/useExperimentVariant";
 import { TrackedCtaLink } from "@/components/monetization/TrackedCtaLink";
 import { Button } from "@/components/ui/button";

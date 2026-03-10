@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const GRID_SIZE = 12;
 const INITIAL_SPEED = 200;
@@ -19,8 +19,8 @@ export const HaxRunnerGame = () => {
   const [gameState, setGameState] = useState<'IDLE' | 'PLAYING' | 'GAMEOVER'>('IDLE');
   const [speed, setSpeed] = useState(INITIAL_SPEED);
   const [terminalLogs, setTerminalLogs] = useState<string[]>(["INITIALIZING_KERNEL..."]);
-  
-  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
+
+  const gameLoopRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   const addLog = (msg: string) => {
     setTerminalLogs(prev => [msg, ...prev].slice(0, 5));
@@ -82,7 +82,7 @@ export const HaxRunnerGame = () => {
           setPowerUp({ ...spawnEntity(), type: types[Math.floor(Math.random() * types.length)] });
           addLog("RARE_PACKET_DETECTED");
         }
-        
+
         setSpeed(prev => Math.max(MIN_SPEED, prev - 0.3));
       }, speed);
     } else {
@@ -134,7 +134,7 @@ export const HaxRunnerGame = () => {
       {gameState === 'IDLE' && (
         <div className="text-center z-10">
           <h2 className="text-cyan-500 mb-8 animate-pulse text-xs tracking-[0.5em]">AUTH_REQUIRED</h2>
-          <button 
+          <button
             onClick={startGame}
             className="group relative px-12 py-6 bg-transparent border border-cyan-500 text-cyan-500 font-black text-2xl hover:bg-cyan-500 hover:text-black transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]"
           >
@@ -169,10 +169,10 @@ export const HaxRunnerGame = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className={`relative border p-1 bg-zinc-900/20 backdrop-blur-md transition-colors duration-500 ${activeEffect === 'SHIELD' ? 'border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.2)]' : 'border-white/10'}`}>
-              <div 
-                className="grid gap-px" 
+              <div
+                className="grid gap-px"
                 style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`, aspectRatio: '1/1' }}
               >
                 {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
@@ -184,8 +184,8 @@ export const HaxRunnerGame = () => {
                   const isPower = powerUp?.x === x && powerUp?.y === y;
 
                   return (
-                    <div 
-                      key={i} 
+                    <div
+                      key={i}
                       className={`relative w-full h-full border border-white/[0.02] flex items-center justify-center
                         ${isPlayer ? (activeEffect === 'SHIELD' ? 'bg-yellow-500' : 'bg-white shadow-[0_0_20px_white]') : ''}
                       `}
@@ -210,7 +210,7 @@ export const HaxRunnerGame = () => {
         <div className="text-center z-10">
           <h2 className="text-red-600 text-6xl font-black italic mb-2 tracking-tighter">BREACH_DETECTED</h2>
           <p className="text-zinc-500 font-mono text-xs mb-8 uppercase tracking-widest">Node_Recovery_Score: {Math.floor(score)}</p>
-          <button 
+          <button
             onClick={startGame}
             className="px-10 py-5 border-2 border-red-600/50 text-red-500 font-black hover:bg-red-600 hover:text-white transition-all italic uppercase"
           >

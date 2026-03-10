@@ -1512,51 +1512,8 @@ function computeWindowVelocityUsage(
   return { filtered, usedShift };
 }
 
-function getNextRampTarget(current: number): number | null {
-  const sorted = [...RAMP_STEPS];
-  for (let index = 0; index < sorted.length; index += 1) {
-    if (sorted[index] > current) {
-      return sorted[index];
-    }
-  }
-  return null;
-}
-
-function getPreviousRampTarget(current: number): number | null {
-  const sorted = [...RAMP_STEPS].reverse();
-  for (let index = 0; index < sorted.length; index += 1) {
-    if (sorted[index] < current) {
-      return sorted[index];
-    }
-  }
-  return null;
-}
-
 function getRampIndex(current: number): number {
   return RAMP_STEPS.findIndex((step) => step === current);
-}
-
-function getRampTargetByStride(
-  current: number,
-  direction: "up" | "down",
-  stride: number,
-): number | null {
-  const currentIndex = getRampIndex(current);
-  if (currentIndex < 0) {
-    return null;
-  }
-
-  const moveBy = Math.max(1, Math.round(stride));
-  const nextIndex =
-    direction === "up"
-      ? Math.min(RAMP_STEPS.length - 1, currentIndex + moveBy)
-      : Math.max(0, currentIndex - moveBy);
-
-  if (nextIndex === currentIndex) {
-    return null;
-  }
-
-  return RAMP_STEPS[nextIndex] ?? null;
 }
 
 function getRampTargetWithinStepBudget(
@@ -1703,11 +1660,11 @@ function normalizeRollupEntry(value: unknown): ExperimentRollupEntry {
 
   const goalsByAction = isObjectRecord(value.goalsByAction)
     ? Object.entries(value.goalsByAction).reduce<Record<string, number>>((acc, [action, count]) => {
-        if (typeof count === "number") {
-          acc[action] = count;
-        }
-        return acc;
-      }, {})
+      if (typeof count === "number") {
+        acc[action] = count;
+      }
+      return acc;
+    }, {})
     : {};
 
   return {
@@ -2300,7 +2257,7 @@ export function runExperimentPolicyAutoswitch(
   const meanAbsDeltaCvrPoints =
     sufficientDecisions.length > 0
       ? sufficientDecisions.reduce((acc, decision) => acc + Math.abs(decision.deltaCvrPoints), 0) /
-        sufficientDecisions.length
+      sufficientDecisions.length
       : 0;
 
   const priorRegime = readPolicyRegimeState();
@@ -2864,12 +2821,12 @@ export function runExperimentRampAutopilot(
   const cohortRouteIntentLiftPoints =
     cohortCoverageTotal > 0
       ? candidates.reduce((acc, candidate) => acc + candidate.routeIntentLiftPoints * Math.max(0, candidate.routeSignalCoverage), 0) /
-        cohortCoverageTotal
+      cohortCoverageTotal
       : 0;
   const cohortRouteValueDelta =
     cohortCoverageTotal > 0
       ? candidates.reduce((acc, candidate) => acc + candidate.routeValueDelta * Math.max(0, candidate.routeSignalCoverage), 0) /
-        cohortCoverageTotal
+      cohortCoverageTotal
       : 0;
 
   const coupledCandidates = candidates.map((candidate) => {
@@ -2921,123 +2878,123 @@ export function runExperimentRampAutopilot(
   const qualityEvidenceSignals: number[] = [];
 
   dispatchQueue.forEach((candidate) => {
-      if (portfolioRemaining <= 0) {
-        return;
-      }
+    if (portfolioRemaining <= 0) {
+      return;
+    }
 
-      const allowedBudget = Math.min(
-        candidate.availableVelocity,
-        portfolioRemaining,
-        driftState.phase === "shock"
-          ? 25
-          : driftState.phase === "recovering"
-            ? 35
-            : Number.MAX_SAFE_INTEGER,
-      );
-      const nextRollout = getRampTargetWithinStepBudget(
-        candidate.rolloutTarget,
-        candidate.direction,
-        driftState.phase === "normal" ? candidate.stride : Math.min(candidate.stride, 2),
-        allowedBudget,
-      );
+    const allowedBudget = Math.min(
+      candidate.availableVelocity,
+      portfolioRemaining,
+      driftState.phase === "shock"
+        ? 25
+        : driftState.phase === "recovering"
+          ? 35
+          : Number.MAX_SAFE_INTEGER,
+    );
+    const nextRollout = getRampTargetWithinStepBudget(
+      candidate.rolloutTarget,
+      candidate.direction,
+      driftState.phase === "normal" ? candidate.stride : Math.min(candidate.stride, 2),
+      allowedBudget,
+    );
 
-      if (nextRollout === null || nextRollout === candidate.rolloutTarget) {
-        return;
-      }
+    if (nextRollout === null || nextRollout === candidate.rolloutTarget) {
+      return;
+    }
 
-      const stepSize = Math.abs(nextRollout - candidate.rolloutTarget);
-      if (stepSize <= 0 || stepSize > allowedBudget) {
-        return;
-      }
+    const stepSize = Math.abs(nextRollout - candidate.rolloutTarget);
+    if (stepSize <= 0 || stepSize > allowedBudget) {
+      return;
+    }
 
-      if (candidate.direction === "down" && nextRollout < 25) {
-        return;
-      }
+    if (candidate.direction === "down" && nextRollout < 25) {
+      return;
+    }
 
-      const directionEvidenceSign = candidate.direction === "up" ? 1 : -1;
-      const rawEvidence =
-        directionEvidenceSign * (candidate.routeIntentLiftPoints * 0.08 + candidate.routeValueDelta * 0.12);
-      const confidenceEvidenceWeight =
-        candidate.decision.confidence === "high" ? 1 : candidate.decision.confidence === "medium" ? 0.75 : 0.5;
-      const evidence = rawEvidence * candidate.routeSignalCoverage * confidenceEvidenceWeight;
-      qualityEvidenceSignals.push(evidence);
+    const directionEvidenceSign = candidate.direction === "up" ? 1 : -1;
+    const rawEvidence =
+      directionEvidenceSign * (candidate.routeIntentLiftPoints * 0.08 + candidate.routeValueDelta * 0.12);
+    const confidenceEvidenceWeight =
+      candidate.decision.confidence === "high" ? 1 : candidate.decision.confidence === "medium" ? 0.75 : 0.5;
+    const evidence = rawEvidence * candidate.routeSignalCoverage * confidenceEvidenceWeight;
+    qualityEvidenceSignals.push(evidence);
 
-      setExperimentRolloutTarget(candidate.experiment, nextRollout);
-      if (options?.clearCurrentAssignment) {
-        clearAssignedExperimentVariant(candidate.experiment);
-      }
+    setExperimentRolloutTarget(candidate.experiment, nextRollout);
+    if (options?.clearCurrentAssignment) {
+      clearAssignedExperimentVariant(candidate.experiment);
+    }
 
-      const timestamp = new Date().toISOString();
-      meta[candidate.experiment] = timestamp;
+    const timestamp = new Date().toISOString();
+    meta[candidate.experiment] = timestamp;
 
-      const nextVelocityEntries = [...candidate.velocityFilteredEntries, { timestamp, stepSize }];
-      velocityMeta[candidate.experiment] = nextVelocityEntries;
-      const velocityWindowUsedAfter = candidate.velocityWindowUsedBefore + stepSize;
+    const nextVelocityEntries = [...candidate.velocityFilteredEntries, { timestamp, stepSize }];
+    velocityMeta[candidate.experiment] = nextVelocityEntries;
+    const velocityWindowUsedAfter = candidate.velocityWindowUsedBefore + stepSize;
 
-      const portfolioWindowUsedBefore = portfolioUsed;
-      portfolioUsed += stepSize;
-      portfolioRemaining = Math.max(0, portfolioBudget - portfolioUsed);
-      nextPortfolioEntries.push({ timestamp, stepSize });
+    const portfolioWindowUsedBefore = portfolioUsed;
+    portfolioUsed += stepSize;
+    portfolioRemaining = Math.max(0, portfolioBudget - portfolioUsed);
+    nextPortfolioEntries.push({ timestamp, stepSize });
 
-      const rampEvent: ExperimentRampEvent = {
-        experiment: candidate.experiment,
-        previousRollout: candidate.rolloutTarget,
-        nextRollout,
-        stepSize,
-        stride: candidate.stride,
-        profile,
-        velocityWindowUsedBefore: candidate.velocityWindowUsedBefore,
-        velocityWindowUsedAfter,
-        velocityWindowBudget: candidate.velocityWindowBudget,
-        portfolioWindowUsedBefore,
-        portfolioWindowUsedAfter: portfolioUsed,
-        portfolioWindowBudget: portfolioBudget,
-        opportunityScore: Number(candidate.opportunityScore.toFixed(3)),
-        adjustedOpportunityScore: Number(candidate.adjustedOpportunityScore.toFixed(3)),
-        recentPortfolioActions: candidate.recentPortfolioActions,
-        fairnessBoostApplied: candidate.fairnessBoostApplied,
-        bayesianLiftPoints: Number(candidate.bayesianLiftPoints.toFixed(3)),
-        bayesianUncertaintyPoints: Number(candidate.bayesianUncertaintyPoints.toFixed(3)),
-        regretPressurePoints: Number(candidate.regretPressurePoints.toFixed(3)),
-        routeIntentLiftPoints: Number(candidate.routeIntentLiftPoints.toFixed(3)),
-        routeValueDelta: Number(candidate.routeValueDelta.toFixed(3)),
-        routeSignalCoverage: Number(candidate.routeSignalCoverage.toFixed(3)),
-        qualityMemoryIntentLiftPoints: Number(candidate.qualityMemoryIntentLiftPoints.toFixed(3)),
-        qualityMemoryValueDelta: Number(candidate.qualityMemoryValueDelta.toFixed(3)),
-        qualityMemorySignalCoverage: Number(candidate.qualityMemorySignalCoverage.toFixed(3)),
-        qualityMemoryBoost: Number(candidate.qualityMemoryBoost.toFixed(3)),
-        qualityMemoryPhaseWeight: Number(candidate.qualityMemoryPhaseWeight.toFixed(3)),
-        qualityMemoryHalfLifeMs: Math.round(candidate.qualityMemoryHalfLifeMs),
-        qualityGateAdaptiveWeight: Number(candidate.qualityGateAdaptiveWeight.toFixed(3)),
-        qualityGateAdaptiveHalfLifeMultiplier: Number(candidate.qualityGateAdaptiveHalfLifeMultiplier.toFixed(3)),
-        crossExperimentPriorBoost: Number(candidate.crossExperimentPriorBoost.toFixed(3)),
-        crossExperimentAlignment: Number(candidate.crossExperimentAlignment.toFixed(3)),
-        cohortRouteIntentLiftPoints: Number(candidate.cohortRouteIntentLiftPoints.toFixed(3)),
-        cohortRouteValueDelta: Number(candidate.cohortRouteValueDelta.toFixed(3)),
-        driftScore: driftState.driftScore,
-        shortDriftScore: driftState.shortDriftScore,
-        mediumDriftScore: driftState.mediumDriftScore,
-        longDriftScore: driftState.longDriftScore,
-        shockMode: driftState.shockMode,
-        driftPhase: driftState.phase,
-        shockIntensity: Number(shockIntensity.toFixed(3)),
-        recommendation: candidate.decision.recommendation,
-        confidence: candidate.decision.confidence,
-        rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (weighted ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}). Bayesian lift ${candidate.bayesianLiftPoints.toFixed(2)} pts, uncertainty ${candidate.bayesianUncertaintyPoints.toFixed(2)} pts, regret ${candidate.regretPressurePoints.toFixed(2)} pts. Route intent lift ${candidate.routeIntentLiftPoints.toFixed(2)} pts, value Δ ${candidate.routeValueDelta.toFixed(2)}, coverage ${(candidate.routeSignalCoverage * 100).toFixed(0)}%. Memory intent ${candidate.qualityMemoryIntentLiftPoints.toFixed(2)} pts, memory value ${candidate.qualityMemoryValueDelta.toFixed(2)}, memory coverage ${(candidate.qualityMemorySignalCoverage * 100).toFixed(0)}%, memory boost ${candidate.qualityMemoryBoost.toFixed(2)}, gate ${candidate.qualityMemoryPhaseWeight.toFixed(2)}, half-life ${Math.round(candidate.qualityMemoryHalfLifeMs / 1000)}s. Cohort intent ${candidate.cohortRouteIntentLiftPoints.toFixed(2)} pts, cohort value ${candidate.cohortRouteValueDelta.toFixed(2)}, alignment ${candidate.crossExperimentAlignment.toFixed(2)}, prior boost ${candidate.crossExperimentPriorBoost.toFixed(2)}. Drift fused ${driftState.driftScore.toFixed(2)} [S ${driftState.shortDriftScore.toFixed(2)} · M ${driftState.mediumDriftScore.toFixed(2)} · L ${driftState.longDriftScore.toFixed(2)}] · phase ${driftState.phase} · shock ${driftState.shockMode ? "on" : "off"}.`,
-        timestamp,
-      };
+    const rampEvent: ExperimentRampEvent = {
+      experiment: candidate.experiment,
+      previousRollout: candidate.rolloutTarget,
+      nextRollout,
+      stepSize,
+      stride: candidate.stride,
+      profile,
+      velocityWindowUsedBefore: candidate.velocityWindowUsedBefore,
+      velocityWindowUsedAfter,
+      velocityWindowBudget: candidate.velocityWindowBudget,
+      portfolioWindowUsedBefore,
+      portfolioWindowUsedAfter: portfolioUsed,
+      portfolioWindowBudget: portfolioBudget,
+      opportunityScore: Number(candidate.opportunityScore.toFixed(3)),
+      adjustedOpportunityScore: Number(candidate.adjustedOpportunityScore.toFixed(3)),
+      recentPortfolioActions: candidate.recentPortfolioActions,
+      fairnessBoostApplied: candidate.fairnessBoostApplied,
+      bayesianLiftPoints: Number(candidate.bayesianLiftPoints.toFixed(3)),
+      bayesianUncertaintyPoints: Number(candidate.bayesianUncertaintyPoints.toFixed(3)),
+      regretPressurePoints: Number(candidate.regretPressurePoints.toFixed(3)),
+      routeIntentLiftPoints: Number(candidate.routeIntentLiftPoints.toFixed(3)),
+      routeValueDelta: Number(candidate.routeValueDelta.toFixed(3)),
+      routeSignalCoverage: Number(candidate.routeSignalCoverage.toFixed(3)),
+      qualityMemoryIntentLiftPoints: Number(candidate.qualityMemoryIntentLiftPoints.toFixed(3)),
+      qualityMemoryValueDelta: Number(candidate.qualityMemoryValueDelta.toFixed(3)),
+      qualityMemorySignalCoverage: Number(candidate.qualityMemorySignalCoverage.toFixed(3)),
+      qualityMemoryBoost: Number(candidate.qualityMemoryBoost.toFixed(3)),
+      qualityMemoryPhaseWeight: Number(candidate.qualityMemoryPhaseWeight.toFixed(3)),
+      qualityMemoryHalfLifeMs: Math.round(candidate.qualityMemoryHalfLifeMs),
+      qualityGateAdaptiveWeight: Number(candidate.qualityGateAdaptiveWeight.toFixed(3)),
+      qualityGateAdaptiveHalfLifeMultiplier: Number(candidate.qualityGateAdaptiveHalfLifeMultiplier.toFixed(3)),
+      crossExperimentPriorBoost: Number(candidate.crossExperimentPriorBoost.toFixed(3)),
+      crossExperimentAlignment: Number(candidate.crossExperimentAlignment.toFixed(3)),
+      cohortRouteIntentLiftPoints: Number(candidate.cohortRouteIntentLiftPoints.toFixed(3)),
+      cohortRouteValueDelta: Number(candidate.cohortRouteValueDelta.toFixed(3)),
+      driftScore: driftState.driftScore,
+      shortDriftScore: driftState.shortDriftScore,
+      mediumDriftScore: driftState.mediumDriftScore,
+      longDriftScore: driftState.longDriftScore,
+      shockMode: driftState.shockMode,
+      driftPhase: driftState.phase,
+      shockIntensity: Number(shockIntensity.toFixed(3)),
+      recommendation: candidate.decision.recommendation,
+      confidence: candidate.decision.confidence,
+      rationale: `${candidate.decision.rationale} ${candidate.strideRationale} Velocity window ${velocityWindowUsedAfter}/${candidate.velocityWindowBudget} points used. Portfolio window ${portfolioUsed}/${portfolioBudget} points used. Fairness adjusted score ${candidate.adjustedOpportunityScore.toFixed(2)} (weighted ${candidate.opportunityScore.toFixed(2)}, recent ${candidate.recentPortfolioActions}, boost ${candidate.fairnessBoostApplied ? "on" : "off"}). Bayesian lift ${candidate.bayesianLiftPoints.toFixed(2)} pts, uncertainty ${candidate.bayesianUncertaintyPoints.toFixed(2)} pts, regret ${candidate.regretPressurePoints.toFixed(2)} pts. Route intent lift ${candidate.routeIntentLiftPoints.toFixed(2)} pts, value Δ ${candidate.routeValueDelta.toFixed(2)}, coverage ${(candidate.routeSignalCoverage * 100).toFixed(0)}%. Memory intent ${candidate.qualityMemoryIntentLiftPoints.toFixed(2)} pts, memory value ${candidate.qualityMemoryValueDelta.toFixed(2)}, memory coverage ${(candidate.qualityMemorySignalCoverage * 100).toFixed(0)}%, memory boost ${candidate.qualityMemoryBoost.toFixed(2)}, gate ${candidate.qualityMemoryPhaseWeight.toFixed(2)}, half-life ${Math.round(candidate.qualityMemoryHalfLifeMs / 1000)}s. Cohort intent ${candidate.cohortRouteIntentLiftPoints.toFixed(2)} pts, cohort value ${candidate.cohortRouteValueDelta.toFixed(2)}, alignment ${candidate.crossExperimentAlignment.toFixed(2)}, prior boost ${candidate.crossExperimentPriorBoost.toFixed(2)}. Drift fused ${driftState.driftScore.toFixed(2)} [S ${driftState.shortDriftScore.toFixed(2)} · M ${driftState.mediumDriftScore.toFixed(2)} · L ${driftState.longDriftScore.toFixed(2)}] · phase ${driftState.phase} · shock ${driftState.shockMode ? "on" : "off"}.`,
+      timestamp,
+    };
 
-      appendRampEvent(rampEvent);
+    appendRampEvent(rampEvent);
 
-      event({
-        action: "experiment_ramp_autopilot",
-        category: "experiments",
-        label: `${candidate.experiment}:${candidate.rolloutTarget}->${nextRollout}`,
-        value: nextRollout,
-      });
-
-      actions.push(rampEvent);
+    event({
+      action: "experiment_ramp_autopilot",
+      category: "experiments",
+      label: `${candidate.experiment}:${candidate.rolloutTarget}->${nextRollout}`,
+      value: nextRollout,
     });
+
+    actions.push(rampEvent);
+  });
 
   if (qualityMemoryUpdated) {
     writeAllocatorQualityMemoryState(qualityMemoryState);

@@ -1,10 +1,10 @@
 import { ELDER_FUTHARK_RUNES, getRuneForArtifact } from "@/lib/game/elder-futhark";
 import type {
-    ArtifactRarity,
-    GridPoint,
-    HyperboreaLevelDefinition,
-    LevelArtifact,
-    LevelPuzzleNode,
+  ArtifactRarity,
+  GridPoint,
+  HyperboreaLevelDefinition,
+  LevelArtifact,
+  LevelPuzzleNode,
 } from "@/lib/game/level-types";
 
 interface LevelGenerationOptions {
@@ -40,13 +40,6 @@ function createSeededRng(initialSeed: number): SeededRng {
       return Math.floor(next() * maxExclusive);
     },
   };
-}
-
-function shuffleInPlace<T>(items: T[], rng: SeededRng) {
-  for (let index = items.length - 1; index > 0; index--) {
-    const swapIndex = rng.nextInt(index + 1);
-    [items[index], items[swapIndex]] = [items[swapIndex], items[index]];
-  }
 }
 
 function ensureOdd(value: number) {
@@ -231,55 +224,55 @@ function buildArtifacts(path: GridPoint[], deadEnds: GridPoint[]): LevelArtifact
   const templates: Array<
     Omit<LevelArtifact, "position" | "tokenRewardUnits" | "rune" | "runeSymbol"> & { rarity: ArtifactRarity }
   > = [
-    {
-      id: "artifact-gungnir-shard",
-      name: "Gungnir Shard",
-      pantheon: "norse",
-      rarity: "rare",
-      lore: "A fractured spear-tip humming with Odin's tactical foresight.",
-      puzzleRequirementIds: [],
-    },
-    {
-      id: "artifact-dagda-torc",
-      name: "Torc of Dagda",
-      pantheon: "celtic",
-      rarity: "epic",
-      lore: "A gold neck-ring that reacts to hidden pressure-plate harmonics.",
-      puzzleRequirementIds: ["lock-wolf-gate"],
-    },
-    {
-      id: "artifact-mjolnir-core",
-      name: "Mjolnir Spark Core",
-      pantheon: "norse",
-      rarity: "mythic",
-      lore: "Contains compressed thunder runes that power astral gate mechanisms.",
-      puzzleRequirementIds: ["rune-gate-astral"],
-    },
-    {
-      id: "artifact-brigid-glyph",
-      name: "Brigid Ember Glyph",
-      pantheon: "celtic",
-      rarity: "rare",
-      lore: "An ember-etched glyph that reveals false walls and secret corridors.",
-      puzzleRequirementIds: ["switch-sunstone"],
-    },
-    {
-      id: "artifact-freyja-tear",
-      name: "Freyja Amber Tear",
-      pantheon: "norse",
-      rarity: "epic",
-      lore: "An amber relic tied to shield blessings and doubled score multipliers.",
-      puzzleRequirementIds: ["plate-echo"],
-    },
-    {
-      id: "artifact-cernunnos-rune",
-      name: "Cernunnos Antler Rune",
-      pantheon: "celtic",
-      rarity: "mythic",
-      lore: "A forest sigil needed to unlock the final pedestal and route to the exit.",
-      puzzleRequirementIds: ["pedestal-twin-pantheon"],
-    },
-  ];
+      {
+        id: "artifact-gungnir-shard",
+        name: "Gungnir Shard",
+        pantheon: "norse",
+        rarity: "rare",
+        lore: "A fractured spear-tip humming with Odin's tactical foresight.",
+        puzzleRequirementIds: [],
+      },
+      {
+        id: "artifact-dagda-torc",
+        name: "Torc of Dagda",
+        pantheon: "celtic",
+        rarity: "epic",
+        lore: "A gold neck-ring that reacts to hidden pressure-plate harmonics.",
+        puzzleRequirementIds: ["lock-wolf-gate"],
+      },
+      {
+        id: "artifact-mjolnir-core",
+        name: "Mjolnir Spark Core",
+        pantheon: "norse",
+        rarity: "mythic",
+        lore: "Contains compressed thunder runes that power astral gate mechanisms.",
+        puzzleRequirementIds: ["rune-gate-astral"],
+      },
+      {
+        id: "artifact-brigid-glyph",
+        name: "Brigid Ember Glyph",
+        pantheon: "celtic",
+        rarity: "rare",
+        lore: "An ember-etched glyph that reveals false walls and secret corridors.",
+        puzzleRequirementIds: ["switch-sunstone"],
+      },
+      {
+        id: "artifact-freyja-tear",
+        name: "Freyja Amber Tear",
+        pantheon: "norse",
+        rarity: "epic",
+        lore: "An amber relic tied to shield blessings and doubled score multipliers.",
+        puzzleRequirementIds: ["plate-echo"],
+      },
+      {
+        id: "artifact-cernunnos-rune",
+        name: "Cernunnos Antler Rune",
+        pantheon: "celtic",
+        rarity: "mythic",
+        lore: "A forest sigil needed to unlock the final pedestal and route to the exit.",
+        puzzleRequirementIds: ["pedestal-twin-pantheon"],
+      },
+    ];
 
   return templates.map((template, index) => {
     const position = selected[index] ?? selected[selected.length - 1] ?? { x: 1, y: 1 };

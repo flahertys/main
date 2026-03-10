@@ -5,9 +5,8 @@
  * Each event shows: source icon, text snippet, score badge, timestamp.
  */
 
-import { motion, AnimatePresence } from "framer-motion";
-import { categoryColor, categoryLabel } from "@/lib/trading/sentiment-engine";
 import type { SentimentEvent } from "@/types/trading";
+import { AnimatePresence, motion } from "framer-motion";
 
 // ─── Source icons (emoji fallbacks; swap to Lucide if preferred) ──────────────
 

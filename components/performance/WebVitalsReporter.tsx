@@ -2,6 +2,7 @@
 
 import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
+import type { Metric } from 'web-vitals';
 
 /**
  * Web Vitals Reporter: Tracks Core Web Vitals (LCP, FID, CLS) and sends to Sentry.
@@ -16,9 +17,9 @@ import { useEffect } from 'react';
 export function WebVitalsReporter() {
     useEffect(() => {
         // Dynamically import web-vitals to keep it from blocking page load
-        import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+        import('web-vitals').then(({ onCLS, onINP, onFCP, onLCP, onTTFB }) => {
             // Track Largest Contentful Paint (LCP)
-            getLCP((metric) => {
+            onLCP((metric: Metric) => {
                 Sentry.captureMessage('[PERF] LCP', {
                     level: 'info',
                     tags: {
@@ -29,7 +30,7 @@ export function WebVitalsReporter() {
                     extra: {
                         value: metric.value,
                         id: metric.id,
-                        navigation_type: metric.navigationTiming?.entryType,
+                        navigation_type: metric.navigationType,
                     },
                 });
 
@@ -39,13 +40,13 @@ export function WebVitalsReporter() {
                 }
             });
 
-            // Track First Input Delay (FID)
-            getFID((metric) => {
-                Sentry.captureMessage('[PERF] FID', {
+            // Track Interaction to Next Paint (INP)
+            onINP((metric: Metric) => {
+                Sentry.captureMessage('[PERF] INP', {
                     level: metric.rating === 'poor' ? 'warning' : 'info',
                     tags: {
                         metric_type: 'Core Web Vital',
-                        metric_name: 'FID',
+                        metric_name: 'INP',
                         rating: metric.rating || 'unknown',
                     },
                     extra: {
@@ -56,12 +57,12 @@ export function WebVitalsReporter() {
                 });
 
                 if (process.env.NODE_ENV === 'development') {
-                    console.log('[FID]', metric.value, 'ms', metric.rating);
+                    console.log('[INP]', metric.value, 'ms', metric.rating);
                 }
             });
 
             // Track Cumulative Layout Shift (CLS)
-            getCLS((metric) => {
+            onCLS((metric: Metric) => {
                 Sentry.captureMessage('[PERF] CLS', {
                     level: metric.rating === 'poor' ? 'warning' : 'info',
                     tags: {
@@ -82,7 +83,7 @@ export function WebVitalsReporter() {
             });
 
             // Track First Contentful Paint (FCP) - earlier paint metric
-            getFCP((metric) => {
+            onFCP((metric: Metric) => {
                 Sentry.captureMessage('[PERF] FCP', {
                     level: 'info',
                     tags: {
@@ -98,7 +99,7 @@ export function WebVitalsReporter() {
             });
 
             // Track Time to First Byte (TTFB) - server response time
-            getTTFB((metric) => {
+            onTTFB((metric: Metric) => {
                 Sentry.captureMessage('[PERF] TTFB', {
                     level: metric.rating === 'poor' ? 'warning' : 'info',
                     tags: {

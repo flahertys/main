@@ -1,21 +1,14 @@
 "use client";
 
 import {
-    normalizePromptLibraryItems,
-    normalizeSessionPresets,
-    normalizeWorkspaceSnapshots,
-    type ParsedPromptLibraryItem,
-    type ParsedSessionPreset,
-    type ParsedWorkspaceSnapshot,
+  normalizePromptLibraryItems,
+  normalizeSessionPresets,
+  normalizeWorkspaceSnapshots,
+  type ParsedPromptLibraryItem,
+  type ParsedSessionPreset,
+  type ParsedWorkspaceSnapshot,
 } from "@/components/landing/hub/utils/sessionSnapshotParser";
 import { useEffect } from "react";
-
-type ResponseStyle = "concise" | "coach" | "operator";
-type RiskStance = "guarded" | "balanced" | "aggressive";
-type PersonaPresetId = "mystic" | "analyst" | "mentor";
-type LlmWorkflowTask = "chat" | "generate" | "summarize" | "qa";
-type LlmDepth = "quick" | "balanced" | "deep";
-type PromptLibraryCategory = "trading" | "content" | "ops";
 
 type PromptLibraryItem = ParsedPromptLibraryItem;
 

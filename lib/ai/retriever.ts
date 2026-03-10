@@ -3,9 +3,9 @@ import {
   type HfDatasetIntelligenceRow,
 } from "@/lib/ai/hf-dataset-intelligence";
 import {
-    listPersistedRetrievalEmbeddings,
-    persistRetrievalEmbeddingsSnapshot,
-    type RetrievalEmbeddingInputRow,
+  listPersistedRetrievalEmbeddings,
+  persistRetrievalEmbeddingsSnapshot,
+  type RetrievalEmbeddingInputRow,
 } from "@/lib/ai/retrieval-persistence";
 import { SITE_ROUTE_CATALOG } from "@/lib/ai/site-map";
 import { sanitizePlainText } from "@/lib/security";
@@ -737,7 +737,7 @@ export async function rebuildAndPersistRetrievalSnapshot() {
     if (vector && vector.length > 0) {
       cachedVectors += 1;
     } else {
-      vector = await embedTextWithCache(doc.text);
+      vector = (await embedTextWithCache(doc.text)) ?? undefined;
       if (vector && vector.length > 0) {
         generatedVectors += 1;
       }
