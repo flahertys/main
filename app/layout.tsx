@@ -8,6 +8,7 @@ import "./globals.css";
 
 import { SiteNavigatorWidget } from "@/components/ai/SiteNavigatorWidget";
 import { ChainSessionProvider } from "@/components/counter/provider/ChainSession";
+import { GamifiedOnboarding } from "@/components/onboarding/GamifiedOnboarding";
 import { HyperboreaIntroOverlay } from "@/components/intro/HyperboreaIntroOverlay";
 import { WebVitalsReporter } from "@/components/performance/WebVitalsReporter";
 import { AuthProvider } from "@/components/providers/AuthProvider";
@@ -207,6 +208,7 @@ export default function RootLayout({
                 <span>AI Quick Launch</span>
               </a>
               <SiteNavigatorWidget />
+              <GamifiedOnboarding />
             </WalletProvider>
           </ChainSessionProvider>
           <Toaster position="bottom-right" theme="dark" closeButton />

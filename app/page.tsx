@@ -58,17 +58,20 @@ export default function Home() {
 
         <div className="max-w-4xl mx-auto text-center">
           <div className="theme-panel p-8 sm:p-12 md:p-16">
-            <span className="theme-kicker mb-5">Digital Dynasty</span>
+            <span className="theme-kicker mb-5">AI Agent Platform</span>
             <h1 className="text-4xl sm:text-6xl md:text-7xl leading-tight font-black text-white tracking-tighter italic uppercase mb-6 break-words">
-              <GlitchText text="TradeHax" />
+              <GlitchText text="Multiply Your Edge" />
             </h1>
-            <p className="text-zinc-200 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed mb-10">
-              One platform. Three precision environments. Built for real execution.
+            <p className="text-zinc-200 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed mb-2">
+              Deploy AI agents across trading, music, and services.
+            </p>
+            <p className="text-zinc-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed mb-10">
+              No coding. No setup. Get your first signal in 60 seconds.
             </p>
 
             <HomeHeroActions scheduleHref={scheduleLinks.root} />
 
-            {/* Three entry lane cards */}
+            {/* Three entry lane cards - NOW WITH CLEAR VALUE PROPS */}
             <div className="grid sm:grid-cols-3 gap-4 mt-12 text-left">
               <TrackedCtaLink
                 href="/intelligence"
@@ -78,8 +81,9 @@ export default function Home() {
                 className="interactive-surface p-5 rounded-xl border border-white/10 bg-white/[0.02] hover:border-cyan-500/30 transition-all group"
               >
                 <CircuitBoard className="w-6 h-6 text-cyan-400 mb-3 group-hover:scale-110 transition-transform" />
-                <h3 className="text-sm font-bold text-white uppercase mb-2">Trade Intelligence</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">Real-time signals & AI copilot</p>
+                <h3 className="text-sm font-bold text-white uppercase mb-2">AI Trading Signals</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed mb-3">For traders: Real-time signals, backtesting, automated execution on Polygon</p>
+                <span className="text-xs text-cyan-400 font-semibold">→ Paper trade risk-free</span>
               </TrackedCtaLink>
 
               <TrackedCtaLink
@@ -90,8 +94,9 @@ export default function Home() {
                 className="interactive-surface p-5 rounded-xl border border-white/10 bg-white/[0.02] hover:border-purple-500/30 transition-all group"
               >
                 <Guitar className="w-6 h-6 text-purple-400 mb-3 group-hover:scale-110 transition-transform" />
-                <h3 className="text-sm font-bold text-white uppercase mb-2">Music Intelligence</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">AI guitar & creative growth</p>
+                <h3 className="text-sm font-bold text-white uppercase mb-2">AI Music Creation</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed mb-3">For creators: Guitar coach, track generation, distribution automation</p>
+                <span className="text-xs text-purple-400 font-semibold">→ Generate 1 track free</span>
               </TrackedCtaLink>
 
               <TrackedCtaLink
@@ -102,8 +107,9 @@ export default function Home() {
                 className="interactive-surface p-5 rounded-xl border border-white/10 bg-white/[0.02] hover:border-emerald-500/30 transition-all group"
               >
                 <MonitorSmartphone className="w-6 h-6 text-emerald-400 mb-3 group-hover:scale-110 transition-transform" />
-                <h3 className="text-sm font-bold text-white uppercase mb-2">Digital Services</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">AI systems & technical delivery</p>
+                <h3 className="text-sm font-bold text-white uppercase mb-2">AI Service Delivery</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed mb-3">For builders: Custom agents, service templates, white-label platform</p>
+                <span className="text-xs text-emerald-400 font-semibold">→ Import template</span>
               </TrackedCtaLink>
             </div>
           </div>
