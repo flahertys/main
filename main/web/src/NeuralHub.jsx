@@ -1,5 +1,5 @@
 
-import { useMemo, useRef, useState, useEffect } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import { apiClient } from "./lib/api-client";
 
 const COLORS = {
