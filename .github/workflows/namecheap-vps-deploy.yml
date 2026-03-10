@@ -75,7 +75,8 @@ jobs:
           echo "${NAMECHEAP_VPS_SSH_KEY}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           PORT="${NAMECHEAP_VPS_PORT:-22}"
-          ssh-keyscan -p "$PORT" -H "${NAMECHEAP_VPS_HOST}" >> ~/.ssh/known_hosts
+          ssh-keyscan -T 10 -p "$PORT" -H "${NAMECHEAP_VPS_HOST}" >> ~/.ssh/known_hosts || true
+          echo "SSH bootstrap complete (known_hosts best-effort)."
 
       - name: Sync release to server
         if: steps.precheck.outputs.can_deploy == 'true'
@@ -84,14 +85,15 @@ jobs:
           RELEASE_ID="${{ steps.meta.outputs.release_id }}"
           REMOTE="${NAMECHEAP_VPS_USER}@${NAMECHEAP_VPS_HOST}"
           PORT="${NAMECHEAP_VPS_PORT:-22}"
+          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
-          ssh -p "$PORT" "$REMOTE" "mkdir -p $APP_ROOT/releases/$RELEASE_ID"
+          ssh $SSH_OPTS -p "$PORT" "$REMOTE" "mkdir -p $APP_ROOT/releases/$RELEASE_ID"
 
           rsync -az --delete \
             --exclude .git \
             --exclude node_modules \
             --exclude .next \
-            -e "ssh -p $PORT" \
+            -e "ssh $SSH_OPTS -p $PORT" \
             ./ "$REMOTE:$APP_ROOT/releases/$RELEASE_ID/"
 
       - name: Run remote deploy script
@@ -102,8 +104,9 @@ jobs:
           RELEASE_ID="${{ steps.meta.outputs.release_id }}"
           REMOTE="${NAMECHEAP_VPS_USER}@${NAMECHEAP_VPS_HOST}"
           PORT="${NAMECHEAP_VPS_PORT:-22}"
+          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
-          ssh -p "$PORT" "$REMOTE" \
+          ssh $SSH_OPTS -p "$PORT" "$REMOTE" \
             "chmod +x $APP_ROOT/releases/$RELEASE_ID/deploy/namecheap/deploy-remote.sh && \
              APP_ROOT=$APP_ROOT APP_PORT=$APP_PORT RELEASE_ID=$RELEASE_ID RELEASE_SOURCE=$APP_ROOT/releases/$RELEASE_ID \
              bash $APP_ROOT/releases/$RELEASE_ID/deploy/namecheap/deploy-remote.sh"
