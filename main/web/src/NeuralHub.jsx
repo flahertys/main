@@ -1,5 +1,6 @@
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
+import { apiClient } from "./lib/api-client";
 
 const COLORS = {
   bg: "#090B10",
@@ -79,7 +80,7 @@ export default function NeuralHub() {
       id: "welcome",
       role: "assistant",
       content:
-        "Welcome to TradeHax. Ask for a setup, risk plan, or market summary and I’ll respond with a clean, execution-focused brief.",
+        "Welcome to TradeHax. Ask for a setup, risk plan, or market summary and I'll respond with a clean, execution-focused brief.",
       meta: null,
     },
   ]);
@@ -87,14 +88,34 @@ export default function NeuralHub() {
   const [loading, setLoading] = useState(false);
   const nextId = useRef(1);
 
+  // Live AI mode state
+  const [liveMode, setLiveMode] = useState(false);
+  const [aiProvider, setAiProvider] = useState('demo');
+  const [cryptoPrices, setCryptoPrices] = useState({});
+
   const stats = useMemo(
     () => [
       { label: "Approach", value: "Signal clarity over clutter" },
       { label: "Style", value: "Professional AI trading brief" },
-      { label: "Mode", value: "Stable production interface" },
+      { label: "Mode", value: liveMode ? "Live AI Mode" : "Stable production interface" },
     ],
-    [],
+    [liveMode],
   );
+
+  // Fetch live crypto prices on mount
+  useEffect(() => {
+    async function fetchPrices() {
+      try {
+        const data = await apiClient.getMultipleCrypto(['BTC', 'ETH', 'SOL']);
+        setCryptoPrices(data);
+      } catch (error) {
+        console.log('Could not fetch crypto prices:', error);
+      }
+    }
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 300000); // Refresh every 5 minutes
+    return () => clearInterval(interval);
+  }, []);
 
   function submitMessage(raw) {
     const value = (raw ?? input).trim();
@@ -107,20 +128,65 @@ export default function NeuralHub() {
     setInput("");
     setLoading(true);
 
-    const result = buildResponse(value);
+    if (!liveMode) {
+      // Demo mode - use existing buildResponse()
+      const result = buildResponse(value);
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-${nextId.current++}`,
+            role: "assistant",
+            content: result.body,
+            meta: result,
+          },
+        ]);
+        setLoading(false);
+      }, 250);
+    } else {
+      // Live AI mode
+      apiClient.chat([{ role: 'user', content: value }])
+        .then(response => {
+          setAiProvider(response.provider);
 
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `a-${nextId.current++}`,
-          role: "assistant",
-          content: result.body,
-          meta: result,
-        },
-      ]);
-      setLoading(false);
-    }, 250);
+          // Parse response into structured format
+          const parsed = apiClient.parseAIResponse(response.response);
+          const bullets = [
+            ...(parsed.reasoning || []),
+            ...(parsed.riskManagement || [])
+          ].filter(b => b.length > 0);
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `a-${nextId.current++}`,
+              role: "assistant",
+              content: response.response,
+              meta: {
+                title: parsed.signal || 'AI Analysis',
+                body: response.response,
+                bullets: bullets.length > 0 ? bullets : null,
+              },
+            },
+          ]);
+          setLoading(false);
+        })
+        .catch(error => {
+          console.error('Live AI failed, falling back to demo:', error);
+          // Fallback to demo mode
+          const result = buildResponse(value);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `a-${nextId.current++}`,
+              role: "assistant",
+              content: result.body + "\n\n⚠️ Live AI temporarily unavailable. Using demo mode.",
+              meta: result,
+            },
+          ]);
+          setLoading(false);
+        });
+    }
   }
 
   return (
@@ -216,6 +282,52 @@ export default function NeuralHub() {
               {loading ? (
                 <div style={{ color: COLORS.textDim, fontSize: 14 }}>Preparing response…</div>
               ) : null}
+            </div>
+
+            <div style={{ marginTop: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <button
+                onClick={() => setLiveMode(!liveMode)}
+                style={{
+                  padding: "10px 16px",
+                  background: liveMode ? COLORS.green : COLORS.border,
+                  color: liveMode ? COLORS.bg : COLORS.text,
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "700",
+                  fontSize: "14px",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {liveMode ? "🟢 Live AI" : "📊 Demo Mode"}
+              </button>
+              {liveMode && (
+                <span style={{ fontSize: "12px", color: COLORS.textDim }}>
+                  Provider: <span style={{ color: COLORS.accent }}>{aiProvider}</span>
+                </span>
+              )}
+              {cryptoPrices.BTC && (
+                <div style={{ marginLeft: "auto", display: "flex", gap: 12, fontSize: "12px" }}>
+                  <span style={{ color: COLORS.textDim }}>
+                    BTC: <span style={{ color: COLORS.text, fontWeight: "600" }}>
+                      {apiClient.formatPrice(cryptoPrices.BTC.price)}
+                    </span>
+                    <span style={{ color: cryptoPrices.BTC.priceChangePercent24h >= 0 ? COLORS.green : "#FF4757", marginLeft: 4 }}>
+                      {apiClient.formatPercentChange(cryptoPrices.BTC.priceChangePercent24h).text}
+                    </span>
+                  </span>
+                  {cryptoPrices.ETH && (
+                    <span style={{ color: COLORS.textDim }}>
+                      ETH: <span style={{ color: COLORS.text, fontWeight: "600" }}>
+                        {apiClient.formatPrice(cryptoPrices.ETH.price)}
+                      </span>
+                      <span style={{ color: cryptoPrices.ETH.priceChangePercent24h >= 0 ? COLORS.green : "#FF4757", marginLeft: 4 }}>
+                        {apiClient.formatPercentChange(cryptoPrices.ETH.priceChangePercent24h).text}
+                      </span>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             <div style={{ marginTop: 16, display: "grid", gap: 10 }}>

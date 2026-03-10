@@ -76,3 +76,5 @@ logs/
 .eslintcache
 .stylelintcache
 
+
+.vercel
