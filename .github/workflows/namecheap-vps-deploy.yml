@@ -97,7 +97,6 @@ jobs:
           rsync -az --delete \
             --exclude .git \
             --exclude node_modules \
-            --exclude .next \
             -e "ssh $SSH_OPTS -p $PORT" \
             ./ "$REMOTE:$APP_ROOT/releases/$RELEASE_ID/"
 
