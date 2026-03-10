@@ -63,12 +63,13 @@ const aiHubFaqJsonLd = {
   ],
 };
 
-export default function AIHubPage({
+export default async function AIHubPage({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const viewParam = searchParams?.view;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const viewParam = resolvedSearchParams?.view;
   const view = Array.isArray(viewParam) ? viewParam[0] : viewParam;
   const isAdvancedView = view === "advanced";
 
