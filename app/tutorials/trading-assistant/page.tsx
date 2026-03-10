@@ -347,7 +347,7 @@ export default function TradingAssistantTutorial() {
                 <div className="grid sm:grid-cols-3 gap-4 pt-8 border-t border-white/10">
                     <TrackedCtaLink
                         href="/intelligence"
-                        conversionId="start_trading"
+                        conversionId="open_intelligence"
                         surface="tutorial:cta"
                         className="p-4 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/30 transition text-center font-semibold"
                     >
@@ -356,7 +356,7 @@ export default function TradingAssistantTutorial() {
 
                     <TrackedCtaLink
                         href="/ai-hub"
-                        conversionId="chat_with_ai"
+                        conversionId="open_ai_chat"
                         surface="tutorial:cta"
                         className="p-4 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 transition text-center font-semibold"
                     >
@@ -365,7 +365,7 @@ export default function TradingAssistantTutorial() {
 
                     <TrackedCtaLink
                         href="/account"
-                        conversionId="view_account"
+                        conversionId="open_dashboard"
                         surface="tutorial:cta"
                         className="p-4 rounded-lg bg-white/10 border border-white/20 text-white hover:bg-white/20 transition text-center font-semibold"
                     >
