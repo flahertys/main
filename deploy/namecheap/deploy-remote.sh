@@ -14,6 +14,51 @@ SHARED_ENV_FILE="${SHARED_ENV_FILE:-$APP_ROOT/shared/.env.production}"
 CURRENT_LINK="$APP_ROOT/current"
 PREVIOUS_RELEASE=""
 
+ensure_node_toolchain() {
+  if command -v npm >/dev/null 2>&1; then
+    return 0
+  fi
+
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    # shellcheck disable=SC1090
+    source "$NVM_DIR/nvm.sh"
+  fi
+
+  if ! command -v npm >/dev/null 2>&1; then
+    if ! command -v curl >/dev/null 2>&1; then
+      echo "ERROR: npm is missing and curl is unavailable to bootstrap Node." >&2
+      exit 1
+    fi
+
+    echo "==> Bootstrapping Node.js via nvm (npm missing)"
+    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+    # shellcheck disable=SC1090
+    source "$NVM_DIR/nvm.sh"
+    nvm install --lts
+    nvm use --lts
+  fi
+
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "ERROR: npm is still unavailable after Node bootstrap." >&2
+    exit 1
+  fi
+}
+
+ensure_pm2() {
+  if command -v pm2 >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "==> Installing PM2 (missing on server)"
+  npm install -g pm2
+
+  if ! command -v pm2 >/dev/null 2>&1; then
+    echo "ERROR: PM2 installation failed." >&2
+    exit 1
+  fi
+}
+
 if [[ ! -d "$RELEASE_SOURCE" ]]; then
   echo "ERROR: Release source does not exist: $RELEASE_SOURCE" >&2
   exit 1
@@ -42,6 +87,9 @@ fi
 cd "$RELEASE_SOURCE"
 ln -sfn "$SHARED_ENV_FILE" .env.production
 
+ensure_node_toolchain
+ensure_pm2
+
 if [[ -L "$CURRENT_LINK" ]] || [[ -d "$CURRENT_LINK" ]]; then
   PREVIOUS_RELEASE="$(readlink -f "$CURRENT_LINK" || true)"
 fi
@@ -54,11 +102,6 @@ npm run build
 
 echo "==> Switching current symlink"
 ln -sfn "$RELEASE_SOURCE" "$CURRENT_LINK"
-
-if ! command -v pm2 >/dev/null 2>&1; then
-  echo "ERROR: PM2 is not installed." >&2
-  exit 1
-fi
 
 echo "==> Starting or reloading PM2 app"
 if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
