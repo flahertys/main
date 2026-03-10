@@ -101,23 +101,43 @@ if [[ -L "$CURRENT_LINK" ]] || [[ -d "$CURRENT_LINK" ]]; then
   PREVIOUS_RELEASE="$(readlink -f "$CURRENT_LINK" || true)"
 fi
 
-echo "==> Installing dependencies"
-npm ci
+USE_PREBUILT_STANDALONE="false"
+if [[ -f "$RELEASE_SOURCE/.next/standalone/server.js" ]]; then
+  USE_PREBUILT_STANDALONE="true"
+fi
 
-echo "==> Building Next.js app"
-if ! npm run build; then
-  echo "WARN: npm run build failed, retrying via npx next build"
-  npx next build
+if [[ "$USE_PREBUILT_STANDALONE" != "true" ]]; then
+  echo "==> Installing dependencies"
+  npm ci
+
+  echo "==> Building Next.js app"
+  if ! npm run build; then
+    echo "WARN: npm run build failed, retrying via npx next build"
+    npx next build
+  fi
+
+  if [[ -f "$RELEASE_SOURCE/.next/standalone/server.js" ]]; then
+    USE_PREBUILT_STANDALONE="true"
+  fi
+else
+  echo "==> Using prebuilt standalone artifacts from CI"
 fi
 
 echo "==> Switching current symlink"
 ln -sfn "$RELEASE_SOURCE" "$CURRENT_LINK"
 
 echo "==> Starting or reloading PM2 app"
-if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
-  pm2 restart "$APP_NAME" --update-env
+if [[ "$USE_PREBUILT_STANDALONE" == "true" ]]; then
+  if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
+    pm2 delete "$APP_NAME" || true
+  fi
+  PORT="$APP_PORT" pm2 start node --name "$APP_NAME" -- "$CURRENT_LINK/.next/standalone/server.js"
 else
-  pm2 start npm --name "$APP_NAME" --cwd "$CURRENT_LINK" -- start -- -p "$APP_PORT"
+  if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
+    pm2 restart "$APP_NAME" --update-env
+  else
+    pm2 start npm --name "$APP_NAME" --cwd "$CURRENT_LINK" -- start -- -p "$APP_PORT"
+  fi
 fi
 
 pm2 save

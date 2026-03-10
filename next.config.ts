@@ -14,9 +14,8 @@ const withBundleAnalyzer: BundleAnalyzerWrapper =
     : (c) => c;
 
 const nextConfig: NextConfig = {
-  // Enable static export only when explicitly requested.
-  // Dynamic routes (OAuth, leaderboard APIs, claim queue) require server output.
-  ...(useStaticExport && { output: "export" }),
+  // Static export is optional; default to standalone server build for lightweight VPS deploys.
+  output: useStaticExport ? "export" : "standalone",
 
   // Keep runtime checks active in development and production.
   reactStrictMode: true,
