@@ -127,23 +127,6 @@
       "runOptions": {
         "runOn": "folderOpen"
       }
-    },
-    {
-      "label": "TradeHax: Deploy to Namecheap",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "scripts/deploy-to-namecheap.sh"
-      ],
-      "presentation": {
-        "reveal": "always",
-        "panel": "new",
-        "showReuseMessage": false
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": false
-      }
     }
   ]
 }
