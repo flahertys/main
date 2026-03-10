@@ -60,7 +60,7 @@ jobs:
           if [[ -n "${NAMECHEAP_APP_ROOT}" ]]; then
             echo "app_root=${NAMECHEAP_APP_ROOT}" >> $GITHUB_OUTPUT
           else
-            echo "app_root=/var/www/tradehax" >> $GITHUB_OUTPUT
+            echo "app_root=/home/${NAMECHEAP_VPS_USER}/tradehax" >> $GITHUB_OUTPUT
           fi
           if [[ -n "${NAMECHEAP_APP_PORT}" ]]; then
             echo "app_port=${NAMECHEAP_APP_PORT}" >> $GITHUB_OUTPUT

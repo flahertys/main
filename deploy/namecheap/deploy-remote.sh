@@ -4,7 +4,7 @@ set -euo pipefail
 # This script runs ON THE SERVER after GitHub Actions uploads a release folder.
 # It expects release source at $RELEASE_SOURCE and switches current symlink atomically.
 
-APP_ROOT="${APP_ROOT:-/var/www/tradehax}"
+APP_ROOT="${APP_ROOT:-${HOME}/tradehax}"
 APP_NAME="${APP_NAME:-tradehax}"
 APP_PORT="${APP_PORT:-3000}"
 HEALTHCHECK_PATH="${HEALTHCHECK_PATH:-/api/health}"
