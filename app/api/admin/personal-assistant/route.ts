@@ -1,4 +1,5 @@
 import { requireAdminAccessWithSession } from "@/lib/admin-access";
+import { getOwnerUserId } from "@/lib/admin-config";
 import {
     getBehaviorIngestionSummary,
     ingestBehavior,
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
   const adminGate = await requireAdminAccessWithSession(request, rateLimit.headers);
   if (adminGate.response) return adminGate.response;
 
-  const userId = await resolveRequestUserId(request, "acct_tradehax_owner");
+  const userId = await resolveRequestUserId(request, getOwnerUserId());
   const profile = getTradingBehaviorProfile(userId);
   const vault = await getPersonalAssistantVault(userId);
   const ingestion = getBehaviorIngestionSummary(7 * 24 * 60);
@@ -140,7 +141,7 @@ export async function PUT(request: NextRequest) {
     };
   };
 
-  const userId = await resolveRequestUserId(request, "acct_tradehax_owner");
+  const userId = await resolveRequestUserId(request, getOwnerUserId());
 
   const vault = await updatePersonalAssistantVault(
     userId,

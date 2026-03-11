@@ -1,11 +1,16 @@
+import {
+    getAdminLoginUsername,
+    getAdminPasswordHash,
+    getAdminPasswordPlaintext,
+    getAdminRole,
+    getOwnerUserId,
+} from "@/lib/admin-config";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import FacebookProvider from "next-auth/providers/facebook";
 import GoogleProvider from "next-auth/providers/google";
 import TwitterProvider from "next-auth/providers/twitter";
 import crypto from "node:crypto";
-
-const DEFAULT_CREDENTIALS_USERNAME = "tradehax-admin";
 
 function safeEquals(left: string, right: string) {
   const a = Buffer.from(left);
@@ -37,7 +42,7 @@ function verifyScryptPassword(password: string, encoded: string) {
 }
 
 function verifyConfiguredLoginPassword(password: string) {
-  const passwordHash = String(process.env.TRADEHAX_LOGIN_PASSWORD_HASH || "").trim();
+  const passwordHash = getAdminPasswordHash();
   if (passwordHash) {
     try {
       return verifyScryptPassword(password, passwordHash);
@@ -46,7 +51,7 @@ function verifyConfiguredLoginPassword(password: string) {
     }
   }
 
-  const plain = String(process.env.TRADEHAX_LOGIN_PASSWORD || "").trim();
+  const plain = getAdminPasswordPlaintext();
   if (!plain) {
     return false;
   }
@@ -69,8 +74,7 @@ const providers: NextAuthOptions["providers"] = [
       password: { label: "Password", type: "password" },
     },
     async authorize(credentials) {
-      const configuredUsername =
-        (process.env.TRADEHAX_LOGIN_USERNAME || DEFAULT_CREDENTIALS_USERNAME).trim();
+      const configuredUsername = getAdminLoginUsername();
 
       const username = typeof credentials?.username === "string" ? credentials.username.trim() : "";
       const password = typeof credentials?.password === "string" ? credentials.password : "";
@@ -84,10 +88,10 @@ const providers: NextAuthOptions["providers"] = [
       }
 
       return {
-        id: "acct_tradehax_owner",
+        id: getOwnerUserId(),
         name: configuredUsername,
         email: `${configuredUsername}@tradehax.local`,
-        role: "admin_owner",
+        role: getAdminRole(),
       };
     },
   }),
