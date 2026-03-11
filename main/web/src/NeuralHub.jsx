@@ -1,6 +1,6 @@
 
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { apiClient } from "./lib/api-client";
+import { apiClient, userProfileStorage } from "./lib/api-client";
 
 const COLORS = {
   bg: "#090B10",
@@ -18,7 +18,15 @@ const STARTER_PROMPTS = [
   "Explain today's best BTC setup in plain English.",
   "Give me a conservative ETH trade plan with risk controls.",
   "Summarize what matters most before entering a signal.",
+  "Build a swing-trade watchlist using BTC, ETH, and SOL.",
 ];
+
+const DEFAULT_PROFILE = {
+  riskTolerance: "moderate",
+  tradingStyle: "swing",
+  portfolioValue: 25000,
+  preferredAssets: ["BTC", "ETH", "SOL"],
+};
 
 function buildResponse(input) {
   const q = input.toLowerCase();
@@ -87,20 +95,62 @@ export default function NeuralHub() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const nextId = useRef(1);
+  const sessionIdRef = useRef(`tradehax-session-${Date.now()}`);
 
   // Live AI mode state
   const [liveMode, setLiveMode] = useState(true);
   const [aiProvider, setAiProvider] = useState('demo');
   const [cryptoPrices, setCryptoPrices] = useState({});
+  const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
+
+  useEffect(() => {
+    const storedProfile = userProfileStorage.load();
+    if (storedProfile) {
+      setUserProfile((prev) => ({
+        ...prev,
+        ...storedProfile,
+        tradingStyle: storedProfile.tradingStyle || prev.tradingStyle,
+        preferredAssets: storedProfile.preferredAssets?.length ? storedProfile.preferredAssets : prev.preferredAssets,
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    userProfileStorage.save(userProfile);
+  }, [userProfile]);
 
   const stats = useMemo(
     () => [
       { label: "Approach", value: "Signal clarity over clutter" },
-      { label: "Style", value: "Professional AI trading brief" },
+      { label: "Style", value: `${userProfile.tradingStyle} / ${userProfile.riskTolerance}` },
       { label: "Mode", value: liveMode ? "Live AI Mode" : "Stable production interface" },
+      { label: "Focus", value: userProfile.preferredAssets.join(", ") },
     ],
-    [liveMode],
+    [liveMode, userProfile],
   );
+
+  const marketSnapshot = useMemo(
+    () => Object.values(cryptoPrices)
+      .filter(Boolean)
+      .map((asset) => ({
+        symbol: asset.symbol,
+        price: asset.price,
+        change24h: asset.priceChangePercent24h,
+        source: asset.source,
+      })),
+    [cryptoPrices],
+  );
+
+  function updatePreferredAssets(value) {
+    setUserProfile((prev) => ({
+      ...prev,
+      preferredAssets: value
+        .split(",")
+        .map((asset) => asset.trim().toUpperCase())
+        .filter(Boolean)
+        .slice(0, 5),
+    }));
+  }
 
   // Fetch live crypto prices on mount
   useEffect(() => {
@@ -120,6 +170,10 @@ export default function NeuralHub() {
   function submitMessage(raw) {
     const value = (raw ?? input).trim();
     if (!value || loading) return;
+
+    const priorMessages = messages
+      .slice(-6)
+      .map((message) => ({ role: message.role, content: message.content }));
 
     setMessages((prev) => [
       ...prev,
@@ -145,7 +199,15 @@ export default function NeuralHub() {
       }, 250);
     } else {
       // Live AI mode
-      apiClient.chat([{ role: 'user', content: value }])
+      apiClient.chat(
+        [...priorMessages, { role: 'user', content: value }],
+        {
+          sessionId: sessionIdRef.current,
+          userProfile,
+          recentMessages: priorMessages,
+          marketSnapshot,
+        },
+      )
         .then(response => {
           setAiProvider(response.provider);
 
@@ -165,7 +227,11 @@ export default function NeuralHub() {
               meta: {
                 title: parsed.signal || 'AI Analysis',
                 body: response.response,
+                priceTarget: parsed.priceTarget,
+                confidence: parsed.confidence,
+                marketContext: parsed.marketContext,
                 bullets: bullets.length > 0 ? bullets : null,
+                executionPlaybook: parsed.executionPlaybook || null,
               },
             },
           ]);
@@ -181,7 +247,7 @@ export default function NeuralHub() {
               id: `a-${nextId.current++}`,
               role: "assistant",
               content: result.body + "\n\n⚠️ Live AI temporarily unavailable. Using demo mode.",
-              meta: result,
+              meta: { ...result, confidence: "Fallback mode" },
             },
           ]);
           setLoading(false);
@@ -267,12 +333,37 @@ export default function NeuralHub() {
                   <div style={{ fontSize: 12, color: COLORS.textDim, marginBottom: 8 }}>
                     {message.role === "user" ? "You" : "TradeHax AI"}
                   </div>
+                  {message.meta?.title ? (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                      <span style={{ color: COLORS.accent, fontWeight: 700 }}>{message.meta.title}</span>
+                      {message.meta?.confidence ? (
+                        <span style={{ color: COLORS.green, fontSize: 12 }}>Confidence: {message.meta.confidence}</span>
+                      ) : null}
+                      {message.meta?.priceTarget ? (
+                        <span style={{ color: COLORS.gold, fontSize: 12 }}>Target: {message.meta.priceTarget}</span>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div style={{ lineHeight: 1.65 }}>{message.content}</div>
+                  {message.meta?.marketContext ? (
+                    <div style={{ marginTop: 10, color: COLORS.textDim, fontSize: 13 }}>
+                      Market Context: {message.meta.marketContext}
+                    </div>
+                  ) : null}
                   {message.meta?.bullets?.length ? (
                     <ul style={{ marginTop: 12, marginBottom: 0, paddingLeft: 18, color: COLORS.textDim }}>
                       {message.meta.bullets.map((bullet) => (
                         <li key={bullet} style={{ marginBottom: 6 }}>
                           {bullet}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {message.meta?.executionPlaybook?.length ? (
+                    <ul style={{ marginTop: 12, marginBottom: 0, paddingLeft: 18, color: COLORS.accent }}>
+                      {message.meta.executionPlaybook.map((item) => (
+                        <li key={item} style={{ marginBottom: 6 }}>
+                          {item}
                         </li>
                       ))}
                     </ul>
@@ -392,16 +483,62 @@ export default function NeuralHub() {
               padding: 16,
             }}
           >
-            <div style={{ fontWeight: 700, marginBottom: 12 }}>Operator Notes</div>
+            <div style={{ fontWeight: 700, marginBottom: 12 }}>Neural Controls</div>
+            <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
+              <label style={{ display: "grid", gap: 6, fontSize: 13, color: COLORS.textDim }}>
+                Risk tolerance
+                <select
+                  value={userProfile.riskTolerance}
+                  onChange={(e) => setUserProfile((prev) => ({ ...prev, riskTolerance: e.target.value }))}
+                  style={{ background: COLORS.panel, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 10 }}
+                >
+                  <option value="conservative">Conservative</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="aggressive">Aggressive</option>
+                </select>
+              </label>
+              <label style={{ display: "grid", gap: 6, fontSize: 13, color: COLORS.textDim }}>
+                Trading style
+                <select
+                  value={userProfile.tradingStyle}
+                  onChange={(e) => setUserProfile((prev) => ({ ...prev, tradingStyle: e.target.value }))}
+                  style={{ background: COLORS.panel, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 10 }}
+                >
+                  <option value="scalp">Scalp</option>
+                  <option value="swing">Swing</option>
+                  <option value="position">Position</option>
+                </select>
+              </label>
+              <label style={{ display: "grid", gap: 6, fontSize: 13, color: COLORS.textDim }}>
+                Portfolio value
+                <input
+                  type="number"
+                  min="0"
+                  value={userProfile.portfolioValue}
+                  onChange={(e) => setUserProfile((prev) => ({ ...prev, portfolioValue: Number(e.target.value || 0) }))}
+                  style={{ background: COLORS.panel, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 10 }}
+                />
+              </label>
+              <label style={{ display: "grid", gap: 6, fontSize: 13, color: COLORS.textDim }}>
+                Focus assets
+                <input
+                  type="text"
+                  value={userProfile.preferredAssets.join(", ")}
+                  onChange={(e) => updatePreferredAssets(e.target.value)}
+                  placeholder="BTC, ETH, SOL"
+                  style={{ background: COLORS.panel, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 10 }}
+                />
+              </label>
+            </div>
             <div style={{ color: COLORS.textDim, lineHeight: 1.7, fontSize: 14 }}>
-              This recovery build prioritizes stability, clarity, and fast production readiness. It removes fragile runtime pathways while preserving a professional AI-first trading experience.
+              The hub now conditions responses on your risk profile, trading style, preferred assets, recent turns, and live market snapshot when available.
             </div>
             <div style={{ marginTop: 16, color: COLORS.green, fontWeight: 700 }}>Current production mode</div>
             <ul style={{ marginTop: 10, paddingLeft: 18, color: COLORS.textDim, lineHeight: 1.7 }}>
-              <li>Reliable single-page boot path</li>
-              <li>No risky startup dependencies</li>
-              <li>Faster recovery from deployment regressions</li>
-              <li>Clean foundation for the next pass</li>
+              <li>Persistent local trading profile</li>
+              <li>Multi-turn AI context window</li>
+              <li>Live market snapshot in prompt assembly</li>
+              <li>Structured execution playbooks and risk outputs</li>
             </ul>
           </aside>
         </section>

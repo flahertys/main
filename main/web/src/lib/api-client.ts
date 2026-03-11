@@ -22,6 +22,13 @@ export interface ChatResponse {
   cached?: boolean;
 }
 
+export interface MarketSnapshot {
+  symbol: string;
+  price?: number;
+  change24h?: number;
+  source?: string;
+}
+
 export interface CryptoData {
   symbol: string;
   price: number;
@@ -44,10 +51,18 @@ export interface UserProfile {
   riskTolerance?: 'conservative' | 'moderate' | 'aggressive';
   portfolioValue?: number;
   preferredAssets?: string[];
+  tradingStyle?: 'scalp' | 'swing' | 'position';
   signalAccuracy?: {
     overall: number;
     byAsset: Record<string, number>;
   };
+}
+
+export interface ChatContext {
+  sessionId?: string;
+  userProfile?: UserProfile;
+  recentMessages?: ChatMessage[];
+  marketSnapshot?: MarketSnapshot[];
 }
 
 export class TradeHaxAPI {
@@ -64,7 +79,7 @@ export class TradeHaxAPI {
   /**
    * Send chat message to AI with retry logic
    */
-  async chat(messages: ChatMessage[], context?: any): Promise<ChatResponse> {
+  async chat(messages: ChatMessage[], context?: ChatContext): Promise<ChatResponse> {
     return this.fetchWithRetry<ChatResponse>(
       `${this.baseUrl}/api/ai/chat`,
       {
@@ -168,6 +183,8 @@ export class TradeHaxAPI {
   parseAIResponse(response: string): {
     signal?: string;
     priceTarget?: string;
+    marketContext?: string;
+    executionPlaybook?: string[];
     reasoning?: string[];
     riskManagement?: string[];
     confidence?: string;
@@ -183,6 +200,8 @@ export class TradeHaxAPI {
         result.signal = line.replace('**Signal**:', '').trim();
       } else if (line.startsWith('**Price Target**:')) {
         result.priceTarget = line.replace('**Price Target**:', '').trim();
+      } else if (line.startsWith('**Market Context**:')) {
+        result.marketContext = line.replace('**Market Context**:', '').trim();
       } else if (line.startsWith('**Confidence**:')) {
         result.confidence = line.replace('**Confidence**:', '').trim();
       }
@@ -195,6 +214,10 @@ export class TradeHaxAPI {
 
     result.riskManagement = lines
       .filter(l => l.includes('Stop-loss') || l.includes('Position') || l.includes('Max drawdown'))
+      .map(l => l.replace(/^[•-]\s*/, '').trim());
+
+    result.executionPlaybook = lines
+      .filter(l => l.includes('Entry') || l.includes('Trigger') || l.includes('Take-profit') || l.includes('Scale') || l.includes('Invalidation'))
       .map(l => l.replace(/^[•-]\s*/, '').trim());
 
     return result;
