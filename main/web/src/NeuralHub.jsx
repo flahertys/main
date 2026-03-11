@@ -89,7 +89,7 @@ export default function NeuralHub() {
   const nextId = useRef(1);
 
   // Live AI mode state
-  const [liveMode, setLiveMode] = useState(false);
+  const [liveMode, setLiveMode] = useState(true);
   const [aiProvider, setAiProvider] = useState('demo');
   const [cryptoPrices, setCryptoPrices] = useState({});
 

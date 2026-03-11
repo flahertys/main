@@ -29,6 +29,15 @@ async function run() {
       },
     },
     {
+      name: "ai hub route",
+      run: async () => {
+        const { response } = await fetchJson(`${BASE_URL}/ai-hub`);
+        if (!response.ok) {
+          throw new Error(`Expected 2xx response (status ${response.status})`);
+        }
+      },
+    },
+    {
       name: "tradehax route",
       run: async () => {
         const { response } = await fetchJson(`${BASE_URL}/tradehax`);
