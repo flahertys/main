@@ -18,10 +18,10 @@ export function IntroVideo({ onComplete }: IntroVideoProps) {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -41,7 +41,7 @@ export function IntroVideo({ onComplete }: IntroVideoProps) {
           onComplete();
         }
       };
-      
+
       playVideo();
     }
   }, [onComplete, isMobile]);
@@ -63,7 +63,7 @@ export function IntroVideo({ onComplete }: IntroVideoProps) {
         playsInline
         muted
         autoPlay
-        preload="auto"
+        preload="metadata"
         // @ts-expect-error - vendor-specific attributes
         webkitPlaysinline="true"
         x5Playsinline="true"
@@ -71,7 +71,7 @@ export function IntroVideo({ onComplete }: IntroVideoProps) {
         <source src="/videos/intro-video.mp4" type="video/mp4" />
         Your browser does not support the video tag. Please upgrade your browser to view the intro video.
       </video>
-      
+
       {/* Skip button - responsive sizing */}
       <button
         onClick={handleSkip}

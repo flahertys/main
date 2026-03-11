@@ -44,7 +44,7 @@ export default function TradingAssistantTutorial() {
                 {/* Video Player */}
                 <div>
                     <VideoPlayer
-                        src="/videos/trading-assistant-tutorial.mp4"
+                        src="/videos/intro-video.mp4"
                         poster="/videos/trading-assistant-poster.jpg"
                         title="TradeHax Trading Assistant - Complete Tutorial"
                         description="A comprehensive guide to using TradeHax AI trading assistant. Learn to scan markets, interpret signals, practice with paper trading, and execute live trades safely."

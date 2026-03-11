@@ -1,0 +1,63 @@
+name: Live Delta Dataset Refresh
+
+on:
+    schedule:
+        - cron: "17 */6 * * *"
+    workflow_dispatch:
+
+jobs:
+    refresh-dataset-deltas:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Ingest live training deltas
+              env:
+                  FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+                  TRADEHAX_LIVE_SYMBOLS: BTC,ETH,SOL,SPY,QQQ,TSLA,NVDA
+                  TRADEHAX_LIVE_MAX_SYMBOLS: "12"
+                  TRADEHAX_LIVE_INGEST_RETRIES: "2"
+                  TRADEHAX_LIVE_INGEST_TIMEOUT_MS: "9000"
+              run: npm run llm:ingest-live-deltas
+
+            - name: Prepare and validate dataset quality
+              run: |
+                  npm run llm:prepare-dataset
+                  npm run llm:validate-dataset
+
+            - name: Commit new external dataset deltas
+              run: |
+                  if git diff --quiet -- data/external-datasets; then
+                    echo "No external dataset delta changes to commit."
+                    exit 0
+                  fi
+
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+                  git add data/external-datasets
+                  git commit -m "chore(data): refresh live market training deltas"
+                  git push origin HEAD:main
+
+            - name: Upload ingestion state artifact
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: live-delta-ingest-state
+                  path: |
+                      .artifacts/live-delta-ingest-state.json

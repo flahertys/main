@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfidenceMeter, ProbabilitySplitMeter } from "@/components/performance/SignalMeters";
 import { formatDateTime } from "@/lib/intelligence/format";
 import type { ProbabilityCalibrationSummary } from "@/lib/intelligence/probability-calibration";
 import type { ProbabilityPolicyProfile, ProbabilityScenario } from "@/lib/intelligence/probability-engine";
@@ -244,16 +245,16 @@ const decisionLegend: Array<{
   label: string;
   detail: string;
 }> = [
-  { decision: "initialize", label: "Initialize", detail: "Bootstraps selector memory for the horizon." },
-  { decision: "stay", label: "Stay", detail: "Recommendation confirms current policy state." },
-  { decision: "hold", label: "Hold", detail: "Lock window active; switch deferred." },
-  { decision: "warmup", label: "Warm-up", detail: "Awaiting enough matched outcomes before switching." },
-  { decision: "reject", label: "Reject", detail: "Candidate failed edge/confidence thresholds." },
-  { decision: "switch", label: "Switch", detail: "Policy changed to a new profile." },
-  { decision: "override_set", label: "Override Set", detail: "Manual recommendation lock was enabled." },
-  { decision: "override_clear", label: "Override Clear", detail: "Manual recommendation lock was removed." },
-  { decision: "override_expire", label: "Override Expire", detail: "Manual recommendation lock expired naturally." },
-];
+    { decision: "initialize", label: "Initialize", detail: "Bootstraps selector memory for the horizon." },
+    { decision: "stay", label: "Stay", detail: "Recommendation confirms current policy state." },
+    { decision: "hold", label: "Hold", detail: "Lock window active; switch deferred." },
+    { decision: "warmup", label: "Warm-up", detail: "Awaiting enough matched outcomes before switching." },
+    { decision: "reject", label: "Reject", detail: "Candidate failed edge/confidence thresholds." },
+    { decision: "switch", label: "Switch", detail: "Policy changed to a new profile." },
+    { decision: "override_set", label: "Override Set", detail: "Manual recommendation lock was enabled." },
+    { decision: "override_clear", label: "Override Clear", detail: "Manual recommendation lock was removed." },
+    { decision: "override_expire", label: "Override Expire", detail: "Manual recommendation lock expired naturally." },
+  ];
 
 const allTimelineDecisions = decisionLegend.map((row) => row.decision);
 
@@ -949,18 +950,23 @@ export function ProbabilityPanel() {
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-emerald-200/80">Long Probability</p>
-              <p className="mt-1 text-2xl font-semibold text-emerald-100">{toPercent(single.longProbability)}</p>
-            </div>
-            <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-rose-200/80">Short Probability</p>
-              <p className="mt-1 text-2xl font-semibold text-rose-100">{toPercent(single.shortProbability)}</p>
-            </div>
-            <div className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-cyan-200/80">Confidence</p>
-              <p className="mt-1 text-2xl font-semibold text-cyan-100">{toPercent(single.confidence)}</p>
-            </div>
+            <ProbabilitySplitMeter
+              longProbability={single.longProbability}
+              shortProbability={single.shortProbability}
+              confidence={single.confidence}
+            />
+            <ConfidenceMeter
+              label="Long Probability"
+              value={single.longProbability}
+              tone="emerald"
+              subtitle={`Bias ${single.bias.toUpperCase()} · ${single.providerMode}`}
+            />
+            <ConfidenceMeter
+              label="Short Probability"
+              value={single.shortProbability}
+              tone="rose"
+              subtitle={`Forecast ${single.forecastId}`}
+            />
           </div>
 
           <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3 text-xs text-[#b9cadd]">

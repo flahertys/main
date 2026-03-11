@@ -275,6 +275,9 @@ export function ImageGeneratorComponent() {
                 <img
                   src={generatedImage.url}
                   alt={generatedImage.prompt}
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
                   className="w-full h-auto"
                 />
               </div>

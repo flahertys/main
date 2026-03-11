@@ -102,6 +102,36 @@ function toPct(value: number) {
   return Number.parseFloat(clamp(value, 0, 1).toFixed(4));
 }
 
+type SignalScore = {
+  score: number;
+  detail: string;
+  samples: number;
+  freshness: number;
+  reliability: number;
+};
+
+function parseIsoMs(value: string | undefined) {
+  const parsed = Date.parse(String(value || ""));
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function ageMinutes(value: string | undefined) {
+  const parsed = parseIsoMs(value);
+  if (!Number.isFinite(parsed)) {
+    return 24 * 60;
+  }
+  return Math.max(0, (Date.now() - parsed) / 60_000);
+}
+
+function recencyWeight(value: string | undefined, halfLifeMinutes: number, floor = 0.12) {
+  return clamp(Math.pow(0.5, ageMinutes(value) / halfLifeMinutes), floor, 1);
+}
+
+function resolveSignalReliability(samples: number, freshness: number) {
+  const sampleFactor = clamp(samples / 6, 0.18, 1);
+  return clamp(sampleFactor * 0.6 + freshness * 0.4, 0.12, 1);
+}
+
 function scoreCallPutFlow(flowTape: FlowTrade[], symbol: string) {
   const rows = flowTape.filter((row) => row.symbol === symbol);
   if (rows.length === 0) {
@@ -109,16 +139,24 @@ function scoreCallPutFlow(flowTape: FlowTrade[], symbol: string) {
       score: 0,
       detail: "No options flow for symbol.",
       samples: 0,
-    };
+      freshness: 0,
+      reliability: 0,
+    } satisfies SignalScore;
   }
 
   let callPremium = 0;
   let putPremium = 0;
   let unusual = 0;
+  let weightTotal = 0;
+  let freshnessWeighted = 0;
 
   for (const row of rows) {
-    const weightedPremium = row.premiumUsd * (1 + row.unusualScore / 100);
-    unusual += row.unusualScore;
+    const timeWeight = recencyWeight(row.openedAt, 55);
+    const premiumWeight = timeWeight * (row.sweep ? 1.1 : 1);
+    const weightedPremium = row.premiumUsd * (1 + row.unusualScore / 100) * premiumWeight;
+    unusual += row.unusualScore * premiumWeight;
+    weightTotal += premiumWeight;
+    freshnessWeighted += timeWeight;
     if (row.side === "call") {
       callPremium += weightedPremium;
     } else {
@@ -128,14 +166,18 @@ function scoreCallPutFlow(flowTape: FlowTrade[], symbol: string) {
 
   const total = callPremium + putPremium;
   const imbalance = total > 0 ? (callPremium - putPremium) / total : 0;
-  const unusualBoost = rows.length > 0 ? (unusual / rows.length - 50) / 100 : 0;
+  const unusualAvg = weightTotal > 0 ? unusual / weightTotal : 50;
+  const unusualBoost = (unusualAvg - 50) / 100;
+  const freshness = rows.length > 0 ? clamp(freshnessWeighted / rows.length, 0, 1) : 0;
   const score = clamp(imbalance * 0.8 + unusualBoost * 0.2, -1, 1);
 
   return {
     score,
-    detail: `Flow imbalance ${(imbalance * 100).toFixed(1)}%, unusual avg ${(unusual / rows.length).toFixed(1)}.`,
+    detail: `Flow imbalance ${(imbalance * 100).toFixed(1)}%, unusual avg ${unusualAvg.toFixed(1)}.`,
     samples: rows.length,
-  };
+    freshness,
+    reliability: resolveSignalReliability(rows.length, freshness),
+  } satisfies SignalScore;
 }
 
 function scoreDarkPool(darkPoolTape: DarkPoolTrade[], symbol: string) {
@@ -145,34 +187,46 @@ function scoreDarkPool(darkPoolTape: DarkPoolTrade[], symbol: string) {
       score: 0,
       detail: "No dark pool blocks for symbol.",
       samples: 0,
-    };
+      freshness: 0,
+      reliability: 0,
+    } satisfies SignalScore;
   }
 
   let buy = 0;
   let sell = 0;
   let mixed = 0;
   let unusual = 0;
+  let weightTotal = 0;
+  let freshnessWeighted = 0;
   for (const row of rows) {
-    unusual += row.unusualScore;
+    const timeWeight = recencyWeight(row.executedAt, 80);
+    const sizeWeight = timeWeight * (row.sideEstimate === "mixed" ? 0.8 : 1);
+    unusual += row.unusualScore * sizeWeight;
+    weightTotal += sizeWeight;
+    freshnessWeighted += timeWeight;
     if (row.sideEstimate === "buy") {
-      buy += row.notionalUsd;
+      buy += row.notionalUsd * sizeWeight;
     } else if (row.sideEstimate === "sell") {
-      sell += row.notionalUsd;
+      sell += row.notionalUsd * sizeWeight;
     } else {
-      mixed += row.notionalUsd;
+      mixed += row.notionalUsd * sizeWeight;
     }
   }
 
   const denominator = buy + sell + mixed * 0.6;
   const imbalance = denominator > 0 ? (buy - sell) / denominator : 0;
-  const unusualBoost = rows.length > 0 ? (unusual / rows.length - 50) / 100 : 0;
+  const unusualAvg = weightTotal > 0 ? unusual / weightTotal : 50;
+  const unusualBoost = (unusualAvg - 50) / 100;
+  const freshness = rows.length > 0 ? clamp(freshnessWeighted / rows.length, 0, 1) : 0;
   const score = clamp(imbalance * 0.75 + unusualBoost * 0.25, -1, 1);
 
   return {
     score,
-    detail: `Dark-pool buy/sell imbalance ${(imbalance * 100).toFixed(1)}%, unusual avg ${(unusual / rows.length).toFixed(1)}.`,
+    detail: `Dark-pool buy/sell imbalance ${(imbalance * 100).toFixed(1)}%, unusual avg ${unusualAvg.toFixed(1)}.`,
     samples: rows.length,
-  };
+    freshness,
+    reliability: resolveSignalReliability(rows.length, freshness),
+  } satisfies SignalScore;
 }
 
 function scoreCryptoFlow(cryptoTape: CryptoFlowTrade[], symbol: string) {
@@ -182,33 +236,44 @@ function scoreCryptoFlow(cryptoTape: CryptoFlowTrade[], symbol: string) {
       score: 0,
       detail: "No crypto flow rows for symbol.",
       samples: 0,
-    };
+      freshness: 0,
+      reliability: 0,
+    } satisfies SignalScore;
   }
 
   let longNotional = 0;
   let shortNotional = 0;
   let confidenceSum = 0;
+  let weightTotal = 0;
+  let freshnessWeighted = 0;
 
   for (const row of rows) {
-    confidenceSum += row.confidence;
+    const timeWeight = recencyWeight(row.triggeredAt, 45);
+    const directionalWeight = timeWeight * clamp(0.7 + row.confidence * 0.6, 0.7, 1.3);
+    confidenceSum += row.confidence * directionalWeight;
+    weightTotal += directionalWeight;
+    freshnessWeighted += timeWeight;
     if (row.side === "long" || row.side === "spot_buy") {
-      longNotional += row.notionalUsd;
+      longNotional += row.notionalUsd * directionalWeight;
     } else {
-      shortNotional += row.notionalUsd;
+      shortNotional += row.notionalUsd * directionalWeight;
     }
   }
 
   const total = longNotional + shortNotional;
   const directional = total > 0 ? (longNotional - shortNotional) / total : 0;
-  const avgConfidence = rows.length > 0 ? confidenceSum / rows.length : 0.5;
+  const avgConfidence = weightTotal > 0 ? confidenceSum / weightTotal : 0.5;
   const confidenceBoost = (avgConfidence - 0.5) * 1.2;
+  const freshness = rows.length > 0 ? clamp(freshnessWeighted / rows.length, 0, 1) : 0;
   const score = clamp(directional * 0.8 + confidenceBoost * 0.2, -1, 1);
 
   return {
     score,
     detail: `Crypto directional ${(directional * 100).toFixed(1)}%, avg confidence ${(avgConfidence * 100).toFixed(1)}%.`,
     samples: rows.length,
-  };
+    freshness,
+    reliability: resolveSignalReliability(rows.length, freshness),
+  } satisfies SignalScore;
 }
 
 function scoreNews(news: IntelligenceNewsItem[], symbol: string) {
@@ -218,13 +283,21 @@ function scoreNews(news: IntelligenceNewsItem[], symbol: string) {
       score: 0,
       detail: "No symbol-specific news catalysts.",
       samples: 0,
-    };
+      freshness: 0,
+      reliability: 0,
+    } satisfies SignalScore;
   }
 
   let macroBias = 0;
   let riskBias = 0;
+  let weightTotal = 0;
+  let freshnessWeighted = 0;
   for (const row of rows) {
-    const weight = row.impact === "high" ? 1 : row.impact === "medium" ? 0.6 : 0.35;
+    const impactWeight = row.impact === "high" ? 1 : row.impact === "medium" ? 0.6 : 0.35;
+    const timeWeight = recencyWeight(row.publishedAt, 180, 0.08);
+    const weight = impactWeight * timeWeight;
+    weightTotal += weight;
+    freshnessWeighted += timeWeight;
     const text = `${row.title} ${row.summary}`.toLowerCase();
     const bullishToken = /(beat|upgrade|inflow|accumulation|breakout|dovish|cooling inflation)/.test(text);
     const bearishToken = /(downgrade|outflow|distribution|breakdown|hawkish|hot inflation|risk-off)/.test(text);
@@ -240,15 +313,18 @@ function scoreNews(news: IntelligenceNewsItem[], symbol: string) {
     }
   }
 
-  const scaled = rows.length > 0 ? macroBias / Math.max(1, rows.length) : 0;
-  const riskScaled = rows.length > 0 ? riskBias / Math.max(1, rows.length) : 0;
+  const scaled = weightTotal > 0 ? macroBias / weightTotal : 0;
+  const riskScaled = weightTotal > 0 ? riskBias / weightTotal : 0;
+  const freshness = rows.length > 0 ? clamp(freshnessWeighted / rows.length, 0, 1) : 0;
   const score = clamp(scaled * (1 - clamp(riskScaled * 0.15, 0, 0.25)), -1, 1);
 
   return {
     score,
     detail: `News directional score ${(scaled * 100).toFixed(1)} with macro risk pressure ${(riskScaled * 100).toFixed(1)}.`,
     samples: rows.length,
-  };
+    freshness,
+    reliability: resolveSignalReliability(rows.length, freshness),
+  } satisfies SignalScore;
 }
 
 function detectPatterns(input: {
@@ -497,11 +573,43 @@ export async function buildProbabilityScenario(input: {
   const news = scoreNews(snapshot.news, symbol);
   const weights = horizonWeight(horizon);
 
+  const signalBlend = [
+    { score: flow.score, baseWeight: weights.flow, reliability: flow.reliability, freshness: flow.freshness },
+    { score: dark.score, baseWeight: weights.dark, reliability: dark.reliability, freshness: dark.freshness },
+    { score: crypto.score, baseWeight: weights.crypto, reliability: crypto.reliability, freshness: crypto.freshness },
+    { score: news.score, baseWeight: weights.news, reliability: news.reliability, freshness: news.freshness },
+  ];
+  const weightedCoverage = signalBlend.reduce((sum, item) => sum + item.baseWeight * item.reliability, 0);
+  const weightBudget = signalBlend.reduce((sum, item) => sum + item.baseWeight, 0) || 1;
   const raw =
-    flow.score * weights.flow +
-    dark.score * weights.dark +
-    crypto.score * weights.crypto +
-    news.score * weights.news;
+    weightedCoverage > 0
+      ? signalBlend.reduce(
+          (sum, item) => sum + item.score * ((item.baseWeight * item.reliability) / weightedCoverage),
+          0,
+        )
+      : 0;
+  const coverageRatio = clamp(weightedCoverage / weightBudget, 0.12, 1);
+  const freshnessScore =
+    weightedCoverage > 0
+      ? clamp(
+          signalBlend.reduce((sum, item) => sum + item.freshness * item.baseWeight * item.reliability, 0) / weightedCoverage,
+          0,
+          1,
+        )
+      : 0;
+  const positivePressure = signalBlend.reduce(
+    (sum, item) => sum + Math.max(item.score, 0) * item.baseWeight * item.reliability,
+    0,
+  );
+  const negativePressure = signalBlend.reduce(
+    (sum, item) => sum + Math.max(-item.score, 0) * item.baseWeight * item.reliability,
+    0,
+  );
+  const disagreementRatio =
+    Math.max(positivePressure, negativePressure) > 0
+      ? Math.min(positivePressure, negativePressure) / Math.max(positivePressure, negativePressure)
+      : 0;
+  const disagreementPenalty = 1 - disagreementRatio * 0.4;
 
   const patterns = detectPatterns({
     symbol,
@@ -524,9 +632,11 @@ export async function buildProbabilityScenario(input: {
   });
 
   const sampleCount = flow.samples + dark.samples + crypto.samples + news.samples;
-  const sampleReliability = clamp(sampleCount / 16, 0.25, 1);
-  const adaptiveBase = clamp(raw + adaptive.netLongDelta * 2.2, -1, 1);
-  const calibrated = sigmoid(adaptiveBase * 2.6) * sampleReliability + 0.5 * (1 - sampleReliability);
+  const sampleDepth = clamp(sampleCount / 16, 0.18, 1);
+  const sampleReliability = clamp(sampleDepth * 0.5 + coverageRatio * 0.25 + freshnessScore * 0.25, 0.18, 1);
+  const adaptiveBase = clamp(raw * disagreementPenalty + adaptive.netLongDelta * 2.2, -1, 1);
+  const curveStrength = 2 + coverageRatio * 0.45 + freshnessScore * 0.35;
+  const calibrated = sigmoid(adaptiveBase * curveStrength) * sampleReliability + 0.5 * (1 - sampleReliability);
   const adjustment = getCalibrationAdjustment({
     symbol,
     horizon,

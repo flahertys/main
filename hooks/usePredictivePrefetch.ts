@@ -38,6 +38,34 @@ function predictNextRoutes(pathname: string): string[] {
   return ROUTE_PREDICTIONS[segment] ?? [];
 }
 
+function resolvePrefetchBudget() {
+  if (typeof navigator === "undefined") {
+    return 0;
+  }
+
+  const connection = navigator as Navigator & {
+    connection?: {
+      saveData?: boolean;
+      effectiveType?: string;
+    };
+  };
+
+  if (connection.connection?.saveData) {
+    return 0;
+  }
+
+  const effectiveType = connection.connection?.effectiveType || "4g";
+  if (effectiveType === "slow-2g" || effectiveType === "2g") {
+    return 0;
+  }
+
+  if (effectiveType === "3g") {
+    return 1;
+  }
+
+  return 2;
+}
+
 /**
  * usePredictivePrefetch
  *
@@ -69,17 +97,26 @@ export function usePredictivePrefetch() {
   );
 
   useEffect(() => {
-    const predicted = predictNextRoutes(pathname);
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+      return;
+    }
+
+    const prefetchBudget = resolvePrefetchBudget();
+    if (prefetchBudget === 0) return;
+
+    const predicted = predictNextRoutes(pathname)
+      .filter((route) => route !== pathname)
+      .slice(0, prefetchBudget);
     if (predicted.length === 0) return;
 
     if (typeof window.requestIdleCallback === "function") {
       const id = window.requestIdleCallback(() => doPrefetch(predicted), {
-        timeout: 2000,
+        timeout: 2500,
       });
       return () => window.cancelIdleCallback(id);
     } else {
       // Fallback: defer slightly so it doesn't block initial paint
-      const timer = setTimeout(() => doPrefetch(predicted), 200);
+      const timer = setTimeout(() => doPrefetch(predicted), 350);
       return () => clearTimeout(timer);
     }
   }, [pathname, doPrefetch]);

@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfidenceMeter } from "@/components/performance/SignalMeters";
 import { useEffect, useMemo, useState } from "react";
 
 type PredictionDomain = "stock" | "crypto" | "kalshi" | "general";
@@ -427,6 +428,21 @@ export function ModelScoreboardPanel() {
                   <MetricChip label="Fallback" value={`${entry.fallbackRate}%`} tone={entry.fallbackRate <= 20 ? "good" : "warn"} />
                 </>
               ) : null}
+            </div>
+
+            <div className="mb-3 grid gap-2 sm:grid-cols-2">
+              <ConfidenceMeter
+                label="Avg confidence"
+                value={entry.avgConfidence / 100}
+                tone={entry.avgConfidence >= 72 ? "emerald" : entry.avgConfidence >= 60 ? "cyan" : "amber"}
+                subtitle={`${entry.requests} routed requests`}
+              />
+              <ConfidenceMeter
+                label="Fallback rate"
+                value={entry.fallbackRate / 100}
+                tone={entry.fallbackRate <= 18 ? "emerald" : entry.fallbackRate <= 28 ? "amber" : "rose"}
+                subtitle={entry.fallbackRate <= 18 ? "Healthy failover posture" : "Higher fallback pressure detected"}
+              />
             </div>
 
             <div className="text-[11px] text-zinc-300 space-y-1">

@@ -37,6 +37,23 @@ If GPU is unavailable or CPU-only is too slow:
 
 ## 3) Run fine-tune
 
+Before training, refresh live market deltas into `data/external-datasets`:
+
+- Dry-run ingestion:
+  - `npm run llm:ingest-live-deltas:dry-run`
+- Write live delta rows:
+  - `npm run llm:ingest-live-deltas`
+- Full continuous refresh (ingest + prepare + validate):
+  - `npm run llm:continuous-refresh`
+
+Optional env vars for ingestion:
+
+- `TRADEHAX_LIVE_SYMBOLS=BTC,ETH,SOL,SPY,QQQ,TSLA,NVDA`
+- `FINNHUB_API_KEY=...` (enables live news deltas)
+- `TRADEHAX_LIVE_MAX_SYMBOLS=12`
+- `TRADEHAX_LIVE_INGEST_RETRIES=2`
+- `TRADEHAX_LIVE_INGEST_TIMEOUT_MS=9000`
+
 Install dependencies (once):
 
 - `pip install -r scripts/fine-tune-requirements.txt`
@@ -85,4 +102,3 @@ To expose premium AI subscriptions:
 
 - Tiny-model tests are useful for plumbing verification only.
 - Real quality targets require Mistral + full dataset + stable HF Hub artifact.
-

@@ -3016,7 +3016,14 @@ export function ChatStreamPanel({ minimal = false }: { minimal?: boolean } = {})
 
           {imageResult ? (
             <div className="space-y-2 rounded-lg border border-cyan-300/30 bg-black/30 p-2">
-              <img src={imageResult.url} alt={imageResult.prompt} className="w-full rounded" />
+              <img
+                src={imageResult.url}
+                alt={imageResult.prompt}
+                loading="lazy"
+                decoding="async"
+                fetchPriority="low"
+                className="w-full rounded"
+              />
               <p className="text-[11px] text-cyan-100/80">{imageResult.prompt}</p>
               <p className="text-[11px] text-cyan-100/65">
                 {imageResult.style} · {imageResult.model || "model:auto"}

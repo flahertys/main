@@ -1,11 +1,12 @@
 {
-  "generatedAt": "2026-03-04T18:41:41.514Z",
+  "generatedAt": "2026-03-10T23:59:53.518Z",
   "sourceFiles": [
     "ai-training-set.jsonl",
     "tradehax-training-expanded.jsonl",
     "tradehax-crypto-education.jsonl",
     "tradehax-domain-priority.jsonl",
     "kalshi-seed.jsonl",
+    "live-market-delta-2026-03-10.jsonl",
     "xai-grok-image-capabilities.jsonl",
     "xai-grok-trading-visual-prompts.jsonl"
   ],
@@ -16,16 +17,18 @@
     "general": 1
   },
   "shuffleSeed": 42,
-  "uniqueRowsBeforeWeighting": 91,
-  "samplesAfterWeighting": 243,
+  "uniqueRowsBeforeWeighting": 103,
+  "samplesAfterWeighting": 327,
   "integrity": {
-    "trainFileSha256": "ae676d056c1486189640bf8e9cd4b48b33e6fc9132eacba7ff393aa8177fa72d",
+    "trainFileSha256": "c75546040c5740282ec8b5b37ba6146304d1091e8a35d6aa044feba07d255994",
     "algorithm": "sha256",
     "externalDatasetDirUsed": true
   },
   "categoryDistribution": {
+    "STOCK_CRYPTO_LIVE_DELTA": 63,
     "GENERAL": 47,
     "MUSIC_CREATION": 21,
+    "MARKET_LIVE_SUMMARY": 21,
     "BOT_SETUP": 14,
     "DEFI_EDUCATION": 14,
     "MUSIC_EDUCATION": 12,
