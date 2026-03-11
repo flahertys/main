@@ -2,7 +2,9 @@ import {
   buildProbabilityScenario,
   buildTopProbabilitySetups,
   type ProbabilityPolicyProfile,
+  type ProbabilityUserContext,
 } from "@/lib/intelligence/probability-engine";
+import { getTradingBehaviorProfile } from "@/lib/ai/trading-personalization";
 import {
   normalizePolicyProfileKey,
   recordPolicyDecision,
@@ -10,6 +12,7 @@ import {
   setStoredPolicyPreference,
 } from "@/lib/intelligence/probability-policy-store";
 import { getProbabilityCalibrationSummary } from "@/lib/intelligence/probability-calibration";
+import { resolveRequestUserId } from "@/lib/monetization/identity";
 import { enforceRateLimit, enforceTrustedOrigin } from "@/lib/security";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -74,10 +77,26 @@ export async function GET(request: NextRequest) {
     const assetType = parseAssetType(search.get("assetType"));
     const top = search.get("top") === "1" || search.get("top") === "true";
     const limit = parseInteger(search.get("limit"), 6, 1, 12);
+    const eliteOnly = search.get("eliteOnly") === "1" || search.get("eliteOnly") === "true";
     const diagnostics = search.get("diagnostics") === "1" || search.get("diagnostics") === "true";
     const explicitPolicy = parsePolicy(search.get("policy"));
     const policyProfileKey = normalizePolicyProfileKey(search.get("policyProfile") || "default");
     const persistPolicy = search.get("persistPolicy") === "1" || search.get("persistPolicy") === "true";
+    const personalize = !(search.get("personalize") === "0" || search.get("personalize") === "false");
+    const resolvedUserId = personalize ? await resolveRequestUserId(request, search.get("userId")) : "anonymous";
+    const userProfile = personalize ? getTradingBehaviorProfile(resolvedUserId) : null;
+    const userContext: ProbabilityUserContext | undefined = userProfile
+      ? {
+          riskProfile: userProfile.riskProfile,
+          preferredTimeframes: userProfile.preferredTimeframes,
+          favoriteSymbols: userProfile.favoriteSymbols,
+          tradesTracked: userProfile.tradesTracked,
+          wins: userProfile.wins,
+          losses: userProfile.losses,
+          avgPnlPercent: userProfile.avgPnlPercent,
+          confidenceAvg: userProfile.confidenceAvg,
+        }
+      : undefined;
     const resolution = resolvePolicyPreference({
       profileKey: policyProfileKey,
       explicitPolicy,
@@ -97,6 +116,8 @@ export async function GET(request: NextRequest) {
         limit,
         policy,
         profileKey: policyProfileKey,
+        userContext,
+        eliteOnly,
       });
 
       for (const setup of setups) {
@@ -122,9 +143,17 @@ export async function GET(request: NextRequest) {
           policy,
           policySource: resolution.source,
           policyProfile: policyProfileKey,
+          eliteOnly,
           count: setups.length,
           items: setups,
           diagnostics: diagnostics ? getProbabilityCalibrationSummary() : undefined,
+          personalization: userProfile
+            ? {
+                applied: true,
+                riskProfile: userProfile.riskProfile,
+                tradesTracked: userProfile.tradesTracked,
+              }
+            : { applied: false },
           generatedAt: new Date().toISOString(),
         },
         { headers: rateLimit.headers },
@@ -137,6 +166,7 @@ export async function GET(request: NextRequest) {
       assetType,
       policy,
       profileKey: policyProfileKey,
+      userContext,
     });
 
     recordPolicyDecision({
@@ -161,6 +191,13 @@ export async function GET(request: NextRequest) {
         policyProfile: policyProfileKey,
         scenario,
         diagnostics: diagnostics ? getProbabilityCalibrationSummary() : undefined,
+        personalization: userProfile
+          ? {
+              applied: true,
+              riskProfile: userProfile.riskProfile,
+              tradesTracked: userProfile.tradesTracked,
+            }
+          : { applied: false },
         generatedAt: new Date().toISOString(),
       },
       { headers: rateLimit.headers },
