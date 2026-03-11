@@ -12,23 +12,18 @@ import { Suspense } from "react";
 
 const VoiceSearchControlPanel = dynamic(
   () => import("@/components/ai/VoiceSearchControlPanel").then((mod) => mod.VoiceSearchControlPanel),
-  { ssr: false },
 );
 const SmartEnvironmentMonitor = dynamic(
   () => import("@/components/ai/SmartEnvironmentMonitor").then((mod) => mod.SmartEnvironmentMonitor),
-  { ssr: false },
 );
 const HFGeneratorComponent = dynamic(
   () => import("@/components/ai/HFGeneratorComponent").then((mod) => mod.HFGeneratorComponent),
-  { ssr: false },
 );
 const ImageGeneratorComponent = dynamic(
   () => import("@/components/ai/ImageGeneratorComponent").then((mod) => mod.ImageGeneratorComponent),
-  { ssr: false },
 );
 const ModelScoreboardPanel = dynamic(
   () => import("@/components/ai/ModelScoreboardPanel").then((mod) => mod.ModelScoreboardPanel),
-  { ssr: false },
 );
 
 export const metadata = createPageMetadata({
