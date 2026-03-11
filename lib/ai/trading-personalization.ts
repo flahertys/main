@@ -122,7 +122,39 @@ function normalizeUserId(value: unknown) {
   return normalized || "anonymous";
 }
 
+const OWNER_USER_ID = (process.env.TRADEHAX_OWNER_USER_ID || "acct_tradehax_owner").toLowerCase();
+
+function buildOwnerDefaultProfile(userId: string): TradingBehaviorProfile {
+  const timestamp = nowIso();
+  const indicators = initializeFavoriteIndicators();
+  indicators.rsi = 0.88;
+  indicators.volume = 0.92;
+  indicators.macd = 0.82;
+  indicators.vwap = 0.86;
+  indicators.bollinger_bands = 0.75;
+  return {
+    userId,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    favoriteIndicators: indicators,
+    riskProfile: "aggressive",
+    preferredTimeframes: ["15m", "1h", "4h"],
+    favoriteSymbols: ["SOL", "BTC", "ETH", "BNB", "AAPL", "NVDA"],
+    regimes: initializeRegimes(),
+    tradesTracked: 0,
+    wins: 0,
+    losses: 0,
+    avgPnlPercent: 0,
+    confidenceAvg: 0.72,
+    recentOutcomes: [],
+    notes: "Owner account — aggressive profile with full signal access.",
+  };
+}
+
 function buildDefaultProfile(userId: string): TradingBehaviorProfile {
+  if (userId === OWNER_USER_ID) {
+    return buildOwnerDefaultProfile(userId);
+  }
   const timestamp = nowIso();
   return {
     userId,

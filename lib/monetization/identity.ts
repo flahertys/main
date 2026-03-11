@@ -64,11 +64,13 @@ export async function resolveRequestUserId(
     });
 
     if (typeof token?.sub === "string" && token.sub.trim().length > 0) {
-      return `acct_${sanitizeUserId(token.sub)}`;
+      const sub = sanitizeUserId(token.sub);
+      return sub.startsWith("acct_") ? sub : `acct_${sub}`;
     }
 
     if (typeof token?.email === "string" && token.email.trim().length > 0) {
-      return `acct_${sanitizeUserId(token.email)}`;
+      const email = sanitizeUserId(token.email);
+      return email.startsWith("acct_") ? email : `acct_${email}`;
     }
   } catch {
     // Fallback to anonymous identifier.
