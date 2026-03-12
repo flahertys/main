@@ -40,6 +40,7 @@ interface ChatResponse {
   model: string;
   timestamp: number;
   cached?: boolean;
+  guardrailRetryCount?: number;
 }
 
 interface UserProfileContext {
@@ -87,6 +88,9 @@ const FORBIDDEN_RESPONSE_PATTERNS = [
   /\bCOMMAND_MATRIX\b/gi,
 ];
 
+const USER_GUARDRAIL_APOLOGY =
+  "Sorry - we hit an internal formatting issue while generating your answer. Please resend once, and we'll provide a clean response.";
+
 function sanitizeInternalArtifacts(text: string): string {
   let cleaned = String(text || '');
   for (const pattern of FORBIDDEN_RESPONSE_PATTERNS) {
@@ -97,6 +101,28 @@ function sanitizeInternalArtifacts(text: string): string {
 
 function hasForbiddenArtifacts(text: string): boolean {
   return FORBIDDEN_RESPONSE_PATTERNS.some((pattern) => !!String(text || '').match(pattern));
+}
+
+async function getGuardedProviderResponse(
+  invoke: () => Promise<string>,
+  userMsg: string,
+  context?: ChatContext,
+  snapshot: MarketSnapshot[] = [],
+): Promise<{ response: string; blocked: boolean; retried: boolean }> {
+  const firstRaw = await invoke();
+  const firstStructured = ensureStructuredResponse(firstRaw, userMsg, context, snapshot);
+  if (!hasForbiddenArtifacts(firstStructured)) {
+    return { response: sanitizeInternalArtifacts(firstStructured), blocked: false, retried: false };
+  }
+
+  // Hard guardrail: retry exactly once before returning a user-facing apology.
+  const secondRaw = await invoke();
+  const secondStructured = ensureStructuredResponse(secondRaw, userMsg, context, snapshot);
+  if (!hasForbiddenArtifacts(secondStructured)) {
+    return { response: sanitizeInternalArtifacts(secondStructured), blocked: false, retried: true };
+  }
+
+  return { response: USER_GUARDRAIL_APOLOGY, blocked: true, retried: true };
 }
 
 /**
@@ -603,7 +629,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         requestCache.delete(cacheKey);
       } else {
         console.log('✅ Cache hit - serving cached response');
-        return res.status(200).json({ ...cached.response, cached: true });
+        return res.status(200).json({
+          ...cached.response,
+          cached: true,
+          guardrailRetryCount: cached.response?.guardrailRetryCount ?? 0,
+        });
       }
     }
 
@@ -615,6 +645,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let response: string;
     let provider: 'huggingface' | 'openai' | 'demo' = 'demo';
+    let guardrailBlocked = false;
+    let guardrailRetryCount = 0;
 
     // Check console config for force demo or strict mode
     const consoleConfig = getConsoleConfig();
@@ -624,9 +656,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       if (!skipLiveAI && HF_API_KEY) {
         console.log('🤖 Attempting HuggingFace Llama 3.3 70B...');
-        response = await callHuggingFace(messages, consoleConfig.temperature);
-        response = ensureStructuredResponse(response, latestUserMessage, enhancedContext, liveSnapshot);
-        response = sanitizeInternalArtifacts(response);
+        const guarded = await getGuardedProviderResponse(
+          () => callHuggingFace(messages, consoleConfig.temperature),
+          latestUserMessage,
+          enhancedContext,
+          liveSnapshot,
+        );
+        response = guarded.response;
+        guardrailBlocked = guarded.blocked;
+        guardrailRetryCount = guarded.retried ? 1 : 0;
         provider = 'huggingface';
         console.log('✅ HuggingFace success');
       } else {
@@ -638,9 +676,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       try {
         if (!skipLiveAI && OPENAI_API_KEY) {
           console.log('🔄 Falling back to OpenAI GPT-4...');
-          response = await callOpenAI(messages, consoleConfig.temperature);
-          response = ensureStructuredResponse(response, latestUserMessage, enhancedContext, liveSnapshot);
-          response = sanitizeInternalArtifacts(response);
+          const guarded = await getGuardedProviderResponse(
+            () => callOpenAI(messages, consoleConfig.temperature),
+            latestUserMessage,
+            enhancedContext,
+            liveSnapshot,
+          );
+          response = guarded.response;
+          guardrailBlocked = guarded.blocked;
+          guardrailRetryCount = guarded.retried ? 1 : 0;
           provider = 'openai';
           console.log('✅ OpenAI fallback success');
         } else {
@@ -655,10 +699,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    if (hasForbiddenArtifacts(response)) {
-      console.warn('🛑 Forbidden response artifacts detected; forcing sanitized demo fallback');
-      response = sanitizeInternalArtifacts(generateDemoResponse(latestUserMessage, enhancedContext, liveSnapshot));
-      provider = 'demo';
+    if (guardrailBlocked) {
+      const validation = {
+        isValid: true,
+        score: 100,
+        errors: [],
+        warnings: ['Guardrail blocked internal markers; returned apology response after one retry.'],
+      };
+      recordResponseMetric(response, provider, validation as any);
+      return res.status(200).json({
+        response,
+        provider,
+        model: provider === 'huggingface' ? HF_MODEL : provider === 'openai' ? 'gpt-4-turbo-preview' : 'demo',
+        timestamp: Date.now(),
+        guardrailBlocked: true,
+        guardrailRetryCount,
+      });
     }
 
     // QUALITY GATE 1: Hallucination detection
@@ -695,6 +751,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       provider,
       model: provider === 'huggingface' ? HF_MODEL : provider === 'openai' ? 'gpt-4-turbo-preview' : 'demo',
       timestamp: Date.now(),
+      guardrailRetryCount,
     };
 
     // Cache non-demo responses only if they passed quality gates
@@ -720,6 +777,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       provider: 'demo',
       model: 'demo',
       timestamp: Date.now(),
+      guardrailRetryCount: 0,
       degraded: true,
       error: 'AI service degraded',
       message: error?.message || 'Unknown error',
