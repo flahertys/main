@@ -1,4 +1,5 @@
 import { requireAdminAccessWithSession } from "@/lib/admin-access";
+import { getOwnerUserId } from "@/lib/admin-config";
 import { ingestBehavior } from "@/lib/ai/data-ingestion";
 import { recordTradingOutcome } from "@/lib/ai/trading-personalization";
 import { markPersonalWebhookIngestion } from "@/lib/intelligence/personal-assistant-vault";
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
   }
 
   const source = sanitizePlainText(String(payload.source || "external"), 60) || "external";
-  const userId = await resolveRequestUserId(request, "acct_tradehax_owner");
+  const userId = await resolveRequestUserId(request, getOwnerUserId());
 
   const events = Array.isArray(payload.events) ? payload.events.slice(0, 200) : [];
   const outcomes = Array.isArray(payload.tradeOutcomes) ? payload.tradeOutcomes.slice(0, 120) : [];

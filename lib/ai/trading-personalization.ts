@@ -1,3 +1,4 @@
+import { getOwnerUserId } from "@/lib/admin-config";
 import { sanitizePlainText } from "@/lib/security";
 
 export type TradingIndicator =
@@ -122,7 +123,7 @@ function normalizeUserId(value: unknown) {
   return normalized || "anonymous";
 }
 
-const OWNER_USER_ID = (process.env.TRADEHAX_OWNER_USER_ID || "acct_tradehax_owner").toLowerCase();
+const OWNER_USER_ID = getOwnerUserId();
 
 function buildOwnerDefaultProfile(userId: string): TradingBehaviorProfile {
   const timestamp = nowIso();

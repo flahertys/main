@@ -11,6 +11,14 @@ function value(name) {
   return String(process.env[name] || "").trim();
 }
 
+function firstValue(...names) {
+  for (const name of names) {
+    const current = value(name);
+    if (current) return current;
+  }
+  return "";
+}
+
 function pass(name, note) {
   console.log(`✅ ${name}${note ? `: ${note}` : ""}`);
 }
@@ -33,29 +41,29 @@ console.log("===============================================\n");
 
 let ok = true;
 
-const username = value("TRADEHAX_LOGIN_USERNAME");
+const username = firstValue("TRADEHAX_LOGIN_USERNAME", "TRADEHAX_ADMIN_USERNAME") || "admin";
 if (username.length >= 3) {
-  pass("TRADEHAX_LOGIN_USERNAME", username);
+  pass("TRADEHAX_LOGIN_USERNAME/TRADEHAX_ADMIN_USERNAME", username);
 } else {
-  fail("TRADEHAX_LOGIN_USERNAME", "set a non-empty admin username");
+  fail("TRADEHAX_LOGIN_USERNAME/TRADEHAX_ADMIN_USERNAME", "set a non-empty admin username");
   ok = false;
 }
 
-const passwordHash = value("TRADEHAX_LOGIN_PASSWORD_HASH");
-const plainPassword = value("TRADEHAX_LOGIN_PASSWORD");
+const passwordHash = firstValue("TRADEHAX_LOGIN_PASSWORD_HASH", "TRADEHAX_ADMIN_PASSWORD_HASH");
+const plainPassword = firstValue("TRADEHAX_LOGIN_PASSWORD", "TRADEHAX_ADMIN_PASSWORD");
 
 if (passwordHash && looksLikeScryptHash(passwordHash)) {
-  pass("TRADEHAX_LOGIN_PASSWORD_HASH", "scrypt hash format detected");
+  pass("TRADEHAX_LOGIN_PASSWORD_HASH/TRADEHAX_ADMIN_PASSWORD_HASH", "scrypt hash format detected");
 } else if (passwordHash) {
-  fail("TRADEHAX_LOGIN_PASSWORD_HASH", "invalid format; generate with npm run auth:hash-password");
+  fail("TRADEHAX_LOGIN_PASSWORD_HASH/TRADEHAX_ADMIN_PASSWORD_HASH", "invalid format; generate with npm run auth:hash-password");
   ok = false;
 } else if (plainPassword) {
-  warn("TRADEHAX_LOGIN_PASSWORD", "plaintext fallback configured; use hash in production");
+  warn("TRADEHAX_LOGIN_PASSWORD/TRADEHAX_ADMIN_PASSWORD", "plaintext fallback configured; use hash in production");
   if (process.env.NODE_ENV === "production") {
     ok = false;
   }
 } else {
-  fail("TRADEHAX_LOGIN_PASSWORD_HASH", "missing hash; generate with npm run auth:hash-password");
+  fail("TRADEHAX_LOGIN_PASSWORD_HASH/TRADEHAX_ADMIN_PASSWORD_HASH", "missing hash; generate with npm run auth:hash-password");
   ok = false;
 }
 

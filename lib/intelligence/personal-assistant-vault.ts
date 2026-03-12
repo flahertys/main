@@ -1,3 +1,4 @@
+import { getOwnerUserId } from "@/lib/admin-config";
 import { sanitizePlainText } from "@/lib/security";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -53,7 +54,8 @@ async function readFileVault(): Promise<PersonalAssistantVault | null> {
     const parsed = JSON.parse(raw) as Partial<PersonalAssistantVault>;
     if (!parsed || typeof parsed !== "object") return null;
 
-    const ownerId = sanitizePlainText(String(parsed.ownerId || "acct_tradehax_owner"), 80).toLowerCase() || "acct_tradehax_owner";
+    const ownerId =
+      sanitizePlainText(String(parsed.ownerId || getOwnerUserId()), 80).toLowerCase() || getOwnerUserId();
     return {
       ownerId,
       displayName: sanitizePlainText(String(parsed.displayName || "TradeHax Owner"), 60) || "TradeHax Owner",
@@ -77,7 +79,7 @@ async function writeFileVault(vault: PersonalAssistantVault) {
 }
 
 export async function getPersonalAssistantVault(ownerId: string) {
-  const normalizedOwner = sanitizePlainText(ownerId, 80).toLowerCase() || "acct_tradehax_owner";
+  const normalizedOwner = sanitizePlainText(ownerId, 80).toLowerCase() || getOwnerUserId();
   const loaded = await readFileVault();
   if (!loaded) {
     const initial = toDefaultVault(normalizedOwner);
