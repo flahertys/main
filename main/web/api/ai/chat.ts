@@ -11,6 +11,10 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getSession, getRecentMessages } from '../sessions/store';
+import { validateResponse, detectHallucinations, extractTradingParameters } from './validators';
+import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console';
+import { buildCompletSystemMessage, selectPromptTemplate } from './prompt-engine';
 
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -492,10 +496,9 @@ function generateDemoResponse(userMsg: string, context?: ChatContext, snapshot: 
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -506,7 +509,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const body: ChatRequest = req.body;
+    // Parse body defensively because some runtimes/proxies may pass raw JSON strings.
+    const body: ChatRequest = typeof req.body === 'string'
+      ? JSON.parse(req.body || '{}')
+      : (req.body || {});
+
+    // Handle neural console commands after parsing to avoid shape errors.
+    if ((body as any)?.isConsoleCommand) {
+      const handled = await processConsoleCommand(
+        { ...req, body } as VercelRequest,
+        res,
+      );
+      if (handled) return;
+    }
+
+    // Load server-side session if available
+    let serverSession = null;
+    if (body.context?.sessionId) {
+      serverSession = getSession(body.context.sessionId);
+    }
 
     // Validate request
     if (!body.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
@@ -516,16 +537,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // Merge server profile with request context
+    const serverProfile = serverSession?.userProfile;
+    const mergedProfile = {
+      ...body.context?.userProfile,
+      ...serverProfile,
+      signalAccuracy: {
+        ...body.context?.userProfile?.signalAccuracy,
+        ...serverProfile?.signalAccuracy,
+      },
+    };
+
+    // Get extended context from server session
+    const serverRecentMessages = serverSession ? getRecentMessages(body.context?.sessionId!, 8) : [];
+    const enhancedContext = {
+      ...body.context,
+      userProfile: mergedProfile,
+      recentMessages: [...(body.context?.recentMessages || []), ...serverRecentMessages].slice(-12),
+    };
+
     const latestUserMessage = body.messages[body.messages.length - 1]?.content || '';
     const normalizedMessages = body.messages.slice(-8).map((message) => ({
       role: message.role,
       content: String(message.content || '').slice(0, 1500),
     }));
-    const detectedAssets = detectAssets(latestUserMessage, body.context);
+    const detectedAssets = detectAssets(latestUserMessage, enhancedContext);
     const liveSnapshot = await fetchMarketSnapshot(detectedAssets);
 
+    // Log session context enrichment
+    if (serverSession) {
+      console.log(`📊 Session ${body.context?.sessionId} loaded: ${serverSession.messages.length} messages, accuracy ${serverProfile?.signalAccuracy?.overall || 0.5}`);
+    }
+
     // Check cache
-    const cacheKey = JSON.stringify({ messages: normalizedMessages, context: body.context?.userProfile, assets: detectedAssets });
+    const cacheKey = JSON.stringify({ messages: normalizedMessages, context: enhancedContext?.userProfile, assets: detectedAssets });
     const cached = requestCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       console.log('✅ Cache hit - serving cached response');
@@ -534,44 +579,75 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Build messages with system prompt
     const messages: ChatMessage[] = [
-      { role: 'system', content: buildSystemPrompt(latestUserMessage, body.context, liveSnapshot) },
+      { role: 'system', content: buildSystemPrompt(latestUserMessage, enhancedContext, liveSnapshot) },
       ...normalizedMessages,
     ];
 
     let response: string;
     let provider: 'huggingface' | 'openai' | 'demo' = 'demo';
 
+    // Check console config for force demo or strict mode
+    const consoleConfig = getConsoleConfig();
+    const skipLiveAI = consoleConfig.forceDemo;
+
     // Try HuggingFace -> OpenAI -> Demo (cascade fallback)
     try {
-      if (HF_API_KEY) {
+      if (!skipLiveAI && HF_API_KEY) {
         console.log('🤖 Attempting HuggingFace Llama 3.3 70B...');
-        response = await callHuggingFace(messages, body.temperature);
-          response = ensureStructuredResponse(response, latestUserMessage, body.context, liveSnapshot);
+        response = await callHuggingFace(messages, consoleConfig.temperature);
+        response = ensureStructuredResponse(response, latestUserMessage, enhancedContext, liveSnapshot);
         provider = 'huggingface';
         console.log('✅ HuggingFace success');
       } else {
-        throw new Error('No HF API key configured');
+        throw new Error(skipLiveAI ? 'Console force-demo enabled' : 'No HF API key configured');
       }
     } catch (hfError) {
       console.warn('⚠️ HuggingFace failed:', (hfError as Error).message);
 
       try {
-        if (OPENAI_API_KEY) {
+        if (!skipLiveAI && OPENAI_API_KEY) {
           console.log('🔄 Falling back to OpenAI GPT-4...');
-          response = await callOpenAI(messages, body.temperature);
-          response = ensureStructuredResponse(response, latestUserMessage, body.context, liveSnapshot);
+          response = await callOpenAI(messages, consoleConfig.temperature);
+          response = ensureStructuredResponse(response, latestUserMessage, enhancedContext, liveSnapshot);
           provider = 'openai';
           console.log('✅ OpenAI fallback success');
         } else {
-          throw new Error('No OpenAI key configured');
+          throw new Error(!skipLiveAI ? 'No OpenAI key configured' : 'Console force-demo enabled');
         }
       } catch (openaiError) {
         console.warn('⚠️ OpenAI fallback failed:', (openaiError as Error).message);
         console.log('📊 Using demo mode');
-        response = generateDemoResponse(latestUserMessage, body.context, liveSnapshot);
+        response = generateDemoResponse(latestUserMessage, enhancedContext, liveSnapshot);
         provider = 'demo';
       }
     }
+
+    // QUALITY GATE 1: Hallucination detection
+    const hallucinations = detectHallucinations(response);
+    if (hallucinations.length > 0) {
+      console.warn(`⚠️ Potential hallucinations detected (${hallucinations.length}):`, hallucinations);
+    }
+
+    // QUALITY GATE 2: Full validation
+    const validation = validateResponse(response);
+    console.log(`📊 Response validation score: ${validation.score}/100`, {
+      valid: validation.isValid,
+      errors: validation.errors,
+      warnings: validation.warnings,
+    });
+
+    // QUALITY GATE 3: Check if response should be auto-rejected
+    if (shouldAutoRejectResponse(validation, hallucinations)) {
+      console.warn('🛑 Response rejected by quality gate; falling back to demo');
+      response = generateDemoResponse(latestUserMessage, enhancedContext, liveSnapshot, response);
+      provider = 'demo';
+    }
+
+    // Record metrics for neural console
+    recordResponseMetric(response, provider, validation);
+
+    // Extract trading parameters
+    const parameters = extractTradingParameters(response);
 
     // Build result
     const result: ChatResponse = {
@@ -581,8 +657,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       timestamp: Date.now(),
     };
 
-    // Cache non-demo responses
-    if (provider !== 'demo') {
+    // Cache non-demo responses only if they passed quality gates
+    if (provider !== 'demo' && validation.isValid) {
       requestCache.set(cacheKey, { response: result, timestamp: Date.now() });
 
       // Cleanup old cache entries (keep last 100)
@@ -596,10 +672,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (error: any) {
     console.error('❌ AI Chat Error:', error);
-    return res.status(500).json({
-      error: 'AI service error',
-      message: error.message,
+
+    // Concrete handshake fallback: still return a valid response payload.
+    const fallback = generateDemoResponse('health handshake');
+    return res.status(200).json({
+      response: fallback,
+      provider: 'demo',
+      model: 'demo',
       timestamp: Date.now(),
+      degraded: true,
+      error: 'AI service degraded',
+      message: error?.message || 'Unknown error',
     });
   }
 }

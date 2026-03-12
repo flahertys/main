@@ -1,0 +1,99 @@
+/**
+ * TradeHax Session API Handler
+ * GET/POST/PUT sessions and conversation history
+ */
+
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getSession, createSession, updateSession, addMessage, recordSignalOutcome, getRecentMessages } from './store';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  try {
+    const { action, sessionId } = req.query;
+
+    // Create new session
+    if (req.method === 'POST' && action === 'create') {
+      const { userId } = req.body || {};
+      const session = createSession(userId);
+      return res.status(201).json(session);
+    }
+
+    // Get session
+    if (req.method === 'GET' && sessionId && typeof sessionId === 'string') {
+      const session = getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+      return res.status(200).json(session);
+    }
+
+    // Add message to session
+    if (req.method === 'POST' && sessionId && typeof sessionId === 'string' && action === 'message') {
+      const session = getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      const { role, content, metadata } = req.body || {};
+      if (!role || !content) {
+        return res.status(400).json({ error: 'role and content required' });
+      }
+
+      const message = addMessage(sessionId, { role, content, timestamp: Date.now(), metadata });
+      return res.status(201).json(message);
+    }
+
+    // Get recent messages
+    if (req.method === 'GET' && sessionId && typeof sessionId === 'string' && action === 'messages') {
+      const { count } = req.query;
+      const messages = getRecentMessages(sessionId, parseInt(String(count || '8'), 10));
+      return res.status(200).json({ messages });
+    }
+
+    // Record signal outcome
+    if (req.method === 'PUT' && sessionId && typeof sessionId === 'string' && action === 'outcome') {
+      const { messageId, outcome, profitLoss, assetSymbol } = req.body || {};
+
+      if (!messageId || !outcome || !assetSymbol) {
+        return res.status(400).json({ error: 'messageId, outcome, assetSymbol required' });
+      }
+
+      const success = recordSignalOutcome(sessionId, messageId, outcome, profitLoss || 0, assetSymbol);
+      if (!success) {
+        return res.status(404).json({ error: 'Session or message not found' });
+      }
+
+      const session = getSession(sessionId);
+      return res.status(200).json(session);
+    }
+
+    // Update session profile
+    if (req.method === 'PUT' && sessionId && typeof sessionId === 'string' && action === 'profile') {
+      const session = getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      const updates = req.body || {};
+      const updated = updateSession(sessionId, { userProfile: { ...session.userProfile, ...updates } });
+
+      return res.status(200).json(updated);
+    }
+
+    return res.status(400).json({ error: 'Invalid action or missing parameters' });
+  } catch (error: any) {
+    console.error('Session API error:', error);
+    return res.status(500).json({
+      error: 'Session API error',
+      message: error.message,
+    });
+  }
+}
+

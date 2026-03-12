@@ -29,9 +29,9 @@ async function run() {
       },
     },
     {
-      name: "ai hub route",
+      name: "trading route",
       run: async () => {
-        const { response } = await fetchJson(`${BASE_URL}/ai-hub`);
+        const { response } = await fetchJson(`${BASE_URL}/trading`);
         if (!response.ok) {
           throw new Error(`Expected 2xx response (status ${response.status})`);
         }
@@ -67,14 +67,15 @@ async function run() {
     {
       name: "ai chat api",
       run: async () => {
-        const { response, json } = await fetchJson(`${BASE_URL}/api/ai/chat`, {
+        const { response, json, text } = await fetchJson(`${BASE_URL}/api/ai/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messages: [{ role: "user", content: "health handshake" }] }),
         });
 
         if (!response.ok || !json || typeof json.response !== "string") {
-          throw new Error(`Expected AI response payload (status ${response.status})`);
+          const payloadPreview = (json ? JSON.stringify(json) : text || "<empty>").slice(0, 300);
+          throw new Error(`Expected AI response payload (status ${response.status}) payload=${payloadPreview}`);
         }
       },
     },
