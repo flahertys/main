@@ -47,6 +47,15 @@ const HALLUCINATION_PATTERNS = [
   /(?:Stop-loss|Position size|Max drawdown):/gi, // Risk management markers
 ];
 
+const FORBIDDEN_ARTIFACT_PATTERNS = [
+  /\bAI_RESPONSE\b/gi,
+  /\bANALYZING_QUERY\b/gi,
+  /\[\s*NEURAL_SIM_ACTIVE\s*\]/gi,
+  /\bno\s+filter\s+applied\b/gi,
+  /\bneural\s+console\s+commands?\b/gi,
+  /\bCOMMAND_MATRIX\b/gi,
+];
+
 const VAGUE_PHRASES = [
   'should go up',
   'might move',
@@ -139,6 +148,13 @@ export function detectContradictions(response: string): string[] {
  */
 export function detectHallucinations(response: string): string[] {
   const hallucinations: string[] = [];
+
+  // Block internal/simulator artifacts from leaking to end users.
+  for (const pattern of FORBIDDEN_ARTIFACT_PATTERNS) {
+    if (response.match(pattern)) {
+      hallucinations.push(`Forbidden internal artifact detected: ${pattern.source}`);
+    }
+  }
 
   // Check for specific non-existent cryptocurrencies or assets
   const invalidAssets = response.match(/\b[A-Z]{4,}\b/g) || [];

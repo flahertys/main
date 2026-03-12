@@ -78,6 +78,27 @@ const SYMBOL_MAP: Record<string, string> = {
 
 const KNOWN_ASSETS = Object.keys(SYMBOL_MAP);
 
+const FORBIDDEN_RESPONSE_PATTERNS = [
+  /\bAI_RESPONSE\b/gi,
+  /\bANALYZING_QUERY\b/gi,
+  /\[\s*NEURAL_SIM_ACTIVE\s*\]/gi,
+  /\bno\s+filter\s+applied\b/gi,
+  /\bneural\s+console\s+commands?\b/gi,
+  /\bCOMMAND_MATRIX\b/gi,
+];
+
+function sanitizeInternalArtifacts(text: string): string {
+  let cleaned = String(text || '');
+  for (const pattern of FORBIDDEN_RESPONSE_PATTERNS) {
+    cleaned = cleaned.replace(pattern, '').trim();
+  }
+  return cleaned.replace(/\s{2,}/g, ' ').trim();
+}
+
+function hasForbiddenArtifacts(text: string): boolean {
+  return FORBIDDEN_RESPONSE_PATTERNS.some((pattern) => !!String(text || '').match(pattern));
+}
+
 /**
  * Call HuggingFace Inference API (Free Tier)
  */
@@ -513,8 +534,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? JSON.parse(req.body || '{}')
       : (req.body || {});
 
-    // Handle neural console commands after parsing to avoid shape errors.
+    // Handle neural console commands only when explicitly authorized.
+    const consoleKey = process.env.NEURAL_CONSOLE_KEY || '';
+    const headerKey = String(req.headers['x-neural-console-key'] || '');
+    const allowConsoleCommands = !!consoleKey && headerKey === consoleKey;
     if ((body as any)?.isConsoleCommand) {
+      if (!allowConsoleCommands) {
+        return res.status(403).json({ error: 'Console command channel not authorized' });
+      }
       const handled = await processConsoleCommand(
         { ...req, body } as VercelRequest,
         res,
@@ -572,8 +599,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const cacheKey = JSON.stringify({ messages: normalizedMessages, context: enhancedContext?.userProfile, assets: detectedAssets });
     const cached = requestCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log('✅ Cache hit - serving cached response');
-      return res.status(200).json({ ...cached.response, cached: true });
+      if (hasForbiddenArtifacts(cached.response?.response || '')) {
+        requestCache.delete(cacheKey);
+      } else {
+        console.log('✅ Cache hit - serving cached response');
+        return res.status(200).json({ ...cached.response, cached: true });
+      }
     }
 
     // Build messages with system prompt
@@ -595,6 +626,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('🤖 Attempting HuggingFace Llama 3.3 70B...');
         response = await callHuggingFace(messages, consoleConfig.temperature);
         response = ensureStructuredResponse(response, latestUserMessage, enhancedContext, liveSnapshot);
+        response = sanitizeInternalArtifacts(response);
         provider = 'huggingface';
         console.log('✅ HuggingFace success');
       } else {
@@ -608,6 +640,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           console.log('🔄 Falling back to OpenAI GPT-4...');
           response = await callOpenAI(messages, consoleConfig.temperature);
           response = ensureStructuredResponse(response, latestUserMessage, enhancedContext, liveSnapshot);
+          response = sanitizeInternalArtifacts(response);
           provider = 'openai';
           console.log('✅ OpenAI fallback success');
         } else {
@@ -617,8 +650,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.warn('⚠️ OpenAI fallback failed:', (openaiError as Error).message);
         console.log('📊 Using demo mode');
         response = generateDemoResponse(latestUserMessage, enhancedContext, liveSnapshot);
+        response = sanitizeInternalArtifacts(response);
         provider = 'demo';
       }
+    }
+
+    if (hasForbiddenArtifacts(response)) {
+      console.warn('🛑 Forbidden response artifacts detected; forcing sanitized demo fallback');
+      response = sanitizeInternalArtifacts(generateDemoResponse(latestUserMessage, enhancedContext, liveSnapshot));
+      provider = 'demo';
     }
 
     // QUALITY GATE 1: Hallucination detection
@@ -639,6 +679,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (shouldAutoRejectResponse(validation, hallucinations)) {
       console.warn('🛑 Response rejected by quality gate; falling back to demo');
       response = generateDemoResponse(latestUserMessage, enhancedContext, liveSnapshot, response);
+      response = sanitizeInternalArtifacts(response);
       provider = 'demo';
     }
 
@@ -673,7 +714,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('❌ AI Chat Error:', error);
 
     // Concrete handshake fallback: still return a valid response payload.
-    const fallback = generateDemoResponse('health handshake');
+    const fallback = sanitizeInternalArtifacts(generateDemoResponse('health handshake'));
     return res.status(200).json({
       response: fallback,
       provider: 'demo',
