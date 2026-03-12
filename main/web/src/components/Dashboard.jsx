@@ -17,6 +17,36 @@ const COLORS = {
 export default function Dashboard() {
   const navigate = useNavigate();
 
+  const pillars = [
+    {
+      id: 'trading',
+      icon: '📊',
+      title: 'Trading AI',
+      description: 'Live signal analysis, execution playbooks, and risk-first decision support.',
+      cta: 'Open Trading Hub',
+      color: COLORS.accent,
+      onClick: () => navigate('/trading'),
+    },
+    {
+      id: 'music',
+      icon: '🎸',
+      title: 'Music Hub',
+      description: 'AI creator tools, growth strategy, and collaboration workflows for artists.',
+      cta: 'Open Music Hub',
+      color: COLORS.gold,
+      onClick: () => navigate('/music'),
+    },
+    {
+      id: 'services',
+      icon: '⚡',
+      title: 'Digital Services',
+      description: 'Launch and scale AI-powered service offerings with operational automation.',
+      cta: 'Open Services Hub',
+      color: COLORS.green,
+      onClick: () => navigate('/services'),
+    },
+  ];
+
   return (
     <div
       style={{
@@ -34,11 +64,9 @@ export default function Dashboard() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>
-            TradeHax Neural Hub
-          </h1>
+          <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>TradeHax Platform</h1>
           <p style={{ margin: '5px 0 0 0', color: COLORS.textDim, fontSize: '14px' }}>
-            Unified AI platform for professional trading
+            Multi-vertical AI platform for trading, music, and digital services
           </p>
         </div>
       </header>
@@ -47,50 +75,45 @@ export default function Dashboard() {
       <main style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
         {/* Welcome Section */}
         <section style={{ marginBottom: '40px' }}>
-          <h2 style={{ fontSize: '24px', marginBottom: '10px', fontWeight: 600 }}>
-            Trading AI Interface
-          </h2>
+          <h2 style={{ fontSize: '24px', marginBottom: '10px', fontWeight: 600 }}>All-in-One Command Center</h2>
           <p style={{ color: COLORS.textDim, marginBottom: '20px', maxWidth: '600px' }}>
-            Professional trading assistant with execution-focused guidance. Ask for setups, risk plans, or market analysis.
+            TradeHax now unifies your core business layers in one platform. Run trading intelligence, creator growth, and digital services from a single operating stack.
           </p>
         </section>
 
-        {/* Direct Trading AI Entry */}
+        {/* Core Platform Pillars */}
         <section style={{ marginBottom: '40px' }}>
-          <div
-            style={{
-              background: COLORS.surface,
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: '12px',
-              padding: '40px',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '20px', fontWeight: 600 }}>
-              Get Trading Signals
-            </h3>
-            <p style={{ color: COLORS.textDim, marginBottom: '24px', maxWidth: '500px', margin: '0 auto 24px' }}>
-              Live BTC, ETH, and crypto analysis with explainable confidence scoring and execution playbooks.
-            </p>
-            <button
-              onClick={() => navigate('/trading')}
-              style={{
-                background: COLORS.accent,
-                color: COLORS.bg,
-                border: 'none',
-                borderRadius: '8px',
-                padding: '12px 32px',
-                fontSize: '16px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => (e.target.style.opacity = '0.85')}
-              onMouseLeave={(e) => (e.target.style.opacity = '1')}
-            >
-              Launch Trading AI
-            </button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+            {pillars.map((pillar) => (
+              <div
+                key={pillar.id}
+                style={{
+                  background: COLORS.surface,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: '12px',
+                  padding: '24px',
+                }}
+              >
+                <div style={{ fontSize: '34px', marginBottom: '10px' }}>{pillar.icon}</div>
+                <h3 style={{ margin: '0 0 8px 0', color: pillar.color }}>{pillar.title}</h3>
+                <p style={{ margin: '0 0 16px 0', color: COLORS.textDim, lineHeight: 1.6 }}>{pillar.description}</p>
+                <button
+                  onClick={pillar.onClick}
+                  style={{
+                    width: '100%',
+                    background: pillar.color,
+                    color: COLORS.bg,
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {pillar.cta}
+                </button>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -106,9 +129,9 @@ export default function Dashboard() {
               gap: '16px',
             }}
           >
-            <StatCard label="Interface" value="Production Ready" />
-            <StatCard label="AI Mode" value="Live" />
-            <StatCard label="Multi-turn" value="Enabled" />
+            <StatCard label="Trading Signals" value="Live" />
+            <StatCard label="Music Layer" value="Active" />
+            <StatCard label="Services Layer" value="Active" />
           </div>
         </section>
       </main>
