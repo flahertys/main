@@ -4,6 +4,8 @@
  * Output: Natural language reasoning + machine-readable factor attribution
  */
 
+import { SIGNAL_THRESHOLDS, FACTOR_WEIGHTS, RISK_CONTROLS, SIGNAL_ACTIONS } from './signal-parameters';
+
 export interface SignalFactors {
   momentum: {
     value: number; // e.g., RSI=32
@@ -65,11 +67,11 @@ export class SignalExplainabilityEngine {
     backtestStats: { winRate: number; avgProfit: number; maxDrawdown: number },
     dataQuality: { sources: string[]; freshness: string; confidence: number }
   ): SignalExplanation {
-    // Compute base confidence from factors
-    const momentumScore = factors.momentum.weight * (factors.momentum.direction === "bullish" ? 1 : -1);
-    const sentimentScore = factors.sentiment.weight * (factors.sentiment.direction === "bullish" ? 1 : -1);
-    const volatilityPenalty = factors.volatility.penalty;
-    const confluenceBoost = (factors.technicalConfluence.sourceCount / 5) * 0.2;
+    // Compute base confidence from factors using centralized weights
+    const momentumScore = FACTOR_WEIGHTS.momentum * (factors.momentum.direction === "bullish" ? 1 : -1);
+    const sentimentScore = FACTOR_WEIGHTS.sentiment * (factors.sentiment.direction === "bullish" ? 1 : -1);
+    const volatilityPenalty = FACTOR_WEIGHTS.volatilityPenalty * factors.volatility.penalty;
+    const confluenceBoost = FACTOR_WEIGHTS.confluenceBoost * (factors.technicalConfluence.sourceCount / 5);
 
     const baseConfidence = Math.max(0, Math.min(100, (momentumScore + sentimentScore + confluenceBoost - volatilityPenalty) * 100));
 
@@ -81,23 +83,23 @@ export class SignalExplainabilityEngine {
     const bullishScore = [factors.momentum, factors.sentiment, factors.volatility].filter(
       (f) => f.direction === "bullish"
     ).length;
-    const action = bullishScore >= 2 ? "BUY" : "SELL";
+    const action = bullishScore >= 2 ? SIGNAL_ACTIONS.buy : SIGNAL_ACTIONS.sell;
 
     // Natural language reasoning
     const reasoning = this.buildNaturalLanguageReasoning(factors, action, finalConfidence);
 
     // Factor breakdown string
-    const momentumPct = ((factors.momentum.weight / 0.8) * 100).toFixed(0);
-    const sentimentPct = ((factors.sentiment.weight / 0.8) * 100).toFixed(0);
-    const volatilityPct = ((volatilityPenalty / 0.25) * 100).toFixed(0);
+    const momentumPct = (FACTOR_WEIGHTS.momentum * 100).toFixed(0);
+    const sentimentPct = (FACTOR_WEIGHTS.sentiment * 100).toFixed(0);
+    const volatilityPct = (FACTOR_WEIGHTS.volatilityPenalty * 100).toFixed(0);
     const factorBreakdown = `${momentumPct}% momentum, ${sentimentPct}% sentiment, -${volatilityPct}% volatility penalty`;
 
-    // Position sizing based on Kelly Criterion
+    // Position sizing based on Kelly Criterion and centralized risk controls
     const winRate = backtestStats.winRate;
     const avgProfit = backtestStats.avgProfit;
     const assumedAvgLoss = Math.abs(avgProfit) * 0.5; // Conservative loss estimate
     const kellyFraction = (winRate * avgProfit - (1 - winRate) * assumedAvgLoss) / avgProfit;
-    const recommendedRiskPercent = Math.max(1, Math.min(5, kellyFraction * 100 * 0.25)); // Fractional Kelly for safety
+    const recommendedRiskPercent = Math.max(1, Math.min(5, kellyFraction * 100 * RISK_CONTROLS.kellyFraction));
 
     return {
       symbol,
@@ -114,8 +116,8 @@ export class SignalExplainabilityEngine {
       dataQuality,
       positionSizing: {
         recommendedRiskPercent,
-        kellyFraction: kellyFraction * 0.25,
-        suggestedStopLoss: `${(recommendedRiskPercent * 2).toFixed(1)}%`,
+        kellyFraction: kellyFraction * RISK_CONTROLS.kellyFraction,
+        suggestedStopLoss: RISK_CONTROLS.stopLossDefault,
       },
     };
   }

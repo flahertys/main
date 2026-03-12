@@ -65,6 +65,59 @@ export interface ChatContext {
   marketSnapshot?: MarketSnapshot[];
 }
 
+export interface UnusualOpportunity {
+  symbol: string;
+  score: number;
+  signalLabel: 'WATCH' | 'ELEVATED' | 'HIGH';
+  direction: 'BULLISH_PRESSURE' | 'BEARISH_PRESSURE';
+  reliability: number;
+  strategyTag: string;
+  horizon: string;
+  factorsTriggered: number;
+  metrics: {
+    priceChangePct: number;
+    volumeToCapPct: number;
+    intradayRangePct: number;
+    volume24h: number;
+    marketCap: number;
+  };
+  reasons: string[];
+  plan: {
+    trigger: string;
+    invalidation: string;
+    risk: string;
+  };
+}
+
+export interface UnusualScannerResponse {
+  ok: boolean;
+  scanner: string;
+  symbols: string[];
+  timestamp: number;
+  regime: {
+    label: string;
+    medianRangePct: number;
+    medianTurnoverPct: number;
+  };
+  weights: {
+    directional: number;
+    participation: number;
+    volatility: number;
+  };
+  thresholds: {
+    priceMovePct: number;
+    volumeToCapPct: number;
+    intradayRangePct: number;
+    minScore: number;
+    minMarketCap: number;
+    minVolume24h: number;
+  };
+  totalScanned: number;
+  totalFlagged: number;
+  opportunities: UnusualOpportunity[];
+  cached?: boolean;
+}
+
 export class TradeHaxAPI {
   private baseUrl: string;
   private retryCount: number;
@@ -161,25 +214,18 @@ export class TradeHaxAPI {
       // Retry logic
       if (attempt < this.retryCount) {
         console.warn(`Retry attempt ${attempt + 1}/${this.retryCount}...`);
-        await this.sleep(this.retryDelay * (attempt + 1)); // Exponential backoff
+        await this.sleep(this.retryDelay * (attempt + 1));
         return this.fetchWithRetry<T>(url, options, attempt + 1);
       }
 
-      // All retries failed
       throw error;
     }
   }
 
-  /**
-   * Sleep utility for retry delays
-   */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  /**
-   * Parse AI response into structured format
-   */
   parseAIResponse(response: string): {
     signal?: string;
     priceTarget?: string;
@@ -192,7 +238,6 @@ export class TradeHaxAPI {
     const lines = response.split('\n').filter(l => l.trim());
     const result: any = {};
 
-    // Extract sections
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
 
@@ -207,7 +252,6 @@ export class TradeHaxAPI {
       }
     }
 
-    // Extract bullets
     result.reasoning = lines
       .filter(l => l.trim().startsWith('•') && !l.includes('Stop-loss') && !l.includes('Position'))
       .map(l => l.replace(/^[•-]\s*/, '').trim());
@@ -223,22 +267,16 @@ export class TradeHaxAPI {
     return result;
   }
 
-  /**
-   * Format crypto price for display
-   */
   formatPrice(price: number): string {
     if (price >= 1000) {
       return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     } else if (price >= 1) {
       return `$${price.toFixed(4)}`;
-    } else {
-      return `$${price.toFixed(8)}`;
     }
+
+    return `$${price.toFixed(8)}`;
   }
 
-  /**
-   * Format percentage change with color indicator
-   */
   formatPercentChange(percent: number): { text: string; color: string } {
     const sign = percent >= 0 ? '+' : '';
     const color = percent >= 0 ? '#00E5A0' : '#FF4757';
@@ -247,12 +285,26 @@ export class TradeHaxAPI {
       color,
     };
   }
+
+  async getUnusualSignals(
+    symbols: string[] = ['BTC', 'ETH', 'SOL', 'DOGE', 'ADA', 'LINK'],
+    options?: { minScore?: number; limit?: number }
+  ): Promise<UnusualScannerResponse> {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+    const url = new URL(`${this.baseUrl}/api/signals/unusual`, origin);
+    url.searchParams.set('symbols', symbols.join(','));
+    if (typeof options?.minScore === 'number') {
+      url.searchParams.set('minScore', String(options.minScore));
+    }
+    if (typeof options?.limit === 'number') {
+      url.searchParams.set('limit', String(options.limit));
+    }
+    return this.fetchWithRetry<UnusualScannerResponse>(url.toString());
+  }
 }
 
-// Export singleton instance
 export const apiClient = new TradeHaxAPI();
 
-// Export helper for localStorage-based user profiles
 export const userProfileStorage = {
   save(profile: UserProfile): void {
     try {

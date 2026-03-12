@@ -4,6 +4,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { applyCors, ensureAllowedMethods, handleOptions } from '../_shared/http.js';
 import {
   appendSessionMessage,
   createUserSession,
@@ -14,12 +15,14 @@ import {
 } from './session-service.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(res, { methods: 'GET,POST,PUT,OPTIONS' });
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (handleOptions(req, res)) {
+    return;
+  }
+
+  if (!ensureAllowedMethods(req, res, ['GET', 'POST', 'PUT'])) {
+    return;
   }
 
   try {

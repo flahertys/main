@@ -33,3 +33,22 @@ This split allows future migration to durable storage (Supabase/Postgres) withou
 3. Add basic API tests for `/api/sessions` and `/api/supabase/health`.
 4. Add feature-level style tokens and replace inline styles gradually.
 
+## Completed In This Phase
+
+- Frontend API client moved to `src/services/api/tradehax-api.ts`.
+- Legacy import path `src/lib/api-client.ts` retained as a compatibility shim.
+- Shared API HTTP helpers added in `api/_shared/http.ts` and integrated into:
+  - `api/ai/chat.ts`
+  - `api/data/crypto.ts`
+  - `api/sessions/index.ts`
+  - `api/supabase/health.ts`
+- API smoke runner added: `scripts/api-smoke.js` (`npm run test:api:smoke`).
+
+## Scanner MVP Added
+
+- New scanner core: `api/signals/scan-core.js`
+- New endpoint: `api/signals/unusual.ts`
+- New UI card: `src/features/scanner/OpportunityScannerCard.jsx`
+- New local validation: `npm run test:scanner`
+
+This provides the first ranked anomaly pipeline (detect -> score -> explain -> display).

@@ -1,8 +1,6 @@
-import React, { useRef, useState, useEffect } from "react";
-import GamifiedOnboarding from "./components/GamifiedOnboarding";
-import { apiClient } from "./lib/api-client";
-import { runBacktest } from "./engine/backtest";
-import { calculateTotalCredits } from "./lib/achievements";
+
+import React, { useMemo, useRef, useState, useEffect } from "react";
+import { apiClient, userProfileStorage } from "./lib/api-client";
 
 const COLORS = {
   bg: "#090B10",
@@ -14,6 +12,20 @@ const COLORS = {
   text: "#C8D8E8",
   textDim: "#8EA2B8",
   green: "#00E5A0",
+};
+
+const STARTER_PROMPTS = [
+  "Explain today's best BTC setup in plain English.",
+  "Give me a conservative ETH trade plan with risk controls.",
+  "Summarize what matters most before entering a signal.",
+  "Build a swing-trade watchlist using BTC, ETH, and SOL.",
+];
+
+const DEFAULT_PROFILE = {
+  riskTolerance: "moderate",
+  tradingStyle: "swing",
+  portfolioValue: 25000,
+  preferredAssets: ["BTC", "ETH", "SOL"],
 };
 
 function buildResponse(input) {
@@ -71,37 +83,6 @@ function buildResponse(input) {
 }
 
 export default function NeuralHub() {
-  // Onboarding state
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [userStats, setUserStats] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('userStats')) || {};
-    } catch {
-      return {};
-    }
-  });
-  const [avatarUrl] = useState(() => localStorage.getItem('avatarUrl') || 'https://api.dicebear.com/7.x/identicon/svg?seed=tradehax');
-  const credits = calculateTotalCredits(userStats ? userStats.earnedAchievements || {} : {});
-  useEffect(() => {
-    // Check onboarding completion in localStorage
-    const completed = localStorage.getItem('onboardingComplete');
-    if (!completed) setShowOnboarding(true);
-    // Listen for userStats changes
-    const handler = () => {
-      try {
-        setUserStats(JSON.parse(localStorage.getItem('userStats')) || {});
-      } catch {}
-    };
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
-  }, []);
-
-  function handleOnboardingComplete() {
-    localStorage.setItem('onboardingComplete', 'true');
-    setShowOnboarding(false);
-  }
-
-  // Main chat state
   const [messages, setMessages] = useState([
     {
       id: "welcome",
@@ -113,13 +94,78 @@ export default function NeuralHub() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [backtestLoading, setBacktestLoading] = useState(false);
-  const [paperMode, setPaperMode] = useState(true);
-  const [backtestResult, setBacktestResult] = useState(null);
-  const [providerStatus, setProviderStatus] = useState(null);
-  const [fallbackMode, setFallbackMode] = useState(false);
-  const [errorDetail, setErrorDetail] = useState("");
   const nextId = useRef(1);
+  const sessionIdRef = useRef(`tradehax-session-${Date.now()}`);
+
+  // Live AI mode state
+  const [liveMode, setLiveMode] = useState(true);
+  const [aiProvider, setAiProvider] = useState('demo');
+  const [cryptoPrices, setCryptoPrices] = useState({});
+  const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
+
+  useEffect(() => {
+    const storedProfile = userProfileStorage.load();
+    if (storedProfile) {
+      setUserProfile((prev) => ({
+        ...prev,
+        ...storedProfile,
+        tradingStyle: storedProfile.tradingStyle || prev.tradingStyle,
+        preferredAssets: storedProfile.preferredAssets?.length ? storedProfile.preferredAssets : prev.preferredAssets,
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    userProfileStorage.save(userProfile);
+  }, [userProfile]);
+
+  const stats = useMemo(
+    () => [
+      { label: "Approach", value: "Signal clarity over clutter" },
+      { label: "Style", value: `${userProfile.tradingStyle} / ${userProfile.riskTolerance}` },
+      { label: "Mode", value: liveMode ? "Live AI Mode" : "Stable production interface" },
+      { label: "Focus", value: userProfile.preferredAssets.join(", ") },
+    ],
+    [liveMode, userProfile],
+  );
+
+  const marketSnapshot = useMemo(
+    () => Object.values(cryptoPrices)
+      .filter(Boolean)
+      .map((asset) => ({
+        symbol: asset.symbol,
+        price: asset.price,
+        change24h: asset.priceChangePercent24h,
+        source: asset.source,
+      })),
+    [cryptoPrices],
+  );
+
+  function updatePreferredAssets(value) {
+    setUserProfile((prev) => ({
+      ...prev,
+      preferredAssets: value
+        .split(",")
+        .map((asset) => asset.trim().toUpperCase())
+        .filter(Boolean)
+        .slice(0, 5),
+    }));
+  }
+
+  // Fetch live crypto prices on mount
+  useEffect(() => {
+    async function fetchPrices() {
+      try {
+        const data = await apiClient.getMultipleCrypto(['BTC', 'ETH', 'SOL']);
+        setCryptoPrices(data);
+      } catch (error) {
+        console.log('Could not fetch crypto prices:', error);
+      }
+    }
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 300000); // Refresh every 5 minutes
+    return () => clearInterval(interval);
+  }, []);
 
   function submitMessage(raw) {
     const value = (raw ?? input).trim();
@@ -136,128 +182,368 @@ export default function NeuralHub() {
     setInput("");
     setLoading(true);
 
-    apiClient.chat(
-      [...priorMessages, { role: 'user', content: value }],
-    )
-      .then(response => {
-        // Extract provider status and fallback mode
-        setProviderStatus(response.providerStatus || null);
-        setFallbackMode(!!response.fallbackMode);
-        setErrorDetail(response.errorDetail || "");
-        // ...existing code for parsing and setting messages...
-        const parsed = apiClient.parseAIResponse(response.response);
-        const bullets = [
-          ...(parsed.reasoning || []),
-          ...(parsed.riskManagement || [])
-        ].filter(b => b.length > 0);
+    if (!liveMode) {
+      // Demo mode - use existing buildResponse()
+      const result = buildResponse(value);
+      setTimeout(() => {
         setMessages((prev) => [
           ...prev,
           {
             id: `a-${nextId.current++}`,
             role: "assistant",
-            content: response.response,
-            meta: {
-              title: parsed.signal || 'AI Analysis',
-              body: response.response,
-              bullets,
-              ...(parsed.executionPlaybook && parsed.executionPlaybook.length > 0 ? { executionPlaybook: parsed.executionPlaybook } : {}),
-              marketContext: parsed.marketContext || null,
-            },
+            content: result.body,
+            meta: result,
           },
         ]);
-      })
-      .catch((error) => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `a-${nextId.current++}`,
-            role: "assistant",
-            content: "Error: " + error.message,
-            meta: null,
-          },
-        ]);
-        setProviderStatus(null);
-        setFallbackMode(false);
-        setErrorDetail(error.message || "");
-      })
-      .finally(() => {
         setLoading(false);
-      });
+      }, 250);
+    } else {
+      // Live AI mode
+      apiClient.chat(
+        [...priorMessages, { role: 'user', content: value }],
+        {
+          sessionId: sessionIdRef.current,
+          userProfile,
+          recentMessages: priorMessages,
+          marketSnapshot,
+        },
+      )
+        .then(response => {
+          setAiProvider(response.provider);
+
+          // Parse response into structured format
+          const parsed = apiClient.parseAIResponse(response.response);
+          const bullets = [
+            ...(parsed.reasoning || []),
+            ...(parsed.riskManagement || [])
+          ].filter(b => b.length > 0);
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `a-${nextId.current++}`,
+              role: "assistant",
+              content: response.response,
+              meta: {
+                title: parsed.signal || 'AI Analysis',
+                body: response.response,
+                priceTarget: parsed.priceTarget,
+                confidence: parsed.confidence,
+                marketContext: parsed.marketContext,
+                bullets: bullets.length > 0 ? bullets : null,
+                executionPlaybook: parsed.executionPlaybook || null,
+              },
+            },
+          ]);
+          setLoading(false);
+        })
+        .catch(error => {
+          console.error('Live AI failed, falling back to demo:', error);
+          // Fallback to demo mode
+          const result = buildResponse(value);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `a-${nextId.current++}`,
+              role: "assistant",
+              content: result.body + "\n\n⚠️ Live AI temporarily unavailable. Using demo mode.",
+              meta: { ...result, confidence: "Fallback mode" },
+            },
+          ]);
+          setLoading(false);
+        });
+    }
   }
 
-  if (showOnboarding) {
-    return <GamifiedOnboarding onComplete={() => setShowOnboarding(false)} />;
-  }
-
-  // Responsive style helpers
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
-
-  // Header with avatar, XP, credits
   return (
-    <div style={{ minHeight: '100vh', background: COLORS.bg, color: COLORS.text, fontFamily: 'Inter, Arial, sans-serif' }}>
-      <header style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', padding: isMobile ? '12px 8px' : '18px 32px', borderBottom: `1px solid ${COLORS.border}`, gap: isMobile ? 10 : 0 }}>
-        <div style={{ fontWeight: 700, fontSize: isMobile ? 18 : 24 }}>TradeHax NeuralHub</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 18 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'flex-end', marginRight: isMobile ? 0 : 8 }}>
-            <span style={{ fontSize: isMobile ? 11 : 13, color: COLORS.textDim }}>XP: {userStats.daysActive ? userStats.daysActive * 100 : 0}</span>
-            <span style={{ fontSize: isMobile ? 13 : 15, color: COLORS.gold, fontWeight: 600 }}>💰 {credits} Credits</span>
+    <main
+      style={{
+        minHeight: "100vh",
+        background: COLORS.bg,
+        color: COLORS.text,
+        fontFamily: "Inter, Arial, sans-serif",
+        padding: 20,
+      }}
+    >
+      <section style={{ maxWidth: 1120, margin: "0 auto" }}>
+        <header style={{ marginBottom: 20 }}>
+          <div style={{ color: COLORS.gold, fontSize: 12, letterSpacing: "0.12em", marginBottom: 10 }}>
+            TRADEHAX.NET
           </div>
-          <img src={avatarUrl} alt="avatar" style={{ width: isMobile ? 32 : 40, height: isMobile ? 32 : 40, borderRadius: '50%', border: `2px solid ${COLORS.accent}` }} />
-        </div>
-      </header>
-      {/* Floating Quick Access Panel */}
-      <div style={{ position: 'fixed', bottom: isMobile ? 12 : 32, right: isMobile ? 12 : 32, zIndex: 100, display: 'flex', flexDirection: 'column', gap: isMobile ? 8 : 16 }}>
-        <button onClick={() => window.location.href = '/trading'} style={{ background: COLORS.accent, color: COLORS.bg, border: 'none', borderRadius: '50%', width: isMobile ? 40 : 56, height: isMobile ? 40 : 56, fontSize: isMobile ? 20 : 28, boxShadow: '0 4px 16px #00d9ff44', cursor: 'pointer', transition: 'transform 0.1s' }} title="Trading Hub">📈</button>
-        <button onClick={() => window.location.href = '/music'} style={{ background: COLORS.gold, color: COLORS.bg, border: 'none', borderRadius: '50%', width: isMobile ? 40 : 56, height: isMobile ? 40 : 56, fontSize: isMobile ? 20 : 28, boxShadow: '0 4px 16px #f5a62344', cursor: 'pointer', transition: 'transform 0.1s' }} title="Music Hub">🎵</button>
-        <button onClick={() => window.location.href = '/services'} style={{ background: COLORS.green, color: COLORS.bg, border: 'none', borderRadius: '50%', width: isMobile ? 40 : 56, height: isMobile ? 40 : 56, fontSize: isMobile ? 20 : 28, boxShadow: '0 4px 16px #00e5a044', cursor: 'pointer', transition: 'transform 0.1s' }} title="Services Hub">⚡</button>
-      </div>
-      <main
-        style={{
-          minHeight: "100vh",
-          background: COLORS.bg,
-          color: COLORS.text,
-          fontFamily: "Inter, Arial, sans-serif",
-          padding: isMobile ? 8 : 20,
-        }}
-      >
-        {/* ...existing code for main interface... */}
-        <section style={{ maxWidth: isMobile ? '100%' : 1120, margin: "0 auto" }}>
-          {/* ...existing code for header, controls, chat, etc... */}
-          {/* ...existing code for AI Trading Console, Input Area, etc... */}
-          {/* Provider Health and Fallback Status Indicator */}
-          {(providerStatus || fallbackMode || errorDetail) && (
-            <div style={{
-              margin: '0 auto 16px auto',
-              maxWidth: 600,
-              background: fallbackMode ? '#2D1B1B' : '#1C2333',
-              color: fallbackMode ? '#FFD2D2' : '#C8D8E8',
-              border: fallbackMode ? '1.5px solid #FF4D4F' : '1.5px solid #00D9FF',
-              borderRadius: 10,
-              padding: 12,
-              fontSize: 14,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-              alignItems: 'flex-start',
-            }}>
-              <div>
-                <b>Provider Health:</b>
-                <span style={{ marginLeft: 8 }}>
-                  HuggingFace: <span style={{ color: providerStatus?.huggingface ? '#00E5A0' : '#FFD2D2' }}>{providerStatus?.huggingface ? 'Healthy' : 'Degraded'}</span>
-                  {" | "}
-                  OpenAI: <span style={{ color: providerStatus?.openai ? '#00E5A0' : '#FFD2D2' }}>{providerStatus?.openai ? 'Healthy' : 'Degraded'}</span>
+          <h1 style={{ margin: 0, fontSize: "clamp(30px, 5vw, 52px)", lineHeight: 1.03 }}>
+            TradeHax Neural Hub
+          </h1>
+          <p style={{ color: COLORS.textDim, maxWidth: 760, lineHeight: 1.65, marginTop: 14 }}>
+            A cleaner professional trading assistant: concise AI guidance, execution-first thinking, and a stable production interface.
+          </p>
+        </header>
+
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+            marginBottom: 18,
+          }}
+        >
+          {stats.map((item) => (
+            <div
+              key={item.label}
+              style={{
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 12,
+                background: COLORS.surface,
+                padding: 14,
+              }}
+            >
+              <div style={{ color: COLORS.textDim, fontSize: 12, marginBottom: 6 }}>{item.label}</div>
+              <div style={{ fontWeight: 700 }}>{item.value}</div>
+            </div>
+          ))}
+        </section>
+
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.1fr 0.9fr",
+            gap: 16,
+          }}
+        >
+          <div
+            style={{
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 14,
+              background: COLORS.surface,
+              padding: 16,
+              minHeight: 520,
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: 12 }}>AI Trading Console</div>
+            <div style={{ display: "grid", gap: 12 }}>
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  style={{
+                    border: `1px solid ${message.role === "user" ? `${COLORS.accent}55` : COLORS.border}`,
+                    background: message.role === "user" ? "#0D2230" : COLORS.panel,
+                    borderRadius: 12,
+                    padding: 14,
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: COLORS.textDim, marginBottom: 8 }}>
+                    {message.role === "user" ? "You" : "TradeHax AI"}
+                  </div>
+                  {message.meta?.title ? (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                      <span style={{ color: COLORS.accent, fontWeight: 700 }}>{message.meta.title}</span>
+                      {message.meta?.confidence ? (
+                        <span style={{ color: COLORS.green, fontSize: 12 }}>Confidence: {message.meta.confidence}</span>
+                      ) : null}
+                      {message.meta?.priceTarget ? (
+                        <span style={{ color: COLORS.gold, fontSize: 12 }}>Target: {message.meta.priceTarget}</span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <div style={{ lineHeight: 1.65 }}>{message.content}</div>
+                  {message.meta?.marketContext ? (
+                    <div style={{ marginTop: 10, color: COLORS.textDim, fontSize: 13 }}>
+                      Market Context: {message.meta.marketContext}
+                    </div>
+                  ) : null}
+                  {message.meta?.bullets?.length ? (
+                    <ul style={{ marginTop: 12, marginBottom: 0, paddingLeft: 18, color: COLORS.textDim }}>
+                      {message.meta.bullets.map((bullet) => (
+                        <li key={bullet} style={{ marginBottom: 6 }}>
+                          {bullet}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {message.meta?.executionPlaybook?.length ? (
+                    <ul style={{ marginTop: 12, marginBottom: 0, paddingLeft: 18, color: COLORS.accent }}>
+                      {message.meta.executionPlaybook.map((item) => (
+                        <li key={item} style={{ marginBottom: 6 }}>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ))}
+              {loading ? (
+                <div style={{ color: COLORS.textDim, fontSize: 14 }}>Preparing response…</div>
+              ) : null}
+            </div>
+
+            <div style={{ marginTop: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <button
+                onClick={() => setLiveMode(!liveMode)}
+                style={{
+                  padding: "10px 16px",
+                  background: liveMode ? COLORS.green : COLORS.border,
+                  color: liveMode ? COLORS.bg : COLORS.text,
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "700",
+                  fontSize: "14px",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {liveMode ? "🟢 Live AI" : "📊 Demo Mode"}
+              </button>
+              {liveMode && (
+                <span style={{ fontSize: "12px", color: COLORS.textDim }}>
+                  Provider: <span style={{ color: COLORS.accent }}>{aiProvider}</span>
                 </span>
-              </div>
-              <div>
-                <b>Fallback Mode:</b> <span style={{ color: fallbackMode ? '#FFD2D2' : '#00E5A0' }}>{fallbackMode ? 'ON' : 'OFF'}</span>
-              </div>
-              {errorDetail && (
-                <div style={{ color: '#FFD2D2' }}><b>Error:</b> {errorDetail}</div>
+              )}
+              {cryptoPrices.BTC && (
+                <div style={{ marginLeft: "auto", display: "flex", gap: 12, fontSize: "12px" }}>
+                  <span style={{ color: COLORS.textDim }}>
+                    BTC: <span style={{ color: COLORS.text, fontWeight: "600" }}>
+                      {apiClient.formatPrice(cryptoPrices.BTC.price)}
+                    </span>
+                    <span style={{ color: cryptoPrices.BTC.priceChangePercent24h >= 0 ? COLORS.green : "#FF4757", marginLeft: 4 }}>
+                      {apiClient.formatPercentChange(cryptoPrices.BTC.priceChangePercent24h).text}
+                    </span>
+                  </span>
+                  {cryptoPrices.ETH && (
+                    <span style={{ color: COLORS.textDim }}>
+                      ETH: <span style={{ color: COLORS.text, fontWeight: "600" }}>
+                        {apiClient.formatPrice(cryptoPrices.ETH.price)}
+                      </span>
+                      <span style={{ color: cryptoPrices.ETH.priceChangePercent24h >= 0 ? COLORS.green : "#FF4757", marginLeft: 4 }}>
+                        {apiClient.formatPercentChange(cryptoPrices.ETH.priceChangePercent24h).text}
+                      </span>
+                    </span>
+                  )}
+                </div>
               )}
             </div>
-          )}
+
+            <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask for a BTC setup, ETH plan, or risk breakdown..."
+                style={{
+                  width: "100%",
+                  minHeight: 120,
+                  resize: "vertical",
+                  borderRadius: 12,
+                  border: `1px solid ${COLORS.border}`,
+                  background: COLORS.panel,
+                  color: COLORS.text,
+                  padding: 14,
+                  outline: "none",
+                  fontFamily: "inherit",
+                }}
+              />
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  onClick={() => submitMessage()}
+                  disabled={loading || !input.trim()}
+                  style={{
+                    background: COLORS.gold,
+                    color: "#111",
+                    border: 0,
+                    borderRadius: 10,
+                    padding: "12px 18px",
+                    fontWeight: 700,
+                    cursor: loading ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Send
+                </button>
+                {STARTER_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => submitMessage(prompt)}
+                    style={{
+                      background: "transparent",
+                      color: COLORS.accent,
+                      border: `1px solid ${COLORS.accent}55`,
+                      borderRadius: 10,
+                      padding: "12px 14px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <aside
+            style={{
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 14,
+              background: COLORS.surface,
+              padding: 16,
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: 12 }}>Neural Controls</div>
+            <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
+              <label style={{ display: "grid", gap: 6, fontSize: 13, color: COLORS.textDim }}>
+                Risk tolerance
+                <select
+                  value={userProfile.riskTolerance}
+                  onChange={(e) => setUserProfile((prev) => ({ ...prev, riskTolerance: e.target.value }))}
+                  style={{ background: COLORS.panel, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 10 }}
+                >
+                  <option value="conservative">Conservative</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="aggressive">Aggressive</option>
+                </select>
+              </label>
+              <label style={{ display: "grid", gap: 6, fontSize: 13, color: COLORS.textDim }}>
+                Trading style
+                <select
+                  value={userProfile.tradingStyle}
+                  onChange={(e) => setUserProfile((prev) => ({ ...prev, tradingStyle: e.target.value }))}
+                  style={{ background: COLORS.panel, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 10 }}
+                >
+                  <option value="scalp">Scalp</option>
+                  <option value="swing">Swing</option>
+                  <option value="position">Position</option>
+                </select>
+              </label>
+              <label style={{ display: "grid", gap: 6, fontSize: 13, color: COLORS.textDim }}>
+                Portfolio value
+                <input
+                  type="number"
+                  min="0"
+                  value={userProfile.portfolioValue}
+                  onChange={(e) => setUserProfile((prev) => ({ ...prev, portfolioValue: Number(e.target.value || 0) }))}
+                  style={{ background: COLORS.panel, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 10 }}
+                />
+              </label>
+              <label style={{ display: "grid", gap: 6, fontSize: 13, color: COLORS.textDim }}>
+                Focus assets
+                <input
+                  type="text"
+                  value={userProfile.preferredAssets.join(", ")}
+                  onChange={(e) => updatePreferredAssets(e.target.value)}
+                  placeholder="BTC, ETH, SOL"
+                  style={{ background: COLORS.panel, color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 10 }}
+                />
+              </label>
+            </div>
+            <div style={{ color: COLORS.textDim, lineHeight: 1.7, fontSize: 14 }}>
+              The hub now conditions responses on your risk profile, trading style, preferred assets, recent turns, and live market snapshot when available.
+            </div>
+            <div style={{ marginTop: 16, color: COLORS.green, fontWeight: 700 }}>Current production mode</div>
+            <ul style={{ marginTop: 10, paddingLeft: 18, color: COLORS.textDim, lineHeight: 1.7 }}>
+              <li>Persistent local trading profile</li>
+              <li>Multi-turn AI context window</li>
+              <li>Live market snapshot in prompt assembly</li>
+              <li>Structured execution playbooks and risk outputs</li>
+            </ul>
+          </aside>
         </section>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }
+

@@ -10,14 +10,7 @@
  * - Trading-specific system prompts
  */
 
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import fetch from 'node-fetch';
-import { getSession, getRecentMessages, UserProfile } from '../sessions/store.js';
-import { validateResponse, detectHallucinations, extractTradingParameters } from './validators.js';
-import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console.js';
-import { logResponseToDatabase } from '../db/metrics-service.js';
-import { personalizeSignal } from '../../src/lib/personalization-adaptive';
 
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -44,7 +37,6 @@ interface ChatResponse {
   model: string;
   timestamp: number;
   cached?: boolean;
-  guardrailRetryCount?: number;
 }
 
 interface UserProfileContext {
@@ -64,7 +56,7 @@ interface MarketSnapshot {
 
 interface ChatContext {
   sessionId?: string;
-  userProfile?: UserProfile;
+  userProfile?: UserProfileContext;
   recentMessages?: ChatMessage[];
   marketSnapshot?: MarketSnapshot[];
 }
@@ -83,52 +75,6 @@ const SYMBOL_MAP: Record<string, string> = {
 
 const KNOWN_ASSETS = Object.keys(SYMBOL_MAP);
 
-const FORBIDDEN_RESPONSE_PATTERNS = [
-  /\bAI_RESPONSE\b/gi,
-  /\bANALYZING_QUERY\b/gi,
-  /\[\s*NEURAL_SIM_ACTIVE\s*\]/gi,
-  /\bno\s+filter\s+applied\b/gi,
-  /\bneural\s+console\s+commands?\b/gi,
-  /\bCOMMAND_MATRIX\b/gi,
-];
-
-const USER_GUARDRAIL_APOLOGY =
-  "Sorry - we hit an internal formatting issue while generating your answer. Please resend once, and we'll provide a clean response.";
-
-function sanitizeInternalArtifacts(text: string): string {
-  let cleaned = String(text || '');
-  for (const pattern of FORBIDDEN_RESPONSE_PATTERNS) {
-    cleaned = cleaned.replace(pattern, '').trim();
-  }
-  return cleaned.replace(/\s{2,}/g, ' ').trim();
-}
-
-function hasForbiddenArtifacts(text: string): boolean {
-  return FORBIDDEN_RESPONSE_PATTERNS.some((pattern) => !!String(text || '').match(pattern));
-}
-
-async function getGuardedProviderResponse(
-  invoke: () => Promise<string>,
-  userMsg: string,
-  context?: ChatContext,
-  snapshot: MarketSnapshot[] = [],
-): Promise<{ response: string; blocked: boolean; retried: boolean }> {
-  const firstRaw = await invoke();
-  const firstStructured = ensureStructuredResponse(firstRaw, userMsg, context, snapshot);
-  if (!hasForbiddenArtifacts(firstStructured)) {
-    return { response: sanitizeInternalArtifacts(firstStructured), blocked: false, retried: false };
-  }
-
-  // Hard guardrail: retry exactly once before returning a user-facing apology.
-  const secondRaw = await invoke();
-  const secondStructured = ensureStructuredResponse(secondRaw, userMsg, context, snapshot);
-  if (!hasForbiddenArtifacts(secondStructured)) {
-    return { response: sanitizeInternalArtifacts(secondStructured), blocked: false, retried: true };
-  }
-
-  return { response: USER_GUARDRAIL_APOLOGY, blocked: true, retried: true };
-}
-
 /**
  * Call HuggingFace Inference API (Free Tier)
  */
@@ -145,8 +91,7 @@ async function callHuggingFace(messages: ChatMessage[], temperature = 0.7): Prom
     },
     body: JSON.stringify({
       inputs: prompt,
-      parameters:
- {
+      parameters: {
         temperature,
         max_new_tokens: 1024,
         return_full_text: false,
@@ -316,19 +261,14 @@ function buildRecentContext(context?: ChatContext): string {
 function buildSystemPrompt(userMsg: string, context?: ChatContext, snapshot: MarketSnapshot[] = []): string {
   const intent = detectIntent(userMsg);
 
-  return `You are TradeHax Neural Hub, an elite trading copilot focused on actionable, professional analysis for tradehax.net.
+  return `You are TradeHax Neural Hub, an elite trading copilot focused on actionable, professional analysis.
 
-**MANDATORY AI TRADING SYSTEM CONCEPTS:**
-1. Machine Learning Algorithms: Use historical and real-time data to predict trends and make probabilistic decisions. Reference model type if relevant.
-2. Backtesting: Simulate strategies on historical data. Always mention backtest results, profit/loss, and Sharpe ratio if available.
-3. Risk Management: Include stop-loss, take-profit, position sizing (e.g., Kelly Criterion), and drawdown limits. Show calculations.
-4. Sentiment Analysis: Use NLP to analyze news/social media for market mood. Adjust signals for bullish/bearish sentiment.
-5. Technical Indicators: Reference RSI, MACD, EMA, Bollinger Bands, and others. Show indicator values and how they affect the signal.
-6. Real-Time Data Integration: Use the latest price, volume, and volatility data. State if data is delayed or partial.
-7. Feature Engineering: Explain which features (price changes, volatility, on-chain metrics) are most predictive for this setup.
-8. Model Training and Evaluation: If relevant, mention model accuracy, cross-validation, or feature importance.
-9. Automated Trade Execution: Specify order type (market/limit), confidence threshold, and execution logic.
-10. Reinforcement Learning: If used, describe how the strategy adapts to market feedback over time.
+**Core Competencies:**
+- Stock market analysis (technical, fundamental, sentiment)
+- Cryptocurrency markets (price action, on-chain metrics, DeFi)
+- Prediction markets (Polymarket, odds calculation, value betting)
+- Risk management (Kelly Criterion, position sizing, stop-loss optimization)
+- Market psychology and behavioral finance
 
 **Response Structure:**
 Always format responses with these sections:
@@ -547,96 +487,15 @@ function generateDemoResponse(userMsg: string, context?: ChatContext, snapshot: 
 **Confidence**: Moderate. Preserve capital and wait for clear edge expansion.${providerNote}`;
 }
 
-// --- Startup Health Check and Logging ---
-const PROVIDER_STATUS = {
-  huggingface: false,
-  openai: false,
-  lastChecked: null as null | number,
-  error: ''
-};
-
-async function checkProviderHealth() {
-  PROVIDER_STATUS.lastChecked = Date.now();
-  PROVIDER_STATUS.error = '';
-  // HuggingFace
-  if (HF_API_KEY) {
-    try {
-      const resp = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${HF_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ inputs: 'health check', parameters: { max_new_tokens: 1 } }),
-      });
-      PROVIDER_STATUS.huggingface = resp.ok;
-      if (!resp.ok) PROVIDER_STATUS.error += `HF: ${resp.status} `;
-    } catch (e) {
-      PROVIDER_STATUS.huggingface = false;
-      PROVIDER_STATUS.error += 'HF: ' + (e as Error).message + ' ';
-    }
-  } else {
-    PROVIDER_STATUS.huggingface = false;
-    PROVIDER_STATUS.error += 'HF: No API key. ';
-  }
-  // OpenAI
-  if (OPENAI_API_KEY) {
-    try {
-      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ model: 'gpt-4-turbo-preview', messages: [{ role: 'system', content: 'health check' }], max_tokens: 1 }),
-      });
-      PROVIDER_STATUS.openai = resp.ok;
-      if (!resp.ok) PROVIDER_STATUS.error += `OpenAI: ${resp.status} `;
-    } catch (e) {
-      PROVIDER_STATUS.openai = false;
-      PROVIDER_STATUS.error += 'OpenAI: ' + (e as Error).message + ' ';
-    }
-  } else {
-    PROVIDER_STATUS.openai = false;
-    PROVIDER_STATUS.error += 'OpenAI: No API key. ';
-  }
-  console.log('[HEALTH] Provider status:', JSON.stringify(PROVIDER_STATUS));
-}
-
-// Run health check at startup
-checkProviderHealth();
-
-// --- Health Endpoint ---
-async function healthHandler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-  await checkProviderHealth();
-  return res.status(200).json({
-    status: 'ok',
-    time: new Date().toISOString(),
-    provider: PROVIDER_STATUS,
-    env: {
-      huggingface: !!HF_API_KEY,
-      openai: !!OPENAI_API_KEY,
-    },
-  });
-}
-
 /**
  * Main serverless function handler
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // --- Minimal Ping Endpoint ---
-  if (req.url && req.url.startsWith('/api/ai/ping')) {
-    return res.status(200).json({ status: 'ok', time: new Date().toISOString() });
-  }
-  // --- Health Endpoint Routing ---
-  if (req.url && req.url.startsWith('/api/ai/health')) {
-    return healthHandler(req, res);
-  }
   // CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -647,194 +506,101 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // --- Runtime Logging ---
-    console.log(`[AI_CHAT] ${new Date().toISOString()} | ${req.method} ${req.url}`);
-    if (!HF_API_KEY) console.warn('[WARN] HUGGINGFACE_API_KEY missing');
-    if (!OPENAI_API_KEY) console.warn('[WARN] OPENAI_API_KEY missing');
-    if (!PROVIDER_STATUS.huggingface && !PROVIDER_STATUS.openai) {
-      console.error('[ERROR] No AI providers available!');
-    }
-    // Parse body defensively because some runtimes/proxies may pass raw JSON strings.
-    const body: ChatRequest = typeof req.body === 'string'
-      ? JSON.parse(req.body || '{}')
-      : (req.body || {});
+    const body: ChatRequest = req.body;
 
-    // Handle neural console commands only when explicitly authorized.
-    const consoleKey = process.env.NEURAL_CONSOLE_KEY || '';
-    const headerKey = String(req.headers['x-neural-console-key'] || '');
-    const allowConsoleCommands = !!consoleKey && headerKey === consoleKey;
-    if ((body as any)?.isConsoleCommand) {
-      if (!allowConsoleCommands) {
-        return res.status(403).json({ error: 'Console command channel not authorized' });
-      }
-      const handled = await processConsoleCommand(
-        { ...req, body } as VercelRequest,
-        res,
-      );
-      if (handled) return;
-    }
-
-    const messages = body.messages || [];
-    const temperature = typeof body.temperature === 'number' ? body.temperature : 0.7;
-    // --- Extract User Profile ---
-    const sessionId = body.context?.sessionId || '';
-    const userProfile = body.context?.userProfile || (sessionId ? (await getSession(sessionId))?.userProfile : undefined);
-    const recentMessages = body.context?.recentMessages || (sessionId ? await getRecentMessages(sessionId) : null);
-
-    // --- Request Logging ---
-    console.log('[REQUEST]', JSON.stringify({ messages, temperature, userProfile }, null, 2));
-
-    // --- Guard: Empty or Invalid Message ---
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: 'Invalid request: messages array is required' });
-    }
-
-    // --- Auto-reject Obvious Hallucinations ---
-    const recentContents = (recentMessages || []).map((m: any) => m.content);
-    const messageContents = (messages || []).map((m: any) => m.content);
-    if (shouldAutoRejectResponse(recentContents, messageContents)) {
-      const rejectionResponse = `Rejecting generated response due to high hallucination probability. Refine your question or provide more context.`;
-      console.log('[HALLUCINATION REJECT]', rejectionResponse);
-      return res.status(200).json({
-        response: rejectionResponse,
-        provider: 'demo',
-        model: 'N/A',
-        timestamp: Date.now(),
-        cached: false,
-        guardrailRetryCount: 0,
+    // Validate request
+    if (!body.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'messages array is required and must not be empty'
       });
     }
 
-    // --- Extract Assets and Detect Intent ---
-    const allMessages = (recentMessages || []).concat(messages);
-    const flatText = allMessages.map((msg) => msg.content).join(' ');
-    const assets = detectAssets(flatText, body.context);
-    const intent = detectIntent(flatText);
+    const latestUserMessage = body.messages[body.messages.length - 1]?.content || '';
+    const normalizedMessages = body.messages.slice(-8).map((message) => ({
+      role: message.role,
+      content: String(message.content || '').slice(0, 1500),
+    }));
+    const detectedAssets = detectAssets(latestUserMessage, body.context);
+    const liveSnapshot = await fetchMarketSnapshot(detectedAssets);
 
-    // --- Fetch Live Market Data ---
-    const marketSnapshot = await fetchMarketSnapshot(assets);
-    // --- Build Context for AI Providers ---
-    const context: ChatContext = {
-      sessionId,
-      userProfile: userProfile || undefined,
-      recentMessages: recentMessages || undefined,
-      marketSnapshot,
-    };
-    // --- Build System Prompt ---
-    let systemPrompt = buildSystemPrompt(messages[messages.length - 1].content, context, marketSnapshot);
-    // --- Personalize prompt using adaptive engine ---
-    if (userProfile && userProfile.id) {
+    // Check cache
+    const cacheKey = JSON.stringify({ messages: normalizedMessages, context: body.context?.userProfile, assets: detectedAssets });
+    const cached = requestCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('✅ Cache hit - serving cached response');
+      return res.status(200).json({ ...cached.response, cached: true });
+    }
+
+    // Build messages with system prompt
+    const messages: ChatMessage[] = [
+      { role: 'system', content: buildSystemPrompt(latestUserMessage, body.context, liveSnapshot) },
+      ...normalizedMessages,
+    ];
+
+    let response: string;
+    let provider: 'huggingface' | 'openai' | 'demo' = 'demo';
+
+    // Try HuggingFace -> OpenAI -> Demo (cascade fallback)
+    try {
+      if (HF_API_KEY) {
+        console.log('🤖 Attempting HuggingFace Llama 3.3 70B...');
+        response = await callHuggingFace(messages, body.temperature);
+          response = ensureStructuredResponse(response, latestUserMessage, body.context, liveSnapshot);
+        provider = 'huggingface';
+        console.log('✅ HuggingFace success');
+      } else {
+        throw new Error('No HF API key configured');
+      }
+    } catch (hfError) {
+      console.warn('⚠️ HuggingFace failed:', (hfError as Error).message);
+
       try {
-        const personalized = await personalizeSignal({
-          userId: userProfile.id,
-          signal: { explanation: systemPrompt, symbol: assets[0] || 'UNKNOWN' },
-          modelOrSignal: undefined
-        });
-        if (personalized && personalized.explanation) {
-          systemPrompt = personalized.explanation;
+        if (OPENAI_API_KEY) {
+          console.log('🔄 Falling back to OpenAI GPT-4...');
+          response = await callOpenAI(messages, body.temperature);
+          response = ensureStructuredResponse(response, latestUserMessage, body.context, liveSnapshot);
+          provider = 'openai';
+          console.log('✅ OpenAI fallback success');
+        } else {
+          throw new Error('No OpenAI key configured');
         }
-      } catch (e) {
-        console.warn('[PERSONALIZATION] Failed to adapt prompt:', e instanceof Error ? e.message : e);
+      } catch (openaiError) {
+        console.warn('⚠️ OpenAI fallback failed:', (openaiError as Error).message);
+        console.log('📊 Using demo mode');
+        response = generateDemoResponse(latestUserMessage, body.context, liveSnapshot);
+        provider = 'demo';
       }
     }
-    // --- Provider Selection Logic ---
-    let provider: 'huggingface' | 'openai' = 'huggingface';
-    let invoke: () => Promise<string> = () => callHuggingFace([{ role: 'user', content: systemPrompt }], temperature);
-    if (PROVIDER_STATUS.openai && (!PROVIDER_STATUS.huggingface || Math.random() < 0.5)) {
-      provider = 'openai';
-      invoke = () => callOpenAI([{ role: 'user', content: systemPrompt }], temperature);
-    }
-    // --- Call Selected Provider ---
-    let rawResponse;
-    let responseTime = 0;
-    try {
-      const startTime = Date.now();
-      rawResponse = await getGuardedProviderResponse(invoke, messages[messages.length - 1].content, context, marketSnapshot);
-      responseTime = Date.now() - startTime;
-    } catch (err) {
-      // If both providers fail, return a clear error and log the event
-      await logResponseToDatabase({
-        sessionId: sessionId || undefined,
-        messageId: undefined,
-        userMessage: messages[messages.length - 1]?.content || '',
-        aiResponse: '',
-        provider: 'none',
-        model: 'N/A',
-        responseTimeMs: 0,
-        validationScore: 0,
-        isValid: false,
-        validationErrors: ['LLM provider unavailable'],
-        validationWarnings: [],
-        hallucinations: [],
-        signalType: undefined,
-        signalConfidence: undefined,
-        priceTarget: undefined,
-        stopLoss: undefined,
-        positionSize: undefined,
-      });
-        return res.status(503).json({
-          error: 'AI service temporarily unavailable. Please try again later.',
-          provider: 'none',
-          model: 'N/A',
-          timestamp: Date.now(),
-          cached: false,
-          guardrailRetryCount: 0,
-          providerStatus: { ...PROVIDER_STATUS },
-          fallbackMode: true,
-          errorDetail: PROVIDER_STATUS.error || undefined,
-        });
-    }
-    // --- Cache and Respond ---
-    const responsePayload: ChatResponse & {
-      providerStatus: typeof PROVIDER_STATUS;
-      fallbackMode: boolean;
-      errorDetail?: string;
-    } = {
-      response: rawResponse.response,
+
+    // Build result
+    const result: ChatResponse = {
+      response,
       provider,
-      model: HF_MODEL,
+      model: provider === 'huggingface' ? HF_MODEL : provider === 'openai' ? 'gpt-4-turbo-preview' : 'demo',
       timestamp: Date.now(),
-      cached: false,
-      guardrailRetryCount: rawResponse.retried ? 1 : 0,
-      providerStatus: { ...PROVIDER_STATUS },
-      fallbackMode: provider === 'demo' || !!rawResponse.fallback,
-      errorDetail: provider === 'demo' ? (rawResponse.error || PROVIDER_STATUS.error || undefined) : undefined,
     };
-    // Cache successful responses
-    requestCache.set(messages[messages.length - 1].content, { response: responsePayload, timestamp: Date.now() });
-    setTimeout(() => requestCache.delete(messages[messages.length - 1].content), CACHE_TTL);
-    // --- Analytics Logging ---
-    try {
-      await logResponseToDatabase({
-        sessionId: sessionId || undefined,
-        messageId: undefined,
-        userMessage: messages[messages.length - 1]?.content || '',
-        aiResponse: rawResponse.response,
-        provider,
-        model: HF_MODEL,
-        responseTimeMs: responseTime,
-        validationScore: 1,
-        isValid: true,
-        validationErrors: [],
-        validationWarnings: [],
-        hallucinations: [],
-        signalType: undefined,
-        signalConfidence: undefined,
-        priceTarget: undefined,
-        stopLoss: undefined,
-        positionSize: undefined,
-      });
-    } catch (err) {
-      console.warn('[ANALYTICS] Failed to log response:', err instanceof Error ? err.message : err);
+
+    // Cache non-demo responses
+    if (provider !== 'demo') {
+      requestCache.set(cacheKey, { response: result, timestamp: Date.now() });
+
+      // Cleanup old cache entries (keep last 100)
+      if (requestCache.size > 100) {
+        const oldKeys = Array.from(requestCache.keys()).slice(0, 50);
+        oldKeys.forEach(k => requestCache.delete(k));
+      }
     }
-    return res.status(200).json(responsePayload);
-  } catch (e) {
-    console.error('[ERROR]', (e as Error).message);
+
+    return res.status(200).json(result);
+
+  } catch (error: any) {
+    console.error('❌ AI Chat Error:', error);
     return res.status(500).json({
-      error: 'Internal server error',
-      providerStatus: { ...PROVIDER_STATUS },
-      fallbackMode: true,
-      errorDetail: PROVIDER_STATUS.error || undefined,
+      error: 'AI service error',
+      message: error.message,
+      timestamp: Date.now(),
     });
   }
 }
+
