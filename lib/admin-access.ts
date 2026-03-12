@@ -1,3 +1,4 @@
+import { getAdminKey, getAdminRole, getOwnerUserId, getSuperuserCode } from "@/lib/admin-config";
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -26,8 +27,8 @@ function getHeaderValue(request: Request, name: string) {
 }
 
 export function resolveAdminAccess(request: Request): AdminAccessResult {
-  const configuredAdminKey = process.env.TRADEHAX_ADMIN_KEY?.trim() || "";
-  const configuredSuperuserCode = process.env.TRADEHAX_SUPERUSER_CODE?.trim() || "";
+  const configuredAdminKey = getAdminKey();
+  const configuredSuperuserCode = getSuperuserCode();
   const providedAdminKey = getHeaderValue(request, "x-tradehax-admin-key");
   const providedSuperuserCode = getHeaderValue(request, "x-tradehax-superuser-code");
 
@@ -95,7 +96,7 @@ export async function resolveAdminAccessWithSession(request: NextRequest): Promi
     const role = typeof token?.role === "string" ? token.role : "";
     const sub = typeof token?.sub === "string" ? token.sub : "";
 
-    if (role === "admin_owner" || sub === "acct_tradehax_owner") {
+    if (role === getAdminRole() || sub === getOwnerUserId()) {
       return { allowed: true, mode: "session_admin" };
     }
   } catch {

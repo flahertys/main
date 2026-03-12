@@ -32,4 +32,4 @@ const encoded = `scrypt$${N}$${r}$${p}$${salt.toString("base64")}$${derived.toSt
 
 console.log("\n✅ Generated TRADEHAX_LOGIN_PASSWORD_HASH:\n");
 console.log(encoded);
-console.log("\nAdd this to .env.local / Vercel env and remove TRADEHAX_LOGIN_PASSWORD plaintext.\n");
+console.log("\nAdd this to TRADEHAX_LOGIN_PASSWORD_HASH or TRADEHAX_ADMIN_PASSWORD_HASH and remove plaintext password env vars.\n");

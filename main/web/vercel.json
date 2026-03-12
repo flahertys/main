@@ -32,6 +32,11 @@
   ],
   "redirects": [
     {
+      "source": "/ai-hub",
+      "destination": "/",
+      "permanent": false
+    },
+    {
       "source": "/tradehax",
       "destination": "/",
       "permanent": false

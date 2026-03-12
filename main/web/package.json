@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:smoke": "node ./scripts/smoke-test.js",
+    "verify:handshake": "node ./scripts/handshake-check.js",
     "release:check": "npm run test:smoke && npm run build"
   },
   "dependencies": {

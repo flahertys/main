@@ -1,3 +1,4 @@
+import { requireAdminAccess } from "@/lib/admin-access";
 import {
     getPredictionRoutingGovernanceSummary,
     getPredictionRoutingOverrides,
@@ -12,17 +13,6 @@ type OverrideBody = {
   domain?: PredictionDomain | "all";
   mode?: DomainRoutingOverrideMode;
 };
-
-function isAuthorized(request: NextRequest) {
-  const expected = String(process.env.TRADEHAX_ADMIN_KEY || "").trim();
-  if (!expected) {
-    return false;
-  }
-
-  const auth = request.headers.get("authorization") || "";
-  const bearer = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-  return bearer === expected;
-}
 
 function isDomain(value: unknown): value is PredictionDomain {
   return value === "stock" || value === "crypto" || value === "kalshi" || value === "general";
@@ -52,16 +42,8 @@ export async function GET(request: NextRequest) {
     return rateLimit.response;
   }
 
-  if (!isAuthorized(request)) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "UNAUTHORIZED",
-        message: "Admin authorization required.",
-      },
-      { status: 401, headers: rateLimit.headers },
-    );
-  }
+  const adminGate = requireAdminAccess(request, rateLimit.headers);
+  if (adminGate.response) return adminGate.response;
 
   return NextResponse.json(
     {
@@ -89,16 +71,8 @@ export async function POST(request: NextRequest) {
     return rateLimit.response;
   }
 
-  if (!isAuthorized(request)) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "UNAUTHORIZED",
-        message: "Admin authorization required.",
-      },
-      { status: 401, headers: rateLimit.headers },
-    );
-  }
+  const adminGate = requireAdminAccess(request, rateLimit.headers);
+  if (adminGate.response) return adminGate.response;
 
   let body: OverrideBody;
   try {
