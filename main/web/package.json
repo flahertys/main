@@ -9,7 +9,11 @@
     "preview": "vite preview",
     "test:smoke": "node ./scripts/smoke-test.js",
     "verify:handshake": "node ./scripts/handshake-check.js",
-    "release:check": "npm run test:smoke && npm run build"
+    "release:check": "npm run test:smoke && npm run build",
+    "audit:licenses": "node ./scripts/license-audit.mjs",
+    "engine:backtest": "node ./scripts/engine-backtest.mjs",
+    "engine:check": "npm run audit:licenses && npm run engine:backtest",
+    "engine:report": "node ./scripts/engine-quality-report.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1005.0",
