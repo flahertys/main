@@ -123,6 +123,25 @@ A server-side health endpoint is now available at:
 
 It verifies server access using `SUPABASE_SECRET_KEY` and returns project connectivity, latency, and visible storage buckets.
 
+## Codebase Structure (In Progress)
+
+The app now starts from a feature-first shell while preserving the current UI:
+
+- `src/app/` for app composition
+- `src/features/neural-hub/` for the current core experience
+- `src/shared/providers/` for root wrappers
+- `api/sessions/session-service.ts` for backend orchestration
+
+See `web/ARCHITECTURE.md` for the migration map.
+
+## Local Verification
+
+```powershell
+cd C:\tradez\main\web
+npm install
+npm run build
+```
+
 ## Notes
 
 - This repo currently does not contain your full website source tree (`app/`, `src/`, `package.json` at root), so this merge is delivered as a deployable module under `web/`.
