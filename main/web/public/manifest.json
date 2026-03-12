@@ -49,34 +49,7 @@
       "purpose": "maskable"
     }
   ],
-  "shortcuts": [
-    {
-      "name": "Neural Console",
-      "short_name": "Console",
-      "description": "Access the neural console for real-time monitoring",
-      "url": "/neural-console",
-      "icons": [
-        {
-          "src": "/icons/console-192.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Admin Hub",
-      "short_name": "Admin",
-      "description": "Access the admin dashboard for configuration",
-      "url": "/admin/neural-hub",
-      "icons": [
-        {
-          "src": "/icons/admin-192.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
-    }
-  ],
+  "shortcuts": [],
   "prefer_related_applications": false
 }
 

@@ -1,4 +1,4 @@
-# TradeHax - Test OpenAI API Key Validity (Windows PowerShell)
+ay # TradeHax - Test OpenAI API Key Validity (Windows PowerShell)
 # This script tests your OpenAI API key without exposing it
 
 Write-Host "🧪 Testing OpenAI API Key..." -ForegroundColor Cyan

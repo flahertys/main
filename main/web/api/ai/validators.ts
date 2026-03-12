@@ -217,7 +217,7 @@ export function assessQualityMetrics(response: string): ResponseQualityMetrics {
   const confidenceText = confidenceMatch ? confidenceMatch[1].toLowerCase() : '';
 
   let confidenceAlignment = 50;
-  if (confidence_KEYWORDS.high.some((kw) => confidenceText.includes(kw))) {
+  if (CONFIDENCE_KEYWORDS.high.some((kw) => confidenceText.includes(kw))) {
     confidenceAlignment = 90;
   } else if (CONFIDENCE_KEYWORDS.medium.some((kw) => confidenceText.includes(kw))) {
     confidenceAlignment = 70;
@@ -335,4 +335,5 @@ export function extractTradingParameters(response: string): {
     positionSize: extract(/Position size:\s*([^\n]+)/i),
   };
 }
+
 

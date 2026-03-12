@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { TradeHaxEngine } from '../../src/engine/index.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 interface Candle {
   timestamp: number;
@@ -83,6 +85,20 @@ async function fetchCoinGeckoCandles(symbol: string, days = 7): Promise<Candle[]
   return candles;
 }
 
+async function loadSampleCandles(): Promise<Candle[]> {
+  const p = path.join(process.cwd(), 'scripts', 'sample-ohlc.json');
+  const raw = await fs.readFile(p, 'utf8');
+  const rows = JSON.parse(raw);
+  return rows.map((r: any) => ({
+    timestamp: Number(r.timestamp),
+    open: Number(r.open),
+    high: Number(r.high),
+    low: Number(r.low),
+    close: Number(r.close),
+    volume: Number(r.volume),
+  }));
+}
+
 function detectMacroRegime(candles: Candle[]) {
   const closes = candles.map((c) => c.close);
   const n = closes.length;
@@ -133,11 +149,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       candles = await fetchBinanceCandles(symbol, interval, 220);
     } catch {
-      source = 'coingecko';
-      candles = await fetchCoinGeckoCandles(symbol, 10);
+      try {
+        source = 'coingecko';
+        candles = await fetchCoinGeckoCandles(symbol, 10);
+      } catch {
+        source = 'sample-fallback';
+        candles = await loadSampleCandles();
+      }
     }
 
-    if (candles.length < 60) {
+    if (candles.length < 40) {
       return res.status(422).json({ error: 'Not enough candle data for engine evaluation' });
     }
 
@@ -151,6 +172,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       symbol,
       interval,
       source,
+      liveData: source !== 'sample-fallback',
       macro,
       snapshot,
       backtest: {
@@ -186,4 +208,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 }
-

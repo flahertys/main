@@ -11,10 +11,9 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSession, getRecentMessages } from '../sessions/store';
-import { validateResponse, detectHallucinations, extractTradingParameters } from './validators';
-import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console';
-import { buildCompletSystemMessage, selectPromptTemplate } from './prompt-engine';
+import { getSession, getRecentMessages } from '../sessions/store.js';
+import { validateResponse, detectHallucinations, extractTradingParameters } from './validators.js';
+import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console.js';
 
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';

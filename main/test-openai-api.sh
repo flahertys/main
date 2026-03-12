@@ -1,4 +1,4 @@
-#!/bin/bash
+the#y !/bin/bash
 # TradeHax - Test OpenAI API Key Validity
 # This script tests your OpenAI API key without exposing it
 

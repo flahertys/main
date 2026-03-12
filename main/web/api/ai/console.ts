@@ -13,7 +13,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { validateResponse, detectHallucinations, extractTradingParameters } from './validators';
+import { validateResponse, detectHallucinations, extractTradingParameters } from './validators.js';
 
 export interface ConsoleCommand {
   command: string;
@@ -355,5 +355,127 @@ export function shouldAutoRejectResponse(
   }
 
   return false;
+}
+
+/**
+ * AI Provider Endpoint Configuration
+ * Supports multiple endpoints for each provider
+ */
+export const PROVIDER_ENDPOINTS = {
+  huggingface: [
+    {
+      name: 'Primary (Free Tier)',
+      url: 'https://api-inference.huggingface.co/models',
+      model: 'meta-llama/Llama-3.3-70B-Instruct',
+      maxTokens: 1024,
+      costPerM: 0, // Free
+      priority: 1,
+    },
+  ],
+  openai: [
+    {
+      name: 'Primary (Student Account)',
+      url: 'https://api.openai.com/v1/chat/completions',
+      model: 'gpt-4-turbo-preview',
+      maxTokens: 1024,
+      costPerM: 0.01, // Approx
+      priority: 1,
+    },
+    {
+      name: 'Backup (GPT-3.5 Turbo)',
+      url: 'https://api.openai.com/v1/chat/completions',
+      model: 'gpt-3.5-turbo',
+      maxTokens: 2048,
+      costPerM: 0.0005,
+      priority: 2,
+    },
+  ],
+  backup: [
+    {
+      name: 'Demo Mode (Guaranteed)',
+      url: 'local://demo-mode',
+      model: 'demo-response-engine',
+      maxTokens: 2000,
+      costPerM: 0,
+      priority: 99, // Fallback
+    },
+  ],
+};
+
+/**
+ * Endpoint health status tracking
+ */
+export const ENDPOINT_HEALTH = new Map<string, {
+  status: 'healthy' | 'degraded' | 'offline';
+  lastCheck: number;
+  successRate: number;
+  avgResponseTime: number;
+  errorCount: number;
+}>();
+
+/**
+ * Track endpoint health and failover
+ */
+export function recordEndpointHealth(
+  provider: string,
+  model: string,
+  success: boolean,
+  responseTime: number
+) {
+  const key = `${provider}:${model}`;
+  const current = ENDPOINT_HEALTH.get(key) || {
+    status: 'healthy',
+    lastCheck: Date.now(),
+    successRate: 100,
+    avgResponseTime: 0,
+    errorCount: 0,
+  };
+
+  if (success) {
+    current.successRate = Math.min(100, current.successRate + 2);
+    current.avgResponseTime = (current.avgResponseTime + responseTime) / 2;
+  } else {
+    current.successRate = Math.max(0, current.successRate - 5);
+    current.errorCount++;
+  }
+
+  // Determine health status
+  if (current.successRate >= 95) {
+    current.status = 'healthy';
+  } else if (current.successRate >= 70) {
+    current.status = 'degraded';
+  } else {
+    current.status = 'offline';
+  }
+
+  current.lastCheck = Date.now();
+  ENDPOINT_HEALTH.set(key, current);
+}
+
+/**
+ * Get best available endpoint
+ */
+export function getBestAvailableEndpoint(
+  preferredProvider: 'huggingface' | 'openai' | 'backup'
+): any {
+  const endpoints = [
+    ...PROVIDER_ENDPOINTS[preferredProvider],
+    ...PROVIDER_ENDPOINTS.openai.filter(e => preferredProvider !== 'openai'),
+    ...PROVIDER_ENDPOINTS.backup,
+  ];
+
+  // Sort by health and priority
+  endpoints.sort((a, b) => {
+    const aHealth = ENDPOINT_HEALTH.get(`${a.name}:${a.model}`)?.successRate || 100;
+    const bHealth = ENDPOINT_HEALTH.get(`${b.name}:${b.model}`)?.successRate || 100;
+
+    if (aHealth !== bHealth) {
+      return bHealth - aHealth; // Higher health first
+    }
+
+    return a.priority - b.priority; // Lower priority number first
+  });
+
+  return endpoints[0];
 }
 

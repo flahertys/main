@@ -4,7 +4,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSession, createSession, updateSession, addMessage, recordSignalOutcome, getRecentMessages } from './store';
+import { getSession, createSession, updateSession, addMessage, recordSignalOutcome, getRecentMessages } from './store.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
