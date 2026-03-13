@@ -7,7 +7,10 @@ export function SignalCard({ signal }) {
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Real-time updates
   useEffect(() => {
+    let ws;
+    let isMounted = true;
     setLoading(true);
     setError(null);
     async function fetchTimeline() {
@@ -15,14 +18,25 @@ export function SignalCard({ signal }) {
         const res = await fetch(`/api/signal-timeline.js?symbol=${encodeURIComponent(signal.symbol)}`);
         if (!res.ok) throw new Error('Failed to fetch timeline');
         const data = await res.json();
-        setTimeline(data.timeline || []);
+        if (isMounted) setTimeline(data.timeline || []);
       } catch (err) {
-        setError(err.message);
+        if (isMounted) setError(err.message);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
     fetchTimeline();
+    // WebSocket for real-time updates
+    ws = new WebSocket(`wss://${window.location.host}/ws/signals?symbol=${encodeURIComponent(signal.symbol)}`);
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.timeline && isMounted) setTimeline(data.timeline);
+      } catch (err) {}
+    };
+    ws.onerror = () => { if (isMounted) setError('Live signal feed error'); };
+    ws.onclose = () => {};
+    return () => { isMounted = false; if (ws) ws.close(); };
   }, [signal.symbol]);
 
   return (
@@ -79,4 +93,3 @@ export function SignalCard({ signal }) {
     </div>
   );
 }
-

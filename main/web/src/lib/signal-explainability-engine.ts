@@ -4,7 +4,7 @@
  * Output: Natural language reasoning + machine-readable factor attribution
  */
 
-import { SIGNAL_THRESHOLDS, FACTOR_WEIGHTS, RISK_CONTROLS, SIGNAL_ACTIONS } from './signal-parameters';
+import { FACTOR_WEIGHTS, RISK_CONTROLS, SIGNAL_ACTIONS } from './signal-parameters';
 
 export interface SignalFactors {
   momentum: {
