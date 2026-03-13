@@ -67,4 +67,3 @@ $docContent = @"
 Set-Content -Path $docPath -Value $docContent
 
 Write-Host "Backup complete! Archive located at: $backupDir"
-

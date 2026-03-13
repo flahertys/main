@@ -229,12 +229,12 @@ export function AnalyticsLiveChart({ metric = 'confidence', metrics = ['confiden
         {summary.direction === 'upward' && <span style={{ color: 'var(--accent-color)' }}>Upward trend.</span>}
         {summary.direction === 'downward' && <span style={{ color: 'var(--accent-color)' }}>Downward trend.</span>}
         {anomalies.length > 0 && <span style={{ color: 'var(--gold-color)' }}>Anomalies present. Review signal quality.</span>}
-            // PropTypes and default props for integration
-            AnalyticsLiveChart.defaultProps = {
-              onMetricChange: undefined,
-              onAlert: undefined,
-            };
       </div>
     </div>
   );
 }
+
+AnalyticsLiveChart.defaultProps = {
+  onMetricChange: undefined,
+  onAlert: undefined,
+};

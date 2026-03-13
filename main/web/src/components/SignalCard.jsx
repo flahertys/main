@@ -1,6 +1,5 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { SignalTimeline } from "../../../components/trading/SignalTimeline";
 
 export function SignalCard({ signal }) {
   // signal: { symbol, action, confidence, trend, play, odds, timeframe }
@@ -87,7 +86,10 @@ export function SignalCard({ signal }) {
         ) : error ? (
           <div style={{ color: '#F5A623', fontSize: 12 }}>Error: {error}</div>
         ) : (
-          <SignalTimeline signals={timeline} />
+          <div style={{ color: '#8EA2B8', fontSize: 12 }}>
+            {/* Timeline visualization placeholder */}
+            {timeline.length > 0 ? `Timeline loaded (${timeline.length} entries)` : 'No timeline data available.'}
+          </div>
         )}
       </div>
     </div>

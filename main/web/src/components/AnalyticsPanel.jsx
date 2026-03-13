@@ -119,20 +119,25 @@ export function AnalyticsPanel() {
       {/* Signal Explainer integration */}
       {selectedSignal && chartSummary && chartAlerts.length > 0 && (
         <SignalExplainer
-          summary={{ ...chartSummary, ...chartSummary.data && chartSummary.data.length > 1 ? {
-            latest: chartSummary.data[chartSummary.data.length - 1],
-            avg: (chartSummary.data.reduce((a, b) => a + b, 0) / chartSummary.data.length).toFixed(2),
-            min: Math.min(...chartSummary.data),
-            max: Math.max(...chartSummary.data),
-            anomalies: chartAlerts[chartAlerts.length - 1].anomalies,
-            volatility: chartAlerts[chartAlerts.length - 1].volatility,
-            momentum: chartAlerts[chartAlerts.length - 1].momentum,
-            direction: chartAlerts[chartAlerts.length - 1].direction,
-          } : {} }}
+          summary={{
+            ...chartSummary,
+            ...(chartSummary.data && chartSummary.data.length > 1
+              ? {
+                  latest: chartSummary.data[chartSummary.data.length - 1],
+                  avg: (chartSummary.data.reduce((a, b) => a + b, 0) / chartSummary.data.length).toFixed(2),
+                  min: Math.min(...chartSummary.data),
+                  max: Math.max(...chartSummary.data),
+                  anomalies: chartAlerts[chartAlerts.length - 1].anomalies,
+                  volatility: chartAlerts[chartAlerts.length - 1].volatility,
+                  momentum: chartAlerts[chartAlerts.length - 1].momentum,
+                  direction: chartAlerts[chartAlerts.length - 1].direction,
+                }
+              : {})
+          }}
           alert={chartAlerts[chartAlerts.length - 1]}
           signal={selectedSignal}
         />
-      </div>
+      )}
       <table className="analytics-table" style={{ width: "100%", borderCollapse: "collapse", background: '#fff', borderRadius: 8 }}>
         <thead>
           <tr>

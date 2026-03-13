@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { NeuralHubPage } from "../features/neural-hub/index.js";
-import './theme.css';
-import { useTheme } from './ThemeProvider.jsx';
+import '../theme.css';
+import { useTheme } from '../ThemeProvider.jsx';
 import { OnboardingModal } from '../components/OnboardingModal.jsx';
 
 export default function AppShell() {
