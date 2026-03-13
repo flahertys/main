@@ -1,0 +1,6 @@
+tradehax.net|76.76.21.21|307 https://www.tradehax.net/|307 https://www.tradehax.net/tradehax|307 https://www.tradehax.net/__health
+www.tradehax.net|76.76.21.142,66.33.60.66|200 |404 |404 
+tradehaxai.tech|76.76.21.21|200 |404 |200 
+www.tradehaxai.tech|76.76.21.142,66.33.60.66|200 |404 |200 
+tradehaxai.me|76.76.21.21|200 |404 |200 
+www.tradehaxai.me|66.33.60.193,76.76.21.241|200 |404 |200 

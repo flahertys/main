@@ -1,0 +1,7 @@
+﻿
+FullName                                Name         Mode  
+--------                                ----         ----  
+C:\tradez\main\web\.vercel\project.json project.json -a----
+C:\tradez\main\web\.vercel\README.txt   README.txt   -a----
+
+

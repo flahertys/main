@@ -1,0 +1,2 @@
+﻿ed451f2 Add PowerShell Namecheap DNS helper script
+A	main/scripts/namecheap-dns-copypasta.ps1

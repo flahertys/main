@@ -1,0 +1,20 @@
+﻿
+Name                    Mode  
+----                    ----  
+.vercel                 d-----
+dist                    d-----
+node_modules            d-----
+public                  d-----
+scripts                 d-----
+src                     d-----
+.gitignore              -a----
+deploy-tradehax.ps1     -a----
+index.html              -a----
+package-lock.json       -a----
+package.json            -a----
+PRODUCTION_CHECKLIST.md -a----
+README.md               -a----
+vercel.json             -a----
+vite.config.js          -a----
+
+
