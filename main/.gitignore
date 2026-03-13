@@ -9,7 +9,12 @@
 
 # Environment files with secrets should never be committed
 .env
-.env.*
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env
 
 # Secret files
 *.key
