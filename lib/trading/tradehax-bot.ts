@@ -10,6 +10,8 @@ import {
   resolveDefaultAdapterId,
 } from "@/lib/trading/chain-adapter";
 
+import { SIGNAL_THRESHOLDS } from "../../main/web/src/lib/signal-parameters";
+
 export interface TradeSignal {
   symbol: string;
   action: "buy" | "sell" | "hold";
@@ -93,13 +95,13 @@ class TradehaxBot {
     }
 
     const lastExecAt = this.lastExecutionAtBySymbol.get(signal.symbol) || 0;
-    if (Date.now() - lastExecAt < this.config.cooldownPeriod) {
+    if (Date.now() - lastExecAt < SIGNAL_THRESHOLDS.cooldownPeriodMs) {
       console.log(`[TradeHax] Cooldown active for ${signal.symbol}`);
       return;
     }
 
     // Validate signal confidence
-    if (signal.confidence < 0.65) {
+    if (signal.confidence < SIGNAL_THRESHOLDS.minSignalConfidence) {
       console.log(`[TradeHax] Signal confidence too low (${signal.confidence})`);
       return;
     }

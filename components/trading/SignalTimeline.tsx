@@ -23,7 +23,7 @@ const OUTCOME_ICON = {
  */
 export function SignalTimeline({ signals }: SignalTimelineProps) {
   if (signals.length === 0) {
-    return <p className="text-xs text-muted-foreground">No similar signals found.</p>;
+    return <p className="text-xs text-muted-foreground" aria-live="polite">No similar signals found.</p>;
   }
 
   return (
@@ -41,7 +41,8 @@ export function SignalTimeline({ signals }: SignalTimelineProps) {
             sig.returnPct >= 0 ? "text-green-400" : "text-red-400";
 
           return (
-            <div key={sig.id} role="listitem" className="relative flex items-start gap-3">
+            <div key={sig.id} role="listitem" className="relative flex items-start gap-3" tabIndex={0} aria-label={`Signal ${sig.symbol} ${sig.action} ${date} ${sig.outcome}`}
+              style={{ outline: 'none' }}>
               {/* Timeline dot */}
               <div className="absolute -left-3 top-1 w-2 h-2 rounded-full bg-primary border border-background" aria-hidden="true" />
 
