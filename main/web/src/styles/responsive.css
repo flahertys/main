@@ -446,6 +446,8 @@ textarea:focus-visible {
 /* High contrast mode */
 @media (prefers-contrast: more) {
   :root {
+    --color-bg-dark: #000000;
+    --color-text-light: #FFFFFF;
     --color-border: #000000;
     --color-text-muted: #333333;
   }
