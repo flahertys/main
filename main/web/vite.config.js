@@ -18,16 +18,19 @@ export default defineConfig({
         pure_funcs: ['console.log', 'console.info'],
         passes: 2
       },
-      mangle: true,
-      output: {
-        comments: false
-      }
+      mangle: true
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'api': ['./src/lib/api-client.ts']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('src/lib/api-client.ts')) {
+              return 'api';
+            }
+          }
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
@@ -61,4 +64,3 @@ export default defineConfig({
     exclude: ['node_modules']
   }
 });
-
