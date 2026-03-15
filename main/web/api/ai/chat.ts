@@ -12,7 +12,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import fetch from 'node-fetch';
-import { getSession, getRecentMessages } from '../sessions/store.js';
+import { getSession, getRecentMessages, UserProfile } from '../sessions/store.js';
 import { validateResponse, detectHallucinations, extractTradingParameters } from './validators.js';
 import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console.js';
 
@@ -61,7 +61,7 @@ interface MarketSnapshot {
 
 interface ChatContext {
   sessionId?: string;
-  userProfile?: UserProfileContext;
+  userProfile?: UserProfile;
   recentMessages?: ChatMessage[];
   marketSnapshot?: MarketSnapshot[];
 }
@@ -667,49 +667,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         { ...req, body } as VercelRequest,
         res,
       );
-      if (handled) return;
-    }
-
-    // Load server-side session if available
-    let serverSession = null;
-    if (body.context?.sessionId) {
-      serverSession = getSession(body.context.sessionId);
-    }
-
-    // Validate request
-    if (!body.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
-      return res.status(400).json({
-        error: 'Invalid request',
-        message: 'messages array is required and must not be empty'
-      });
-    }
-
-    // Merge server profile with request context
-    const serverProfile = serverSession?.userProfile;
-    const mergedProfile = {
-      ...body.context?.userProfile,
-      ...serverProfile,
-      signalAccuracy: {
-        ...((body.context?.userProfile?.signalAccuracy) || { overall: 0.5, byAsset: {} }),
-        ...((serverProfile?.signalAccuracy) || {}),
-      },
-    };
-
-    // Get extended context from server session
-    const serverRecentMessages = serverSession ? getRecentMessages(body.context?.sessionId!, 8) : [];
-    const enhancedContext = {
-      ...body.context,
-      userProfile: mergedProfile,
-      recentMessages: [...(body.context?.recentMessages || []), ...serverRecentMessages].slice(-12),
-    };
-
-    const latestUserMessage = body.messages[body.messages.length - 1]?.content || '';
-    const normalizedMessages = body.messages.slice(-8).map((message) => ({
-      role: message.role,
-      content: String(message.content || '').slice(0, 1500),
-    }));
-    const detectedAssets = detectAssets(latestUserMessage, enhancedContext);
-    const liveSnapshot = await fetchMarketSnapshot(detectedAssets);
-
-    // Log session context enrichment
-    if
+      if
