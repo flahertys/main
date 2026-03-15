@@ -676,7 +676,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // --- Extract User Profile ---
     const sessionId = body.context?.sessionId || '';
-    const userProfile = body.context?.userProfile || (sessionId ? await getSession(sessionId) : null);
+    const userProfile = body.context?.userProfile || (sessionId ? (await getSession(sessionId))?.userProfile : undefined);
     const recentMessages = body.context?.recentMessages || (sessionId ? await getRecentMessages(sessionId) : null);
 
     // --- Request Logging ---
@@ -688,7 +688,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // --- Auto-reject Obvious Hallucinations ---
-    if (shouldAutoRejectResponse(recentMessages, messages)) {
+    const recentContents = (recentMessages || []).map((m: any) => m.content);
+    const messageContents = (messages || []).map((m: any) => m.content);
+    if (shouldAutoRejectResponse(recentContents, messageContents)) {
       const rejectionResponse = `Rejecting generated response due to high hallucination probability. Refine your question or provide more context.`;
       console.log('[HALLUCINATION REJECT]', rejectionResponse);
       return res.status(200).json({
@@ -702,9 +704,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // --- Extract Assets and Detect Intent ---
-    const allMessages = recentMessages.concat(messages);
+    const allMessages = (recentMessages || []).concat(messages);
     const flatText = allMessages.map((msg) => msg.content).join(' ');
-    const assets = detectAssets(flatText, { userProfile, recentMessages });
+    const assets = detectAssets(flatText, body.context);
     const intent = detectIntent(flatText);
 
     // --- Fetch Live Market Data ---
@@ -713,8 +715,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // --- Build Context for AI Providers ---
     const context: ChatContext = {
       sessionId,
-      userProfile,
-      recentMessages,
+      userProfile: userProfile || undefined,
+      recentMessages: recentMessages || undefined,
       marketSnapshot,
     };
 
@@ -722,7 +724,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const systemPrompt = buildSystemPrompt(messages[messages.length - 1].content, context, marketSnapshot);
 
     // --- Provider Selection Logic ---
-    let provider = 'huggingface';
+    let provider: 'huggingface' | 'openai' | 'demo' = 'huggingface';
     let invoke: () => Promise<string> = () => callHuggingFace([ { role: 'user', content: systemPrompt } ], temperature);
     if (PROVIDER_STATUS.openai && (!PROVIDER_STATUS.huggingface || Math.random() < 0.5)) {
       provider = 'openai';

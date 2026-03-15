@@ -89,9 +89,9 @@ export class DatabaseClient {
     sql: string,
     params?: any[],
     retries = 0
-  ): Promise<QueryResult<T>> {
+  ): Promise<QueryResult<any>> {
     try {
-      const result = await this.pool.query<T>(sql, params);
+      const result = await this.pool.query(sql, params);
       this.isHealthy = true;
       return result;
     } catch (error) {
@@ -150,4 +150,3 @@ export const db = new DatabaseClient({
 });
 
 export default db;
-
