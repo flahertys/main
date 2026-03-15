@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from 'next/link';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 const LiveActivity = dynamic(
   () => import("@/components/ui/LiveActivity").then((mod) => mod.LiveActivity),
@@ -46,6 +48,12 @@ const Roadmap = dynamic(
 );
 
 export default function Home() {
+  // Server-side domain check for tradehax.net
+  const host = headers().get('host');
+  if (host && host.includes('tradehax.net')) {
+    redirect('/music');
+  }
+
   return (
     <main className="min-h-screen bg-black">
       <HomeEngagementTracker />
