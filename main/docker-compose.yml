@@ -23,6 +23,25 @@ services:
       - ./web/src:/app/src
       - ./web/public:/app/public
       - /app/node_modules
+      - ./vscode/mcp.json:/app/mcp.json:ro
+    networks:
+      - tradehax
+    restart: unless-stopped
+  claude-local:
+    image: node:20-alpine
+    container_name: claude-local
+    command: tail -f /dev/null
+    volumes:
+      - ./vscode/mcp.json:/app/mcp.json:ro
+    networks:
+      - tradehax
+    restart: unless-stopped
+  claude-cloud:
+    image: node:20-alpine
+    container_name: claude-cloud
+    command: tail -f /dev/null
+    volumes:
+      - ./vscode/mcp.json:/app/mcp.json:ro
     networks:
       - tradehax
     restart: unless-stopped
