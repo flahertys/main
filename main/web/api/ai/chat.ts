@@ -142,7 +142,8 @@ async function callHuggingFace(messages: ChatMessage[], temperature = 0.7): Prom
     },
     body: JSON.stringify({
       inputs: prompt,
-      parameters: {
+      parameters:
+ {
         temperature,
         max_new_tokens: 1024,
         return_full_text: false,
@@ -667,4 +668,89 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         { ...req, body } as VercelRequest,
         res,
       );
-      if
+      if (handled) return;
+    }
+
+    const messages = body.messages || [];
+    const temperature = typeof body.temperature === 'number' ? body.temperature : 0.7;
+
+    // --- Extract User Profile ---
+    const sessionId = body.context?.sessionId || '';
+    const userProfile = body.context?.userProfile || (sessionId ? await getSession(sessionId) : null);
+    const recentMessages = body.context?.recentMessages || (sessionId ? await getRecentMessages(sessionId) : null);
+
+    // --- Request Logging ---
+    console.log('[REQUEST]', JSON.stringify({ messages, temperature, userProfile }, null, 2));
+
+    // --- Guard: Empty or Invalid Message ---
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'Invalid request: messages array is required' });
+    }
+
+    // --- Auto-reject Obvious Hallucinations ---
+    if (shouldAutoRejectResponse(recentMessages, messages)) {
+      const rejectionResponse = `Rejecting generated response due to high hallucination probability. Refine your question or provide more context.`;
+      console.log('[HALLUCINATION REJECT]', rejectionResponse);
+      return res.status(200).json({
+        response: rejectionResponse,
+        provider: 'demo',
+        model: 'N/A',
+        timestamp: Date.now(),
+        cached: false,
+        guardrailRetryCount: 0,
+      });
+    }
+
+    // --- Extract Assets and Detect Intent ---
+    const allMessages = recentMessages.concat(messages);
+    const flatText = allMessages.map((msg) => msg.content).join(' ');
+    const assets = detectAssets(flatText, { userProfile, recentMessages });
+    const intent = detectIntent(flatText);
+
+    // --- Fetch Live Market Data ---
+    const marketSnapshot = await fetchMarketSnapshot(assets);
+
+    // --- Build Context for AI Providers ---
+    const context: ChatContext = {
+      sessionId,
+      userProfile,
+      recentMessages,
+      marketSnapshot,
+    };
+
+    // --- Build System Prompt ---
+    const systemPrompt = buildSystemPrompt(messages[messages.length - 1].content, context, marketSnapshot);
+
+    // --- Provider Selection Logic ---
+    let provider = 'huggingface';
+    let invoke: () => Promise<string> = () => callHuggingFace([ { role: 'user', content: systemPrompt } ], temperature);
+    if (PROVIDER_STATUS.openai && (!PROVIDER_STATUS.huggingface || Math.random() < 0.5)) {
+      provider = 'openai';
+      invoke = () => callOpenAI([ { role: 'user', content: systemPrompt } ], temperature);
+    }
+
+    // --- Call Selected Provider ---
+    const startTime = Date.now();
+    const rawResponse = await getGuardedProviderResponse(invoke, messages[messages.length - 1].content, context, marketSnapshot);
+    const responseTime = Date.now() - startTime;
+
+    // --- Cache and Respond ---
+    const responsePayload: ChatResponse = {
+      response: rawResponse.response,
+      provider,
+      model: HF_MODEL,
+      timestamp: Date.now(),
+      cached: false,
+      guardrailRetryCount: rawResponse.retried ? 1 : 0,
+    };
+
+    // Cache successful responses
+    requestCache.set(messages[messages.length - 1].content, { response: responsePayload, timestamp: Date.now() });
+    setTimeout(() => requestCache.delete(messages[messages.length - 1].content), CACHE_TTL);
+
+    return res.status(200).json(responsePayload);
+  } catch (e) {
+    console.error('[ERROR]', (e as Error).message);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
