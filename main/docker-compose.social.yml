@@ -41,6 +41,7 @@ services:
       start_period: 10s
     volumes:
       - social-logs:/app/logs
+      - ../.vscode/mcp.json:/app/mcp.json:ro
     labels:
       - "com.tradehax.service=social-sync-orchestrator"
       - "com.tradehax.type=orchestrator"
@@ -195,6 +196,26 @@ services:
       - "com.tradehax.service=twitter-mcp"
       - "com.tradehax.type=social-mcp"
       - "com.tradehax.platform=twitter"
+
+  claude-local:
+    image: node:20-alpine
+    container_name: claude-local
+    command: tail -f /dev/null
+    volumes:
+      - ../.vscode/mcp.json:/app/mcp.json:ro
+    networks:
+      - tradehax-network
+    restart: unless-stopped
+
+  claude-cloud:
+    image: node:20-alpine
+    container_name: claude-cloud
+    command: tail -f /dev/null
+    volumes:
+      - ../.vscode/mcp.json:/app/mcp.json:ro
+    networks:
+      - tradehax-network
+    restart: unless-stopped
 
 networks:
   tradehax-network:
