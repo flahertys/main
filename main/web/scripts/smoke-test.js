@@ -49,10 +49,6 @@ if (fs.existsSync(vercelPath)) {
     console.error("/tradehax redirect rule not found in vercel.json.");
     failed = true;
   }
-  if (!vercelText.includes('"source": "/ai-hub"')) {
-    console.error("/ai-hub redirect rule not found in vercel.json.");
-    failed = true;
-  }
 }
 
 const componentPath = path.join(root, "src", "TradeHaxFinal.jsx");

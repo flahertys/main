@@ -1,0 +1,489 @@
+/**
+ * Mobile-First Responsive CSS
+ * Ensures optimal display on all devices from mobile (320px) to desktop (2560px+)
+ */
+
+:root {
+  /* Mobile-first base font size */
+  font-size: 14px;
+
+  /* Color scheme */
+  --color-primary: #00D9FF;
+  --color-secondary: #F5A623;
+  --color-bg-dark: #090B10;
+  --color-text-light: #C8D8E8;
+  --color-text-muted: #8EA2B8;
+  --color-border: #1C2333;
+
+  /* Spacing (mobile-first, 4px base) */
+  --space-xs: 0.25rem;  /* 4px */
+  --space-sm: 0.5rem;   /* 8px */
+  --space-md: 1rem;     /* 16px */
+  --space-lg: 1.5rem;   /* 24px */
+  --space-xl: 2rem;     /* 32px */
+  --space-2xl: 3rem;    /* 48px */
+
+  /* Typography - mobile-first */
+  --font-size-xs: 0.75rem;   /* 12px */
+  --font-size-sm: 0.875rem;  /* 14px */
+  --font-size-base: 1rem;    /* 16px */
+  --font-size-lg: 1.125rem;  /* 18px */
+  --font-size-xl: 1.25rem;   /* 20px */
+  --font-size-2xl: 1.5rem;   /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+
+  /* Breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==================== MOBILE BASE STYLES ==================== */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--color-bg-dark);
+  color: var(--color-text-light);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+/* Mobile-first container padding */
+.container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+  box-sizing: border-box;
+}
+
+/* Ensure images are responsive */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Responsive button sizing */
+button, input[type="button"], input[type="submit"] {
+  font-size: var(--font-size-base);
+  padding: var(--space-md) var(--space-lg);
+  min-height: 44px; /* iOS recommended touch target */
+  min-width: 44px;
+  border-radius: 6px;
+  transition: background-color var(--transition-base);
+  cursor: pointer;
+  border: none;
+}
+
+/* Touch-friendly links on mobile */
+a, button {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==================== MOBILE OPTIMIZED LAYOUTS ==================== */
+
+/* Heading hierarchy - mobile first */
+h1 {
+  font-size: var(--font-size-2xl);
+  margin: var(--space-lg) 0 var(--space-md) 0;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: var(--font-size-xl);
+  margin: var(--space-lg) 0 var(--space-md) 0;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: var(--font-size-lg);
+  margin: var(--space-md) 0 var(--space-sm) 0;
+  font-weight: 600;
+}
+
+h4, h5, h6 {
+  font-size: var(--font-size-base);
+  margin: var(--space-md) 0 var(--space-sm) 0;
+  font-weight: 600;
+}
+
+/* Mobile-first grid - stacked on mobile */
+.grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: 1fr;
+}
+
+.grid-2 {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: 1fr;
+}
+
+.grid-3 {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: 1fr;
+}
+
+.grid-4 {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: 1fr;
+}
+
+/* Flexbox stacks on mobile */
+.flex-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.flex-row-reverse {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-md);
+}
+
+/* Mobile-first navigation */
+nav {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  list-style: none;
+  margin: 0;
+  padding: var(--space-md) 0;
+}
+
+nav li {
+  flex-shrink: 0;
+}
+
+/* ==================== TABLET BREAKPOINT (640px) ==================== */
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+    padding: 0 var(--space-lg);
+  }
+
+  h1 {
+    font-size: var(--font-size-3xl);
+  }
+
+  h2 {
+    font-size: var(--font-size-2xl);
+  }
+
+  h3 {
+    font-size: var(--font-size-xl);
+  }
+
+  .grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .flex-row {
+    flex-direction: row;
+  }
+
+  .flex-row-reverse {
+    flex-direction: row-reverse;
+  }
+}
+
+/* ==================== TABLET BREAKPOINT (768px) ==================== */
+
+@media (min-width: 768px) {
+  :root {
+    font-size: 15px;
+  }
+
+  .container {
+    max-width: 768px;
+  }
+
+  .grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Two-column layout on tablet */
+  .sidebar {
+    display: grid;
+    grid-template-columns: 1fr 250px;
+    gap: var(--space-lg);
+  }
+}
+
+/* ==================== DESKTOP BREAKPOINT (1024px) ==================== */
+
+@media (min-width: 1024px) {
+  :root {
+    font-size: 16px;
+  }
+
+  .container {
+    max-width: 1024px;
+    padding: 0 var(--space-2xl);
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    margin: var(--space-2xl) 0 var(--space-lg) 0;
+  }
+
+  .grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* Wide sidebar layout */
+  .sidebar-wide {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: var(--space-2xl);
+  }
+
+  /* Full-width content with side panel */
+  .panel-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: var(--space-2xl);
+  }
+}
+
+/* ==================== LARGE DESKTOP (1280px+) ==================== */
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+
+  .grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* Dashboard layout */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-2xl);
+  }
+}
+
+/* ==================== EXTRA LARGE DESKTOP (1536px+) ==================== */
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1536px;
+  }
+}
+
+/* ==================== MOBILE-SPECIFIC OPTIMIZATIONS ==================== */
+
+@media (max-width: 640px) {
+  /* Reduce motion for mobile */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Larger touch targets for small screens */
+  button, a, input, select, textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Full-width modals on mobile */
+  .modal {
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 16px 16px 0 0;
+  }
+
+  /* Improve readability on small screens */
+  body {
+    font-size: var(--font-size-base);
+    line-height: 1.7;
+  }
+
+  /* Single column on mobile */
+  .two-column {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  /* Hide desktop-only elements */
+  .hide-mobile {
+    display: none;
+  }
+}
+
+/* ==================== DESKTOP-SPECIFIC OPTIMIZATIONS ==================== */
+
+@media (min-width: 1024px) {
+  /* Show desktop-only elements */
+  .hide-desktop {
+    display: none;
+  }
+
+  /* Multi-column layouts on desktop */
+  .two-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2xl);
+  }
+
+  .three-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-2xl);
+  }
+}
+
+/* ==================== DARK MODE SUPPORT ==================== */
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: var(--color-bg-dark);
+    color: var(--color-text-light);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg-dark: #FFFFFF;
+    --color-text-light: #1A202C;
+    --color-text-muted: #4A5568;
+    --color-border: #E2E8F0;
+  }
+}
+
+/* ==================== LANDSCAPE ORIENTATION ==================== */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Reduce vertical spacing on landscape mobile */
+  h1, h2, h3 {
+    margin: var(--space-sm) 0;
+  }
+
+  .container {
+    padding: var(--space-sm);
+  }
+}
+
+/* ==================== PRINT STYLES ==================== */
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+
+  .no-print {
+    display: none;
+  }
+}
+
+/* ==================== ACCESSIBILITY ==================== */
+
+/* Focus styles for keyboard navigation */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  :root {
+    --color-bg-dark: #000000;
+    --color-text-light: #FFFFFF;
+    --color-border: #000000;
+    --color-text-muted: #333333;
+  }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+

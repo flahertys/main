@@ -1,0 +1,72 @@
+﻿git : [pre-commit] Running image generation (png->webp, responsive, placeholders)
+At line:1 char:32
++ ... git add -A; git commit -m "Fix: Enhance DNS validation + correct Name ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([pre-commit] Ru..., placeholders):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> tradehax@0.1.0 generate:all
+> echo 'Image generation skipped (tools not configured)'
+
+'Image generation skipped (tools not configured)'
+fatal: pathspec 'resume-images/*.webp' did not match any files
+[pre-commit] Done. Proceeding with commit.
+[main eb1a5a1] Fix: Enhance DNS validation + correct Namecheap guide + document endpoint fix instructions - scripts/namecheap-dns-copypasta.ps1: Added Vercel apex IP (76.76.21.21) support to Verify-Dns function - scripts/namecheap-dns-copypasta.bat: Updated guide with correct A record for apex + CNAME for www - web/deploy-tradehax.ps1: Fixed PowerShell error handling (Set-ErrorActionPreference) - ENDPOINT_FIX_INSTRUCTIONS.md: Final step guide for domain aliasing to main-six-dun.vercel.app - Verified Vite SPA at main-six-dun.vercel.app (170KB gzipped, ready for production) - Awaiting: Domain alias setup via Vercel dashboard to resolve /__health and /tradehax 404s See ENDPOINT_FIX_INSTRUCTIONS.md for verification steps.
+ 59 files changed, 550 insertions(+), 18 deletions(-)
+ create mode 100644 main/ENDPOINT_FIX_INSTRUCTIONS.md
+ create mode 100644 main/tmp_alias_by_org.txt
+ create mode 100644 main/tmp_alias_default_scope.txt
+ create mode 100644 main/tmp_alias_hackai_after_deploy.txt
+ create mode 100644 main/tmp_alias_hackavelliz.txt
+ create mode 100644 main/tmp_alias_owner7282.txt
+ create mode 100644 main/tmp_alias_set_tradehax.txt
+ create mode 100644 main/tmp_alias_set_www.txt
+ create mode 100644 main/tmp_alias_tradehax_net.txt
+ create mode 100644 main/tmp_alias_www_tradehax_net.txt
+ create mode 100644 main/tmp_apex_final_check.txt
+ create mode 100644 main/tmp_deploy_status.txt
+ create mode 100644 main/tmp_deploy_tradehax_scope_hackai.txt
+ create mode 100644 main/tmp_deploy_tradehax_scope_hackai_afterfix.txt
+ create mode 100644 main/tmp_deployment_check.txt
+ create mode 100644 main/tmp_dns_guide_after_patch.txt
+ create mode 100644 main/tmp_dns_verify_after_patch.txt
+ create mode 100644 main/tmp_dns_verify_after_patch2.txt
+ create mode 100644 main/tmp_endpoint_check.txt
+ create mode 100644 main/tmp_endpoint_diagnosis.json
+ create mode 100644 main/tmp_endpoint_headers.txt
+ create mode 100644 main/tmp_health_current.txt
+ create mode 100644 main/tmp_ls_default_after_unlink.txt
+ create mode 100644 main/tmp_ls_default_scope.txt
+ create mode 100644 main/tmp_ls_hackai_after_deploy.txt
+ create mode 100644 main/tmp_ls_hackavelliz.txt
+ create mode 100644 main/tmp_ls_owner7282.txt
+ create mode 100644 main/tmp_manual_vercel_prod_deploy.txt
+ create mode 100644 main/tmp_namecheap_commit_a0548da.txt
+ create mode 100644 main/tmp_namecheap_commit_ed451f2.txt
+ create mode 100644 main/tmp_namecheap_last_commit.txt
+ create mode 100644 main/tmp_projects_by_org.txt
+ create mode 100644 main/tmp_projects_default_after_unlink.txt
+ create mode 100644 main/tmp_projects_ls.txt
+ create mode 100644 main/tmp_projects_owner7282.txt
+ create mode 100644 main/tmp_release_check.txt
+ create mode 100644 main/tmp_smoke_test_output.txt
+ create mode 100644 main/tmp_teams.txt
+ create mode 100644 main/tmp_teams_full.txt
+ create mode 100644 main/tmp_vercel_alias_hackai.txt
+ create mode 100644 main/tmp_vercel_alias_hackavelliz.txt
+ create mode 100644 main/tmp_vercel_deploy_final.txt
+ create mode 100644 main/tmp_vercel_deployments_default.txt
+ create mode 100644 main/tmp_vercel_dir_listing.txt
+ create mode 100644 main/tmp_vercel_projects_default.txt
+ create mode 100644 main/tmp_vercel_projects_hackai_after_unlink.txt
+ create mode 100644 main/tmp_vercel_teams.txt
+ create mode 100644 main/tmp_vercel_whoami.txt
+ create mode 100644 main/tmp_vercel_whoami_after_unlink.txt
+ create mode 100644 main/tmp_web_build_output.txt
+ create mode 100644 main/tmp_web_dir_force.txt
+ create mode 100644 main/tmp_whoami.txt
+ create mode 100644 main/tmp_whoami_after_logout.txt
+ create mode 100644 main/tmp_www_endpoint_check.txt
+ create mode 100644 main/tmp_www_health_final_check.txt
+ create mode 100644 main/tmp_www_root_headers_body.txt

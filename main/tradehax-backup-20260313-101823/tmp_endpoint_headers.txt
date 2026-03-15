@@ -1,0 +1,24 @@
+=== https://tradehax.net/__health ===
+HTTP/1.1 307 Temporary Redirect
+Cache-Control: public, max-age=0, must-revalidate
+Content-Type: text/plain
+Date: Sun, 08 Mar 2026 21:21:29 GMT
+Location: https://www.tradehax.net/__health
+Server: Vercel
+Strict-Transport-Security: max-age=63072000
+X-Vercel-Id: iad1::lm6wv-1773004889763-7eac6ce1e558
+Transfer-Encoding: chunked
+
+
+=== https://tradehax.net/tradehax ===
+HTTP/1.1 307 Temporary Redirect
+Cache-Control: public, max-age=0, must-revalidate
+Content-Type: text/plain
+Date: Sun, 08 Mar 2026 21:21:29 GMT
+Location: https://www.tradehax.net/tradehax
+Server: Vercel
+Strict-Transport-Security: max-age=63072000
+X-Vercel-Id: iad1::k9xk9-1773004889923-6fe9543c4548
+Transfer-Encoding: chunked
+
+

@@ -1,0 +1,12 @@
+﻿node.exe : Fetching teams
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Fetching teams:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Fetching user information
+
+  id                       Team name                 
+ΓêÜ hackai                   M                         
+  owner-7282s-projects     owner-7282's projects     

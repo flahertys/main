@@ -1,0 +1,31 @@
+=== HEADERS ===
+HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Access-Control-Allow-Origin: *
+Age: 3585
+Cache-Control: public, s-maxage=60, stale-while-revalidate=600
+Content-Disposition: inline
+Content-Length: 130945
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://va.vercel-scripts.com https://www.googletagmanager.com https://www.google-analytics.com https://s3.tradingview.com https://www.instagram.com https://*.instagram.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.mainnet-beta.solana.com https://*.solana.com wss://*.solana.com https://www.google-analytics.com https://analytics.google.com https://*.helius-rpc.com https://tradehax.net https://tradehaxai.tech https://*.tradingview.com wss://*.tradingview.com; frame-src 'self' https://*.tradingview.com https://www.tradingview-widget.com https://www.instagram.com https://*.instagram.com https://calendar.google.com https://calendar.app.google https://meet.google.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
+Content-Type: text/html; charset=utf-8
+Date: Sun, 08 Mar 2026 21:21:47 GMT
+Etag: "7da3bc0dad1fbdf668abd9651f082f78"
+Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+Referrer-Policy: strict-origin-when-cross-origin
+Server: Vercel
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Surrogate-Control: max-age=60
+Vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-Matched-Path: /
+X-Nextjs-Prerender: 1
+X-Nextjs-Stale-Time: 300
+X-Th-Country: US
+X-Vercel-Cache: HIT
+X-Vercel-Id: iad1::sfclz-1773004907928-ffef3be0b7ce
+X-Xss-Protection: 1; mode=block
+
+
+=== BODY SNIPPET ===
+<!DOCTYPE html><!--kGIMJlXMS63jsKIkR19Iq--><html lang="en" class="dark"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover"/><link rel="preload" href="/_next/static/media/e4af272ccee01ff0-s.p.woff2" as="font" crossorigin="" type="font/woff2"/><link rel="stylesheet" href="/_next/static/css/c9082c25d31e9bd4.css?dpl=dpl
