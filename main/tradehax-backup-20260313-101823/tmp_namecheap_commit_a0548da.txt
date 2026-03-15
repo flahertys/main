@@ -1,2 +1,0 @@
-﻿a0548da Add Windows batch wrapper for Namecheap DNS helper
-A	main/scripts/namecheap-dns-copypasta.bat

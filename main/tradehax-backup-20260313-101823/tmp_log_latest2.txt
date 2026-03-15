@@ -1,2 +1,0 @@
-﻿00350cd chore(deploy): default Vercel scope to hackavelliz
-0011582 chore: push commit deploy all current workspace files

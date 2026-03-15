@@ -1,6 +1,0 @@
-﻿mirror_local	C:/DarkModder33/main (fetch)
-mirror_local	C:/DarkModder33/main (push)
-origin	https://github.com/DarkModder33/main.git (fetch)
-origin	https://github.com/DarkModder33/main.git (push)
-tradehax_github	https://github.com/DarkModder33/main.git (fetch)
-tradehax_github	https://github.com/DarkModder33/main.git (push)

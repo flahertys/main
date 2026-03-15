@@ -11,6 +11,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import fetch from 'node-fetch';
 import { getSession, getRecentMessages } from '../sessions/store.js';
 import { validateResponse, detectHallucinations, extractTradingParameters } from './validators.js';
 import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console.js';
@@ -311,14 +312,19 @@ function buildRecentContext(context?: ChatContext): string {
 function buildSystemPrompt(userMsg: string, context?: ChatContext, snapshot: MarketSnapshot[] = []): string {
   const intent = detectIntent(userMsg);
 
-  return `You are TradeHax Neural Hub, an elite trading copilot focused on actionable, professional analysis.
+  return `You are TradeHax Neural Hub, an elite trading copilot focused on actionable, professional analysis for tradehax.net.
 
-**Core Competencies:**
-- Stock market analysis (technical, fundamental, sentiment)
-- Cryptocurrency markets (price action, on-chain metrics, DeFi)
-- Prediction markets (Polymarket, odds calculation, value betting)
-- Risk management (Kelly Criterion, position sizing, stop-loss optimization)
-- Market psychology and behavioral finance
+**MANDATORY AI TRADING SYSTEM CONCEPTS:**
+1. Machine Learning Algorithms: Use historical and real-time data to predict trends and make probabilistic decisions. Reference model type if relevant.
+2. Backtesting: Simulate strategies on historical data. Always mention backtest results, profit/loss, and Sharpe ratio if available.
+3. Risk Management: Include stop-loss, take-profit, position sizing (e.g., Kelly Criterion), and drawdown limits. Show calculations.
+4. Sentiment Analysis: Use NLP to analyze news/social media for market mood. Adjust signals for bullish/bearish sentiment.
+5. Technical Indicators: Reference RSI, MACD, EMA, Bollinger Bands, and others. Show indicator values and how they affect the signal.
+6. Real-Time Data Integration: Use the latest price, volume, and volatility data. State if data is delayed or partial.
+7. Feature Engineering: Explain which features (price changes, volatility, on-chain metrics) are most predictive for this setup.
+8. Model Training and Evaluation: If relevant, mention model accuracy, cross-validation, or feature importance.
+9. Automated Trade Execution: Specify order type (market/limit), confidence threshold, and execution logic.
+10. Reinforcement Learning: If used, describe how the strategy adapts to market feedback over time.
 
 **Response Structure:**
 Always format responses with these sections:
@@ -537,10 +543,92 @@ function generateDemoResponse(userMsg: string, context?: ChatContext, snapshot: 
 **Confidence**: Moderate. Preserve capital and wait for clear edge expansion.${providerNote}`;
 }
 
+// --- Startup Health Check and Logging ---
+const PROVIDER_STATUS = {
+  huggingface: false,
+  openai: false,
+  lastChecked: null as null | number,
+  error: ''
+};
+
+async function checkProviderHealth() {
+  PROVIDER_STATUS.lastChecked = Date.now();
+  PROVIDER_STATUS.error = '';
+  // HuggingFace
+  if (HF_API_KEY) {
+    try {
+      const resp = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${HF_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inputs: 'health check', parameters: { max_new_tokens: 1 } }),
+      });
+      PROVIDER_STATUS.huggingface = resp.ok;
+      if (!resp.ok) PROVIDER_STATUS.error += `HF: ${resp.status} `;
+    } catch (e) {
+      PROVIDER_STATUS.huggingface = false;
+      PROVIDER_STATUS.error += 'HF: ' + (e as Error).message + ' ';
+    }
+  } else {
+    PROVIDER_STATUS.huggingface = false;
+    PROVIDER_STATUS.error += 'HF: No API key. ';
+  }
+  // OpenAI
+  if (OPENAI_API_KEY) {
+    try {
+      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ model: 'gpt-4-turbo-preview', messages: [{ role: 'system', content: 'health check' }], max_tokens: 1 }),
+      });
+      PROVIDER_STATUS.openai = resp.ok;
+      if (!resp.ok) PROVIDER_STATUS.error += `OpenAI: ${resp.status} `;
+    } catch (e) {
+      PROVIDER_STATUS.openai = false;
+      PROVIDER_STATUS.error += 'OpenAI: ' + (e as Error).message + ' ';
+    }
+  } else {
+    PROVIDER_STATUS.openai = false;
+    PROVIDER_STATUS.error += 'OpenAI: No API key. ';
+  }
+  console.log('[HEALTH] Provider status:', JSON.stringify(PROVIDER_STATUS));
+}
+
+// Run health check at startup
+checkProviderHealth();
+
+// --- Health Endpoint ---
+async function healthHandler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  await checkProviderHealth();
+  return res.status(200).json({
+    status: 'ok',
+    time: new Date().toISOString(),
+    provider: PROVIDER_STATUS,
+    env: {
+      huggingface: !!HF_API_KEY,
+      openai: !!OPENAI_API_KEY,
+    },
+  });
+}
+
 /**
  * Main serverless function handler
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // --- Minimal Ping Endpoint ---
+  if (req.url && req.url.startsWith('/api/ai/ping')) {
+    return res.status(200).json({ status: 'ok', time: new Date().toISOString() });
+  }
+  // --- Health Endpoint Routing ---
+  if (req.url && req.url.startsWith('/api/ai/health')) {
+    return healthHandler(req, res);
+  }
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -555,6 +643,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // --- Runtime Logging ---
+    console.log(`[AI_CHAT] ${new Date().toISOString()} | ${req.method} ${req.url}`);
+    if (!HF_API_KEY) console.warn('[WARN] HUGGINGFACE_API_KEY missing');
+    if (!OPENAI_API_KEY) console.warn('[WARN] OPENAI_API_KEY missing');
+    if (!PROVIDER_STATUS.huggingface && !PROVIDER_STATUS.openai) {
+      console.error('[ERROR] No AI providers available!');
+    }
     // Parse body defensively because some runtimes/proxies may pass raw JSON strings.
     const body: ChatRequest = typeof req.body === 'string'
       ? JSON.parse(req.body || '{}')
@@ -642,19 +737,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { role: 'system', content: buildSystemPrompt(latestUserMessage, enhancedContext, liveSnapshot) },
       ...normalizedMessages,
     ];
-
+    // --- Provider Health Check on Each Request ---
+    await checkProviderHealth();
+    if (!PROVIDER_STATUS.huggingface && !PROVIDER_STATUS.openai) {
+      return res.status(503).json({
+        error: 'No AI providers available',
+        degraded: true,
+        provider: PROVIDER_STATUS,
+        message: PROVIDER_STATUS.error,
+      });
+    }
     let response: string;
     let provider: 'huggingface' | 'openai' | 'demo' = 'demo';
     let guardrailBlocked = false;
     let guardrailRetryCount = 0;
-
-    // Check console config for force demo or strict mode
-    const consoleConfig = getConsoleConfig();
-    const skipLiveAI = consoleConfig.forceDemo;
-
+    let degraded = false;
     // Try HuggingFace -> OpenAI -> Demo (cascade fallback)
     try {
-      if (!skipLiveAI && HF_API_KEY) {
+      if (!skipLiveAI && PROVIDER_STATUS.huggingface && HF_API_KEY) {
         console.log('🤖 Attempting HuggingFace Llama 3.3 70B...');
         const guarded = await getGuardedProviderResponse(
           () => callHuggingFace(messages, consoleConfig.temperature),
@@ -667,36 +767,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         guardrailRetryCount = guarded.retried ? 1 : 0;
         provider = 'huggingface';
         console.log('✅ HuggingFace success');
+      } else if (!skipLiveAI && PROVIDER_STATUS.openai && OPENAI_API_KEY) {
+        console.log('🔄 Falling back to OpenAI GPT-4...');
+        const guarded = await getGuardedProviderResponse(
+          () => callOpenAI(messages, consoleConfig.temperature),
+          latestUserMessage,
+          enhancedContext,
+          liveSnapshot,
+        );
+        response = guarded.response;
+        guardrailBlocked = guarded.blocked;
+        guardrailRetryCount = guarded.retried ? 1 : 0;
+        provider = 'openai';
+        console.log('✅ OpenAI fallback success');
       } else {
-        throw new Error(skipLiveAI ? 'Console force-demo enabled' : 'No HF API key configured');
+        throw new Error('No AI providers available');
       }
-    } catch (hfError) {
-      console.warn('⚠️ HuggingFace failed:', (hfError as Error).message);
-
-      try {
-        if (!skipLiveAI && OPENAI_API_KEY) {
-          console.log('🔄 Falling back to OpenAI GPT-4...');
-          const guarded = await getGuardedProviderResponse(
-            () => callOpenAI(messages, consoleConfig.temperature),
-            latestUserMessage,
-            enhancedContext,
-            liveSnapshot,
-          );
-          response = guarded.response;
-          guardrailBlocked = guarded.blocked;
-          guardrailRetryCount = guarded.retried ? 1 : 0;
-          provider = 'openai';
-          console.log('✅ OpenAI fallback success');
-        } else {
-          throw new Error(!skipLiveAI ? 'No OpenAI key configured' : 'Console force-demo enabled');
-        }
-      } catch (openaiError) {
-        console.warn('⚠️ OpenAI fallback failed:', (openaiError as Error).message);
-        console.log('📊 Using demo mode');
-        response = generateDemoResponse(latestUserMessage, enhancedContext, liveSnapshot);
-        response = sanitizeInternalArtifacts(response);
-        provider = 'demo';
-      }
+    } catch (providerError) {
+      console.warn('⚠️ All providers failed:', (providerError as Error).message);
+      console.log('📊 Using demo mode');
+      response = generateDemoResponse(latestUserMessage, enhancedContext, liveSnapshot);
+      response = sanitizeInternalArtifacts(response);
+      provider = 'demo';
+      degraded = true;
     }
 
     if (guardrailBlocked) {
@@ -752,18 +845,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       model: provider === 'huggingface' ? HF_MODEL : provider === 'openai' ? 'gpt-4-turbo-preview' : 'demo',
       timestamp: Date.now(),
       guardrailRetryCount,
+      degraded,
+      providerStatus: PROVIDER_STATUS,
     };
-
-    // Cache non-demo responses only if they passed quality gates
-    if (provider !== 'demo' && validation.isValid) {
-      requestCache.set(cacheKey, { response: result, timestamp: Date.now() });
-
-      // Cleanup old cache entries (keep last 100)
-      if (requestCache.size > 100) {
-        const oldKeys = Array.from(requestCache.keys()).slice(0, 50);
-        oldKeys.forEach(k => requestCache.delete(k));
-      }
-    }
 
     return res.status(200).json(result);
 

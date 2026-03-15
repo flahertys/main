@@ -1,6 +1,6 @@
-
 import React, { useRef, useState } from "react";
 import { apiClient } from "./lib/api-client";
+import { runBacktest } from "./engine/backtest";
 
 const COLORS = {
   bg: "#090B10",
@@ -80,6 +80,9 @@ export default function NeuralHub() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [backtestLoading, setBacktestLoading] = useState(false);
+  const [paperMode, setPaperMode] = useState(true);
+  const [backtestResult, setBacktestResult] = useState(null);
   const nextId = useRef(1);
 
   function submitMessage(raw) {
@@ -95,6 +98,7 @@ export default function NeuralHub() {
       { id: `u-${nextId.current++}`, role: "user", content: value, meta: null },
     ]);
     setInput("");
+
     setLoading(true);
 
     apiClient.chat(
@@ -142,6 +146,51 @@ export default function NeuralHub() {
       });
   }
 
+  // Backtest trigger handler
+  async function handleBacktest() {
+    setBacktestLoading(true);
+    setBacktestResult(null);
+    try {
+      // Example: use stub candles for demo; replace with real data as needed
+      const candles = Array.from({ length: 120 }, (_, i) => ({
+        timestamp: Date.now() - (120 - i) * 60000,
+        close: 20000 + Math.sin(i / 10) * 500 + Math.random() * 100
+      }));
+      const result = runBacktest(candles, { profile: { riskTolerance: "moderate", equity: 10000 } });
+      setBacktestResult(result);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `bt-${nextId.current++}`,
+          role: "assistant",
+          content: `Backtest complete. Win rate: ${(result.winRate * 100).toFixed(1)}%, Total return: ${(result.totalReturn * 100).toFixed(1)}%`,
+          meta: {
+            title: "Backtest Result",
+            body: `Win rate: ${(result.winRate * 100).toFixed(1)}%\nTotal return: ${(result.totalReturn * 100).toFixed(1)}%\nTrades: ${result.trades}\nMax Drawdown: ${(result.maxDrawdown * 100).toFixed(1)}%`,
+            bullets: [
+              `Start Equity: $${result.startEquity.toFixed(2)}`,
+              `End Equity: $${result.endEquity.toFixed(2)}`,
+              `Wins: ${result.wins}`,
+              `Losses: ${result.losses}`
+            ]
+          }
+        }
+      ]);
+    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `bt-${nextId.current++}`,
+          role: "assistant",
+          content: `Backtest failed: ${e.message}`,
+          meta: { title: "Backtest Error", body: e.message, bullets: [] }
+        }
+      ]);
+    } finally {
+      setBacktestLoading(false);
+    }
+  }
+
   return (
     <main
       style={{
@@ -165,6 +214,35 @@ export default function NeuralHub() {
           </p>
         </header>
 
+        {/* Paper Trading Toggle and Backtest Button */}
+        <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 18 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, color: paperMode ? COLORS.green : COLORS.textDim }}>
+            <input
+              type="checkbox"
+              checked={paperMode}
+              onChange={() => setPaperMode((v) => !v)}
+              style={{ accentColor: COLORS.green, width: 18, height: 18 }}
+            />
+            Paper Trading Mode
+          </label>
+          <button
+            onClick={handleBacktest}
+            disabled={backtestLoading}
+            style={{
+              background: COLORS.accent,
+              color: "#111",
+              border: 0,
+              borderRadius: 10,
+              padding: "10px 18px",
+              fontWeight: 700,
+              cursor: backtestLoading ? "not-allowed" : "pointer",
+              opacity: backtestLoading ? 0.6 : 1,
+            }}
+          >
+            {backtestLoading ? "Running Backtest..." : "Run Backtest"}
+          </button>
+          {paperMode && <span style={{ color: COLORS.green, fontWeight: 600, fontSize: 13 }}>Simulated trades only</span>}
+        </div>
 
         <section
           style={{
@@ -280,4 +358,3 @@ export default function NeuralHub() {
     </main>
   );
 }
-

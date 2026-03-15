@@ -1,8 +1,0 @@
-﻿git : To https://github.com/DarkModder33/main.git
-At line:1 char:20
-+ cd C:\tradez\main; git push origin main 2>&1 | Out-File C:\tradez\mai ...
-+                    ~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (To https://gith...dder33/main.git:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-   82cbb05..eb1a5a1  main -> main

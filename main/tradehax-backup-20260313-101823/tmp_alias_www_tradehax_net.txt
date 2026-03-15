@@ -1,7 +1,0 @@
-﻿node.exe : Error: Can't find the deployment "main-six-dun.vercel.app" under the context "hackai"
-At line:1 char:1
-+ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (Error: Can't fi...ontext "hackai":String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 

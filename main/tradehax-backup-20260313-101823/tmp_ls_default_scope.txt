@@ -1,8 +1,0 @@
-﻿node.exe : Fetching deployments in hackai
-At line:1 char:1
-+ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (Fetching deployments in hackai:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-> No deployments found.

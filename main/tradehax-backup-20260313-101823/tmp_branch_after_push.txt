@@ -1,8 +1,0 @@
-﻿  ai-trading-bot                       26f518d feat(ai): add fusion envelope and confidence hardening
-  ai-trading-bot-26f518d               26f518d feat(ai): add fusion envelope and confidence hardening
-  backup-before-pin-069c31c            069c31c chore(deploy): remove stale vercel link path and add project-id relink flow
-  backup-before-secret-cleanup         ff4561b Add Namecheap DNS copy/paste helper script
-+ copilot-worktree-2026-03-01T04-53-03 2a9a4f8 (C:/tradez.worktrees/copilot-worktree-2026-03-01T04-53-03) chore(vercel): align org metadata with new team id
-  copilot/add-tradehax-features        93e63f1 [origin/copilot/add-tradehax-features] Retarget Vercel deploy to hackavelliz/main and scrub stale linkage traces
-  copilot/vscode-mm79j30n-ihxm         2a9a4f8 chore(vercel): align org metadata with new team id
-* main                                 0011582 [origin/main] chore: push commit deploy all current workspace files

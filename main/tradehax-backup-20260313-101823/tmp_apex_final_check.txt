@@ -1,9 +1,0 @@
-﻿HTTP/1.1 307 Temporary Redirect
-Cache-Control: public, max-age=0, must-revalidate
-Content-Type: text/plain
-Date: Sun, 08 Mar 2026 21:51:41 GMT
-Location: https://www.tradehax.net/
-Server: Vercel
-Strict-Transport-Security: max-age=63072000
-X-Vercel-Id: iad1::rlgq9-1773006701816-bd3132704c30
-
