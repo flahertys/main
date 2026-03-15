@@ -1,0 +1,17 @@
+{
+  "oauth_disabled": true,
+  "timestamp": "2026-03-07T23:08:06.702Z",
+  "disabled_oauth_sources": [
+    "docker",
+    "github_oauth",
+    "vscode_oauth",
+    "extension_oauth",
+    "browser_oauth"
+  ],
+  "allowed_auth_methods": [
+    "github_cli",
+    "git_credential_helper",
+    "ssh_keys",
+    "personal_access_token"
+  ]
+}

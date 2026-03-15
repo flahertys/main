@@ -1,0 +1,32 @@
+HTTP/1.1 307 Temporary Redirect
+Cache-Control: public, max-age=0, must-revalidate
+Content-Type: text/plain
+Date: Mon, 09 Mar 2026 23:49:05 GMT
+Location: https://www.tradehax.net/
+Server: Vercel
+Strict-Transport-Security: max-age=63072000
+X-Vercel-Id: iad1::rrj7w-1773100145698-668381052d12
+Transfer-Encoding: chunked
+
+HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Access-Control-Allow-Origin: *
+Age: 208
+Cache-Control: public, max-age=0, must-revalidate
+Content-Disposition: inline
+Content-Length: 416
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://api.coingecko.com https://api-inference.huggingface.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+Content-Type: text/html; charset=utf-8
+Date: Mon, 09 Mar 2026 23:49:05 GMT
+Etag: "81c461db411ce93430f009495efea521"
+Last-Modified: Mon, 09 Mar 2026 23:45:37 GMT
+Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=()
+Referrer-Policy: strict-origin-when-cross-origin
+Server: Vercel
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-Vercel-Cache: HIT
+X-Vercel-Id: iad1::pwjlh-1773100145840-9c4560dfb66e
+X-Xss-Protection: 1; mode=block
+

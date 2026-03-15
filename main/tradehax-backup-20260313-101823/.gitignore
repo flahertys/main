@@ -1,0 +1,79 @@
+# ============================================================================
+# ENVIRONMENT & SECRETS
+# ============================================================================
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Allow .env.production and .env.og to be tracked
+# Do not exclude .env.production or .env.og
+*.secret
+secrets/
+
+# ============================================================================
+# NODE & PACKAGE MANAGEMENT
+# ============================================================================
+node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+yarn.lock
+package-lock.json
+
+# ============================================================================
+# BUILD & COMPILATION
+# ============================================================================
+.next/
+out/
+build/
+dist/
+coverage/
+.vercel/
+
+# ============================================================================
+# IDE & EDITOR
+# ============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.env.*.swp
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# ============================================================================
+# TESTING
+# ============================================================================
+.nyc_output/
+.mocha-timeout
+junit.xml
+
+# ============================================================================
+# MISCELLANEOUS
+# ============================================================================
+tmp/
+temp/
+*.log
+logs/
+
+# OS files
+.DS_Store
+.env.example~
+
+# Cache
+.eslintcache
+.stylelintcache
+
+
+.vercel

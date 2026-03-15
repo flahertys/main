@@ -1,0 +1,239 @@
+version: '3.9'
+
+# Canonical local root: C:\tradez\main
+# Recommended invocation:
+#   cd C:\tradez\main
+#   docker compose -f docker-compose.social.yml up -d
+
+services:
+  # ========================================================================
+  # Social Media MCP Servers
+  # ========================================================================
+
+  social-orchestrator:
+    container_name: social-orchestrator
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node scripts/social-sync-orchestrator.js
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - SOCIAL_ORCHESTRATOR_PORT=3000
+      - LOG_LEVEL=info
+    env_file:
+      - .env.social
+    depends_on:
+      - discord-mcp
+      - telegram-mcp
+      - meta-mcp
+      - instagram-mcp
+      - twitter-mcp
+    networks:
+      - tradehax-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - social-logs:/app/logs
+    labels:
+      - "com.tradehax.service=social-sync-orchestrator"
+      - "com.tradehax.type=orchestrator"
+      - "com.tradehax.version=1.0.0"
+
+  discord-mcp:
+    container_name: discord-mcp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node scripts/mcp-servers/discord-mcp.js
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DISCORD_PORT=3001
+      - LOG_LEVEL=info
+    env_file:
+      - .env.social
+    networks:
+      - tradehax-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    volumes:
+      - discord-logs:/app/logs
+    labels:
+      - "com.tradehax.service=discord-mcp"
+      - "com.tradehax.type=social-mcp"
+      - "com.tradehax.platform=discord"
+
+  telegram-mcp:
+    container_name: telegram-mcp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node scripts/mcp-servers/telegram-mcp.js
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - TELEGRAM_PORT=3002
+      - LOG_LEVEL=info
+    env_file:
+      - .env.social
+    networks:
+      - tradehax-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    volumes:
+      - telegram-logs:/app/logs
+    labels:
+      - "com.tradehax.service=telegram-mcp"
+      - "com.tradehax.type=social-mcp"
+      - "com.tradehax.platform=telegram"
+
+  meta-mcp:
+    container_name: meta-mcp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node scripts/mcp-servers/meta-mcp.js
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - META_PORT=3003
+      - LOG_LEVEL=info
+    env_file:
+      - .env.social
+    networks:
+      - tradehax-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    volumes:
+      - meta-logs:/app/logs
+    labels:
+      - "com.tradehax.service=meta-mcp"
+      - "com.tradehax.type=social-mcp"
+      - "com.tradehax.platform=meta"
+
+  instagram-mcp:
+    container_name: instagram-mcp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node scripts/mcp-servers/instagram-mcp.js
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=production
+      - INSTAGRAM_PORT=3004
+      - LOG_LEVEL=info
+    env_file:
+      - .env.social
+    networks:
+      - tradehax-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    volumes:
+      - instagram-logs:/app/logs
+    labels:
+      - "com.tradehax.service=instagram-mcp"
+      - "com.tradehax.type=social-mcp"
+      - "com.tradehax.platform=instagram"
+
+  twitter-mcp:
+    container_name: twitter-mcp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node scripts/mcp-servers/twitter-mcp.js
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=production
+      - TWITTER_PORT=3005
+      - LOG_LEVEL=info
+    env_file:
+      - .env.social
+    networks:
+      - tradehax-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    volumes:
+      - twitter-logs:/app/logs
+    labels:
+      - "com.tradehax.service=twitter-mcp"
+      - "com.tradehax.type=social-mcp"
+      - "com.tradehax.platform=twitter"
+
+networks:
+  tradehax-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  social-logs:
+    driver: local
+  discord-logs:
+    driver: local
+  telegram-logs:
+    driver: local
+  meta-logs:
+    driver: local
+  instagram-logs:
+    driver: local
+  twitter-logs:
+    driver: local
+
+# ========================================================================
+# Usage:
+#
+# Start all social media services (from C:\tradez\main):
+#   docker compose -f docker-compose.social.yml up -d
+#
+# Start specific service:
+#   docker compose -f docker-compose.social.yml up -d discord-mcp
+#
+# View logs:
+#   docker compose -f docker-compose.social.yml logs -f social-orchestrator
+#   docker compose -f docker-compose.social.yml logs -f discord-mcp
+#
+# Stop services:
+#   docker compose -f docker-compose.social.yml down
+#
+# Verify services:
+#   docker compose -f docker-compose.social.yml ps
+#
+# ========================================================================

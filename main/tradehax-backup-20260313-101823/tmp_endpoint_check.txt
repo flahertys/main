@@ -1,0 +1,4 @@
+https://tradehax.net/	200
+https://tradehax.net/__health	404	The remote server returned an error: (404) Not Found.
+https://tradehax.net/tradehax	404	The remote server returned an error: (404) Not Found.
+https://tradehax.net/api/health	200

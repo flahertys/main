@@ -1,6 +1,6 @@
 import React from "react";
-import AppShell from "./app/AppShell.jsx";
+import NeuralHub from "./NeuralHub.jsx";
 
 export default function App() {
-  return <AppShell />;
+  return <NeuralHub />;
 }
