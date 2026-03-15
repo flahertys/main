@@ -57,6 +57,11 @@
 |---------|---------|----------|-------------|--------|
 | **NextAuth** | User authentication | `/api/auth/*` | `NEXTAUTH_SECRET`, `NEXTAUTH_URL` | ✅ CONFIGURED |
 
+### 8. Webhooks & Event Handlers
+| Service | Purpose | Endpoint | Credentials | Status |
+|---------|---------|----------|-------------|--------|
+| **Webhook Handler** | Receives and processes webhooks (Discord, Stripe, custom) | `/scripts/webhook-handler.js` | `WEBHOOK_PORT` | ✅ ACTIVE |
+
 ---
 
 ## 🚀 Internal API Endpoints (TradeHax)
@@ -318,6 +323,8 @@ NEXT_PUBLIC_GA_ID=<ga-id>
 - [ ] Test Telegram bot
 - [ ] Configure Stripe webhooks
 - [ ] Set up database connections
+- [ ] **Test new webhook handler**
+- [ ] **Test endpoint-health-check.js**
 
 ### Short-term (1 week)
 - [ ] Complete Discord bot setup
@@ -369,12 +376,14 @@ NEXT_PUBLIC_GA_ID=<ga-id>
 - ✅ Rotate keys regularly
 - ✅ Monitor API usage and rate limits
 
-### Webhook Security
+### Webhook Security (Updated)
 - Verify Discord signatures (Ed25519)
 - Validate Stripe webhook signatures
 - Check Telegram bot token authenticity
 - Rate limit all webhook endpoints
 - Log all webhook attempts
+- **Monitor webhook handler logs for failures**
+- **Alert on webhook delivery failures**
 
 ### Connection Monitoring
 - Health checks every 5 minutes
@@ -396,4 +405,3 @@ See companion documents:
 
 **Status**: COMPREHENSIVE INVENTORY COMPLETE  
 **Next**: Implement connection manager and autonomous push system
-
