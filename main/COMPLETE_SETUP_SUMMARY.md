@@ -287,3 +287,13 @@ Choose what you want to do:
 **Ready to go:** YES 🚀
 
 Start coding! Let me know if you need anything else! 💡
+
+---
+
+## Supabase SQL Infrastructure (2026)
+
+- Full SQL schema for persistent user profiles, AI agent state, onboarding, analytics, and feedback
+- Migration script: `supabase_schema.sql`
+- All new features use SQL-backed storage for reliability, analytics, and cross-device sync
+- See README.md and supabase_schema.sql for details
+

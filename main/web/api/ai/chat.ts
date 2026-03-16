@@ -17,6 +17,7 @@ import { getSession, getRecentMessages, UserProfile } from '../sessions/store.js
 import { validateResponse, detectHallucinations, extractTradingParameters } from './validators.js';
 import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console.js';
 import { logResponseToDatabase } from '../db/metrics-service.js';
+import { personalizeSignal } from '../../src/lib/personalization-adaptive';
 
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -675,7 +676,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const messages = body.messages || [];
     const temperature = typeof body.temperature === 'number' ? body.temperature : 0.7;
-
     // --- Extract User Profile ---
     const sessionId = body.context?.sessionId || '';
     const userProfile = body.context?.userProfile || (sessionId ? (await getSession(sessionId))?.userProfile : undefined);
@@ -713,7 +713,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // --- Fetch Live Market Data ---
     const marketSnapshot = await fetchMarketSnapshot(assets);
-
     // --- Build Context for AI Providers ---
     const context: ChatContext = {
       sessionId,
@@ -721,23 +720,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       recentMessages: recentMessages || undefined,
       marketSnapshot,
     };
-
     // --- Build System Prompt ---
-    const systemPrompt = buildSystemPrompt(messages[messages.length - 1].content, context, marketSnapshot);
-
+    let systemPrompt = buildSystemPrompt(messages[messages.length - 1].content, context, marketSnapshot);
+    // --- Personalize prompt using adaptive engine ---
+    if (userProfile && userProfile.id) {
+      try {
+        const personalized = await personalizeSignal({
+          userId: userProfile.id,
+          signal: { explanation: systemPrompt, symbol: assets[0] || 'UNKNOWN' },
+          modelOrSignal: undefined
+        });
+        if (personalized && personalized.explanation) {
+          systemPrompt = personalized.explanation;
+        }
+      } catch (e) {
+        console.warn('[PERSONALIZATION] Failed to adapt prompt:', e instanceof Error ? e.message : e);
+      }
+    }
     // --- Provider Selection Logic ---
-    let provider: 'huggingface' | 'openai' | 'demo' = 'huggingface';
-    let invoke: () => Promise<string> = () => callHuggingFace([ { role: 'user', content: systemPrompt } ], temperature);
+    let provider: 'huggingface' | 'openai' = 'huggingface';
+    let invoke: () => Promise<string> = () => callHuggingFace([{ role: 'user', content: systemPrompt }], temperature);
     if (PROVIDER_STATUS.openai && (!PROVIDER_STATUS.huggingface || Math.random() < 0.5)) {
       provider = 'openai';
-      invoke = () => callOpenAI([ { role: 'user', content: systemPrompt } ], temperature);
+      invoke = () => callOpenAI([{ role: 'user', content: systemPrompt }], temperature);
     }
-
     // --- Call Selected Provider ---
-    const startTime = Date.now();
-    const rawResponse = await getGuardedProviderResponse(invoke, messages[messages.length - 1].content, context, marketSnapshot);
-    const responseTime = Date.now() - startTime;
-
+    let rawResponse;
+    let responseTime = 0;
+    try {
+      const startTime = Date.now();
+      rawResponse = await getGuardedProviderResponse(invoke, messages[messages.length - 1].content, context, marketSnapshot);
+      responseTime = Date.now() - startTime;
+    } catch (err) {
+      // If both providers fail, return a clear error and log the event
+      await logResponseToDatabase({
+        sessionId: sessionId || undefined,
+        messageId: undefined,
+        userMessage: messages[messages.length - 1]?.content || '',
+        aiResponse: '',
+        provider: 'none',
+        model: 'N/A',
+        responseTimeMs: 0,
+        validationScore: 0,
+        isValid: false,
+        validationErrors: ['LLM provider unavailable'],
+        validationWarnings: [],
+        hallucinations: [],
+        signalType: undefined,
+        signalConfidence: undefined,
+        priceTarget: undefined,
+        stopLoss: undefined,
+        positionSize: undefined,
+      });
+      return res.status(503).json({
+        error: 'AI service temporarily unavailable. Please try again later.',
+        provider: 'none',
+        model: 'N/A',
+        timestamp: Date.now(),
+        cached: false,
+        guardrailRetryCount: 0,
+      });
+    }
     // --- Cache and Respond ---
     const responsePayload: ChatResponse = {
       response: rawResponse.response,
@@ -747,11 +790,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       cached: false,
       guardrailRetryCount: rawResponse.retried ? 1 : 0,
     };
-
     // Cache successful responses
     requestCache.set(messages[messages.length - 1].content, { response: responsePayload, timestamp: Date.now() });
     setTimeout(() => requestCache.delete(messages[messages.length - 1].content), CACHE_TTL);
-
     // --- Analytics Logging ---
     try {
       await logResponseToDatabase({

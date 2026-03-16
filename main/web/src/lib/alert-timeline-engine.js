@@ -1,8 +1,8 @@
 // Alert & Timeline Engine
 // Real-time alerting, user-customizable triggers, and signal history
 
-const fs = require('fs');
 const advancedSignalEngine = require('./advanced-signal-engine');
+const { logSiteEvent, logAIInteraction, getAIInteractions } = require('./supabaseClient');
 
 module.exports = {
   async sendAlert({ userId, signal, modelOrSignal }) {
@@ -12,13 +12,23 @@ module.exports = {
       fullSignal = await advancedSignalEngine.generateSignal({ symbol: signal?.symbol || 'UNKNOWN', userId, modelOrSignal });
     }
     // 2. Push alert to user (web, Discord, Telegram, etc.) (stub)
-    // 3. Log to timeline/history (file-based for audit)
-    const logEntry = {
-      userId,
-      signal: fullSignal,
-      timestamp: Date.now()
-    };
-    fs.appendFileSync('alert-timeline.log', JSON.stringify(logEntry) + '\n');
+    // 3. Log to Supabase (site_events and ai_interactions)
+    await logSiteEvent({
+      user_id: userId,
+      event_type: 'alert_sent',
+      event_data: { signal: fullSignal, modelOrSignal },
+      timestamp: new Date().toISOString()
+    });
+    await logAIInteraction({
+      user_id: userId,
+      session_id: modelOrSignal || null,
+      input: '',
+      output: JSON.stringify(fullSignal),
+      model: modelOrSignal || '',
+      confidence: fullSignal?.confidence || null,
+      timestamp: new Date().toISOString(),
+      context: { type: 'alert' }
+    });
     // 4. Trigger feedback/acknowledgement (stub)
     return {
       status: 'sent',
@@ -29,15 +39,15 @@ module.exports = {
   },
 
   async getTimeline({ userId }) {
-    // 1. Fetch user signal/alert history (file-based for audit)
-    try {
-      const lines = fs.readFileSync('alert-timeline.log', 'utf-8').split('\n').filter(Boolean);
-      return lines
-        .map(line => JSON.parse(line))
-        .filter(entry => entry.userId === userId)
-        .map(entry => entry.signal);
-    } catch (e) {
-      return [];
-    }
+    // 1. Fetch user signal/alert history from Supabase
+    const { data, error } = await getAIInteractions(userId);
+    if (error) return [];
+    return (data || []).map(entry => {
+      try {
+        return JSON.parse(entry.output);
+      } catch {
+        return entry.output;
+      }
+    });
   }
 };
