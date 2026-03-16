@@ -772,23 +772,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         stopLoss: undefined,
         positionSize: undefined,
       });
-      return res.status(503).json({
-        error: 'AI service temporarily unavailable. Please try again later.',
-        provider: 'none',
-        model: 'N/A',
-        timestamp: Date.now(),
-        cached: false,
-        guardrailRetryCount: 0,
-      });
+        return res.status(503).json({
+          error: 'AI service temporarily unavailable. Please try again later.',
+          provider: 'none',
+          model: 'N/A',
+          timestamp: Date.now(),
+          cached: false,
+          guardrailRetryCount: 0,
+          providerStatus: { ...PROVIDER_STATUS },
+          fallbackMode: true,
+          errorDetail: PROVIDER_STATUS.error || undefined,
+        });
     }
     // --- Cache and Respond ---
-    const responsePayload: ChatResponse = {
+    const responsePayload: ChatResponse & {
+      providerStatus: typeof PROVIDER_STATUS;
+      fallbackMode: boolean;
+      errorDetail?: string;
+    } = {
       response: rawResponse.response,
       provider,
       model: HF_MODEL,
       timestamp: Date.now(),
       cached: false,
       guardrailRetryCount: rawResponse.retried ? 1 : 0,
+      providerStatus: { ...PROVIDER_STATUS },
+      fallbackMode: provider === 'demo' || !!rawResponse.fallback,
+      errorDetail: provider === 'demo' ? (rawResponse.error || PROVIDER_STATUS.error || undefined) : undefined,
     };
     // Cache successful responses
     requestCache.set(messages[messages.length - 1].content, { response: responsePayload, timestamp: Date.now() });
@@ -820,6 +830,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json(responsePayload);
   } catch (e) {
     console.error('[ERROR]', (e as Error).message);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({
+      error: 'Internal server error',
+      providerStatus: { ...PROVIDER_STATUS },
+      fallbackMode: true,
+      errorDetail: PROVIDER_STATUS.error || undefined,
+    });
   }
 }

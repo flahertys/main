@@ -116,6 +116,9 @@ export default function NeuralHub() {
   const [backtestLoading, setBacktestLoading] = useState(false);
   const [paperMode, setPaperMode] = useState(true);
   const [backtestResult, setBacktestResult] = useState(null);
+  const [providerStatus, setProviderStatus] = useState(null);
+  const [fallbackMode, setFallbackMode] = useState(false);
+  const [errorDetail, setErrorDetail] = useState("");
   const nextId = useRef(1);
 
   function submitMessage(raw) {
@@ -131,19 +134,22 @@ export default function NeuralHub() {
       { id: `u-${nextId.current++}`, role: "user", content: value, meta: null },
     ]);
     setInput("");
-
     setLoading(true);
 
     apiClient.chat(
       [...priorMessages, { role: 'user', content: value }],
     )
       .then(response => {
+        // Extract provider status and fallback mode
+        setProviderStatus(response.providerStatus || null);
+        setFallbackMode(!!response.fallbackMode);
+        setErrorDetail(response.errorDetail || "");
+        // ...existing code for parsing and setting messages...
         const parsed = apiClient.parseAIResponse(response.response);
         const bullets = [
           ...(parsed.reasoning || []),
           ...(parsed.riskManagement || [])
         ].filter(b => b.length > 0);
-
         setMessages((prev) => [
           ...prev,
           {
@@ -170,6 +176,9 @@ export default function NeuralHub() {
             meta: null,
           },
         ]);
+        setProviderStatus(null);
+        setFallbackMode(false);
+        setErrorDetail(error.message || "");
       })
       .finally(() => {
         setLoading(false);
@@ -215,6 +224,38 @@ export default function NeuralHub() {
         <section style={{ maxWidth: isMobile ? '100%' : 1120, margin: "0 auto" }}>
           {/* ...existing code for header, controls, chat, etc... */}
           {/* ...existing code for AI Trading Console, Input Area, etc... */}
+          {/* Provider Health and Fallback Status Indicator */}
+          {(providerStatus || fallbackMode || errorDetail) && (
+            <div style={{
+              margin: '0 auto 16px auto',
+              maxWidth: 600,
+              background: fallbackMode ? '#2D1B1B' : '#1C2333',
+              color: fallbackMode ? '#FFD2D2' : '#C8D8E8',
+              border: fallbackMode ? '1.5px solid #FF4D4F' : '1.5px solid #00D9FF',
+              borderRadius: 10,
+              padding: 12,
+              fontSize: 14,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              alignItems: 'flex-start',
+            }}>
+              <div>
+                <b>Provider Health:</b>
+                <span style={{ marginLeft: 8 }}>
+                  HuggingFace: <span style={{ color: providerStatus?.huggingface ? '#00E5A0' : '#FFD2D2' }}>{providerStatus?.huggingface ? 'Healthy' : 'Degraded'}</span>
+                  {" | "}
+                  OpenAI: <span style={{ color: providerStatus?.openai ? '#00E5A0' : '#FFD2D2' }}>{providerStatus?.openai ? 'Healthy' : 'Degraded'}</span>
+                </span>
+              </div>
+              <div>
+                <b>Fallback Mode:</b> <span style={{ color: fallbackMode ? '#FFD2D2' : '#00E5A0' }}>{fallbackMode ? 'ON' : 'OFF'}</span>
+              </div>
+              {errorDetail && (
+                <div style={{ color: '#FFD2D2' }}><b>Error:</b> {errorDetail}</div>
+              )}
+            </div>
+          )}
         </section>
       </main>
     </div>
