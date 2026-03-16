@@ -10,11 +10,13 @@
  * - Trading-specific system prompts
  */
 
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import fetch from 'node-fetch';
 import { getSession, getRecentMessages, UserProfile } from '../sessions/store.js';
 import { validateResponse, detectHallucinations, extractTradingParameters } from './validators.js';
 import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console.js';
+import { logResponseToDatabase } from '../db/metrics-service.js';
 
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -750,6 +752,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     requestCache.set(messages[messages.length - 1].content, { response: responsePayload, timestamp: Date.now() });
     setTimeout(() => requestCache.delete(messages[messages.length - 1].content), CACHE_TTL);
 
+    // --- Analytics Logging ---
+    try {
+      await logResponseToDatabase({
+        sessionId: sessionId || undefined,
+        messageId: undefined,
+        userMessage: messages[messages.length - 1]?.content || '',
+        aiResponse: rawResponse.response,
+        provider,
+        model: HF_MODEL,
+        responseTimeMs: responseTime,
+        validationScore: 1,
+        isValid: true,
+        validationErrors: [],
+        validationWarnings: [],
+        hallucinations: [],
+        signalType: undefined,
+        signalConfidence: undefined,
+        priceTarget: undefined,
+        stopLoss: undefined,
+        positionSize: undefined,
+      });
+    } catch (err) {
+      console.warn('[ANALYTICS] Failed to log response:', err instanceof Error ? err.message : err);
+    }
     return res.status(200).json(responsePayload);
   } catch (e) {
     console.error('[ERROR]', (e as Error).message);
