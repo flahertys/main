@@ -86,27 +86,31 @@ export function FileUploadComponent() {
     }
   }
 
+  // Responsive style helpers
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
+
   return (
-    <div style={{ border: "1px solid #3a4558", borderRadius: 10, padding: 14 }}>
-      <div style={{ marginBottom: 8, fontWeight: 700 }}>📁 File Storage (Massive S3)</div>
+    <div style={{ border: "1px solid #3a4558", borderRadius: 10, padding: isMobile ? 8 : 14 }}>
+      <div style={{ marginBottom: 8, fontWeight: 700, fontSize: isMobile ? 13 : undefined }}>📁 File Storage (Massive S3)</div>
       <input
         type="file"
         multiple
         onChange={onPick}
         disabled={uploading}
         accept=".csv,.json,.txt,.xlsx,.xls"
+        style={{ fontSize: isMobile ? 12 : undefined }}
       />
-      {uploading && <div style={{ marginTop: 8, color: "#00ff88" }}>⏳ Uploading...</div>}
-      {error && <div style={{ marginTop: 8, color: "#ff4455", fontSize: "12px" }}>⚠️ {error}</div>}
+      {uploading && <div style={{ marginTop: 8, color: "#00ff88", fontSize: isMobile ? 12 : undefined }}>⏳ Uploading...</div>}
+      {error && <div style={{ marginTop: 8, color: "#ff4455", fontSize: isMobile ? "11px" : "12px" }}>⚠️ {error}</div>}
       {items.length > 0 && (
-        <div style={{ marginTop: 10, fontSize: "12px" }}>
+        <div style={{ marginTop: 10, fontSize: isMobile ? "11px" : "12px" }}>
           <div style={{ color: "#8b95b8", marginBottom: 8 }}>✓ {items.length} file(s) uploaded</div>
           {items.map((f, i) => (
-            <div key={`${f.url}-${i}`} style={{ marginBottom: 6, padding: "6px", background: "#242d4a", borderRadius: 4 }}>
-              <a href={f.url} target="_blank" rel="noopener noreferrer" style={{ color: "#00d9ff", textDecoration: "none" }}>
+            <div key={`${f.url}-${i}`} style={{ marginBottom: 6, padding: isMobile ? "4px" : "6px", background: "#242d4a", borderRadius: 4 }}>
+              <a href={f.url} target="_blank" rel="noopener noreferrer" style={{ color: "#00d9ff", textDecoration: "none", fontSize: isMobile ? 12 : undefined }}>
                 {f.name}
               </a>
-              <div style={{ color: "#8b95b8", fontSize: "11px", marginTop: "2px" }}>{f.timestamp}</div>
+              <div style={{ color: "#8b95b8", fontSize: isMobile ? "10px" : "11px", marginTop: "2px" }}>{f.timestamp}</div>
             </div>
           ))}
         </div>
@@ -114,4 +118,3 @@ export function FileUploadComponent() {
     </div>
   );
 }
-
