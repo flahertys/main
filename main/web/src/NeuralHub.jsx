@@ -1,4 +1,5 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
+import GamifiedOnboarding from "./components/GamifiedOnboarding";
 import { apiClient } from "./lib/api-client";
 import { runBacktest } from "./engine/backtest";
 
@@ -69,6 +70,20 @@ function buildResponse(input) {
 }
 
 export default function NeuralHub() {
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  useEffect(() => {
+    // Check onboarding completion in localStorage
+    const completed = localStorage.getItem('onboardingComplete');
+    if (!completed) setShowOnboarding(true);
+  }, []);
+
+  function handleOnboardingComplete() {
+    localStorage.setItem('onboardingComplete', 'true');
+    setShowOnboarding(false);
+  }
+
+  // Main chat state
   const [messages, setMessages] = useState([
     {
       id: "welcome",
@@ -120,168 +135,28 @@ export default function NeuralHub() {
             meta: {
               title: parsed.signal || 'AI Analysis',
               body: response.response,
-              priceTarget: parsed.priceTarget,
-              confidence: parsed.confidence,
-              marketContext: parsed.marketContext,
-              bullets: bullets.length > 0 ? bullets : null,
-              executionPlaybook: parsed.executionPlaybook || null,
-            },
-          },
-        ]);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('AI request failed:', error);
-        const result = buildResponse(value);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `a-${nextId.current++}`,
-            role: "assistant",
-            content: result.body,
-            meta: result,
-          },
-        ]);
-        setLoading(false);
-      });
-  }
+                          if (showOnboarding) {
+                            return <GamifiedOnboarding onComplete={handleOnboardingComplete} />;
+                          }
 
-  // Backtest trigger handler
-  async function handleBacktest() {
-    setBacktestLoading(true);
-    setBacktestResult(null);
-    try {
-      // Example: use stub candles for demo; replace with real data as needed
-      const candles = Array.from({ length: 120 }, (_, i) => ({
-        timestamp: Date.now() - (120 - i) * 60000,
-        close: 20000 + Math.sin(i / 10) * 500 + Math.random() * 100
-      }));
-      const result = runBacktest(candles, { profile: { riskTolerance: "moderate", equity: 10000 } });
-      setBacktestResult(result);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bt-${nextId.current++}`,
-          role: "assistant",
-          content: `Backtest complete. Win rate: ${(result.winRate * 100).toFixed(1)}%, Total return: ${(result.totalReturn * 100).toFixed(1)}%`,
-          meta: {
-            title: "Backtest Result",
-            body: `Win rate: ${(result.winRate * 100).toFixed(1)}%\nTotal return: ${(result.totalReturn * 100).toFixed(1)}%\nTrades: ${result.trades}\nMax Drawdown: ${(result.maxDrawdown * 100).toFixed(1)}%`,
-            bullets: [
-              `Start Equity: $${result.startEquity.toFixed(2)}`,
-              `End Equity: $${result.endEquity.toFixed(2)}`,
-              `Wins: ${result.wins}`,
-              `Losses: ${result.losses}`
-            ]
-          }
-        }
-      ]);
-    } catch (e) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bt-${nextId.current++}`,
-          role: "assistant",
-          content: `Backtest failed: ${e.message}`,
-          meta: { title: "Backtest Error", body: e.message, bullets: [] }
-        }
-      ]);
-    } finally {
-      setBacktestLoading(false);
-    }
-  }
-
-  return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: COLORS.bg,
-        color: COLORS.text,
-        fontFamily: "Inter, Arial, sans-serif",
-        padding: 20,
-      }}
-    >
-      <section style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <header style={{ marginBottom: 20 }}>
-          <div style={{ color: COLORS.gold, fontSize: 12, letterSpacing: "0.12em", marginBottom: 10 }}>
-            TRADEHAX.NET
-          </div>
-          <h1 style={{ margin: 0, fontSize: "clamp(30px, 5vw, 52px)", lineHeight: 1.03 }}>
-            TradeHax Neural Hub
-          </h1>
-          <p style={{ color: COLORS.textDim, maxWidth: 760, lineHeight: 1.65, marginTop: 14 }}>
-            A cleaner professional trading assistant: concise AI guidance, execution-first thinking, and a stable production interface.
-          </p>
-        </header>
-
-        {/* Paper Trading Toggle and Backtest Button */}
-        <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 18 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, color: paperMode ? COLORS.green : COLORS.textDim }}>
-            <input
-              type="checkbox"
-              checked={paperMode}
-              onChange={() => setPaperMode((v) => !v)}
-              style={{ accentColor: COLORS.green, width: 18, height: 18 }}
-            />
-            Paper Trading Mode
-          </label>
-          <button
-            onClick={handleBacktest}
-            disabled={backtestLoading}
-            style={{
-              background: COLORS.accent,
-              color: "#111",
-              border: 0,
-              borderRadius: 10,
-              padding: "10px 18px",
-              fontWeight: 700,
-              cursor: backtestLoading ? "not-allowed" : "pointer",
-              opacity: backtestLoading ? 0.6 : 1,
-            }}
-          >
-            {backtestLoading ? "Running Backtest..." : "Run Backtest"}
-          </button>
-          {paperMode && <span style={{ color: COLORS.green, fontWeight: 600, fontSize: 13 }}>Simulated trades only</span>}
-        </div>
-
-        <section
-          style={{
-            display: "grid",
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 14,
-            background: COLORS.surface,
-            padding: 16,
-          }}
-        >
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>AI Trading Console</div>
-
-          {/* Message Thread */}
-          <div style={{ display: "grid", gap: 12, marginBottom: 16, maxHeight: "60vh", overflowY: "auto" }}>
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                style={{
-                  border: `1px solid ${message.role === "user" ? `${COLORS.accent}55` : COLORS.border}`,
-                  background: message.role === "user" ? "#0D2230" : COLORS.panel,
-                  borderRadius: 12,
-                  padding: 14,
-                }}
-              >
-                <div style={{ fontSize: 12, color: COLORS.textDim, marginBottom: 8 }}>
-                  {message.role === "user" ? "You" : "TradeHax AI"}
-                </div>
-                {message.meta?.title ? (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                    <span style={{ color: COLORS.accent, fontWeight: 700 }}>{message.meta.title}</span>
-                    {message.meta?.confidence ? (
-                      <span style={{ color: COLORS.green, fontSize: 12 }}>Confidence: {message.meta.confidence}</span>
-                    ) : null}
-                    {message.meta?.priceTarget ? (
-                      <span style={{ color: COLORS.gold, fontSize: 12 }}>Target: {message.meta.priceTarget}</span>
-                    ) : null}
-                  </div>
-                ) : null}
-                <div style={{ lineHeight: 1.65 }}>{message.content}</div>
+                          // ...existing code for main interface...
+                          return (
+                            <main
+                              style={{
+                                minHeight: "100vh",
+                                background: COLORS.bg,
+                                color: COLORS.text,
+                                fontFamily: "Inter, Arial, sans-serif",
+                                padding: 20,
+                              }}
+                            >
+                              {/* ...existing code for main interface... */}
+                              <section style={{ maxWidth: 1120, margin: "0 auto" }}>
+                                {/* ...existing code for header, controls, chat, etc... */}
+                                {/* ...existing code for AI Trading Console, Input Area, etc... */}
+                              </section>
+                            </main>
+                          );
                 {message.meta?.marketContext ? (
                   <div style={{ marginTop: 10, color: COLORS.textDim, fontSize: 13 }}>
                     Market Context: {message.meta.marketContext}

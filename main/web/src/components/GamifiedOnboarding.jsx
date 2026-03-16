@@ -20,7 +20,8 @@ const COLORS = {
   green: '#00E5A0',
 };
 
-export default function GamifiedOnboarding() {
+// Add support for onComplete prop to allow parent to detect onboarding completion
+export default function GamifiedOnboarding({ onComplete }) {
   const navigate = useNavigate();
   const [userStats, setUserStats] = useState({
     paperTrades: 0,
@@ -89,6 +90,20 @@ export default function GamifiedOnboarding() {
       setCurrentPhase(phaseId + 1);
     }
   };
+
+  // Detect onboarding completion (all phases done)
+  useEffect(() => {
+    if (
+      userStats.paperTrades > 0 &&
+      userStats.signalsGenerated > 0 &&
+      userStats.creationsCount > 0 &&
+      userStats.walletConnected
+    ) {
+      // Mark onboarding as complete
+      localStorage.setItem('onboardingComplete', 'true');
+      if (typeof onComplete === 'function') onComplete();
+    }
+  }, [userStats, onComplete]);
 
   const totalCredits = calculateTotalCredits(earnedAchievements);
 
@@ -456,4 +471,3 @@ function AchievementModal({ achievement, onClose }) {
     </div>
   );
 }
-
