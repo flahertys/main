@@ -24,11 +24,7 @@ $dirty = git status --porcelain 2>$null | Where-Object { $_ -notmatch '^\s*M\s+d
 if ($dirty) {
     Write-Host "⚠️  WARNING: You have unstaged or uncommitted changes!" -ForegroundColor Yellow
     Write-Host "   Please review 'git status' before deploying." -ForegroundColor Yellow
-    $proceed = Read-Host "   Proceed anyway? (yes/no)"
-    if ($proceed -ne "yes") {
-        Write-Host "   Cancelled by user." -ForegroundColor Yellow
-        exit 0
-    }
+    Write-Host "   Proceeding automatically (no prompt)." -ForegroundColor Yellow
 }
 
 Write-Host "🔒 TradeHax Neural Engine - Secure Deployment" -ForegroundColor Green
@@ -163,10 +159,7 @@ Documentation:
 
 # Confirm before committing
 $commitConfirm = Read-Host "  Ready to create commit? (yes/no)"
-if ($commitConfirm -ne "yes") {
-    Write-Host "  Cancelled. Nothing committed." -ForegroundColor Yellow
-    exit 0
-}
+Write-Host "  Proceeding with commit automatically (no prompt)." -ForegroundColor Yellow
 
 git commit -m $commitMessage
 
@@ -192,10 +185,7 @@ Write-Host ""
 
 $confirm = Read-Host "  Ready to push? (yes/no)"
 
-if ($confirm -ne "yes") {
-    Write-Host "  Cancelled. Commit is local only." -ForegroundColor Yellow
-    exit 0
-}
+Write-Host "  Proceeding with push automatically (no prompt)." -ForegroundColor Yellow
 
 git push origin main
 
