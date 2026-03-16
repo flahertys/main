@@ -79,11 +79,10 @@ async function fetchCoinGeckoData(symbol: string): Promise<CryptoDataResponse | 
     }
 
     const data = await response.json();
-    const marketData = data.market_data;
-
-    if (!marketData) {
+    if (typeof data !== 'object' || data === null || !('market_data' in data)) {
       throw new Error('No market data available');
     }
+    const marketData = (data as any).market_data;
 
     return {
       symbol: symbol.toUpperCase(),
@@ -96,7 +95,7 @@ async function fetchCoinGeckoData(symbol: string): Promise<CryptoDataResponse | 
       low24h: marketData.low_24h?.usd || 0,
       circulatingSupply: marketData.circulating_supply || undefined,
       totalSupply: marketData.total_supply || undefined,
-      rank: data.market_cap_rank || undefined,
+      rank: typeof (data as any).market_cap_rank === 'number' ? (data as any).market_cap_rank : undefined,
       timestamp: Date.now(),
       source: 'coingecko',
     };
@@ -128,16 +127,19 @@ async function fetchBinanceData(symbol: string): Promise<CryptoDataResponse | nu
     }
 
     const data = await response.json();
+    if (typeof data !== 'object' || data === null) {
+      throw new Error('No Binance data available');
+    }
 
     return {
       symbol: symbol.toUpperCase(),
-      price: parseFloat(data.lastPrice),
-      priceChange24h: parseFloat(data.priceChange),
-      priceChangePercent24h: parseFloat(data.priceChangePercent),
-      volume24h: parseFloat(data.quoteVolume),
+      price: parseFloat((data as any).lastPrice),
+      priceChange24h: parseFloat((data as any).priceChange),
+      priceChangePercent24h: parseFloat((data as any).priceChangePercent),
+      volume24h: parseFloat((data as any).quoteVolume),
       marketCap: 0, // Binance doesn't provide market cap
-      high24h: parseFloat(data.highPrice),
-      low24h: parseFloat(data.lowPrice),
+      high24h: parseFloat((data as any).highPrice),
+      low24h: parseFloat((data as any).lowPrice),
       timestamp: Date.now(),
       source: 'binance',
     };
@@ -228,4 +230,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 }
-

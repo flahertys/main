@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      cache_from:
+        - type=gha
+    container_name: tradehax-app-staging
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: staging
+      PORT: 3000
+      DATABASE_URL: postgresql://${DB_USER:-tradehax}:${DB_PASSWORD:-tradehax}@postgres:5432/${DB_NAME:-tradehax_staging}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-staging}@redis:6379/0
+      LOG_LEVEL: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./web/src:/app/src:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tradehax
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    develop:
+      watch:
+        - path: ./web/src
+          action: rebuild
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: tradehax-postgres-staging
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-tradehax}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tradehax}
+      POSTGRES_DB: ${DB_NAME:-tradehax_staging}
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tradehax} -d ${DB_NAME:-tradehax_staging}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tradehax
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: tradehax-redis-staging
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD:-staging} --appendonly yes
+    volumes:
+      - redis_staging_data:/data
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tradehax
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_staging_data:
+    driver: local
+  redis_staging_data:
+    driver: local
+
+networks:
+  tradehax:
+    driver: bridge

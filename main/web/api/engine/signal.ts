@@ -38,7 +38,10 @@ async function fetchBinanceCandles(symbol: string, interval = '1h', limit = 220)
   }
 
   const rows = await response.json();
-  return rows.map((r: any[]) => ({
+  if (!Array.isArray(rows)) {
+    throw new Error('Binance response is not an array');
+  }
+  return (rows as any[]).map((r: any[]) => ({
     timestamp: Number(r[0]),
     open: Number(r[1]),
     high: Number(r[2]),
@@ -62,8 +65,15 @@ async function fetchCoinGeckoCandles(symbol: string, days = 7): Promise<Candle[]
   }
 
   const json = await response.json();
-  const prices: [number, number][] = json?.prices || [];
-  const volumes: [number, number][] = json?.total_volumes || [];
+  if (
+    typeof json !== 'object' || json === null ||
+    !Array.isArray((json as any).prices) ||
+    !Array.isArray((json as any).total_volumes)
+  ) {
+    throw new Error('CoinGecko response missing prices or volumes');
+  }
+  const prices: [number, number][] = (json as any).prices;
+  const volumes: [number, number][] = (json as any).total_volumes;
 
   if (prices.length < 40) {
     throw new Error('CoinGecko returned insufficient points');
