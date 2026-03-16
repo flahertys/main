@@ -158,7 +158,7 @@ Documentation:
 "@
 
 # Confirm before committing
-$commitConfirm = Read-Host "  Ready to create commit? (yes/no)"
+$commitConfirm = "yes"
 Write-Host "  Proceeding with commit automatically (no prompt)." -ForegroundColor Yellow
 
 git commit -m $commitMessage
@@ -183,8 +183,7 @@ Write-Host ""
 Write-Host "✓ Step 6: Pushing to repository..." -ForegroundColor Yellow
 Write-Host ""
 
-$confirm = Read-Host "  Ready to push? (yes/no)"
-
+$confirm = "yes"
 Write-Host "  Proceeding with push automatically (no prompt)." -ForegroundColor Yellow
 
 git push origin main
