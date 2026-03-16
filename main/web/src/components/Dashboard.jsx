@@ -15,6 +15,7 @@ const COLORS = {
   red: '#FF4757',
 };
 
+// Remove redundant links/buttons, unify pillars, and surface user profile
 export default function Dashboard() {
   const navigate = useNavigate();
   const [userStats, setUserStats] = useState(() => {
@@ -88,7 +89,7 @@ export default function Dashboard() {
         padding: isMobile ? '0' : undefined,
       }}
     >
-      {/* Enhanced Header */}
+      {/* Unified Header */}
       <header
         style={{
           borderBottom: `1px solid ${COLORS.border}`,
@@ -103,7 +104,7 @@ export default function Dashboard() {
         <div>
           <h1 style={{ margin: 0, fontSize: isMobile ? '20px' : '28px', fontWeight: 700 }}>TradeHax Platform</h1>
           <p style={{ margin: '5px 0 0 0', color: COLORS.textDim, fontSize: isMobile ? '12px' : '14px' }}>
-            Multi-vertical AI platform for trading, music, and digital services
+            Unified AI platform for trading, music, and digital services
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 18 }}>
@@ -125,7 +126,7 @@ export default function Dashboard() {
           </p>
         </section>
 
-        {/* Core Platform Pillars */}
+        {/* Core Platform Pillars - Unified, no redundant CTAs */}
         <section style={{ marginBottom: isMobile ? '24px' : '40px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))', gap: isMobile ? '10px' : '16px' }}>
             {pillars.map((pillar) => (
@@ -161,75 +162,7 @@ export default function Dashboard() {
             ))}
           </div>
         </section>
-
-        {/* Quick Stats */}
-        <section>
-          <h3 style={{ fontSize: isMobile ? '13px' : '16px', marginBottom: '16px', fontWeight: 600, color: COLORS.textDim }}>
-            Platform Status
-          </h3>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: isMobile ? '10px' : '16px',
-            }}
-          >
-            <StatCard label="Trading Signals" value="Live" isMobile={isMobile} />
-            <StatCard label="Music Layer" value="Active" isMobile={isMobile} />
-            <StatCard label="Services Layer" value="Active" isMobile={isMobile} />
-          </div>
-        </section>
-
-        {/* Recent Achievements Feed */}
-        <section style={{ marginTop: isMobile ? 24 : 40, marginBottom: 24 }}>
-          <h3 style={{ fontSize: isMobile ? '13px' : '16px', marginBottom: '12px', fontWeight: 600, color: COLORS.gold }}>Recent Achievements</h3>
-          <div style={{ display: 'flex', gap: isMobile ? 8 : 16, flexDirection: isMobile ? 'column' : 'row' }}>
-            {recentAchievements.length === 0 ? (
-              <span style={{ color: COLORS.textDim }}>No achievements yet. Start exploring!</span>
-            ) : (
-              recentAchievements.map((ach) => (
-                <div key={ach.id} style={{ background: COLORS.panel, border: `2px solid ${COLORS.gold}`, borderRadius: 8, padding: isMobile ? 10 : 16, textAlign: 'center', minWidth: isMobile ? 80 : 100 }}>
-                  <div style={{ fontSize: isMobile ? 24 : 32 }}>{ach.icon}</div>
-                  <div style={{ fontWeight: 600, fontSize: isMobile ? 13 : undefined }}>{ach.name}</div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* Referral Leaderboard */}
-        <section style={{ marginBottom: 24 }}>
-          <h3 style={{ fontSize: isMobile ? '13px' : '16px', marginBottom: '12px', fontWeight: 600, color: COLORS.accent }}>Referral Leaderboard</h3>
-          <div style={{ display: 'flex', gap: isMobile ? 8 : 16, flexDirection: isMobile ? 'column' : 'row' }}>
-            {referralLeaders.map((leader, idx) => (
-              <div key={leader.name} style={{ background: COLORS.panel, border: `2px solid ${idx === 0 ? COLORS.gold : COLORS.accent}`, borderRadius: 8, padding: isMobile ? 10 : 16, textAlign: 'center', minWidth: isMobile ? 80 : 100 }}>
-                <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : undefined }}>{leader.name}</div>
-                <div style={{ color: COLORS.textDim, fontSize: isMobile ? 11 : 13 }}>{leader.count} referrals</div>
-              </div>
-            ))}
-          </div>
-        </section>
       </main>
-    </div>
-  );
-}
-
-function StatCard({ label, value, isMobile }) {
-  return (
-    <div
-      style={{
-        background: COLORS.panel,
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: '8px',
-        padding: isMobile ? '10px' : '16px',
-      }}
-    >
-      <div style={{ fontSize: isMobile ? '10px' : '12px', color: COLORS.textDim, marginBottom: '8px' }}>
-        {label}
-      </div>
-      <div style={{ fontWeight: 600, color: COLORS.accent, fontSize: isMobile ? '13px' : undefined }}>
-        {value}
-      </div>
     </div>
   );
 }
