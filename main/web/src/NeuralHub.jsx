@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import GamifiedOnboarding from "./components/GamifiedOnboarding";
 import { apiClient } from "./lib/api-client";
 import { runBacktest } from "./engine/backtest";
+import { calculateTotalCredits } from "./lib/achievements";
 
 const COLORS = {
   bg: "#090B10",
@@ -72,10 +73,27 @@ function buildResponse(input) {
 export default function NeuralHub() {
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [userStats, setUserStats] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('userStats')) || {};
+    } catch {
+      return {};
+    }
+  });
+  const [avatarUrl] = useState(() => localStorage.getItem('avatarUrl') || 'https://api.dicebear.com/7.x/identicon/svg?seed=tradehax');
+  const credits = calculateTotalCredits(userStats ? userStats.earnedAchievements || {} : {});
   useEffect(() => {
     // Check onboarding completion in localStorage
     const completed = localStorage.getItem('onboardingComplete');
     if (!completed) setShowOnboarding(true);
+    // Listen for userStats changes
+    const handler = () => {
+      try {
+        setUserStats(JSON.parse(localStorage.getItem('userStats')) || {});
+      } catch {}
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
   }, []);
 
   function handleOnboardingComplete() {
@@ -135,101 +153,70 @@ export default function NeuralHub() {
             meta: {
               title: parsed.signal || 'AI Analysis',
               body: response.response,
-                          if (showOnboarding) {
-                            return <GamifiedOnboarding onComplete={handleOnboardingComplete} />;
-                          }
+              bullets,
+              ...(parsed.executionPlaybook && parsed.executionPlaybook.length > 0 ? { executionPlaybook: parsed.executionPlaybook } : {}),
+              marketContext: parsed.marketContext || null,
+            },
+          },
+        ]);
+      })
+      .catch((error) => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-${nextId.current++}`,
+            role: "assistant",
+            content: "Error: " + error.message,
+            meta: null,
+          },
+        ]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }
 
-                          // ...existing code for main interface...
-                          return (
-                            <main
-                              style={{
-                                minHeight: "100vh",
-                                background: COLORS.bg,
-                                color: COLORS.text,
-                                fontFamily: "Inter, Arial, sans-serif",
-                                padding: 20,
-                              }}
-                            >
-                              {/* ...existing code for main interface... */}
-                              <section style={{ maxWidth: 1120, margin: "0 auto" }}>
-                                {/* ...existing code for header, controls, chat, etc... */}
-                                {/* ...existing code for AI Trading Console, Input Area, etc... */}
-                              </section>
-                            </main>
-                          );
-                {message.meta?.marketContext ? (
-                  <div style={{ marginTop: 10, color: COLORS.textDim, fontSize: 13 }}>
-                    Market Context: {message.meta.marketContext}
-                  </div>
-                ) : null}
-                {message.meta?.bullets?.length ? (
-                  <ul style={{ marginTop: 12, marginBottom: 0, paddingLeft: 18, color: COLORS.textDim }}>
-                    {message.meta.bullets.map((bullet) => (
-                      <li key={bullet} style={{ marginBottom: 6 }}>
-                        {bullet}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                {message.meta?.executionPlaybook?.length ? (
-                  <ul style={{ marginTop: 12, marginBottom: 0, paddingLeft: 18, color: COLORS.accent }}>
-                    {message.meta.executionPlaybook.map((item) => (
-                      <li key={item} style={{ marginBottom: 6 }}>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            ))}
-            {loading ? (
-              <div style={{ color: COLORS.textDim, fontSize: 14 }}>Preparing response…</div>
-            ) : null}
-          </div>
+  if (showOnboarding) {
+    return <GamifiedOnboarding onComplete={() => setShowOnboarding(false)} />;
+  }
 
-          {/* Input Area */}
-          <div style={{ display: "grid", gap: 10 }}>
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && e.ctrlKey) {
-                  submitMessage();
-                }
-              }}
-              placeholder="Ask for a BTC setup, ETH plan, or risk breakdown... (Ctrl+Enter to send)"
-              style={{
-                width: "100%",
-                minHeight: 100,
-                resize: "vertical",
-                borderRadius: 12,
-                border: `1px solid ${COLORS.border}`,
-                background: COLORS.panel,
-                color: COLORS.text,
-                padding: 14,
-                outline: "none",
-                fontFamily: "inherit",
-              }}
-            />
-            <button
-              onClick={() => submitMessage()}
-              disabled={loading || !input.trim()}
-              style={{
-                background: COLORS.gold,
-                color: "#111",
-                border: 0,
-                borderRadius: 10,
-                padding: "12px 18px",
-                fontWeight: 700,
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading || !input.trim() ? 0.6 : 1,
-              }}
-            >
-              {loading ? "Processing..." : "Send"}
-            </button>
+  // Responsive style helpers
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
+
+  // Header with avatar, XP, credits
+  return (
+    <div style={{ minHeight: '100vh', background: COLORS.bg, color: COLORS.text, fontFamily: 'Inter, Arial, sans-serif' }}>
+      <header style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', padding: isMobile ? '12px 8px' : '18px 32px', borderBottom: `1px solid ${COLORS.border}`, gap: isMobile ? 10 : 0 }}>
+        <div style={{ fontWeight: 700, fontSize: isMobile ? 18 : 24 }}>TradeHax NeuralHub</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 18 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'flex-end', marginRight: isMobile ? 0 : 8 }}>
+            <span style={{ fontSize: isMobile ? 11 : 13, color: COLORS.textDim }}>XP: {userStats.daysActive ? userStats.daysActive * 100 : 0}</span>
+            <span style={{ fontSize: isMobile ? 13 : 15, color: COLORS.gold, fontWeight: 600 }}>💰 {credits} Credits</span>
           </div>
+          <img src={avatarUrl} alt="avatar" style={{ width: isMobile ? 32 : 40, height: isMobile ? 32 : 40, borderRadius: '50%', border: `2px solid ${COLORS.accent}` }} />
+        </div>
+      </header>
+      {/* Floating Quick Access Panel */}
+      <div style={{ position: 'fixed', bottom: isMobile ? 12 : 32, right: isMobile ? 12 : 32, zIndex: 100, display: 'flex', flexDirection: 'column', gap: isMobile ? 8 : 16 }}>
+        <button onClick={() => window.location.href = '/trading'} style={{ background: COLORS.accent, color: COLORS.bg, border: 'none', borderRadius: '50%', width: isMobile ? 40 : 56, height: isMobile ? 40 : 56, fontSize: isMobile ? 20 : 28, boxShadow: '0 4px 16px #00d9ff44', cursor: 'pointer', transition: 'transform 0.1s' }} title="Trading Hub">📈</button>
+        <button onClick={() => window.location.href = '/music'} style={{ background: COLORS.gold, color: COLORS.bg, border: 'none', borderRadius: '50%', width: isMobile ? 40 : 56, height: isMobile ? 40 : 56, fontSize: isMobile ? 20 : 28, boxShadow: '0 4px 16px #f5a62344', cursor: 'pointer', transition: 'transform 0.1s' }} title="Music Hub">🎵</button>
+        <button onClick={() => window.location.href = '/services'} style={{ background: COLORS.green, color: COLORS.bg, border: 'none', borderRadius: '50%', width: isMobile ? 40 : 56, height: isMobile ? 40 : 56, fontSize: isMobile ? 20 : 28, boxShadow: '0 4px 16px #00e5a044', cursor: 'pointer', transition: 'transform 0.1s' }} title="Services Hub">⚡</button>
+      </div>
+      <main
+        style={{
+          minHeight: "100vh",
+          background: COLORS.bg,
+          color: COLORS.text,
+          fontFamily: "Inter, Arial, sans-serif",
+          padding: isMobile ? 8 : 20,
+        }}
+      >
+        {/* ...existing code for main interface... */}
+        <section style={{ maxWidth: isMobile ? '100%' : 1120, margin: "0 auto" }}>
+          {/* ...existing code for header, controls, chat, etc... */}
+          {/* ...existing code for AI Trading Console, Input Area, etc... */}
         </section>
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }

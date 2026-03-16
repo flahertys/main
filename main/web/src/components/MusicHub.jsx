@@ -30,27 +30,30 @@ export default function MusicHub() {
     },
   ];
 
+  // Responsive style helpers
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
+
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, color: COLORS.text, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-      <header style={{ borderBottom: `1px solid ${COLORS.border}`, padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header style={{ borderBottom: `1px solid ${COLORS.border}`, padding: isMobile ? '14px 10px' : '20px 40px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: 'center', gap: isMobile ? 10 : 0 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '28px' }}>TradeHax Music Hub</h1>
-          <p style={{ margin: '6px 0 0', color: COLORS.textDim }}>Creator growth stack for musicians and labels</p>
+          <h1 style={{ margin: 0, fontSize: isMobile ? '20px' : '28px' }}>TradeHax Music Hub</h1>
+          <p style={{ margin: '6px 0 0', color: COLORS.textDim, fontSize: isMobile ? '12px' : undefined }}>Creator growth stack for musicians and labels</p>
         </div>
         <button
           onClick={() => navigate('/')}
-          style={{ background: 'transparent', color: COLORS.accent, border: `1px solid ${COLORS.accent}`, borderRadius: 8, padding: '10px 14px', cursor: 'pointer' }}
+          style={{ background: 'transparent', color: COLORS.accent, border: `1px solid ${COLORS.accent}`, borderRadius: 8, padding: isMobile ? '8px 10px' : '10px 14px', cursor: 'pointer', fontSize: isMobile ? '13px' : undefined }}
         >
           Back to Platform
         </button>
       </header>
 
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: 40 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+      <main style={{ maxWidth: isMobile ? '100%' : 1200, margin: '0 auto', padding: isMobile ? 16 : 40 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))', gap: isMobile ? 10 : 16 }}>
           {modules.map((module) => (
-            <section key={module.title} style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20 }}>
-              <h3 style={{ margin: '0 0 10px', color: COLORS.gold }}>{module.title}</h3>
-              <p style={{ margin: 0, color: COLORS.textDim, lineHeight: 1.6 }}>{module.detail}</p>
+            <section key={module.title} style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: isMobile ? 12 : 20 }}>
+              <h3 style={{ margin: '0 0 10px', color: COLORS.gold, fontSize: isMobile ? '15px' : undefined }}>{module.title}</h3>
+              <p style={{ margin: 0, color: COLORS.textDim, lineHeight: 1.6, fontSize: isMobile ? '12px' : undefined }}>{module.detail}</p>
             </section>
           ))}
         </div>
@@ -58,4 +61,3 @@ export default function MusicHub() {
     </div>
   );
 }
-
