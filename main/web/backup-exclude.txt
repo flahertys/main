@@ -1,0 +1,10 @@
+node_modules/
+dist/
+secrets/
+.env.production
+.env.local
+.env.*.local
+.git/
+.vercel/
+.DS_Store
+Thumbs.db
