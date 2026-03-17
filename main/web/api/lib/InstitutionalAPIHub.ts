@@ -124,7 +124,7 @@ export class RateLimiter {
  * Base Vendor Client with common functionality
  */
 export abstract class BaseVendorClient extends EventEmitter implements IVendorClient {
-  protected vendor: VendorType;
+  public vendor: VendorType;
   protected credentials: VendorCredentials;
   protected rateLimiter: RateLimiter;
   protected connected: boolean = false;
@@ -418,7 +418,7 @@ export class InstitutionalAPIHub extends EventEmitter {
   private clients: Map<VendorType, IVendorClient> = new Map();
   private rateLimiter: RateLimiter = new RateLimiter();
   private credentialVault: ICredentialVault;
-  private healthCheckInterval: NodeJS.Timer | null = null;
+  private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(credentialVault: ICredentialVault) {
     super();
@@ -478,7 +478,7 @@ export class InstitutionalAPIHub extends EventEmitter {
    */
   async disconnectAll(): Promise<void> {
     if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
+      clearInterval(this.healthCheckInterval as NodeJS.Timeout);
     }
 
     const promises = Array.from(this.clients.values()).map((client) =>

@@ -49,7 +49,10 @@ async function fetchMarketData(symbols: string[]) {
   }
 
   const data = await response.json();
-  const byId = new Map(data.map((item: any) => [item.id, item]));
+  if (!Array.isArray(data)) {
+    throw new Error('Expected array from CoinGecko API');
+  }
+  const byId = new Map((data as any[]).map((item: any) => [item.id, item]));
 
   return symbols
     .map((symbol) => {

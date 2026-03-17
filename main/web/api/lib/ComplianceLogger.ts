@@ -95,7 +95,7 @@ export class ComplianceLogger extends EventEmitter {
   private proofChain: ProofChain = new ProofChain();
   private eventBuffer: AuditEvent[] = [];
   private bufferSize = 100;
-  private flushInterval: NodeJS.Timer | null = null;
+  private flushInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(dbPool: Pool) {
     super();
@@ -405,7 +405,7 @@ export class ComplianceLogger extends EventEmitter {
    */
   async shutdown(): Promise<void> {
     if (this.flushInterval) {
-      clearInterval(this.flushInterval);
+      clearInterval(this.flushInterval as NodeJS.Timeout);
     }
     await this.flush();
   }
