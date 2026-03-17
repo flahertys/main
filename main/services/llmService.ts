@@ -2,9 +2,16 @@
 import { NEURAL_HUB_CONFIG } from '../lib/trading/neural-hub-pipeline';
 
 export async function callNeuralHub(prompt: string, modelId?: string, maxTokens: number = 512): Promise<string> {
-  const token = NEURAL_HUB_CONFIG.hfToken;
+  // Use robust token fallback logic
+  const token =
+    process.env.HF_API_TOKEN ||
+    process.env.HF_API_TOKEN_REICH ||
+    process.env.HF_API_TOKEN_ALT1 ||
+    process.env.HF_API_TOKEN_ALT2 ||
+    process.env.HF_API_TOKEN_ALT3 ||
+    process.env.NEXT_PUBLIC_HF_API_TOKEN;
   if (!token) {
-    console.error('❌ HF_API_TOKEN not configured');
+    console.error('❌ No Hugging Face API token found in environment variables.');
     return 'AI service not available - missing API token';
   }
   try {
@@ -40,4 +47,3 @@ export async function callNeuralHub(prompt: string, modelId?: string, maxTokens:
     return `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
   }
 }
-

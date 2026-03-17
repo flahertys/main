@@ -1,33 +1,11 @@
 // Unified trading signal generation and neural bot interface
-import { fetchStockData, fetchPolymarketData, fetchCryptoData } from './dataService';
-import { callNeuralHub } from './llmService';
 
-export async function generateTradingSignal(symbol: string, marketType: 'stock' | 'crypto' | 'prediction' = 'stock'): Promise<any> {
-  console.log(`📊 Generating signal for ${symbol} (${marketType})...`);
-  try {
-    let liveData: any = null;
-    if (marketType === 'stock') {
-      liveData = await fetchStockData(symbol);
-    } else if (marketType === 'crypto') {
-      liveData = await fetchCryptoData([symbol.toLowerCase()]);
-    } else if (marketType === 'prediction') {
-      liveData = await fetchPolymarketData(symbol);
-    }
-    if (!liveData) {
-      console.warn(`⚠️ Could not fetch live data for ${symbol}`);
-    }
-    const prompt = `Given the following live market data for ${symbol} (${marketType}):\n${JSON.stringify(liveData, null, 2)}\n\nProvide a concise trading signal with:\n1. Direction (BUY / SELL / HOLD)\n2. Confidence (0-100)\n3. Target price\n4. Stop loss\n5. Risk/reward ratio\n\nFormat as JSON.`;
-    const aiResponse = await callNeuralHub(prompt, undefined, 256);
-    try {
-      const signal = JSON.parse(aiResponse);
-      return { symbol, marketType, timestamp: new Date().toISOString(), liveData, signal, status: 'success' };
-    } catch {
-      return { symbol, marketType, timestamp: new Date().toISOString(), liveData, rawResponse: aiResponse, status: 'partial' };
-    }
-  } catch (error) {
-    console.error(`❌ Error generating signal for ${symbol}:`, error);
-    return { symbol, error: error instanceof Error ? error.message : 'Unknown error', status: 'error' };
-  }
+// Delegate to improved neural hub pipeline
+import { generateTradingSignal as pipelineGenerateTradingSignal } from '../lib/trading/neural-hub-pipeline';
+
+export async function generateTradingSignal(symbol: string, marketType: 'stock' | 'crypto' | 'prediction' = 'stock', settings?: any): Promise<any> {
+  // Directly delegate to the robust pipeline implementation
+  return pipelineGenerateTradingSignal(symbol, marketType, settings);
 }
 
 export class TradeHaxNeuralBot {

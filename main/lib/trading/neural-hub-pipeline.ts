@@ -8,6 +8,9 @@
 // 1. LIVE DATA INTEGRATION
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Import elite prompt and compliance validator
+import { buildEliteSystemPrompt, validatePromptCompliance } from '../../web/api/ai/prompt-engine';
+
 interface LiveDataProvider {
   name: string;
   endpoint: string;
@@ -459,54 +462,24 @@ export async function generateTradingSignal(
       }).join(", ");
     }).map((s, i) => `${timeframes[i]}: ${s}`).join("\n");
 
-    // 4. Prepare prompt for neural hub, including chart/AI/LLM settings
-    const prompt = `
-    Given the following live market data for ${symbol} (${marketType}):
-    ${JSON.stringify(liveData, null, 2)}
-
-    Technical indicator summary (multi-timeframe confluence):
-    ${confluence}
-
-    Chart settings: ${JSON.stringify(settings?.chartSettings || {}, null, 2)}
-    AI settings: ${JSON.stringify(settings?.aiSettings || {}, null, 2)}
-    LLM settings: ${JSON.stringify(settings?.llmSettings || {}, null, 2)}
-
-    Provide a concise trading signal with:
-    1. Direction (BUY / SELL / HOLD)
-    2. Confidence (0-100)
-    3. Target price
-    4. Stop loss
-    5. Risk/reward ratio
-
-    Format as JSON.
-    `;
+    // 4. Build elite/uncensored system prompt for neural hub
+    const promptContext = {
+      userMsg: `Generate a trading signal for ${symbol} (${marketType}) with the following live data and indicator summary.`,
+      marketSnapshot: [
+        { symbol, ...liveData?.current },
+      ],
+      userProfile: settings?.userProfile || undefined,
+      intent: 'trading signal',
+    };
+    const elitePrompt = buildEliteSystemPrompt(promptContext);
 
     // 5. Call neural hub for AI analysis
-    const aiResponse = await callNeuralHub(prompt, undefined, 256);
+    const aiResponse = await callNeuralHub(elitePrompt, undefined, 256);
 
-    // 6. Parse and return signal
-    try {
-      const signal = JSON.parse(aiResponse);
-      // Example: backtestStats can be fetched or stubbed here
-      const backtestStats = signal.backtestStats || { winRate: 0.68, avgProfit: 1.2, maxDrawdown: 0.15 };
-      const algoScore = computeAlgoScore(indicatorSummary, preset, backtestStats);
-      return {
-        symbol,
-        marketType,
-        timestamp: new Date().toISOString(),
-        preset: preset.name,
-        presetDescription: preset.description,
-        presetWeights: preset.weights,
-        liveData,
-        indicatorSummary,
-        settings,
-        signal,
-        algoScore: algoScore.score,
-        algoScoreBreakdown: algoScore.breakdown,
-        algoScoreWeights: algoScore.weights,
-        status: "success",
-      };
-    } catch {
+    // 6. Validate and parse response
+    const compliance = validatePromptCompliance(aiResponse);
+    if (!compliance.compliant) {
+      console.error(`❌ AI response non-compliant:`, compliance.errors, aiResponse);
       const algoScore = computeAlgoScore(indicatorSummary, preset);
       return {
         symbol,
@@ -519,12 +492,39 @@ export async function generateTradingSignal(
         indicatorSummary,
         settings,
         rawResponse: aiResponse,
+        complianceErrors: compliance.errors,
         algoScore: algoScore.score,
         algoScoreBreakdown: algoScore.breakdown,
         algoScoreWeights: algoScore.weights,
-        status: "partial",
+        status: "error",
       };
     }
+
+    // Try to parse as JSON, fallback to raw if not possible
+    let signal = null;
+    try {
+      signal = JSON.parse(aiResponse);
+    } catch {
+      signal = { raw: aiResponse };
+    }
+    const backtestStats = signal.backtestStats || { winRate: 0.68, avgProfit: 1.2, maxDrawdown: 0.15 };
+    const algoScore = computeAlgoScore(indicatorSummary, preset, backtestStats);
+    return {
+      symbol,
+      marketType,
+      timestamp: new Date().toISOString(),
+      preset: preset.name,
+      presetDescription: preset.description,
+      presetWeights: preset.weights,
+      liveData,
+      indicatorSummary,
+      settings,
+      signal,
+      algoScore: algoScore.score,
+      algoScoreBreakdown: algoScore.breakdown,
+      algoScoreWeights: algoScore.weights,
+      status: "success",
+    };
   } catch (error) {
     console.error(`❌ Error generating signal for ${symbol}:`, error);
     return {
