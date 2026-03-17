@@ -1,0 +1,6 @@
+{
+  "url": "https://hooks.slack.com/services/your/webhook/url",
+  "events": ["deployment-created", "deployment-error", "deployment-ready"],
+  "project": "tradehax-ai-assistant"
+}
+

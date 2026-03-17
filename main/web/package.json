@@ -14,7 +14,9 @@
     "engine:backtest": "node ./scripts/engine-backtest.mjs",
     "engine:check": "npm run audit:licenses && npm run engine:backtest",
     "engine:report": "node ./scripts/engine-quality-report.mjs",
-    "supabase:health": "node --env-file=.env.local ./scripts/supabase-health.mjs"
+    "supabase:health": "node --env-file=.env.local ./scripts/supabase-health.mjs",
+    "predeploy": "node ../scripts/predeploy-check.js",
+    "deploy": "npm run predeploy && npx vercel --prod"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1005.0",
