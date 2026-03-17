@@ -1,0 +1,15 @@
+{
+  "local_repo_path": "C:/tradez/main",
+  "cloud_repo_url": "git@github.com:youruser/yourrepo.git",
+  "cloud_env_ssh": "user@your-cloud-server",
+  "cloud_env_path": "/path/to/cloud/app",
+  "env_file": ".env.local",
+  "backup_dir": "C:/tradez/repo-backups",
+  "log_file": "C:/tradez/sync-log.txt",
+  "branch": "main",
+  "additional_env_files": [],
+  "api_endpoints": [],
+  "permissions": {
+    "env_file": "600"
+  }
+}
