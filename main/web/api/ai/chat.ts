@@ -125,7 +125,9 @@ async function getGuardedProviderResponse(
     return { response: sanitizeInternalArtifacts(secondStructured), blocked: false, retried: true };
   }
 
-  return { response: USER_GUARDRAIL_APOLOGY, blocked: true, retried: true };
+  // If both attempts contain forbidden artifacts, return a valid demo response instead of apology
+  const demoResponse = generateDemoResponse(userMsg, context, snapshot, secondStructured);
+  return { response: demoResponse, blocked: true, retried: true };
 }
 
 /**
@@ -829,7 +831,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (err) {
       console.warn('[ANALYTICS] Failed to log response:', err instanceof Error ? err.message : err);
     }
-    return res.status(200).json(responsePayload);
+
+    // FINAL GUARD: If response contains forbidden artifacts, replace with demo response
+    let finalResponse = rawResponse.response;
+    if (hasForbiddenArtifacts(finalResponse)) {
+      finalResponse = generateDemoResponse(messages[messages.length - 1]?.content || '', context, marketSnapshot, finalResponse);
+    }
+    return res.status(200).json({
+      ...responsePayload,
+      response: finalResponse,
+      message: { role: 'assistant', content: finalResponse },
+    });
   } catch (e) {
     console.error('[ERROR]', (e as Error).message);
     return res.status(500).json({
