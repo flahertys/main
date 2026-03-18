@@ -101,15 +101,19 @@ export class DataProviderRouter {
       if (cached && cached.timestamp > Date.now() - 1000) {
         return { success: true, data: cached, latency: 0 };
       }
-
-      // TODO: Replace with actual Binance API call
-      const mockPrice = 45000 + Math.random() * 1000;
-      const data: DataPoint = { symbol, price: mockPrice, timestamp: Date.now(), source: "binance", freshness: "realtime", confidence: 0.95 };
-
+      // Use Binance public API for real-time price
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`);
+      if (!res.ok) throw new Error('Binance API error');
+      const json = await res.json();
+      const price = parseFloat(json.price);
+      const data: DataPoint = { symbol, price, timestamp: Date.now(), source: "binance", freshness: "realtime", confidence: 0.98 };
       this.binanceCache.set(symbol, data);
       return { success: true, data, latency: Date.now() - startTime };
     } catch (error) {
-      return { success: false, error: String(error), latency: Date.now() - startTime };
+      // Fallback to mock if API fails
+      const mockPrice = 45000 + Math.random() * 1000;
+      const data: DataPoint = { symbol, price: mockPrice, timestamp: Date.now(), source: "binance", freshness: "realtime", confidence: 0.5 };
+      return { success: false, error: String(error), data, latency: Date.now() - startTime };
     }
   }
 
@@ -186,4 +190,3 @@ export class DataProviderRouter {
     }
   }
 }
-
