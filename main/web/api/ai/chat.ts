@@ -17,7 +17,6 @@ import { getSession, getRecentMessages, UserProfile } from '../sessions/store.js
 import { validateResponse, detectHallucinations, extractTradingParameters } from './validators.js';
 import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console.js';
 import { logResponseToDatabase } from '../db/metrics-service.js';
-import { personalizeSignal } from '../../src/lib/personalization-adaptive';
 
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -736,21 +735,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
     // --- Build System Prompt ---
     let systemPrompt = buildSystemPrompt(messages[messages.length - 1].content, context, marketSnapshot);
-    // --- Personalize prompt using adaptive engine ---
-        if (userProfile && userProfile.userId) {
-          try {
-            const personalized = await personalizeSignal({
-              userId: userProfile.userId,
-              signal: { explanation: systemPrompt, symbol: assets[0] || 'UNKNOWN' },
-              modelOrSignal: undefined
-            });
-            if (personalized && personalized.explanation) {
-              systemPrompt = personalized.explanation;
-            }
-          } catch (e) {
-            console.warn('[PERSONALIZATION] Failed to adapt prompt:', e instanceof Error ? e.message : e);
-          }
-        }
     // --- Provider Selection Logic ---
         let provider: 'huggingface' | 'openai' | 'demo' = 'huggingface';
     let invoke: () => Promise<string> = () => callHuggingFace([{ role: 'user', content: systemPrompt }], temperature);
