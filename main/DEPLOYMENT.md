@@ -287,3 +287,31 @@ For deployment issues, check:
 2. Server SSH logs: `journalctl -u docker -n 100`
 3. Container logs: `docker compose logs -f <service>`
 4. Health endpoint: `curl -v https://tradehax.net/health`
+
+# Automated Safeguards & Deployment (2026-03-17)
+
+## Project Context
+- Project: tradehax-ai-assistant
+- GitHub: DarkModder33/main
+- Vercel: prj_yYTkTtZqOAiUNEJwaNZGjBokxRqw
+
+## Safeguards
+- `.project-id` file in project root
+- Predeploy script: `scripts/predeploy-check.js`
+- Husky pre-push hook: `.husky/pre-push`
+- Vercel and GitHub webhook templates
+
+## Deployment Steps
+1. Ensure you are in the correct project directory.
+2. Run `npm run deploy` from `web/` to trigger predeploy checks and Vercel deployment.
+3. Monitor Slack/Discord for deployment notifications.
+
+## Webhooks
+- GitHub: `.github/workflows/deploy-notify.yml` (edit for your Slack/Discord URL)
+- Vercel: `vercel-deploy-webhook.json` (configure in Vercel dashboard)
+
+## Best Practices
+- Use unique project names and IDs
+- Never share tokens or secrets across projects
+- Keep `.env` and `.project-id` up to date
+- Document all changes in this file
