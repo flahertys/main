@@ -4,6 +4,8 @@
  * Sources: Binance, Finnhub, Polymarket (with configurable priority + timeout)
  */
 
+import { IEXAdapter, AlphaVantageAdapter, CustomInstitutionalAdapter } from "./vendor-adapters";
+
 export interface DataPoint {
   symbol: string;
   price: number;
@@ -20,32 +22,54 @@ export interface DataSourceResult {
   latency: number; // milliseconds
 }
 
+// --- Enhancement: Vendor Plugin System ---
+export interface VendorAdapter {
+  name: string;
+  fetchQuote(symbol: string): Promise<DataSourceResult>;
+  supportsStreaming?: boolean;
+  startStream?: (symbol: string, onData: (data: DataPoint) => void) => void;
+}
+
 export class DataProviderRouter {
   private binanceCache: Map<string, DataPoint> = new Map();
   private finnhubCache: Map<string, DataPoint> = new Map();
   private polymarketCache: Map<string, DataPoint> = new Map();
   private fetchTimeout = 2000; // ms
+  private vendorAdapters: VendorAdapter[] = [];
+
+  constructor() {
+    // Register default vendor adapters
+    this.registerVendorAdapter(IEXAdapter);
+    this.registerVendorAdapter(AlphaVantageAdapter);
+    this.registerVendorAdapter(CustomInstitutionalAdapter);
+  }
+
+  /**
+   * Register a new vendor adapter
+   */
+  registerVendorAdapter(adapter: VendorAdapter) {
+    this.vendorAdapters.push(adapter);
+  }
 
   /**
    * Fetch price data from multiple sources with freshness scoring
    */
   async getQuote(symbol: string): Promise<{ price: number; confidence: number; sources: string[]; freshness: string }> {
     const now = Date.now();
-
-    // Fetch in parallel with timeout
-    const [binanceResult, finnhubResult, polymarketResult] = await Promise.allSettled([
-      this.fetchBinance(symbol),
-      this.fetchFinnhub(symbol),
-      this.fetchPolymarket(symbol),
-    ]);
-
+    // Use all registered vendor adapters
     const results: DataSourceResult[] = [];
-    if (binanceResult.status === "fulfilled") results.push(binanceResult.value);
-    if (finnhubResult.status === "fulfilled") results.push(finnhubResult.value);
-    if (polymarketResult.status === "fulfilled") results.push(polymarketResult.value);
-
+    await Promise.all(
+      this.vendorAdapters.map(async (adapter) => {
+        try {
+          const result = await adapter.fetchQuote(symbol);
+          results.push(result);
+        } catch (e) {
+          results.push({ success: false, error: String(e), latency: 0 });
+        }
+      })
+    );
     if (results.length === 0) {
-      throw new Error("All data sources failed");
+      throw new Error("All vendor adapters failed");
     }
 
     // Filter successful results and score by freshness
@@ -110,10 +134,7 @@ export class DataProviderRouter {
       this.binanceCache.set(symbol, data);
       return { success: true, data, latency: Date.now() - startTime };
     } catch (error) {
-      // Fallback to mock if API fails
-      const mockPrice = 45000 + Math.random() * 1000;
-      const data: DataPoint = { symbol, price: mockPrice, timestamp: Date.now(), source: "binance", freshness: "realtime", confidence: 0.5 };
-      return { success: false, error: String(error), data, latency: Date.now() - startTime };
+      return { success: false, error: String(error), latency: Date.now() - startTime };
     }
   }
 
@@ -129,11 +150,7 @@ export class DataProviderRouter {
       }
 
       // TODO: Replace with actual Finnhub API call
-      const mockPrice = 45000 + Math.random() * 1500;
-      const data: DataPoint = { symbol, price: mockPrice, timestamp: Date.now(), source: "finnhub", freshness: "1min", confidence: 0.85 };
-
-      this.finnhubCache.set(symbol, data);
-      return { success: true, data, latency: Date.now() - startTime };
+      throw new Error('Finnhub API not implemented');
     } catch (error) {
       return { success: false, error: String(error), latency: Date.now() - startTime };
     }
@@ -151,11 +168,7 @@ export class DataProviderRouter {
       }
 
       // TODO: Replace with actual Polymarket API call
-      const mockPrice = 45000 + Math.random() * 2000;
-      const data: DataPoint = { symbol, price: mockPrice, timestamp: Date.now(), source: "polymarket", freshness: "5min", confidence: 0.7 };
-
-      this.polymarketCache.set(symbol, data);
-      return { success: true, data, latency: Date.now() - startTime };
+      throw new Error('Polymarket API not implemented');
     } catch (error) {
       return { success: false, error: String(error), latency: Date.now() - startTime };
     }
@@ -189,4 +202,22 @@ export class DataProviderRouter {
         return 0.5;
     }
   }
+
+  // --- Enhancement: Streaming Support ---
+  startStreaming(symbol: string, onData: (data: DataPoint) => void) {
+    for (const adapter of this.vendorAdapters) {
+      if (adapter.supportsStreaming && adapter.startStream) {
+        adapter.startStream(symbol, onData);
+      }
+    }
+  }
 }
+
+// --- Example: Registering a new vendor adapter ---
+// const router = new DataProviderRouter();
+// router.registerVendorAdapter({
+//   name: 'Binance',
+//   fetchQuote: async (symbol) => { /* ... */ },
+//   supportsStreaming: true,
+//   startStream: (symbol, onData) => { /* ... */ }
+// });

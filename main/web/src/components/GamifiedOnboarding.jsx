@@ -130,6 +130,13 @@ function StepIndicator({ step }) {
   );
 }
 
+const STEP_TOOLTIPS = [
+  "Set up your workspace for personalized AI guidance.",
+  "Tell us about your trading style and experience. This helps tailor risk and execution advice.",
+  "Choose your preferred assets and set your primary goal. The dashboard will focus on these.",
+  "Review your profile and get started! Next: Try paper trading or generate your first AI signal.",
+];
+
 export default function GamifiedOnboarding({ onComplete }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(defaultForm);
@@ -205,7 +212,10 @@ export default function GamifiedOnboarding({ onComplete }) {
           </div>
           <h1 style={{ margin: "12px 0 10px", fontSize: 38, lineHeight: 1.1 }}>{current.title}</h1>
           <p style={{ margin: "0 0 28px", color: COLORS.textDim, maxWidth: 700, lineHeight: 1.7 }}>{current.body}</p>
-
+          {/* Tooltip/help for each step */}
+          <div style={{ marginBottom: 18, color: COLORS.warning, fontSize: 14, fontWeight: 500 }}>
+            {STEP_TOOLTIPS[step]}
+          </div>
           <StepIndicator step={step} />
 
           {step === 0 ? (
@@ -313,6 +323,16 @@ export default function GamifiedOnboarding({ onComplete }) {
               <div style={cardStyle}>
                 <strong>Assistant persona</strong>
                 <p style={supportStyle}>{profilePreview.persona}</p>
+              </div>
+              {/* Next Steps section after onboarding completion */}
+              <div style={{ ...cardStyle, background: COLORS.accentSoft, color: COLORS.accent }}>
+                <strong>Next Steps</strong>
+                <ul style={{ color: COLORS.text, margin: '10px 0 0 18px', fontSize: 15 }}>
+                  <li>Try paper trading on BTC/USD (<span style={{ color: COLORS.accent }}>Start Paper Trading</span>)</li>
+                  <li>Generate your first AI signal (<span style={{ color: COLORS.accent }}>Generate AI Signal</span>)</li>
+                  <li>Connect your wallet for real execution (<span style={{ color: COLORS.accent }}>Connect Wallet</span>)</li>
+                  <li>Unlock badges and credits by completing actions</li>
+                </ul>
               </div>
             </div>
           ) : null}

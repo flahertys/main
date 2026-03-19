@@ -110,7 +110,7 @@ export class TradeHaxAPI {
   /**
    * Send chat message to AI with retry logic
    */
-  async chat(messages: ChatMessage[], context?: ChatContext): Promise<ChatResponse> {
+  async chat(messages: ChatMessage[], context?: ChatContext & { mode?: string }): Promise<ChatResponse> {
     const mergedContext: ChatContext = { ...(context || {}) };
     const storedProfile = userProfileStorage.load();
     if (!mergedContext.userProfile && storedProfile) {
@@ -125,12 +125,15 @@ export class TradeHaxAPI {
       }
     }
 
+    // Forward mode if present
+    const mode = (context && 'mode' in context) ? (context as any).mode : undefined;
+
     return this.fetchWithRetry<ChatResponse>(
       this.resolveUrl('/api/ai/chat'),
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, context: mergedContext }),
+        body: JSON.stringify({ messages, context: mergedContext, ...(mode ? { mode } : {}) }),
       }
     );
   }

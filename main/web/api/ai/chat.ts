@@ -705,9 +705,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // --- Auto-reject Obvious Hallucinations ---
+    const isUncensored = body.mode === 'uncensored';
     const recentContents = (recentMessages || []).map((m: any) => m.content);
     const messageContents = (messages || []).map((m: any) => m.content);
-    if (shouldAutoRejectResponse(recentContents, messageContents)) {
+    if (!isUncensored && shouldAutoRejectResponse(recentContents, messageContents)) {
       const rejectionResponse = `Rejecting generated response due to high hallucination probability. Refine your question or provide more context.`;
       console.log('[HALLUCINATION REJECT]', rejectionResponse);
       return res.status(200).json({
