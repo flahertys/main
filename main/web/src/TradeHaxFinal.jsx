@@ -2,6 +2,12 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { JsonRpcProvider, formatEther, getAddress } from "ethers";
+import {
+  DEFAULT_SIGNATURE_MODE,
+  isChainAllowed,
+  normalizeHexChainId,
+  resolveExecutionProfile,
+} from "../shared/trading/execution-policy.js";
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║  TRADEHAX GPT  ◆  APEX EDITION  ◆  tradehax.net                        ║
@@ -18,8 +24,25 @@ const FIB_EXT   = [1.272, 1.618, 2.000, 2.618];
 const FIB_SEQ   = [1,1,2,3,5,8,13,21,34,55,89,144];
 const GAMMA_API = "https://gamma-api.polymarket.com";
 const CLOB_API  = "https://clob.polymarket.com";
-const POLYGON_RPC = "https://polygon-rpc.com";
+const POLYGON_RPC = import.meta.env?.VITE_POLYGON_RPC_URL || "https://polygon-rpc.com";
 const polygonProvider = new JsonRpcProvider(POLYGON_RPC);
+const POLYGON_CHAIN_ID_HEX = (import.meta.env?.VITE_POLYGON_CHAIN_ID_HEX || "0x89").toLowerCase();
+const ENABLE_EXTENSION_CONNECT = (import.meta.env?.VITE_ENABLE_EXTENSION_CONNECT || "true") !== "false";
+const EXECUTION_PROFILE_ID = import.meta.env?.VITE_EXECUTION_PROFILE_ID || "polygon-evm";
+const EXECUTION_PROFILE = resolveExecutionProfile(EXECUTION_PROFILE_ID);
+const REQUIRED_CHAIN_ID_HEX = normalizeHexChainId(EXECUTION_PROFILE.chainIdHex || POLYGON_CHAIN_ID_HEX);
+const ALLOW_ANY_CHAIN = REQUIRED_CHAIN_ID_HEX === "*";
+
+const detectInjectedWallet = () => {
+  if (typeof window === "undefined") return { available: false };
+  const eth = window.ethereum;
+  if (!eth) return { available: false };
+  if (eth.isMetaMask) return { available: true, ethereum: eth, name: "MetaMask" };
+  if (eth.isPhantom) return { available: true, ethereum: eth, name: "Phantom" };
+  if (eth.isBraveWallet) return { available: true, ethereum: eth, name: "Brave Wallet" };
+  if (eth.isCoinbaseWallet) return { available: true, ethereum: eth, name: "Coinbase Wallet" };
+  return { available: true, ethereum: eth, name: "Injected Wallet" };
+};
 
 // ─── QUANT ENGINE ─────────────────────────────────────────────────────────────
 
@@ -601,6 +624,11 @@ export default function TradeHaxGPT() {
   const [wallet, setWallet]     = useState("");
   const [walInput, setWalInput] = useState("");
   const [walStatus, setWalStatus] = useState(null);
+  const [walletSource, setWalletSource] = useState("");
+  const [walletProviderName, setWalletProviderName] = useState("");
+  const [walletChainId, setWalletChainId] = useState("");
+  const [extStatus, setExtStatus] = useState(null);
+  const [walletProof, setWalletProof] = useState(null);
   const [bankroll, setBankroll] = useState(1000);
   const [kFrac, setKFrac]       = useState(0.25);
   const [minGrade, setMinGrade] = useState("C");
@@ -627,6 +655,37 @@ export default function TradeHaxGPT() {
   }, []);
 
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior:"smooth" }); }, [chatLog]);
+
+  useEffect(() => {
+    const injected = detectInjectedWallet();
+    if (!injected.available || !injected.ethereum?.on) return;
+
+    const onAccountsChanged = (accounts) => {
+      const next = Array.isArray(accounts) ? accounts[0] : "";
+      if (!next) {
+        setWallet("");
+        setWalletSource("");
+        setWalletProviderName("");
+        setWalletProof(null);
+        setWalStatus(null);
+        return;
+      }
+      setWalInput(next);
+    };
+
+    const onChainChanged = (chainId) => {
+      if (typeof chainId === "string") setWalletChainId(normalizeHexChainId(chainId));
+      setWalletProof(null);
+    };
+
+    injected.ethereum.on("accountsChanged", onAccountsChanged);
+    injected.ethereum.on("chainChanged", onChainChanged);
+
+    return () => {
+      injected.ethereum.removeListener?.("accountsChanged", onAccountsChanged);
+      injected.ethereum.removeListener?.("chainChanged", onChainChanged);
+    };
+  }, []);
 
   // Ticker
   useEffect(() => {
@@ -697,8 +756,130 @@ export default function TradeHaxGPT() {
     }
   };
 
+  const postTelemetry = async (eventName) => {
+    try {
+      await fetch("/api/trading/telemetry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event: eventName }),
+      });
+    } catch {
+      // Telemetry is best-effort by design to avoid affecting execution flow.
+    }
+  };
+
+  const requestWalletProof = async () => {
+    const injected = detectInjectedWallet();
+    if (!injected.available || !injected.ethereum || !wallet) {
+      addChat("assistant", "⚠️ Wallet signature verification requires an extension wallet session.");
+      return false;
+    }
+
+    try {
+      const address = getAddress(wallet);
+      const chainIdRaw = await injected.ethereum.request({ method:"eth_chainId" });
+      const chainId = normalizeHexChainId(chainIdRaw);
+
+      const challengeRes = await fetch("/api/trading/auth?action=challenge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address,
+          chainId,
+          signatureMode: DEFAULT_SIGNATURE_MODE,
+        }),
+      });
+
+      if (!challengeRes.ok) {
+        const msg = await challengeRes.text();
+        throw new Error(msg || "Could not generate wallet challenge.");
+      }
+
+      const challenge = await challengeRes.json();
+      const signature = await injected.ethereum.request({
+        method: "personal_sign",
+        params: [challenge.message, address],
+      });
+
+      const verifyRes = await fetch("/api/trading/auth?action=verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address,
+          chainId,
+          nonce: challenge.nonce,
+          signature,
+          signatureType: challenge.signatureType || "personal_sign",
+        }),
+      });
+
+      if (!verifyRes.ok) {
+        const payload = await verifyRes.json().catch(() => null);
+        throw new Error(payload?.error || "Wallet proof verification failed.");
+      }
+
+      const verified = await verifyRes.json();
+      setWalletProof(verified.proof || null);
+      addChat("assistant", "🔐 Wallet ownership proof verified. Live execution gate unlocked for this session window.");
+      return true;
+    } catch (err) {
+      const msg = err?.message || "Wallet ownership proof failed.";
+      addChat("assistant", `⚠️ ${msg}`);
+      return false;
+    }
+  };
+
+  const ensureLiveExecutionGate = async () => {
+    if (!wallet) {
+      addChat("assistant", "⚠️ Connect your wallet first! Head to the **Wallet** tab to verify on-chain.");
+      return false;
+    }
+
+    const currentChain = normalizeHexChainId(walletChainId || "");
+    if (!isChainAllowed(EXECUTION_PROFILE, currentChain)) {
+      await postTelemetry("chain_mismatch");
+      addChat("assistant", `⚠️ Live execution is locked to ${EXECUTION_PROFILE.label} (${REQUIRED_CHAIN_ID_HEX}). Your wallet is on ${currentChain || "unknown"}.`);
+      return false;
+    }
+
+    if (!walletProof || Date.now() >= Number(walletProof.expiresAt || 0)) {
+      const proofOk = await requestWalletProof();
+      if (!proofOk) return false;
+    }
+
+    try {
+      const preflight = await fetch("/api/trading/orders?action=preflight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: wallet,
+          chainId: currentChain,
+        }),
+      });
+
+      if (!preflight.ok) {
+        const payload = await preflight.json().catch(() => null);
+        const reason = payload?.reason || "LIVE_GATE_FAILED";
+        if (reason === "PROOF_REQUIRED") {
+          addChat("assistant", "⚠️ Live execution requires a fresh wallet signature. Retry order to re-authenticate.");
+        } else if (reason === "CHAIN_MISMATCH") {
+          await postTelemetry("chain_mismatch");
+          addChat("assistant", `⚠️ Live execution requires ${EXECUTION_PROFILE.label} (${REQUIRED_CHAIN_ID_HEX}).`);
+        } else {
+          addChat("assistant", "⚠️ Live execution preflight failed. Try again in a moment.");
+        }
+        return false;
+      }
+    } catch {
+      addChat("assistant", "⚠️ Could not validate live execution gate with backend.");
+      return false;
+    }
+
+    return true;
+  };
+
   // Order placement
-  const placeOrder = (m, side) => {
+  const placeOrder = async (m, side) => {
     if (paperMode) {
       const price = side === "BUY_YES" ? m.yes : m.no || 0.5;
       const size  = Math.max(10, Math.round(m.kelly || 30));
@@ -713,20 +894,116 @@ export default function TradeHaxGPT() {
       return;
     }
 
-    if (!wallet) { addChat("assistant","⚠️ Connect your wallet first! Head to the **Wallet** tab to verify on-chain."); return; }
+    const gateReady = await ensureLiveExecutionGate();
+    if (!gateReady) return;
+
     const price = side === "BUY_YES" ? m.yes : m.no || 0.5;
     const size  = Math.max(10, Math.round(m.kelly || 30));
     const o = { id:"0x"+Math.random().toString(16).slice(2,10).toUpperCase(), market:m.question?.slice(0,42), side, size, price, ev:m.ev, kelly:m.kelly, grade:m.grade, status:"PENDING", ts:new Date().toLocaleTimeString() };
     setOrders(p => [o, ...p.slice(0, 24)]);
-    addChat("assistant", `Order placed! 🎯\n**${side}** $${size} on "${m.question?.slice(0,45)}…"\n@ ${pct(price)} | EV: ${f3(m.ev)} | Kelly: $${size} | Grade: ${m.grade}`);
-    setTimeout(() => {
-      const filled = Math.random() > 0.11;
-      setOrders(p => p.map(x => x.id===o.id ? {...x, status: filled?"FILLED":"CANCELLED"} : x));
-      if (filled) setPnl(p => ({ realized:+(p.realized+(m.ev||0)*size).toFixed(2), trades:p.trades+1, wins:p.wins+(m.ev>0?1:0) }));
-    }, 2300);
+
+    try {
+      const execRes = await fetch("/api/trading/orders?action=execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: wallet,
+          chainId: normalizeHexChainId(walletChainId || ""),
+          order: {
+            market: m.question?.slice(0, 120) || "Unknown market",
+            side,
+            size,
+            price,
+            metadata: { ev: m.ev, grade: m.grade, kelly: m.kelly },
+          },
+        }),
+      });
+
+      const payload = await execRes.json().catch(() => null);
+      const execution = payload?.execution;
+      const ok = !!payload?.ok && !!execution;
+      const status = ok
+        ? (execution.status === "simulated" ? "SIMULATED" : "FILLED")
+        : "CANCELLED";
+
+      setOrders(p => p.map(x => x.id===o.id ? { ...x, id: execution?.executionId || x.id, status } : x));
+
+      if (ok) {
+        addChat("assistant", `Order routed via **${execution.adapter}** (${execution.status}).\n**${side}** $${size} @ ${pct(price)} | EV: ${f3(m.ev)} | Grade: ${m.grade}`);
+        setPnl(p => ({ realized:+(p.realized+(m.ev||0)*size).toFixed(2), trades:p.trades+1, wins:p.wins+(m.ev>0?1:0) }));
+      } else {
+        addChat("assistant", `⚠️ Execution rejected: ${execution?.message || payload?.reason || "Settlement adapter unavailable."}`);
+      }
+    } catch {
+      setOrders(p => p.map(x => x.id===o.id ? { ...x, status:"CANCELLED" } : x));
+      addChat("assistant", "⚠️ Order execution gateway is unavailable right now.");
+    }
   };
 
   // Wallet verify
+  const connectExtensionWallet = async () => {
+    if (!ENABLE_EXTENSION_CONNECT) {
+      setExtStatus({ ok:false, err:"Extension connect is disabled by environment flag." });
+      return;
+    }
+
+    setExtStatus("connecting");
+    const injected = detectInjectedWallet();
+
+    if (!injected.available || !injected.ethereum) {
+      setExtStatus({ ok:false, err:"No injected wallet found. Install MetaMask, Phantom (EVM), or Brave Wallet." });
+      return;
+    }
+
+    try {
+      const accounts = await injected.ethereum.request({ method:"eth_requestAccounts" });
+      const account = Array.isArray(accounts) ? accounts[0] : "";
+      if (!account) throw new Error("No account returned from wallet extension.");
+
+      let chainId = await injected.ethereum.request({ method:"eth_chainId" });
+      if (typeof chainId === "string") chainId = chainId.toLowerCase();
+
+      if (!isChainAllowed(EXECUTION_PROFILE, chainId)) {
+        if (ALLOW_ANY_CHAIN) {
+          // No enforced chain in agnostic profile; keep wallet-provided chain.
+        } else {
+        try {
+          await injected.ethereum.request({ method:"wallet_switchEthereumChain", params:[{ chainId: REQUIRED_CHAIN_ID_HEX }] });
+          chainId = REQUIRED_CHAIN_ID_HEX;
+        } catch (switchErr) {
+          const msg = switchErr?.message || `Switch to ${EXECUTION_PROFILE.label} (${REQUIRED_CHAIN_ID_HEX}) in your wallet and retry.`;
+          await postTelemetry("chain_mismatch");
+          setExtStatus({ ok:false, err:msg });
+          return;
+        }
+        }
+      }
+
+      setWalInput(account);
+      setWalStatus("checking");
+      const res = await verifyChain(account);
+      setWalStatus(res);
+
+      if (!res.ok) {
+        setExtStatus({ ok:false, err:res.err || "Unable to verify account on Polygon RPC." });
+        return;
+      }
+
+      setWallet(res.address || account);
+      setWalletSource("extension");
+      setWalletProviderName(injected.name);
+      setWalletChainId(chainId);
+      setWalletProof(null);
+      await postTelemetry("connect_success");
+      setExtStatus({ ok:true, provider: injected.name });
+      addChat("assistant", `✅ Wallet connected via ${injected.name} and verified on Polygon.\n**${hsh(res.address || account)}** — ${res.bal?.toFixed(4)} POL.`);
+    } catch (err) {
+      const msg = err?.code === 4001 ? "Wallet connection request was rejected." : (err?.message || "Extension connect failed.");
+      if (err?.code === 4001) await postTelemetry("connect_rejected");
+      setExtStatus({ ok:false, err:msg });
+    }
+  };
+
   const verifyWallet = async () => {
     const a = walInput.trim();
     if (!/^0x[0-9a-fA-F]{40}$/.test(a)) { setWalStatus({ ok:false, err:"Invalid address format" }); return; }
@@ -735,6 +1012,11 @@ export default function TradeHaxGPT() {
     setWalStatus(res);
     if (res.ok) {
       setWallet(res.address || a);
+      setWalletSource("manual");
+      setWalletProviderName("Manual");
+      setWalletChainId(ALLOW_ANY_CHAIN ? POLYGON_CHAIN_ID_HEX : REQUIRED_CHAIN_ID_HEX);
+      setWalletProof(null);
+      await postTelemetry("manual_fallback");
       addChat("assistant", `✅ Wallet verified on-chain!\n**${hsh(res.address || a)}** — ${res.bal?.toFixed(4)} POL on Polygon.\nYou're all set to execute trades.`);
     }
   };
@@ -1291,9 +1573,24 @@ export default function TradeHaxGPT() {
             {view === "wallet" && (
               <div style={{ maxWidth:isMobile?"100%":520 }}>
                 <div style={{ fontFamily:"'Fira Code',monospace", fontSize:9, color:C.green, letterSpacing:"0.12em", marginBottom:16 }}>
-                  ◉ WALLET — ON-CHAIN POLYGON VERIFICATION · EIP-712
+                  ◉ WALLET — EXTENSION CONNECT + MANUAL POLYGON VERIFICATION
                 </div>
                 <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"20px", marginBottom:14 }}>
+                  <div style={{ fontSize:10, color:C.textDim, marginBottom:8 }}>QUICK CONNECT (BROWSER EXTENSION)</div>
+                  <button onClick={connectExtensionWallet} disabled={!ENABLE_EXTENSION_CONNECT || extStatus === "connecting"} style={{ width:"100%", background:ENABLE_EXTENSION_CONNECT?`${C.blue}15`:C.panel, border:`1px solid ${ENABLE_EXTENSION_CONNECT?C.blue+"44":C.border}`, color:ENABLE_EXTENSION_CONNECT?C.blue:C.textDim, padding:"11px 14px", cursor:ENABLE_EXTENSION_CONNECT?"pointer":"not-allowed", fontFamily:"'Orbitron',monospace", fontSize:10, borderRadius:8, letterSpacing:"0.08em", opacity:ENABLE_EXTENSION_CONNECT?1:0.7 }}>
+                    {extStatus === "connecting" ? "CONNECTING..." : "CONNECT EXTENSION"}
+                  </button>
+                  <div style={{ marginTop:8, fontFamily:"'Fira Code',monospace", fontSize:10, color:C.textDim, lineHeight:1.7 }}>
+                    Supports MetaMask, Phantom (EVM), Brave Wallet, and other EIP-1193 wallets on Polygon.
+                  </div>
+                  {extStatus && extStatus !== "connecting" && (
+                    <div style={{ marginTop:10, padding:"10px 14px", background: extStatus.ok?`${C.green}0d`:`${C.rose}0d`, border:`1px solid ${extStatus.ok?C.green+"33":C.rose+"33"}`, borderRadius:8, fontFamily:"'Fira Code',monospace", fontSize:11, color:extStatus.ok?C.green:C.rose }}>
+                      {extStatus.ok ? `✓ Connected via ${extStatus.provider}` : `✗ ${extStatus.err}`}
+                    </div>
+                  )}
+                </div>
+                <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"20px", marginBottom:14 }}>
+                  <div style={{ fontSize:10, color:C.textDim, marginBottom:8 }}>MANUAL FALLBACK (PASTE ADDRESS)</div>
                   <div style={{ fontSize:10, color:C.textDim, marginBottom:8 }}>POLYGON WALLET ADDRESS</div>
                   <div style={{ display:"flex", gap:8 }}>
                     <input value={walInput} onChange={e=>setWalInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&verifyWallet()} placeholder="0x…" style={{ flex:1, fontFamily:"'Fira Code',monospace", background:C.panel, border:`1px solid ${C.border}`, color:C.green, padding:"10px 14px", outline:"none", borderRadius:8, fontSize:12 }} />
@@ -1306,6 +1603,16 @@ export default function TradeHaxGPT() {
                     </div>
                   )}
                 </div>
+                {wallet && (
+                  <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"14px 16px", marginBottom:14, fontFamily:"'Fira Code',monospace", fontSize:10, color:C.textDim, lineHeight:1.8 }}>
+                    <span style={{color:C.gold}}>◆ ACTIVE WALLET SESSION</span><br/>
+                    Address: <span style={{color:C.green}}>{hsh(wallet)}</span><br/>
+                    Source: <span style={{color:C.blue}}>{walletSource || "unknown"}</span><br/>
+                    Provider: <span style={{color:C.blue}}>{walletProviderName || "n/a"}</span><br/>
+                    Chain: <span style={{color:(isChainAllowed(EXECUTION_PROFILE, walletChainId || "")?C.green:C.amber)}}>{walletChainId || "unknown"}</span><br/>
+                    Proof: <span style={{color:(walletProof && Date.now() < Number(walletProof.expiresAt || 0) ? C.green : C.amber)}}>{walletProof && Date.now() < Number(walletProof.expiresAt || 0) ? "verified" : "required"}</span>
+                  </div>
+                )}
                 <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"20px", marginBottom:14 }}>
                   <div style={{ fontFamily:"'Fira Code',monospace", fontSize:9, color:C.textDim, marginBottom:14 }}>POLYMARKET CLOB API CREDENTIALS</div>
                   {["API KEY","API SECRET","PASSPHRASE"].map(l => (

@@ -17,6 +17,19 @@ Current routing intentionally stays simple and renders the existing NeuralHub UI
 - `api/sessions/session-service.ts` - Session business logic orchestration
 - `api/sessions/store.ts` - Current in-memory store and primitives
 
+### Trading Auth & Execution Gate
+
+- `shared/trading/execution-policy.js` - Chain/profile policy registry (`polygon-evm`, `agnostic-sandbox`)
+- `api/trading/auth.ts` - Nonce challenge + signature verification (`personal_sign` ready, EIP-712 shape included)
+- `api/trading/orders.ts` - Live preflight gate + execute contract routing
+- `api/trading/telemetry.ts` - Minimal counters (`connect_success`, `connect_rejected`, `chain_mismatch`, `manual_fallback`)
+- `api/trading/telemetry-repository.ts` - Durable Postgres-backed telemetry store with safe fallback
+- `api/trading/settlement/` - Adapter contract (`polygon`, `l2-stub`) for chain-agnostic execution routing
+- `api/trading/auth-store.ts` - Durable challenge/proof store (Postgres) for serverless cold-start resilience
+- `api/trading/settlement/adapters/l2-custom-adapter.ts` - L2 settlement skeleton with sequencer/relayer/fee-policy hooks
+
+This keeps token economics decoupled from the wallet-gate layer. You can evaluate custom L1/L2/token models later by changing execution profile and policy plumbing, without rewriting UI flow or order gate contracts.
+
 This split allows future migration to durable storage (Supabase/Postgres) without changing API routes.
 
 ## Migration Rules

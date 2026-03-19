@@ -301,15 +301,28 @@ NEXT_PUBLIC_HF_API_TOKEN=hf_your_token_here
 npm run hf:test-inference
 ```
 
-### Solana Wallet
+### Wallet Access (Extension + Fallback)
 ```bash
+# Preferred: install an EVM extension wallet (MetaMask / Phantom EVM / Brave Wallet)
+# In app: Wallet tab -> CONNECT EXTENSION (auto-requests Polygon mainnet)
+# Fallback: paste Polygon address and click VERIFY
+
+# Optional future path (Solana):
 # Install Phantom or Solflare browser extension
-# Connect in app via "Connect Wallet" button
-# Testnet: https://docs.solana.com/getstarted/devnet
+# Use Solana devnet/mainnet config only when Solana adapter is enabled
 
 # Dev config in .env.local:
 NEXT_PUBLIC_SOLANA_NETWORK=devnet
 NEXT_PUBLIC_SOLANA_RPC=https://api.devnet.solana.com
+VITE_ENABLE_EXTENSION_CONNECT=true
+VITE_POLYGON_RPC_URL=https://polygon-rpc.com
+VITE_POLYGON_CHAIN_ID_HEX=0x89
+VITE_EXECUTION_PROFILE_ID=polygon-evm
+EXECUTION_PROFILE_ID=polygon-evm
+WALLET_CHALLENGE_TTL_MS=300000
+WALLET_PROOF_TTL_MS=600000
+TELEMETRY_DATABASE_URL=
+SETTLEMENT_POLYGON_MODE=simulate
 ```
 
 ### Database (PostgreSQL)
@@ -324,9 +337,29 @@ docker run -d \
 # Add to .env.local:
 DATABASE_URL=postgresql://postgres:dev@localhost:5432/tradehax
 
-# Run migrations if applicable
-npm run db:migrate
+# Run trading gate migrations (durable auth + telemetry):
+psql -U postgres -d tradehax -f web/api/db/schemas/04-trading-telemetry.sql
+psql -U postgres -d tradehax -f web/api/db/schemas/05-trading-auth-store.sql
 ```
+
+### Durable Auth Store (Serverless Cold-Start Resilience)
+
+The trading gate uses durable Postgres-backed challenge/proof store when `DATABASE_URL` is configured.
+Challenges and proofs survive serverless cold starts and are auto-cleaned via SQL triggers.
+
+### Test Trading Gate Locally
+
+```bash
+npm run dev
+# In another terminal:
+npm run test:trading-gate
+```
+
+Expected: ✓ Challenge → Verify → Preflight → Execute → Telemetry.
+
+### L2 Custom Settlement Adapter
+
+See `/api/trading/settlement/adapters/l2-custom-adapter.ts` for sequencer/relayer/fee-policy interface stubs.
 
 ---
 

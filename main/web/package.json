@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node ./scripts/generate-build-meta.mjs",
     "build": "vite build",
     "start": "vite preview",
     "test:smoke": "node ./scripts/smoke-test.js",
@@ -15,8 +16,18 @@
     "engine:check": "npm run audit:licenses && npm run engine:backtest",
     "engine:report": "node ./scripts/engine-quality-report.mjs",
     "supabase:health": "node --env-file=.env.local ./scripts/supabase-health.mjs",
+    "load:env": "node ./scripts/env-loader.mjs",
+    "load:env:net": "npm run load:env -- --profile production --domain net",
+    "load:env:tech": "npm run load:env -- --profile production --domain tech",
+    "load:env:me": "npm run load:env -- --profile production --domain me",
+    "load:env:local": "npm run load:env -- --profile local",
+    "verify:deploy-bundle": "node ./scripts/verify-deploy-bundle.mjs",
     "predeploy": "node ../scripts/predeploy-check.js",
-    "deploy": "npm run predeploy && npx vercel --prod"
+    "deploy": "npm run predeploy && npx vercel --prod",
+    "deploy:net": "npm run load:env:net && npm run deploy",
+    "deploy:tech": "npm run load:env:tech && npm run deploy",
+    "deploy:me": "npm run load:env:me && npm run deploy",
+    "test:trading-gate": "node ../scripts/trading-gate-smoke-test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1005.0",
