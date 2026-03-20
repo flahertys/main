@@ -49,6 +49,7 @@ interface ChatRequest {
   messages: ChatMessage[];
   context?: ChatContext;
   temperature?: number;
+  mode?: 'uncensored' | string;
 }
 
 interface ChatResponse {

@@ -74,14 +74,12 @@
       ]
     }
   ],
-  "builds": [
-    { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
-  ],
+  "outputDirectory": "dist",
   "rewrites": [
     { "source": "/__build.json", "destination": "/__build.json" },
     { "source": "/__health", "destination": "/__health" },
     { "source": "/assets/(.*)", "destination": "/assets/$1" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
