@@ -1,5 +1,4 @@
 "use client";
-import React from 'react';
 
 const rewardTiers = [
   { tier: "DIAMOND", range: "Rank 1-3", reward: "5,000 $HAX", color: "text-cyan-400" },
@@ -56,7 +55,7 @@ export const CommunityLeaderboard = () => {
           <span className="col-span-1 text-right">High_Score</span>
           <span className="col-span-1 text-right">Status</span>
         </div>
-        
+
         {mockLeaders.map((l) => (
           <div key={l.rank} className="grid grid-cols-5 px-6 py-5 bg-zinc-900/30 border border-white/5 rounded-2xl items-center hover:bg-zinc-800/40 transition-all group">
             <div className="col-span-1 flex items-center gap-4">

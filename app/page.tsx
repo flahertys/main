@@ -47,9 +47,9 @@ const Roadmap = dynamic(
   },
 );
 
-export default function Home() {
+export default async function Home() {
   // Server-side domain check for tradehax.net
-  const host = headers().get('host');
+  const host = (await headers()).get('host');
   if (host && host.includes('tradehax.net')) {
     redirect('/music');
   }

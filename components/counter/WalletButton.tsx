@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useWallet } from "@/lib/wallet-provider";
 
-import React from "react";
 
 export function WalletButton() {
   const { address, status, connect, disconnect } = useWallet();

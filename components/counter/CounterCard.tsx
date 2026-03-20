@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CounterDisplay } from "./CounterDisplay";
 import { DecrementButton } from "./DecrementButton";
 import { IncrementButton } from "./IncrementButton";
-import React from "react";
 import { WalletButton } from "./WalletButton";
 
 /**

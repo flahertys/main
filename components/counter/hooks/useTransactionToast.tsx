@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
-import React from "react";
 import { ToastContent } from "../ToastContent";
 import { toast } from "sonner";
 

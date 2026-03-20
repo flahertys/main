@@ -1,15 +1,18 @@
 # This PowerShell script automates the bypass of git push protection by:
-# 1. Installing OpenJDK (Adoptium) if not present
+# 1. Installing OpenJDK 21 (LTS) (Temurin) if not present
 # 2. Downloading BFG Repo-Cleaner
 # 3. Running BFG to remove .env.local and related files from git history
 # 4. Running git cleanup commands
 # 5. Forcing a push to remote
+#
+# JAVA 21 (LTS) UPGRADE - Updated from Java 17 to Java 21 (LTS)
+# Release Date: Sept 2023 | Support Until: Sept 2031
 
 $ErrorActionPreference = 'Stop'
 
 # Set variables
-$jdkUrl = "https://github.com/adoptium/temurin17-binaries/releases/latest/download/OpenJDK17U-jdk_x64_windows_hotspot_17.msi"
-$jdkInstaller = "$env:TEMP\OpenJDK17.msi"
+$jdkUrl = "https://github.com/adoptium/temurin21-binaries/releases/latest/download/OpenJDK21U-jdk_x64_windows_hotspot.msi"
+$jdkInstaller = "$env:TEMP\OpenJDK21.msi"
 $bfgUrl = "https://repo1.maven.org/maven2/com/madgag/bfg/1.14.0/bfg-1.14.0.jar"
 $bfgJar = "$env:TEMP\bfg.jar"
 $mirrorDir = "C:\tradez\main\main-mirror"
@@ -38,8 +41,11 @@ if (-not $java) {
         $useBFG = $false
     } else {
         Start-Process msiexec.exe -Wait -ArgumentList "/i `"$jdkInstaller`" /qn /norestart"
-        $env:Path += ";C:\Program Files\Eclipse Adoptium\jdk-17.0.0.0-hotspot\bin"
-        Write-Host "Java installed."
+        # Update PATH for Java 21
+        $env:Path += ";C:\Program Files\Eclipse Adoptium\jdk-21.0.0.0-hotspot\bin"
+        # Set JAVA_HOME environment variable for Java 21
+        [Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Eclipse Adoptium\jdk-21.0.0.0-hotspot", "User")
+        Write-Host "OpenJDK 21 (LTS) installed and JAVA_HOME configured."
     }
 } else {
     Write-Host "Java is already installed."

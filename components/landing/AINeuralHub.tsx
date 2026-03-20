@@ -1365,7 +1365,7 @@ export const AINeuralHub = () => {
             message: userMsg,
             userId: buildHubUserId(),
             model: selectedChatModel,
-            tier: kidsModeEnabled ? "KIDS" : effectiveOpenMode ? "UNCENSORED" : "STANDARD",
+            tier: effectiveOpenMode ? "UNCENSORED" : "STANDARD",
             systemPrompt: buildPremierSystemPrompt(),
             context: {
               relationshipTier,
@@ -1542,7 +1542,7 @@ export const AINeuralHub = () => {
         if (data?.fallback) {
           setImageStatus(`Preview mode: ${data?.warning || "provider unavailable"}`);
         } else if (typeof data?.model === "string") {
-          setImageStatus(`Generated with ${data.model} • profile ${runtime.style}${kidsModeEnabled ? " • kids-safe" : ""}`);
+          setImageStatus(`Generated with ${data.model} • profile ${runtime.style}`);
         }
         incrementUsage();
       } else {

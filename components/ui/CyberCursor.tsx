@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, useSpring, useMotionValue } from 'framer-motion';
 
 export const CyberCursor = () => {
@@ -24,7 +24,7 @@ export const CyberCursor = () => {
 
     window.addEventListener('mousemove', moveCursor);
     window.addEventListener('mouseover', handleHover);
-    
+
     return () => {
       window.removeEventListener('mousemove', moveCursor);
       window.removeEventListener('mouseover', handleHover);
@@ -38,24 +38,24 @@ export const CyberCursor = () => {
         className="fixed top-0 left-0 w-1.5 h-1.5 bg-white rounded-full mix-blend-difference"
         style={{ x: cursorX, y: cursorY, translateX: "-50%", translateY: "-50%" }}
       />
-      
+
       {/* Reactive Outer Ring */}
       <motion.div
         className={`fixed top-0 left-0 border rounded-full transition-colors duration-300 ${isHovering ? 'border-cyan-400 w-12 h-12 bg-cyan-400/10' : 'border-cyan-500/30 w-8 h-8'}`}
-        style={{ 
-          x: springX, 
-          y: springY, 
-          translateX: "-50%", 
-          translateY: "-50%" 
+        style={{
+          x: springX,
+          y: springY,
+          translateX: "-50%",
+          translateY: "-50%"
         }}
       />
 
       {/* Crosshair Lines */}
-      <motion.div 
+      <motion.div
         className="fixed top-0 left-0 w-4 h-[1px] bg-cyan-500/20"
         style={{ x: springX, y: springY, translateX: "-50%", translateY: "-50%" }}
       />
-      <motion.div 
+      <motion.div
         className="fixed top-0 left-0 h-4 w-[1px] bg-cyan-500/20"
         style={{ x: springX, y: springY, translateX: "-50%", translateY: "-50%" }}
       />

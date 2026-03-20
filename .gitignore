@@ -63,3 +63,4 @@ opencode.json
 
 # local audit artifacts
 .artifacts/
+.env*.local

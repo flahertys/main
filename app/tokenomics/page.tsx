@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { NeuralDataVis } from '@/components/ui/NeuralDataVis';
 import { GlitchText } from '@/components/ui/GlitchText';
@@ -22,7 +21,7 @@ export default function TokenomicsPage() {
   return (
     <main className="min-h-screen bg-black px-4 py-14 sm:px-6 sm:py-20 font-sans relative overflow-hidden">
       <div className="absolute inset-0 bg-cyber-grid opacity-10 pointer-events-none" />
-      
+
       <div className="container mx-auto max-w-6xl relative z-10">
         <Link href="/" className="text-xs sm:text-sm text-zinc-500 hover:text-white font-mono mb-10 sm:mb-12 inline-block transition-colors">
           &lt; RETURN_TO_SYSTEM
@@ -69,8 +68,8 @@ export default function TokenomicsPage() {
                     <span className="text-white font-bold">{item.percentage}%</span>
                   </div>
                   <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${item.color}`} 
+                    <div
+                      className={`h-full ${item.color}`}
                       style={{ width: `${item.percentage}%` }}
                     />
                   </div>
@@ -78,7 +77,7 @@ export default function TokenomicsPage() {
               ))}
             </div>
           </div>
-          
+
           <div className="p-6 sm:p-10 glass-panel rounded-3xl sm:rounded-[2.5rem] border border-cyan-500/10">
             <h2 className="text-2xl font-black text-white mb-6 italic uppercase tracking-tighter text-cyan-500">Emission_Logic</h2>
             <p className="text-zinc-500 text-sm leading-relaxed mb-6 italic">

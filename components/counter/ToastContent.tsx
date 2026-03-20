@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ClipboardCopy } from "lucide-react";
-import React, { MouseEvent, useState } from "react";
+import { MouseEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
