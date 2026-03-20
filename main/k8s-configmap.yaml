@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: tradehax
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  REDIS_URL: "redis://redis:6379/0"
+  DATABASE_URL: "postgresql://tradehax:tradehax@postgres:5432/tradehax"

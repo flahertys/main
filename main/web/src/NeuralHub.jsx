@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Mic, Wallet, Zap } from "lucide-react";
+import { Mic, Wallet, Zap, Brain, MessageCircle } from "lucide-react";
 
 const STARTER_PROMPTS = [
   "Give me a beginner-safe market summary for today.",
@@ -10,12 +10,13 @@ const STARTER_PROMPTS = [
 ];
 
 const MODE_OPTIONS = [
-  { key: "base", label: "BASE GROK (Free)" },
-  { key: "advanced", label: "ADVANCED HF ENSEMBLE" },
-  { key: "odin", label: "ODIN MODE" },
+  { key: "base", label: "BASE (Free - Beginner Mode)" },
+  { key: "advanced", label: "ADVANCED (HF Ensemble)" },
+  { key: "odin", label: "ODIN MODE 🔥 (Premium / Stake $HAX)" },
 ];
 
 const HISTORY_KEY = "neuralHub.localHistory.v3";
+const CHAT_SESSIONS_KEY = "neuralHub.chatSessions.v2";
 
 function makeId() {
   const c = globalThis?.crypto;
@@ -66,6 +67,36 @@ export default function NeuralHub() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  // Record mode change telemetry
+  useEffect(() => {
+    fetch("/api/ai/telemetry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventType: "ui_mode_changed",
+        mode,
+        metadata: { walletConnected },
+      }),
+    }).catch(() => {
+      // Silent fail for telemetry
+    });
+  }, [mode]);
+
+  // Record wallet state change telemetry
+  useEffect(() => {
+    fetch("/api/ai/telemetry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventType: walletConnected ? "wallet_connected" : "wallet_disconnected",
+        mode,
+        metadata: { timestamp: Date.now() },
+      }),
+    }).catch(() => {
+      // Silent fail for telemetry
+    });
+  }, [walletConnected]);
 
   const autopilotScore = useMemo(() => {
     if (!messages.length) return "0.0";

@@ -17,6 +17,15 @@ export const EXECUTION_PROFILES = {
     settlementAdapter: "l2-stub",
     notes: "Use this while evaluating custom L1/L2/token models.",
   },
+  "agnostic-hybrid": {
+    id: "agnostic-hybrid",
+    label: "Agnostic Hybrid (Local + Cloud)",
+    chainKind: "abstract",
+    chainIdHex: "*",
+    tokenModel: "to-be-decided",
+    settlementAdapter: "l2-custom",
+    notes: "Routes execution through l2-custom adapter with local/cloud endpoint fallback.",
+  },
 };
 
 export const DEFAULT_EXECUTION_PROFILE_ID = "polygon-evm";

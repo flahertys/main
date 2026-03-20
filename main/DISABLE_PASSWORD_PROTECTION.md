@@ -17,12 +17,12 @@
 ### Option 1: Via Vercel Dashboard (Recommended)
 
 1. **Go to Project Settings**:
-   - Visit: https://vercel.com/hackavelliz/main/settings
+   - Visit: https://vercel.com/digitaldynasty/main/settings
    - Or click: Project Settings in the Vercel dashboard
 
 2. **Navigate to Deployment Protection**:
    - In the left sidebar, click "Deployment Protection"
-   - Or go directly to: https://vercel.com/hackavelliz/main/settings/deployment-protection
+   - Or go directly to: https://vercel.com/digitaldynasty/main/settings/deployment-protection
 
 3. **Disable Protection**:
    - Find "Password Protection" or "Deployment Protection"
@@ -42,7 +42,7 @@
 cd C:\tradez\main\web
 
 # Update project settings (if supported)
-npx --yes vercel@50.28.0 project --scope hackavelliz
+npx --yes vercel@50.28.0 project --scope digitaldynasty
 ```
 
 **Note**: The CLI may not support all protection settings. Dashboard is recommended.
@@ -53,7 +53,7 @@ Some deployments use environment variables for protection:
 
 ```powershell
 cd C:\tradez\main\web
-npx --yes vercel@50.28.0 env ls --scope hackavelliz
+npx --yes vercel@50.28.0 env ls --scope digitaldynasty
 ```
 
 If you see variables like:
@@ -63,12 +63,12 @@ If you see variables like:
 
 Remove them:
 ```powershell
-npx --yes vercel@50.28.0 env rm VARIABLE_NAME production --scope hackavelliz
+npx --yes vercel@50.28.0 env rm VARIABLE_NAME production --scope digitaldynasty
 ```
 
 Then redeploy:
 ```powershell
-npx --yes vercel@50.28.0 --prod --yes --scope hackavelliz
+npx --yes vercel@50.28.0 --prod --yes --scope digitaldynasty
 ```
 
 ## Verification Steps
@@ -113,18 +113,17 @@ X-Frame-Options: DENY
 
 ## Project Information
 
-- **Vercel Account**: irishmikeflaherty-4935
-- **Team**: hackavelliz
+- **Vercel Team**: digitaldynasty
 - **Project**: main
-- **Project ID**: prj_lnkhGxnBl7Yx3YWMNVxE1sWOXUUf
-- **Org ID**: team_Axs3glaY6k3cT2zJb8H3DZ9c
-- **Latest Deployment**: main-mi86nz8db-hackavelliz.vercel.app
+- **Production Domain**: https://www.tradehax.net
+- **Git Source**: DarkModder33/main (GitHub)
+- **Node Version**: 24.x
 
 ## Direct Links
 
-- **Project Dashboard**: https://vercel.com/hackavelliz/main
-- **Deployment Protection Settings**: https://vercel.com/hackavelliz/main/settings/deployment-protection
-- **Latest Deployment**: https://vercel.com/hackavelliz/main/4LET7RvZk1JT9qwdG3bP2JGhYifd
+- **Project Dashboard**: https://vercel.com/digitaldynasty/main
+- **Deployment Protection Settings**: https://vercel.com/digitaldynasty/main/settings/deployment-protection
+- **Project Settings**: https://vercel.com/digitaldynasty/main/settings
 
 ## Next Steps
 

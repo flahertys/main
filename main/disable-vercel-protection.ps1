@@ -1,63 +1,33 @@
 #!/usr/bin/env pwsh
-# ============================================================================
-# Disable Vercel Deployment Protection
-# ============================================================================
-# This script opens the Vercel dashboard to disable password protection
-# so customers can access the site freely without any authentication barriers
-# ============================================================================
+# Opens the Vercel deployment-protection settings page so protection can be set to Public.
 
-Write-Host "`n═══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "  🔓 REMOVE VERCEL DEPLOYMENT PROTECTION" -ForegroundColor Cyan
-Write-Host "═══════════════════════════════════════════════════════════════`n" -ForegroundColor Cyan
+param(
+  [string]$DashboardUrl = "https://vercel.com/digitaldynasty/main/settings/deployment-protection"
+)
 
-Write-Host "📋 OBJECTIVE:" -ForegroundColor Yellow
-Write-Host "   Remove the SSL/login barrier so customers can access" -ForegroundColor White
-Write-Host "   tradehax.net freely without any authentication`n" -ForegroundColor White
+Write-Host ""
+Write-Host "===============================================================" -ForegroundColor Cyan
+Write-Host "  REMOVE VERCEL DEPLOYMENT PROTECTION" -ForegroundColor Cyan
+Write-Host "===============================================================" -ForegroundColor Cyan
+Write-Host ""
 
-Write-Host "⚠️  CURRENT ISSUE:" -ForegroundColor Red
-Write-Host "   Vercel Deployment Protection is enabled" -ForegroundColor White
-Write-Host "   Customers see a login prompt (401 Unauthorized)" -ForegroundColor White
-Write-Host "   This must be disabled for free customer access`n" -ForegroundColor White
+Write-Host "Objective:" -ForegroundColor Yellow
+Write-Host "  Make the production site publicly accessible (no login wall)." -ForegroundColor White
+Write-Host ""
 
-Write-Host "🔧 SOLUTION:" -ForegroundColor Green
-Write-Host "   Opening Vercel Dashboard settings page..." -ForegroundColor White
-Write-Host "   You need to manually set protection to 'Public'`n" -ForegroundColor White
+Write-Host "Opening:" -ForegroundColor Green
+Write-Host "  $DashboardUrl" -ForegroundColor White
+Start-Process $DashboardUrl
+Write-Host ""
 
-# Open Vercel dashboard
-$dashboardUrl = "https://vercel.com/hackavelliz/main/settings/deployment-protection"
-Start-Process $dashboardUrl
+Write-Host "Next steps in Vercel:" -ForegroundColor Yellow
+Write-Host "  1) Set Deployment Protection to Public/Disabled" -ForegroundColor White
+Write-Host "  2) Save changes" -ForegroundColor White
+Write-Host "  3) Wait ~30 seconds" -ForegroundColor White
+Write-Host ""
 
-Write-Host "✅ Vercel Dashboard opened in your browser!`n" -ForegroundColor Green
-
-Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor Yellow
-Write-Host "  📝 INSTRUCTIONS" -ForegroundColor Yellow
-Write-Host "═══════════════════════════════════════════════════════════════`n" -ForegroundColor Yellow
-
-Write-Host "1. In the browser window that just opened:" -ForegroundColor White
-Write-Host "   → Find 'Deployment Protection' section" -ForegroundColor Cyan
-Write-Host "   → Change setting to: PUBLIC or DISABLED" -ForegroundColor Green
-Write-Host "   → Click SAVE button`n" -ForegroundColor Green
-
-Write-Host "2. Wait 30 seconds for changes to propagate`n" -ForegroundColor White
-
-Write-Host "3. Test customer access:" -ForegroundColor White
-Write-Host "   curl.exe -I https://tradehax.net/" -ForegroundColor Cyan
-Write-Host "   Should return: HTTP/1.1 200 OK ✅`n" -ForegroundColor Green
-
-Write-Host "4. Open in browser:" -ForegroundColor White
-Write-Host "   https://tradehax.net/" -ForegroundColor Cyan
-Write-Host "   Should load trading bot immediately (no login prompt)`n" -ForegroundColor Green
-
-Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor Yellow
-Write-Host "  🔐 ADMIN ACCESS (FOR YOU ONLY)" -ForegroundColor Yellow
-Write-Host "═══════════════════════════════════════════════════════════════`n" -ForegroundColor Yellow
-
-Write-Host "Admin portal (operator controls):" -ForegroundColor White
-Write-Host "   URL: https://tradehax.net/portal" -ForegroundColor Cyan
-Write-Host "   Username: admin" -ForegroundColor Green
-Write-Host "   Password: root`n" -ForegroundColor Green
-
-Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "  📄 See REMOVE_AUTHENTICATION_BARRIERS.md for full details" -ForegroundColor White
-Write-Host "═══════════════════════════════════════════════════════════════`n" -ForegroundColor Cyan
+Write-Host "Verify from terminal:" -ForegroundColor Yellow
+Write-Host "  curl.exe -I https://tradehax.net/" -ForegroundColor Cyan
+Write-Host "  Expected: HTTP/1.1 200 OK" -ForegroundColor White
+Write-Host ""
 

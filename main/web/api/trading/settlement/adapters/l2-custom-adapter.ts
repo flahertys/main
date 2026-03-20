@@ -3,6 +3,7 @@ import type {
   SettlementExecutionRequest,
   SettlementExecutionResult,
 } from '../types.js';
+import crypto from 'node:crypto';
 
 export interface FeePolicy {
   kind: 'flat' | 'percentage' | 'dynamic';
@@ -28,10 +29,24 @@ export interface RelayerInterface {
 class L2CustomSettlementAdapter implements SettlementAdapter {
   key = 'l2-custom';
 
-  // Stub interfaces for future implementation
+  private readonly mode = (process.env.SETTLEMENT_L2_MODE || 'auto').toLowerCase();
+  private readonly timeoutMs = Number(process.env.SETTLEMENT_L2_TIMEOUT_MS || 5000);
+  private readonly apiKey = process.env.SETTLEMENT_L2_API_KEY || '';
+  private readonly endpoints = {
+    sequencer: {
+      local: process.env.SETTLEMENT_L2_SEQUENCER_LOCAL_URL || '',
+      cloud: process.env.SETTLEMENT_L2_SEQUENCER_CLOUD_URL || '',
+    },
+    relayer: {
+      local: process.env.SETTLEMENT_L2_RELAYER_LOCAL_URL || '',
+      cloud: process.env.SETTLEMENT_L2_RELAYER_CLOUD_URL || '',
+    },
+  };
+
+  // Defaults remain in-process so the adapter still works without remote services.
   private sequencer: SequencerInterface = {
     submitOrder: async (request: SettlementExecutionRequest) => ({
-      sequencerOrderId: `SEQ-${Math.random().toString(16).slice(2, 10).toUpperCase()}`,
+      sequencerOrderId: `SEQ-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
       estimatedLatency: 500,
     }),
   };
@@ -50,6 +65,103 @@ class L2CustomSettlementAdapter implements SettlementAdapter {
       totalFee: request.order.size * 0.001, // Mock: 0.1% of size
     }),
   };
+
+  private isValidHttpUrl(value: string): boolean {
+    if (!value) return false;
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  private getEndpointOrder(target: 'sequencer' | 'relayer'): string[] {
+    const candidates = this.endpoints[target];
+    if (this.mode === 'local') return [candidates.local];
+    if (this.mode === 'cloud') return [candidates.cloud];
+    return [candidates.local, candidates.cloud].filter(Boolean);
+  }
+
+  private async callEndpoint<T>(endpoint: string, payload: Record<string, unknown>): Promise<T> {
+    if (!this.isValidHttpUrl(endpoint)) {
+      throw new Error(`Invalid endpoint URL: ${endpoint || 'empty'}`);
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {}),
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      const text = await response.text();
+      const parsed = text ? JSON.parse(text) : {};
+      if (!response.ok) {
+        const retryable = response.status >= 500 || response.status === 429;
+        throw new Error(`${retryable ? 'RETRYABLE' : 'FATAL'}:${response.status}:${parsed?.message || 'request failed'}`);
+      }
+      return parsed as T;
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        throw new Error(`RETRYABLE:408:timeout after ${this.timeoutMs}ms`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  private async submitOrderViaConfiguredEndpoints(request: SettlementExecutionRequest): Promise<{ sequencerOrderId: string; estimatedLatency: number; endpointUsed: string }> {
+    const candidates = this.getEndpointOrder('sequencer');
+    let lastError = '';
+
+    for (const endpoint of candidates) {
+      try {
+        const result = await this.callEndpoint<{ sequencerOrderId: string; estimatedLatency?: number }>(endpoint, { request });
+        return {
+          sequencerOrderId: result.sequencerOrderId,
+          estimatedLatency: Number(result.estimatedLatency || 0),
+          endpointUsed: endpoint,
+        };
+      } catch (error: any) {
+        const reason = String(error?.message || 'unknown sequencer error');
+        lastError = reason;
+        if (!reason.startsWith('RETRYABLE:')) throw error;
+      }
+    }
+
+    throw new Error(lastError || 'No sequencer endpoint available.');
+  }
+
+  private async relayBatchViaConfiguredEndpoints(sequencerOrderIds: string[]): Promise<{ transactionHash: string; status: string; endpointUsed: string }> {
+    const candidates = this.getEndpointOrder('relayer');
+    let lastError = '';
+
+    for (const endpoint of candidates) {
+      try {
+        const result = await this.callEndpoint<{ transactionHash: string; status?: string }>(endpoint, { sequencerOrderIds });
+        return {
+          transactionHash: result.transactionHash,
+          status: result.status || 'pending',
+          endpointUsed: endpoint,
+        };
+      } catch (error: any) {
+        const reason = String(error?.message || 'unknown relayer error');
+        lastError = reason;
+        if (!reason.startsWith('RETRYABLE:')) throw error;
+      }
+    }
+
+    throw new Error(lastError || 'No relayer endpoint available.');
+  }
 
   /**
    * Configure sequencer interface for this L2 (e.g., Optimism Sequencer HTTP endpoint).
@@ -73,17 +185,21 @@ class L2CustomSettlementAdapter implements SettlementAdapter {
   }
 
   async execute(request: SettlementExecutionRequest): Promise<SettlementExecutionResult> {
-    const executionId = `L2-${Math.random().toString(16).slice(2, 10).toUpperCase()}`;
+    const executionId = `L2-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
     try {
       // 1. Estimate fees using configured fee policy
       const feeEstimate = await this.feePolicy.estimateGas(request);
 
       // 2. Submit order to sequencer
-      const sequencerResult = await this.sequencer.submitOrder(request);
+      const sequencerResult = this.getEndpointOrder('sequencer').length
+        ? await this.submitOrderViaConfiguredEndpoints(request)
+        : await this.sequencer.submitOrder(request);
 
       // 3. Relay batch once sequencer has batched order
-      const relayResult = await this.relayer.relayBatch([sequencerResult.sequencerOrderId]);
+      const relayResult = this.getEndpointOrder('relayer').length
+        ? await this.relayBatchViaConfiguredEndpoints([sequencerResult.sequencerOrderId])
+        : await this.relayer.relayBatch([sequencerResult.sequencerOrderId]);
 
       return {
         ok: true,
@@ -99,6 +215,9 @@ class L2CustomSettlementAdapter implements SettlementAdapter {
           feeEstimate,
           sequencerLatencyMs: sequencerResult.estimatedLatency,
           relayStatus: relayResult.status,
+          mode: this.mode,
+          sequencerEndpoint: 'endpointUsed' in sequencerResult ? sequencerResult.endpointUsed : 'custom-injected',
+          relayerEndpoint: 'endpointUsed' in relayResult ? relayResult.endpointUsed : 'custom-injected',
         },
       };
     } catch (err: any) {

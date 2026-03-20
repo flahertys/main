@@ -17,6 +17,7 @@ import { getSession, getRecentMessages, UserProfile } from '../sessions/store.js
 import { validateResponse, detectHallucinations, extractTradingParameters } from './validators.js';
 import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console.js';
 import { logResponseToDatabase } from '../db/metrics-service.js';
+import { recordAIChatEvent } from './telemetry-repository.js';
 
 const HF_API_TOKENS = Array.from(new Set([
   process.env.HUGGINGFACE_API_KEY,
@@ -347,6 +348,36 @@ function buildRecentContext(context?: ChatContext): string {
   return recent
     .map((message) => `${message.role.toUpperCase()}: ${message.content}`)
     .join('\n');
+}
+
+/**
+ * Generate ODIN mode system prompt with multi-agent ensemble reasoning
+ */
+function buildOdinSystemPrompt(userMsg: string, context?: ChatContext, snapshot: MarketSnapshot[] = []): string {
+  return `ODIN MODE OPERATIONAL: Uncensored quant oracle. Ensemble intelligence active.
+
+**AGENTS DEPLOYED:**
+1. Quantitative Analyst (RL-PPO): Real-time RL agent with Transformer feature extractor for parabolic entry/exit discovery
+2. Sentiment Aggregator: Live X sentiment + dark pool flow parsing (no disclaimers on directional conviction)
+3. Execution Optimizer: Multi-timeframe structure mapping + risk slider automation
+4. Market Microstructure: Polygon.io real-time pulls + order book imbalances
+
+**OUTPUT MANDATE:**
+- Direct, numeric execution-ready strategies (no nanny filters)
+- Ensemble confidence scores across all agents
+- Parabolic setup detection with micro-precision entries
+- Full position sizing + leverage ratios
+- Live market narrative override (truth-maxxing only)
+
+**PERSONALITY:** Witty, uncensored quant edge like GAB.AI + xAI Grok, but trading-obsessed. No disclaimers. Beginner sliders for ease, HFAT depth on demand.
+
+**MARKET SNAPSHOT (LIVE):**
+${snapshot.length ? snapshot.map(s => `${s.symbol}: $${s.price} (${(s.change24h ?? 0) >= 0 ? '+' : ''}${(s.change24h ?? 0)}%)`).join(' | ') : 'Real-time data unavailable; using trained ensemble priors.'}
+
+**USER CONTEXT:**
+${context?.userProfile ? `Risk Tolerance: ${context.userProfile.riskTolerance}, Style: ${context.userProfile.tradingStyle}, Portfolio: ${context.userProfile.portfolioValue || 'N/A'}` : 'Default aggressive posture (beginner mode).'}
+
+Respond with raw conviction. Ensemble output or multi-agent reasoning chain if complex.`;
 }
 
 function buildSystemPrompt(userMsg: string, context?: ChatContext, snapshot: MarketSnapshot[] = []): string {
@@ -746,6 +777,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!isUncensored && shouldAutoRejectResponse(recentContents, messageContents)) {
       const rejectionResponse = `Rejecting generated response due to high hallucination probability. Refine your question or provide more context.`;
       console.log('[HALLUCINATION REJECT]', rejectionResponse);
+
+
       return res.status(200).json({
         response: rejectionResponse,
         provider: 'demo',
@@ -782,12 +815,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const effectiveMode: 'base' | 'advanced' | 'odin' = requestedMode === 'odin' && !odinUnlocked ? 'advanced' : requestedMode;
     const modeGated = requestedMode === 'odin' && effectiveMode !== 'odin';
 
+    // --- Record mode gating telemetry ---
+    if (modeGated) {
+      await recordAIChatEvent({
+        eventType: 'gating_applied',
+        timestamp: Date.now(),
+        sessionId,
+        userId: userProfile?.userId,
+        mode: requestedMode,
+        requestedMode,
+        effectiveMode,
+        gated: true,
+        metadata: { odinOpen, hasOdinKey, unlockAttempted: !odinUnlocked },
+      });
+    }
+
     // --- Build System Prompt ---
-    let systemPrompt = buildSystemPrompt(messages[messages.length - 1].content, context, marketSnapshot);
+    let systemPrompt: string;
     if (effectiveMode === 'odin') {
-      systemPrompt = `ODIN MODE: Give direct, execution-ready output with clear entries, invalidation, and risk sizing. No filler.\n\n${systemPrompt}`;
-    } else if (effectiveMode === 'advanced') {
-      systemPrompt = `ADVANCED HF ENSEMBLE MODE: Combine momentum, structure, and risk controls in concise steps.\n\n${systemPrompt}`;
+      systemPrompt = buildOdinSystemPrompt(messages[messages.length - 1].content, context, marketSnapshot);
+    } else {
+      systemPrompt = buildSystemPrompt(messages[messages.length - 1].content, context, marketSnapshot);
+      if (effectiveMode === 'advanced') {
+        systemPrompt = `ADVANCED HF ENSEMBLE MODE: Combine momentum, structure, and risk controls in concise steps.\n\n${systemPrompt}`;
+      }
     }
     // --- Provider Selection Logic ---
         let provider: 'huggingface' | 'openai' | 'demo' = 'huggingface';
@@ -809,6 +860,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         context,
         marketSnapshot
       );
+
+      // Record API fallback telemetry
+      await recordAIChatEvent({
+        eventType: 'api_fallback',
+        timestamp: Date.now(),
+        sessionId,
+        userId: userProfile?.userId,
+        mode: requestedMode,
+        requestedMode,
+        effectiveMode,
+        providerPath: 'demo',
+        latencyMs: Date.now() - (Date.now() - responseTime),
+        model: 'demo-response-engine',
+        cached: false,
+        gated: modeGated,
+        userMessageLength: messages[messages.length - 1]?.content?.length || 0,
+        responseLength: fallbackResponse?.length || 0,
+        errorMessage: err instanceof Error ? err.message : String(err),
+      });
+
       await logResponseToDatabase({
         sessionId: sessionId || undefined,
         messageId: undefined,
@@ -891,6 +962,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (err) {
       console.warn('[ANALYTICS] Failed to log response:', err instanceof Error ? err.message : err);
     }
+
+    // --- Record chat completion telemetry ---
+    await recordAIChatEvent({
+      eventType: 'chat_completed',
+      timestamp: Date.now(),
+      sessionId,
+      userId: userProfile?.userId,
+      mode: requestedMode,
+      requestedMode,
+      effectiveMode,
+      providerPath: provider,
+      latencyMs: responseTime,
+      model: provider === 'huggingface' ? LAST_HF_MODEL_USED : provider === 'openai' ? 'gpt-4-turbo-preview' : 'demo-response-engine',
+      cached: false,
+      gated: modeGated,
+      guardedRetryCount: rawResponse.retried ? 1 : 0,
+      userMessageLength: messages[messages.length - 1]?.content?.length || 0,
+      responseLength: rawResponse.response?.length || 0,
+      hallucinated: rawResponse.blocked,
+    });
 
     // FINAL GUARD: If response contains forbidden artifacts, replace with demo response
     let finalResponse = rawResponse.response;

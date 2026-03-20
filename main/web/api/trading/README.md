@@ -19,11 +19,18 @@ Wallet challenges and proofs are persisted to Postgres for serverless cold-start
 
 ## Environment knobs
 
-- `EXECUTION_PROFILE_ID` (`polygon-evm` or `agnostic-sandbox`)
+- `EXECUTION_PROFILE_ID` (`polygon-evm`, `agnostic-sandbox`, or `agnostic-hybrid`)
 - `WALLET_CHALLENGE_TTL_MS` (default 300000)
 - `WALLET_PROOF_TTL_MS` (default 600000)
 - `TELEMETRY_DATABASE_URL` (optional explicit telemetry DB URL)
 - `SETTLEMENT_POLYGON_MODE` (`simulate` by default)
+- `SETTLEMENT_L2_MODE` (`auto`, `local`, `cloud`; default `auto`)
+- `SETTLEMENT_L2_TIMEOUT_MS` (HTTP timeout; default `5000`)
+- `SETTLEMENT_L2_API_KEY` (optional bearer token for sequencer/relayer)
+- `SETTLEMENT_L2_SEQUENCER_LOCAL_URL` (local sequencer endpoint)
+- `SETTLEMENT_L2_SEQUENCER_CLOUD_URL` (cloud sequencer endpoint)
+- `SETTLEMENT_L2_RELAYER_LOCAL_URL` (local relayer endpoint)
+- `SETTLEMENT_L2_RELAYER_CLOUD_URL` (cloud relayer endpoint)
 
 ## Durable Auth (Serverless Resilience)
 
@@ -41,6 +48,10 @@ The `l2-custom-adapter` provides interface stubs for building a custom L2 settle
 - **SequencerInterface** — Order submission, batching, MEV protection
 - **RelayerInterface** — Finality confirmation, L1 settlement relay
 - **FeePolicy** — Pluggable fees: flat, percentage, or dynamic block-based
+
+When `SETTLEMENT_L2_*_URL` values are configured, the adapter posts directly to those HTTP endpoints.
+In `auto` mode it tries local first, then cloud for retryable failures (`429`, `5xx`, timeout).
+Non-retryable failures (`4xx`) are returned immediately to avoid duplicate order intent.
 
 Example (in your adapter setup code):
 ```typescript

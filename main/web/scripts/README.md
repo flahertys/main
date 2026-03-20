@@ -50,3 +50,31 @@ cd C:\tradez\main\web
 npm run verify:deploy-bundle -- --url https://tradehax.net --expected-commit b9933b8
 ```
 
+## L2 Settlement Routing Smoke Test
+
+Checks sequencer + relayer endpoint reachability using the same local/cloud fallback policy used by the `l2-custom` adapter.
+
+### Self-Test (No External Services)
+
+```powershell
+cd C:\tradez\main\web
+npm run test:l2:routing:self
+```
+
+### Live Endpoint Check
+
+```powershell
+cd C:\tradez\main\web
+npm run test:l2:routing
+```
+
+Expected envs (see `web/.env.example`):
+
+- `SETTLEMENT_L2_MODE` (`auto`, `local`, `cloud`)
+- `SETTLEMENT_L2_TIMEOUT_MS`
+- `SETTLEMENT_L2_API_KEY` (optional)
+- `SETTLEMENT_L2_SEQUENCER_LOCAL_URL`
+- `SETTLEMENT_L2_SEQUENCER_CLOUD_URL`
+- `SETTLEMENT_L2_RELAYER_LOCAL_URL`
+- `SETTLEMENT_L2_RELAYER_CLOUD_URL`
+
