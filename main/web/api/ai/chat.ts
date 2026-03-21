@@ -29,6 +29,8 @@ const HF_API_TOKENS = Array.from(new Set([
 ].filter((v): v is string => !!v && v.trim().length > 0)));
 const HF_API_KEY = HF_API_TOKENS[0] || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const POLYGON_API_KEY = process.env.POLYGON_API_KEY || '';
+const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || '';
 const HF_MODEL = process.env.HF_MODEL_ID || 'meta-llama/Llama-3.3-70B-Instruct';
 const HF_FALLBACK_MODELS = (process.env.HF_FALLBACK_MODELS || '')
   .split(',')
@@ -329,6 +331,75 @@ async function fetchMarketSnapshot(symbols: string[]): Promise<MarketSnapshot[]>
   } catch {
     return [];
   }
+}
+
+/**
+ * Fetch real market data from Polygon (stocks/crypto) and Finnhub (stocks/news)
+ * Falls back to CoinGecko for crypto if live data unavailable
+ */
+async function fetchLiveMarketData(symbols: string[]): Promise<MarketSnapshot[]> {
+  const result: MarketSnapshot[] = [];
+  if (!symbols.length) return result;
+
+  const uniqueSymbols = Array.from(new Set(symbols.map((s) => s.toUpperCase()))).slice(0, 8);
+
+  // --- Polygon API: Real-time quotes ---
+  if (POLYGON_API_KEY) {
+    for (const symbol of uniqueSymbols) {
+      try {
+        const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${symbol}?apiKey=${POLYGON_API_KEY}`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(5000) } as any);
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          const ticker = data?.results?.[0];
+          if (ticker?.c && typeof ticker.c === 'number') {
+            result.push({
+              symbol,
+              price: ticker.c,
+              change24h: typeof ticker.todaysChangePercent === 'number' ? ticker.todaysChangePercent : undefined,
+              source: 'polygon',
+            });
+            continue;
+          }
+        }
+      } catch (err) {
+        console.warn(`[POLYGON] Failed to fetch ${symbol}:`, err instanceof Error ? err.message : err);
+      }
+    }
+  }
+
+  // --- Finnhub API: Stock data ---
+  if (FINNHUB_API_KEY) {
+    for (const symbol of uniqueSymbols) {
+      if (result.some((r) => r.symbol === symbol)) continue;
+      try {
+        const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(5000) } as any);
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          if (data?.c && typeof data.c === 'number') {
+            result.push({
+              symbol,
+              price: data.c,
+              change24h: typeof data.dp === 'number' ? data.dp : undefined,
+              source: 'finnhub',
+            });
+          }
+        }
+      } catch (err) {
+        console.warn(`[FINNHUB] Failed to fetch ${symbol}:`, err instanceof Error ? err.message : err);
+      }
+    }
+  }
+
+  // --- Fallback to CoinGecko for missing symbols ---
+  const missingSymbols = uniqueSymbols.filter((s) => !result.some((r) => r.symbol === s));
+  if (missingSymbols.length) {
+    const cgFallback = await fetchMarketSnapshot(missingSymbols);
+    result.push(...cgFallback);
+  }
+
+  return result;
 }
 
 function formatMarketSnapshot(snapshot: MarketSnapshot[]): string {
