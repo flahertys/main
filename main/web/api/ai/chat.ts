@@ -931,12 +931,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
     // --- Provider Selection Logic ---
-        let provider: 'huggingface' | 'openai' | 'demo' = 'huggingface';
-    let invoke: () => Promise<string> = () => callHuggingFace([{ role: 'user', content: systemPrompt }], temperature);
-    if (PROVIDER_STATUS.openai && (!PROVIDER_STATUS.huggingface || Math.random() < 0.5)) {
-      provider = 'openai';
-      invoke = () => callOpenAI([{ role: 'user', content: systemPrompt }], temperature);
-    }
+    // Do not rely only on startup health flags; attempt providers per-request with real failover.
+    const hasHf = HF_API_TOKENS.length > 0;
+    const hasOpenAI = !!OPENAI_API_KEY;
+    let provider: 'huggingface' | 'openai' | 'demo' = 'demo';
+
+    const preferredOrder: Array<'huggingface' | 'openai'> =
+      effectiveMode === 'odin'
+        ? ['openai', 'huggingface']
+        : ['huggingface', 'openai'];
+
+    const invoke = async (): Promise<string> => {
+      let lastErr: unknown = new Error('No AI providers configured');
+
+      for (const candidate of preferredOrder) {
+        if (candidate === 'huggingface' && !hasHf) continue;
+        if (candidate === 'openai' && !hasOpenAI) continue;
+
+        try {
+          if (candidate === 'huggingface') {
+            const out = await callHuggingFace([{ role: 'user', content: systemPrompt }], temperature);
+            provider = 'huggingface';
+            return out;
+          }
+
+          const out = await callOpenAI([{ role: 'user', content: systemPrompt }], temperature);
+          provider = 'openai';
+          return out;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      provider = 'demo';
+      throw lastErr;
+    };
     // --- Call Selected Provider ---
     let rawResponse;
     let responseTime = 0;
@@ -1010,20 +1039,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     // --- Cache and Respond ---
+    const activeProvider: 'huggingface' | 'openai' | 'demo' = provider;
+    const modelByProvider: Record<'huggingface' | 'openai' | 'demo', string> = {
+      huggingface: LAST_HF_MODEL_USED,
+      openai: 'gpt-4-turbo-preview',
+      demo: 'demo-response-engine',
+    };
+    const isDemoProvider: Record<'huggingface' | 'openai' | 'demo', boolean> = {
+      huggingface: false,
+      openai: false,
+      demo: true,
+    };
+
     const responsePayload: ChatResponse & {
       providerStatus: typeof PROVIDER_STATUS;
       fallbackMode: boolean;
       errorDetail?: string;
     } = {
       response: rawResponse.response,
-      provider,
-      model: provider === 'huggingface' ? LAST_HF_MODEL_USED : provider === 'openai' ? 'gpt-4-turbo-preview' : 'demo-response-engine',
+      provider: activeProvider,
+      model: modelByProvider[activeProvider],
       timestamp: Date.now(),
       cached: false,
       guardrailRetryCount: rawResponse.retried ? 1 : 0,
       providerStatus: { ...PROVIDER_STATUS },
-      fallbackMode: (provider as string) === 'demo',
-      errorDetail: (provider as string) === 'demo' ? (PROVIDER_STATUS.error || undefined) : undefined,
+      fallbackMode: isDemoProvider[activeProvider],
+      errorDetail: isDemoProvider[activeProvider] ? (PROVIDER_STATUS.error || undefined) : undefined,
     };
     // Cache successful responses
     requestCache.set(messages[messages.length - 1].content, { response: responsePayload, timestamp: Date.now() });
@@ -1035,8 +1076,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messageId: undefined,
         userMessage: messages[messages.length - 1]?.content || '',
         aiResponse: rawResponse.response,
-        provider,
-        model: provider === 'huggingface' ? LAST_HF_MODEL_USED : provider === 'openai' ? 'gpt-4-turbo-preview' : 'demo-response-engine',
+        provider: activeProvider,
+        model: modelByProvider[activeProvider],
         responseTimeMs: responseTime,
         validationScore: 1,
         isValid: true,
@@ -1062,9 +1103,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       mode: requestedMode,
       requestedMode,
       effectiveMode,
-      providerPath: provider,
+      providerPath: activeProvider,
       latencyMs: responseTime,
-      model: provider === 'huggingface' ? LAST_HF_MODEL_USED : provider === 'openai' ? 'gpt-4-turbo-preview' : 'demo-response-engine',
+      model: modelByProvider[activeProvider],
       cached: false,
       gated: modeGated,
       guardedRetryCount: rawResponse.retried ? 1 : 0,
@@ -1086,7 +1127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         requestedMode,
         effectiveMode,
         gated: modeGated,
-        providerPath: provider,
+        providerPath: activeProvider,
         latencyMs: responseTime,
       },
       progress: finalResponse.split(/\n\n+/).slice(0, 6),
