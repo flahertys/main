@@ -25,6 +25,21 @@ interface UserProfile {
 // In-memory profile store (replace with Supabase/database in production)
 const profileStore = new Map<string, UserProfile>();
 
+function defaultProfile(userId: string): UserProfile {
+  return {
+    userId,
+    firstName: 'Trader',
+    experienceLevel: 'intermediate',
+    riskTolerance: 'moderate',
+    tradingStyle: 'swing',
+    portfolioValue: 25000,
+    preferredAssets: ['BTC', 'ETH', 'SOL'],
+    goal: 'Generate structured trading plans with disciplined risk',
+    persona: 'Execution Coach',
+    onboardingCompletedAt: Date.now(),
+  };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -45,10 +60,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const profile = profileStore.get(userId);
 
       if (!profile) {
-        return res.status(404).json({
-          error: 'Profile not found',
-          userId,
-        });
+        const seeded = defaultProfile(userId);
+        profileStore.set(userId, seeded);
+        return res.status(200).json(seeded);
       }
 
       return res.status(200).json(profile);

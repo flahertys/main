@@ -214,7 +214,7 @@ function setCorsHeaders(res: VercelResponse): void {
 // Main handler
 export default async function handler(
   req: VercelRequest,
-  res: VercelResponse<SignalResponse | { error: string }>
+  res: VercelResponse
 ): Promise<void> {
   setCorsHeaders(res);
 

@@ -13,11 +13,19 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import fetch from 'node-fetch';
-import { getSession, getRecentMessages, UserProfile } from '../sessions/store.js';
+import { addMessage, getRecentMessages, getSession, upsertSession, updateProfile, UserProfile } from '../sessions/store.js';
 import { validateResponse, detectHallucinations, extractTradingParameters } from './validators.js';
 import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console.js';
 import { logResponseToDatabase } from '../db/metrics-service.js';
 import { recordAIChatEvent } from './telemetry-repository.js';
+
+function resolveEnv(...keys: string[]): string {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+  }
+  return '';
+}
 
 const HF_API_TOKENS = Array.from(new Set([
   process.env.HUGGINGFACE_API_KEY,
@@ -26,9 +34,10 @@ const HF_API_TOKENS = Array.from(new Set([
   process.env.HF_API_TOKEN_ALT1,
   process.env.HF_API_TOKEN_ALT2,
   process.env.HF_API_TOKEN_ALT3,
+  process.env.web_HF_API_TOKEN,
 ].filter((v): v is string => !!v && v.trim().length > 0)));
 const HF_API_KEY = HF_API_TOKENS[0] || '';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const OPENAI_API_KEY = resolveEnv('OPENAI_API_KEY', 'web_OPENAI_API_KEY');
 const POLYGON_API_KEY = process.env.POLYGON_API_KEY || '';
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || '';
 const HF_MODEL = process.env.HF_MODEL_ID || 'meta-llama/Llama-3.3-70B-Instruct';
@@ -291,6 +300,37 @@ function extractRequestedTicker(userMsg: string): string | null {
   if (analyze?.[1]) return analyze[1].toUpperCase();
 
   return null;
+}
+
+function inferAdaptiveProfilePatch(userMsg: string, current?: UserProfile): Partial<UserProfile> | null {
+  const text = String(userMsg || '').toLowerCase();
+  if (!text) return null;
+
+  const patch: Partial<UserProfile> = {};
+
+  if (/\bconservative\b|\blow risk\b|\bsafe\b/.test(text)) {
+    patch.riskTolerance = 'conservative';
+  } else if (/\baggressive\b|\bhigh risk\b|\bleverage\b/.test(text)) {
+    patch.riskTolerance = 'aggressive';
+  } else if (/\bmoderate\b|\bbalanced\b/.test(text)) {
+    patch.riskTolerance = 'moderate';
+  }
+
+  if (/\bscalp\b|\bintraday\b|\bday trade\b/.test(text)) {
+    patch.tradingStyle = 'scalp';
+  } else if (/\bswing\b|\bmulti-day\b/.test(text)) {
+    patch.tradingStyle = 'swing';
+  } else if (/\bposition\b|\blong term\b|\blong-term\b/.test(text)) {
+    patch.tradingStyle = 'position';
+  }
+
+  const detectedAssets = detectAssets(userMsg, { userProfile: current as any });
+  if (detectedAssets.length > 0) {
+    const existing = Array.isArray(current?.preferredAssets) ? current!.preferredAssets : [];
+    patch.preferredAssets = Array.from(new Set([...existing.map((a) => a.toUpperCase()), ...detectedAssets])).slice(0, 8);
+  }
+
+  return Object.keys(patch).length ? patch : null;
 }
 
 async function fetchMarketSnapshot(symbols: string[]): Promise<MarketSnapshot[]> {
@@ -989,7 +1029,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const temperature = typeof body.temperature === 'number' ? body.temperature : 0.7;
     // --- Extract User Profile ---
     const sessionId = body.context?.sessionId || '';
-    const userProfile = body.context?.userProfile || (sessionId ? (await getSession(sessionId))?.userProfile : undefined);
+    const ensuredSession = sessionId ? upsertSession(sessionId, body.context?.userProfile?.userId) : null;
+    const userProfile = body.context?.userProfile || ensuredSession?.userProfile || (sessionId ? (await getSession(sessionId))?.userProfile : undefined);
     const recentMessages = body.context?.recentMessages || (sessionId ? await getRecentMessages(sessionId) : null);
 
     // --- Request Logging ---
@@ -1023,6 +1064,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const allMessages = (recentMessages || []).concat(messages);
     const flatText = allMessages.map((msg) => msg.content).join(' ');
     const latestUserMsg = String(messages[messages.length - 1]?.content || '');
+
+    if (sessionId && latestUserMsg) {
+      addMessage(sessionId, {
+        role: 'user',
+        content: latestUserMsg,
+        timestamp: Date.now(),
+      });
+
+      const profilePatch = inferAdaptiveProfilePatch(latestUserMsg, userProfile);
+      if (profilePatch) {
+        updateProfile(sessionId, profilePatch);
+      }
+    }
     // Prioritize the newest prompt so stale history (e.g., LINK) does not pollute current analysis.
     const assets = detectAssets(latestUserMsg, body.context);
     const intent = detectIntent(latestUserMsg || flatText);
@@ -1263,6 +1317,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (hasForbiddenArtifacts(finalResponse)) {
       finalResponse = generateDemoResponse(messages[messages.length - 1]?.content || '', context, marketSnapshot, finalResponse);
     }
+    if (sessionId && finalResponse) {
+      addMessage(sessionId, {
+        role: 'assistant',
+        content: finalResponse,
+        timestamp: Date.now(),
+      });
+    }
+
     return res.status(200).json({
       ...responsePayload,
       response: finalResponse,

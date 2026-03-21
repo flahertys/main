@@ -21,7 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const action = String(req.query.action || 'preflight');
     if (action !== 'preflight' && action !== 'execute') {
-      return res.status(400).json({ error: 'Invalid action' });
+      return res.status(400).json({ error: 'Invalid action', code: 'INVALID_ACTION' });
     }
 
     const profile = resolveExecutionProfile(EXECUTION_PROFILE_ID);
@@ -40,7 +40,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const proof = await getProof(address);
     if (!proof || !await isProofFresh(address)) {
-      return res.status(401).json({ ok: false, reason: 'PROOF_REQUIRED' });
+      return res.status(401).json({ ok: false, reason: 'PROOF_REQUIRED', code: 'PROOF_REQUIRED' });
+    }
+
+    if (proof.chainId !== chainId) {
+      await incrementTelemetryCounter('chain_mismatch');
+      return res.status(412).json({
+        ok: false,
+        reason: 'PROOF_CHAIN_MISMATCH',
+        code: 'PROOF_CHAIN_MISMATCH',
+        expectedChainId: chainId,
+        proofChainId: proof.chainId,
+      });
     }
 
     if (action === 'execute') {
@@ -51,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const price = Number(order.price || 0);
 
       if (!market || !side || !Number.isFinite(size) || size <= 0 || !Number.isFinite(price) || price <= 0) {
-        return res.status(400).json({ ok: false, reason: 'INVALID_ORDER_PAYLOAD' });
+        return res.status(400).json({ ok: false, reason: 'INVALID_ORDER_PAYLOAD', code: 'INVALID_ORDER_PAYLOAD' });
       }
 
       const adapterKey = String(profile.settlementAdapter || 'polygon');
@@ -100,6 +111,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     return res.status(500).json({
       error: 'Order gate error',
+      code: 'ORDER_GATE_ERROR',
       message: error?.message || 'Unknown error',
     });
   }

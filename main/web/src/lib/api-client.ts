@@ -112,7 +112,7 @@ export class TradeHaxAPI {
    */
   async chat(messages: ChatMessage[], context?: ChatContext & { mode?: string }): Promise<ChatResponse> {
     const mergedContext: ChatContext = { ...(context || {}) };
-    const storedProfile = userProfileStorage.load();
+    const storedProfile = await userProfileStorage.load();
     if (!mergedContext.userProfile && storedProfile) {
       mergedContext.userProfile = storedProfile;
     }

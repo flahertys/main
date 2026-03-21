@@ -2,9 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getAddress, verifyMessage, verifyTypedData } from 'ethers';
 import {
   consumeChallenge,
+  finalizeVerifiedProof,
   getChallenge,
   issueChallenge,
-  saveProof,
   SignatureType,
 } from './proof-store.js';
 import {
@@ -41,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const requestedMode = String(req.body?.signatureMode || DEFAULT_SIGNATURE_MODE);
       const signatureType = parseSignatureType(requestedMode === SIGNATURE_MODES.AUTO ? SIGNATURE_MODES.PERSONAL_SIGN : requestedMode);
 
-      const challenge = issueChallenge({
+      const challenge = await issueChallenge({
         address,
         chainId,
         signatureType,
@@ -71,19 +71,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const signatureType = parseSignatureType(String(req.body?.signatureType || ''));
 
       if (!nonce || !signature) {
-        return res.status(400).json({ error: 'nonce and signature are required' });
+        return res.status(400).json({ error: 'nonce and signature are required', code: 'INVALID_VERIFY_PAYLOAD' });
       }
 
       const challenge = await getChallenge(nonce);
       if (!challenge) {
-        return res.status(410).json({ error: 'Challenge missing or already consumed' });
+        return res.status(410).json({ error: 'Challenge missing or already consumed', code: 'CHALLENGE_MISSING' });
       }
       if (Date.now() > challenge.expiresAt) {
         await consumeChallenge(nonce);
-        return res.status(410).json({ error: 'Challenge expired' });
+        return res.status(410).json({ error: 'Challenge expired', code: 'CHALLENGE_EXPIRED' });
       }
       if (challenge.address !== address || challenge.chainId !== chainId) {
-        return res.status(400).json({ error: 'Challenge payload mismatch' });
+        return res.status(400).json({ error: 'Challenge payload mismatch', code: 'CHALLENGE_PAYLOAD_MISMATCH' });
+      }
+      if (challenge.signatureType !== signatureType) {
+        return res.status(400).json({ error: 'Signature mode mismatch for challenge', code: 'SIGNATURE_MODE_MISMATCH' });
       }
 
       let recovered = '';
@@ -99,19 +102,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (recovered !== address) {
-        return res.status(401).json({ error: 'Signature does not match wallet address' });
+        return res.status(401).json({ error: 'Signature does not match wallet address', code: 'INVALID_SIGNATURE' });
       }
 
-      await consumeChallenge(nonce);
       const now = Date.now();
-      const proof = await saveProof({
+      const proof = await finalizeVerifiedProof({
+        nonce,
         address,
         chainId,
-        nonce,
         signatureType,
         verifiedAt: now,
         expiresAt: now + DEFAULT_PROOF_TTL_MS,
       });
+
+      if (!proof) {
+        return res.status(409).json({ error: 'Challenge already consumed', code: 'CHALLENGE_ALREADY_CONSUMED' });
+      }
 
       return res.status(200).json({
         ok: true,
@@ -124,10 +130,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    return res.status(400).json({ error: 'Invalid action' });
+    return res.status(400).json({ error: 'Invalid action', code: 'INVALID_ACTION' });
   } catch (error: any) {
     return res.status(500).json({
       error: 'Wallet auth error',
+      code: 'WALLET_AUTH_ERROR',
       message: error?.message || 'Unknown error',
     });
   }

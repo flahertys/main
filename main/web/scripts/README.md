@@ -78,3 +78,44 @@ Expected envs (see `web/.env.example`):
 - `SETTLEMENT_L2_RELAYER_LOCAL_URL`
 - `SETTLEMENT_L2_RELAYER_CLOUD_URL`
 
+## Docker-to-Vercel Env Sync
+
+Aligns local Docker/dev env with Vercel without committing secrets.
+
+### Safety Model
+
+- Default mode is `dry-run` (no cloud writes)
+- Only keys in `web/scripts/vercel-env-allowlist.txt` are eligible
+- Values are sourced from:
+  - `web/.env.local`
+  - `web/.env.profiles/<profile>.env`
+  - `web/.env.profiles/<profile>.<domain>.env`
+  - Docker compose env blocks (`docker-compose*.yml`)
+
+### Dry Run
+
+```powershell
+cd C:\tradez\main\web
+npm run sync:env:vercel:net
+npm run sync:env:vercel:tech
+```
+
+### Apply to Vercel
+
+```powershell
+cd C:\tradez\main\web
+npm run sync:env:vercel:net:apply
+npm run sync:env:vercel:tech:apply
+```
+
+### Advanced Usage
+
+```powershell
+cd C:\tradez\main\web
+node .\scripts\vercel-env-sync.mjs --target net --profile production --dry-run
+node .\scripts\vercel-env-sync.mjs --target tech --profile production --apply --replace
+node .\scripts\vercel-env-sync.mjs --project tradehax-ai-assistant --scope production --dry-run
+```
+
+If your Vercel projects differ for `net` and `tech`, update `web/scripts/vercel-env-sync.config.json` target mappings.
+

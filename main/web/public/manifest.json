@@ -1,14 +1,20 @@
 {
-  "name": "TradeHax Neural Hub",
+  "name": "TradeHax Neural Hub - AI Trading Assistant",
   "short_name": "TradeHax",
-  "description": "Elite AI trading assistant with real-time market data and predictive signals",
+  "description": "Elite AI trading assistant with real-time market data and predictive signals for crypto and stocks",
   "start_url": "/",
   "scope": "/",
+  "id": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "orientation": "portrait-primary",
+  "dir": "ltr",
+  "lang": "en-US",
   "theme_color": "#090B10",
-  "background_color": "#090B10",
-  "categories": ["finance", "productivity"],
+  "background_color": "#ffffff",
+  "categories": ["finance", "productivity", "tools"],
+  "prefer_related_applications": false,
+
   "screenshots": [
     {
       "src": "/screenshots/mobile-192x192.png",
@@ -29,6 +35,7 @@
       "form_factor": "wide"
     }
   ],
+
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -37,19 +44,57 @@
       "purpose": "any"
     },
     {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/apple-touch-icon.png",
-      "sizes": "180x180",
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
     }
   ],
-  "shortcuts": [],
-  "prefer_related_applications": false
+
+  "shortcuts": [
+    {
+      "name": "View Markets",
+      "short_name": "Markets",
+      "description": "Quick access to market data",
+      "url": "/markets",
+      "icons": [
+        {
+          "src": "/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Trading Signals",
+      "short_name": "Signals",
+      "description": "Check latest trading signals",
+      "url": "/signals",
+      "icons": [
+        {
+          "src": "/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }
 

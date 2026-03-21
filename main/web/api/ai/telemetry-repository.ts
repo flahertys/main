@@ -45,9 +45,9 @@ function hasPostgresConfig(): boolean {
  */
 export async function recordAIChatEvent(event: AIChatTelemetryEvent): Promise<boolean> {
   const normalizedEvent: AIChatTelemetryEvent = {
+    ...event,
     timestamp: event.timestamp || Date.now(),
     eventId: event.eventId || `evt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    ...event,
   };
 
   // Try database first

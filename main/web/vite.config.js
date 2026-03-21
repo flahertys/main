@@ -8,17 +8,40 @@ export default defineConfig({
       jsxImportSource: 'react'
     })
   ],
+  server: {
+    host: true,
+    port: 4173,
+    middlewareMode: false,
+    hmr: {
+      protocol: 'ws',
+      timeout: 60000
+    }
+  },
   build: {
-    target: 'es2020',
+    target: ['es2020', 'edge88', 'firefox78', 'chrome90', 'safari14'],
     minify: 'terser',
+    sourcemap: false,
+    cssCodeSplit: true,
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 800,
+    outDir: 'dist',
+    assetsDir: 'assets',
+    emptyOutDir: true,
     terserOptions: {
       compress: {
         drop_console: true,
         drop_debugger: true,
         pure_funcs: ['console.log', 'console.info'],
-        passes: 2
+        passes: 3,
+        unsafe: true,
+        unsafe_methods: true
       },
-      mangle: true
+      mangle: {
+        safari10: true
+      },
+      format: {
+        comments: false
+      }
     },
     rollupOptions: {
       output: {
@@ -36,23 +59,6 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]'
       }
-    },
-    chunkSizeWarningLimit: 800,
-    sourcemap: false,
-    cssCodeSplit: true,
-    reportCompressedSize: true,
-    outDir: 'dist',
-    assetsDir: 'assets',
-    emptyOutDir: true
-  },
-  server: {
-    host: true,
-    port: 4173,
-    middlewareMode: false,
-    cors: true,
-    headers: {
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY'
     }
   },
   preview: {

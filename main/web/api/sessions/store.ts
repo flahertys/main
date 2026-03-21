@@ -80,6 +80,39 @@ export function createSession(userId?: string): Session {
   return session;
 }
 
+// Ensure a known session id exists in this in-memory store.
+// This keeps AI chat/session features working even when a session id was created
+// through another transport endpoint.
+export function upsertSession(sessionId: string, userId?: string): Session {
+  const existing = getSession(sessionId);
+  if (existing) return existing;
+
+  const now = Date.now();
+  const session: Session = {
+    sessionId,
+    userId,
+    createdAt: now,
+    lastUpdated: now,
+    messages: [],
+    userProfile: {
+      userId,
+      riskTolerance: 'moderate',
+      tradingStyle: 'swing',
+      portfolioValue: 25000,
+      preferredAssets: ['BTC', 'ETH'],
+      signalAccuracy: {
+        overall: 0.5,
+        byAsset: {},
+        winRate: 0,
+        avgProfit: 0,
+      },
+    },
+  };
+
+  sessions.set(sessionId, session);
+  return session;
+}
+
 export function getSession(sessionId: string): Session | null {
   const session = sessions.get(sessionId);
 

@@ -4,18 +4,34 @@
     <!-- Character encoding and viewport -->
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0, user-scalable=yes, shrink-to-fit=no" />
+
+    <!-- Performance optimizations -->
+    <meta http-equiv="content-security-policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https:; frame-ancestors 'none';" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()" />
 
     <!-- Mobile app meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="TradeHax" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="TradeHax" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
 
     <!-- Theme colors for browsers and mobile -->
     <meta name="theme-color" content="#090B10" />
     <meta name="msapplication-TileColor" content="#090B10" />
     <meta name="msapplication-TileImage" content="/apple-touch-icon.png" />
+    <meta name="color-scheme" content="dark light" />
+
+    <!-- Performance hints for modern browsers -->
+    <link rel="dns-prefetch" href="https://api.coingecko.com" />
+    <link rel="dns-prefetch" href="https://api.binance.com" />
+    <link rel="dns-prefetch" href="https://api-inference.huggingface.co" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
 
     <!-- SEO and description -->
     <meta name="description" content="TradeHax Neural Hub - Elite AI trading assistant with live market data, real-time signals, and hallucination-free analysis" />

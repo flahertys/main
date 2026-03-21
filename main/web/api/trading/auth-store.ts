@@ -177,6 +177,79 @@ export async function saveProof(record: ProofRecord): Promise<void> {
   }
 }
 
+/**
+ * Atomically consume challenge and persist proof in one durable transaction.
+ * Returns null when challenge is missing/expired/already consumed.
+ */
+export async function finalizeChallengeProof(params: {
+  nonce: string;
+  proof: ProofRecord;
+}): Promise<ProofRecord | null> {
+  const { nonce, proof } = params;
+
+  // Memory-first fallback path when durable auth is not configured.
+  if (!pool) {
+    const challenge = memoryCache.get(nonce);
+    if (!challenge || challenge.expiresAt <= Date.now()) {
+      memoryCache.delete(nonce);
+      return null;
+    }
+
+    memoryCache.delete(nonce);
+    proofCache.set(`${proof.address.toLowerCase()}:${proof.chainId}`, proof);
+    return proof;
+  }
+
+  const client = await pool.connect();
+  try {
+    await ensureSchema();
+    await client.query('BEGIN');
+
+    const consumed = await client.query(
+      `DELETE FROM trading_challenges
+       WHERE nonce = $1 AND expires_at > EXTRACT(EPOCH FROM NOW())::BIGINT * 1000
+       RETURNING nonce`,
+      [nonce],
+    );
+
+    if (consumed.rowCount === 0) {
+      await client.query('ROLLBACK');
+      memoryCache.delete(nonce);
+      return null;
+    }
+
+    await client.query(
+      `INSERT INTO trading_proofs (address, chain_id, nonce, signature_type, verified_at, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (address, chain_id)
+       DO UPDATE SET nonce = $3, signature_type = $4, verified_at = $5, expires_at = $6`,
+      [
+        proof.address.toLowerCase(),
+        proof.chainId,
+        proof.nonce,
+        proof.signatureType,
+        proof.verifiedAt,
+        proof.expiresAt,
+      ],
+    );
+
+    await client.query('COMMIT');
+
+    memoryCache.delete(nonce);
+    proofCache.set(`${proof.address.toLowerCase()}:${proof.chainId}`, proof);
+    return proof;
+  } catch {
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      // no-op
+    }
+    return null;
+  } finally {
+    client.release();
+  }
+}
+
 export async function getProof(address: string): Promise<ProofRecord | null> {
   const key = `${address.toLowerCase()}:*`;
 

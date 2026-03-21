@@ -1,0 +1,19 @@
+{
+  "defaultScope": "production",
+  "composeFiles": [
+    "../docker-compose.yml",
+    "../docker-compose.staging.yml",
+    "../docker-compose.prod.yml"
+  ],
+  "targets": {
+    "tech": {
+      "project": "tradehax-ai-assistant",
+      "domain": "tech"
+    },
+    "net": {
+      "project": "tradehax-ai-assistant",
+      "domain": "net"
+    }
+  }
+}
+
