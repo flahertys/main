@@ -1,112 +1,246 @@
-/**
- * TradeHax Session API Handler
- * GET/POST/PUT sessions and conversation history
- */
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import {
-  appendSessionMessage,
-  createUserSession,
-  fetchRecentSessionMessages,
-  fetchSession,
-  saveSignalOutcome,
-  updateSessionProfile,
-} from './session-service.js';
+import crypto from 'crypto';
+
+interface Session {
+  sessionId: string;
+  userId?: string;
+  createdAt: number;
+  lastActivityAt: number;
+  expiresAt: number;
+  userProfile?: Record<string, any>;
+  metadata?: Record<string, any>;
+}
+
+// In-memory session store (replace with Redis/Supabase in production)
+const sessionStore = new Map<string, Session>();
+const SESSION_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Generate unique session ID
+ */
+function generateSessionId(): string {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+/**
+ * Create new session
+ */
+function createSession(userId?: string): Session {
+  const sessionId = generateSessionId();
+  const now = Date.now();
+
+  const session: Session = {
+    sessionId,
+    userId,
+    createdAt: now,
+    lastActivityAt: now,
+    expiresAt: now + SESSION_TTL,
+  };
+
+  sessionStore.set(sessionId, session);
+  return session;
+}
+
+/**
+ * Get session
+ */
+function getSession(sessionId: string): Session | null {
+  const session = sessionStore.get(sessionId);
+
+  if (!session) {
+    return null;
+  }
+
+  // Check expiration
+  if (session.expiresAt < Date.now()) {
+    sessionStore.delete(sessionId);
+    return null;
+  }
+
+  // Update last activity
+  session.lastActivityAt = Date.now();
+  return session;
+}
+
+/**
+ * Update session profile
+ */
+function updateSessionProfile(sessionId: string, profile: Record<string, any>): boolean {
+  const session = getSession(sessionId);
+
+  if (!session) {
+    return false;
+  }
+
+  session.userProfile = profile;
+  session.lastActivityAt = Date.now();
+  return true;
+}
+
+/**
+ * Delete session
+ */
+function deleteSession(sessionId: string): boolean {
+  return sessionStore.delete(sessionId);
+}
+
+/**
+ * Cleanup expired sessions (run periodically)
+ */
+function cleanupExpiredSessions(): number {
+  let cleaned = 0;
+  const now = Date.now();
+
+  for (const [sessionId, session] of sessionStore.entries()) {
+    if (session.expiresAt < now) {
+      sessionStore.delete(sessionId);
+      cleaned++;
+    }
+  }
+
+  if (cleaned > 0) {
+    console.log(`[SESSIONS] Cleaned up ${cleaned} expired sessions`);
+  }
+
+  return cleaned;
+}
+
+// Run cleanup every 30 minutes
+setInterval(cleanupExpiredSessions, 30 * 60 * 1000);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Restrict CORS in production
-  const allowedOrigins = [
-    'https://tradehax.net',
-    'https://www.tradehax.net',
-    'https://tradehaxai.tech',
-    'https://www.tradehaxai.tech',
-    'https://web-8lg3bz459-digitaldynasty.vercel.app',
-  ];
-  const origin = req.headers.origin || '';
-  const isProd = process.env.NODE_ENV === 'production';
-  if (isProd && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-API-Key');
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   try {
-    const { action, sessionId } = req.query;
+    const action = String(req.query.action || 'read').toLowerCase();
+    const sessionId = String(req.query.sessionId || '');
 
-    // Create new session
+    // GET /api/sessions?action=read&sessionId=... - get session data
+    if (req.method === 'GET' && action === 'read') {
+      if (!sessionId) {
+        return res.status(400).json({
+          error: 'Missing sessionId',
+        });
+      }
+
+      const session = getSession(sessionId);
+
+      if (!session) {
+        return res.status(404).json({
+          error: 'Session not found or expired',
+          sessionId,
+        });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        sessionId: session.sessionId,
+        userId: session.userId,
+        createdAt: session.createdAt,
+        lastActivityAt: session.lastActivityAt,
+        expiresAt: session.expiresAt,
+        userProfile: session.userProfile,
+        metadata: session.metadata,
+      });
+    }
+
+    // POST /api/sessions?action=create - create new session
     if (req.method === 'POST' && action === 'create') {
-      const { userId } = req.body || {};
-      const session = createUserSession(userId);
-      return res.status(201).json(session);
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      const userId = body.userId;
+
+      const session = createSession(userId);
+
+      return res.status(200).json({
+        ok: true,
+        sessionId: session.sessionId,
+        userId: session.userId,
+        expiresAt: session.expiresAt,
+      });
     }
 
-    // Get session
-    if (req.method === 'GET' && sessionId && typeof sessionId === 'string') {
-      const session = fetchSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ error: 'Session not found' });
+    // PUT /api/sessions?action=profile&sessionId=... - update session profile
+    if (req.method === 'PUT' && action === 'profile') {
+      if (!sessionId) {
+        return res.status(400).json({
+          error: 'Missing sessionId',
+        });
       }
-      return res.status(200).json(session);
+
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+
+      if (!body || typeof body !== 'object') {
+        return res.status(400).json({
+          error: 'Invalid request body',
+        });
+      }
+
+      const updated = updateSessionProfile(sessionId, body);
+
+      if (!updated) {
+        return res.status(404).json({
+          error: 'Session not found or expired',
+          sessionId,
+        });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        sessionId,
+        message: 'Profile updated',
+      });
     }
 
-    // Add message to session
-    if (req.method === 'POST' && sessionId && typeof sessionId === 'string' && action === 'message') {
-      const session = fetchSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ error: 'Session not found' });
+    // DELETE /api/sessions?action=delete&sessionId=... - destroy session
+    if (req.method === 'DELETE' && action === 'delete') {
+      if (!sessionId) {
+        return res.status(400).json({
+          error: 'Missing sessionId',
+        });
       }
-      const { role, content, metadata } = req.body || {};
-      if (!role || !content) {
-        return res.status(400).json({ error: 'role and content required' });
-      }
-      const message = appendSessionMessage(sessionId, { role, content, metadata });
-      return res.status(201).json(message);
+
+      const deleted = deleteSession(sessionId);
+
+      return res.status(deleted ? 200 : 404).json({
+        ok: deleted,
+        sessionId,
+        message: deleted ? 'Session deleted' : 'Session not found',
+      });
     }
 
-    // Get recent messages
-    if (req.method === 'GET' && sessionId && typeof sessionId === 'string' && action === 'messages') {
-      const { count } = req.query;
-      const messages = fetchRecentSessionMessages(sessionId, parseInt(String(count || '8'), 10));
-      return res.status(200).json({ messages });
+    // GET /api/sessions?action=list - debug: list all sessions (remove in production)
+    if (req.method === 'GET' && action === 'list') {
+      const sessions = Array.from(sessionStore.values()).map((s) => ({
+        sessionId: s.sessionId,
+        userId: s.userId,
+        createdAt: s.createdAt,
+        expiresAt: s.expiresAt,
+        hasProfile: !!s.userProfile,
+      }));
+
+      return res.status(200).json({
+        ok: true,
+        totalSessions: sessions.length,
+        sessions,
+      });
     }
 
-    // Record signal outcome
-    if (req.method === 'PUT' && sessionId && typeof sessionId === 'string' && action === 'outcome') {
-      const { messageId, outcome, profitLoss, assetSymbol } = req.body || {};
-      if (!messageId || !outcome || !assetSymbol) {
-        return res.status(400).json({ error: 'messageId, outcome, assetSymbol required' });
-      }
-      const success = saveSignalOutcome(sessionId, messageId, outcome, profitLoss || 0, assetSymbol);
-      if (!success) {
-        return res.status(404).json({ error: 'Session or message not found' });
-      }
-      const session = fetchSession(sessionId);
-      return res.status(200).json(session);
-    }
-
-    // Update session profile
-    if (req.method === 'PUT' && sessionId && typeof sessionId === 'string' && action === 'profile') {
-      const session = fetchSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ error: 'Session not found' });
-      }
-      const updates = req.body || {};
-      const updated = updateSessionProfile(sessionId, updates);
-      return res.status(200).json(updated);
-    }
-
-    return res.status(400).json({ error: 'Invalid action or missing parameters' });
+    return res.status(400).json({
+      error: 'Invalid action',
+      validActions: ['create', 'read', 'profile', 'delete', 'list'],
+    });
   } catch (error: any) {
-    console.error('Session API error:', error);
+    console.error('[SESSIONS API] Error:', error);
     return res.status(500).json({
-      error: 'Session API error',
-      message: error.message,
+      error: 'Internal server error',
+      message: error?.message || 'Unknown error',
     });
   }
 }

@@ -232,19 +232,32 @@ export default function NeuralHub() {
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            borderRadius: 999,
-            border: "1px solid #3F3F46",
-            color: "#D4D4D8",
-            padding: "8px 12px",
-            fontSize: 11,
+            borderRadius: 12,
+            border: "2px solid #10B981",
+            color: "#10B981",
+            padding: "12px 16px",
+            fontSize: 12,
+            fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: "0.08em",
             textDecoration: "none",
-            background: "#111113"
+            background: "rgba(16, 185, 129, 0.1)",
+            cursor: "pointer",
+            transition: "all 0.2s ease"
           }}
           title="Return to TradeHax business hub"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(16, 185, 129, 0.2)";
+            e.currentTarget.style.borderColor = "#34D399";
+            e.currentTarget.style.color = "#34D399";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(16, 185, 129, 0.1)";
+            e.currentTarget.style.borderColor = "#10B981";
+            e.currentTarget.style.color = "#10B981";
+          }}
         >
-          Gateway: Back to TradeHax.net
+          ← BACK TO TRADEHAX.NET
         </a>
 
         <select

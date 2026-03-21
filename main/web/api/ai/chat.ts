@@ -452,7 +452,19 @@ ${formatMarketSnapshot(snapshot.length ? snapshot : context?.marketSnapshot || [
 **Recent Conversation Context**:
 ${buildRecentContext(context)}
 
-Keep responses concise but comprehensive. Prioritize clarity over verbosity.`;
+**Current User Request (highest priority):**
+${userMsg}
+
+Keep responses concise but comprehensive. Prioritize clarity over verbosity and answer the current user request directly.`;
+}
+
+function buildProviderMessages(systemPrompt: string, messages: ChatMessage[]): ChatMessage[] {
+  const conversational = messages
+    .filter((m) => (m.role === 'user' || m.role === 'assistant') && String(m.content || '').trim().length > 0)
+    .slice(-12)
+    .map((m) => ({ role: m.role, content: String(m.content).trim() as string }));
+
+  return [{ role: 'system', content: systemPrompt }, ...conversational];
 }
 
 function ensureStructuredResponse(raw: string, userMsg: string, context?: ChatContext, snapshot: MarketSnapshot[] = []): string {
@@ -494,7 +506,11 @@ function generateDemoResponse(userMsg: string, context?: ChatContext, snapshot: 
           : requestedTicker || 'Market';
 
   const isRiskQuestion =
-    lower.includes('risk') || lower.includes('stop') || lower.includes('drawdown') || lower.includes('size');
+    (lower.includes('risk') || lower.includes('drawdown') || lower.includes('position size') || lower.includes('sizing') || lower.includes('kelly'))
+    && !/(\bsetups?\b|\bentry\b|\bentries\b|\btarget\b|\bstop\b|\binvalidation\b)/.test(lower);
+  const asksForThreeSetups = /(\bshow\b|\bgive\b|\bbuild\b).*(\b3\b|\bthree\b).*(\bsetups?\b|\btrades?\b)/.test(lower)
+    || /\b3\s+setups?\b/.test(lower)
+    || /\bthree\s+setups?\b/.test(lower);
   const isParabolic = lower.includes('parabolic') || lower.includes('deploy') || lower.includes('breakout');
   const isAnalyzeTicker = !!requestedTicker;
 
@@ -509,6 +525,61 @@ function generateDemoResponse(userMsg: string, context?: ChatContext, snapshot: 
   const providerNote = providerDraft && !providerDraft.includes('**Signal**:')
     ? `\n\nOperator note: model draft was normalized into TradeHax structured format for execution clarity.`
     : '';
+
+  if (asksForThreeSetups) {
+    const explicitAssets = detectAssets(userMsg, context);
+    const setupSymbols = Array.from(new Set([
+      ...(requestedTicker ? [requestedTicker] : []),
+      ...explicitAssets,
+      'BTC',
+      'ETH',
+      'SOL',
+    ])).slice(0, 3);
+
+    const setupRows = setupSymbols.map((symbol, index) => {
+      const live = liveSnapshot.find((s) => s.symbol === symbol)?.price;
+      const seed = Math.abs(symbol.split('').reduce((n, ch) => n + ch.charCodeAt(0), 0));
+      const anchor = typeof live === 'number' ? live : 45 + (seed % 240);
+      const atr = Math.max(0.45, +(anchor * 0.014).toFixed(2));
+      const entry = +(anchor * (1 + index * 0.002)).toFixed(2);
+      const stop = +(entry - atr * (1.3 + index * 0.15)).toFixed(2);
+      const target = +(entry + (entry - stop) * (2.1 + index * 0.2)).toFixed(2);
+      const rr = ((target - entry) / Math.max(0.01, entry - stop)).toFixed(2);
+      const confidence = Math.min(79, 61 + (seed % 14) + index * 2);
+
+      return {
+        symbol,
+        entry,
+        stop,
+        target,
+        rr,
+        confidence,
+      };
+    });
+
+    return `**Signal**: BUY-SELECTIVE 69% (Execution Mode)
+
+**Price Target**: 3 setup candidates below with predefined entry, stop, and target.
+
+**Market Context**: ${marketContext}
+
+**Reasoning**:
+• Selection: Prioritize setups with >=2.0R and clear structural invalidation (weight: 35%)
+• Volatility Fit: ATR-based stops normalize risk across assets (weight: 35%)
+• Execution: Staggered entries reduce timing error in mixed regimes (weight: 30%)
+
+**Execution Playbook**:
+• Setup 1 (${setupRows[0].symbol}): Entry ${setupRows[0].entry}, Target ${setupRows[0].target}, Invalidation ${setupRows[0].stop}, R:R ${setupRows[0].rr}, Confidence ${setupRows[0].confidence}%
+• Setup 2 (${setupRows[1].symbol}): Entry ${setupRows[1].entry}, Target ${setupRows[1].target}, Invalidation ${setupRows[1].stop}, R:R ${setupRows[1].rr}, Confidence ${setupRows[1].confidence}%
+• Setup 3 (${setupRows[2].symbol}): Entry ${setupRows[2].entry}, Target ${setupRows[2].target}, Invalidation ${setupRows[2].stop}, R:R ${setupRows[2].rr}, Confidence ${setupRows[2].confidence}%
+
+**Risk Management**:
+• Stop-loss: Hard stops at each setup's invalidation level
+• Position size: ${risk === 'aggressive' ? '1.25' : risk === 'conservative' ? '0.6' : '0.9'}% per setup (max two concurrent)
+• Max drawdown: Daily stop after -2R cumulative loss
+
+**Confidence**: Moderate-high if only A-grade setups are executed and weak confirmations are skipped.${providerNote}`;
+  }
 
   if (isParabolic) {
     const baseFromSnapshot = liveSnapshot.find((s) => s.symbol === subject)?.price;
@@ -891,7 +962,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const context: ChatContext = {
       sessionId,
       userProfile: userProfile || undefined,
-      recentMessages: recentMessages || undefined,
+      recentMessages: (recentMessages || messages.slice(-8)) as ChatMessage[],
       marketSnapshot,
     };
     // --- Mode governance (ODIN can be gated unless explicitly unlocked) ---
@@ -930,6 +1001,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         systemPrompt = `ADVANCED HF ENSEMBLE MODE: Combine momentum, structure, and risk controls in concise steps.\n\n${systemPrompt}`;
       }
     }
+    const providerMessages = buildProviderMessages(systemPrompt, messages as ChatMessage[]);
+
     // --- Provider Selection Logic ---
     // Do not rely only on startup health flags; attempt providers per-request with real failover.
     const hasHf = HF_API_TOKENS.length > 0;
@@ -950,12 +1023,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         try {
           if (candidate === 'huggingface') {
-            const out = await callHuggingFace([{ role: 'user', content: systemPrompt }], temperature);
+            const out = await callHuggingFace(providerMessages, temperature);
             provider = 'huggingface';
             return out;
           }
 
-          const out = await callOpenAI([{ role: 'user', content: systemPrompt }], temperature);
+          const out = await callOpenAI(providerMessages, temperature);
           provider = 'openai';
           return out;
         } catch (err) {

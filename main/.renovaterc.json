@@ -1,0 +1,51 @@
+{
+  "extends": "config:base",
+  "timezone": "UTC",
+  "schedule": [
+    "before 3am on Monday"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 5am on the first day of the month"
+    ]
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "automerge": true,
+      "autoApprove": true
+    },
+    {
+      "matchDatasources": [
+        "npm"
+      ],
+      "rangeStrategy": "bump",
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "matchPackagePatterns": [
+        "eslint",
+        "prettier",
+        "typescript"
+      ],
+      "groupName": "Development Tools",
+      "schedule": [
+        "after 10pm every weekday"
+      ]
+    },
+    {
+      "matchPackagePatterns": [
+        "react",
+        "next"
+      ],
+      "groupName": "React Dependencies",
+      "minor": {
+        "enabled": false
+      }
+    }
+  ]
+}
