@@ -277,6 +277,20 @@ function detectAssets(userMsg: string, context?: ChatContext): string[] {
   return unique.slice(0, 4);
 }
 
+function extractRequestedTicker(userMsg: string): string | null {
+  const text = String(userMsg || '');
+
+  // Highest-signal pattern: explicit cashtag like "$aapl"
+  const cashtag = text.match(/\$([a-z]{1,5})\b/i);
+  if (cashtag?.[1]) return cashtag[1].toUpperCase();
+
+  // Common intent pattern: "analyze aapl" / "analyze AAPL"
+  const analyze = text.match(/\banalyze\s+([a-z]{1,5})\b/i);
+  if (analyze?.[1]) return analyze[1].toUpperCase();
+
+  return null;
+}
+
 async function fetchMarketSnapshot(symbols: string[]): Promise<MarketSnapshot[]> {
   if (symbols.length === 0) return [];
 
@@ -453,6 +467,7 @@ function ensureStructuredResponse(raw: string, userMsg: string, context?: ChatCo
  */
 function generateDemoResponse(userMsg: string, context?: ChatContext, snapshot: MarketSnapshot[] = [], providerDraft?: string): string {
   const lower = userMsg.toLowerCase();
+  const requestedTicker = extractRequestedTicker(userMsg);
   const profile = context?.userProfile;
   const risk = profile?.riskTolerance || 'moderate';
   const style = profile?.tradingStyle || (detectIntent(userMsg) === 'scalp' ? 'scalp' : 'swing');
@@ -466,6 +481,9 @@ function generateDemoResponse(userMsg: string, context?: ChatContext, snapshot: 
         })
         .join(' | ')
     : 'Live market snapshot unavailable; structure-based planning only.';
+  const marketContextForRequestedTicker = requestedTicker
+    ? `${requestedTicker} requested. Live quote unavailable in fallback path; using structure + volatility template.`
+    : marketContext;
   const subject =
     lower.includes('btc') || lower.includes('bitcoin')
       ? 'BTC'
@@ -473,10 +491,12 @@ function generateDemoResponse(userMsg: string, context?: ChatContext, snapshot: 
         ? 'ETH'
         : lower.includes('sol') || lower.includes('solana')
           ? 'SOL'
-          : 'Market';
+          : requestedTicker || 'Market';
 
   const isRiskQuestion =
     lower.includes('risk') || lower.includes('stop') || lower.includes('drawdown') || lower.includes('size');
+  const isParabolic = lower.includes('parabolic') || lower.includes('deploy') || lower.includes('breakout');
+  const isAnalyzeTicker = !!requestedTicker;
 
   const profileSize = typeof profile?.portfolioValue === 'number'
     ? Math.max(0.5, Math.min(3, +(profile.portfolioValue >= 100000 ? 1 : profile.portfolioValue >= 25000 ? 1.5 : 2).toFixed(2)))
@@ -489,6 +509,74 @@ function generateDemoResponse(userMsg: string, context?: ChatContext, snapshot: 
   const providerNote = providerDraft && !providerDraft.includes('**Signal**:')
     ? `\n\nOperator note: model draft was normalized into TradeHax structured format for execution clarity.`
     : '';
+
+  if (isParabolic) {
+    const baseFromSnapshot = liveSnapshot.find((s) => s.symbol === subject)?.price;
+    const baseSeed = Math.abs(subject.split('').reduce((n, ch) => n + ch.charCodeAt(0), 0));
+    const basePrice = typeof baseFromSnapshot === 'number' ? baseFromSnapshot : 40 + (baseSeed % 260);
+    const atr = Math.max(0.6, +(basePrice * 0.018).toFixed(2));
+    const entry = +basePrice.toFixed(2);
+    const stop = +(entry - atr * 1.5).toFixed(2);
+    const target = +(entry + (entry - stop) * 3).toFixed(2);
+    const size = risk === 'aggressive' ? '2.0%' : risk === 'conservative' ? '0.8%' : '1.2%';
+
+    return `**Signal**: PARABOLIC DEPLOY ${subject} 74% (Execution Mode)
+
+**Price Target**: ${target} (3R objective from momentum trigger)
+
+**Market Context**: ${marketContext}
+
+**Reasoning**:
+• Momentum Regime: Expansion bias if trigger candle closes above local structure (weight: 35%)
+• Volatility Fit: ATR-derived stop keeps risk normalized across instruments (weight: 35%)
+• Execution Discipline: 3R profile improves expectancy if invalidation is honored (weight: 30%)
+
+**Execution Playbook**:
+• Entry: ${entry}
+• Take-profit: ${target}
+• Invalidation: ${stop}
+
+**Risk Management**:
+• Stop-loss: ${stop}
+• Position size: ${size} portfolio risk per trade
+• Max drawdown: Pause after two failed parabolic attempts in one session
+
+**Confidence**: High-moderate if confirmation candle closes with rising participation.${providerNote}`;
+  }
+
+  // Equity/unknown ticker specific path so requests like "analyze $aapl" are not generic.
+  if (isAnalyzeTicker && requestedTicker) {
+    const baseSeed = Math.abs(requestedTicker.split('').reduce((n, ch) => n + ch.charCodeAt(0), 0));
+    const syntheticPrice = 40 + (baseSeed % 260);
+    const atr = +(syntheticPrice * 0.018).toFixed(2);
+    const entry = +syntheticPrice.toFixed(2);
+    const stop = +(entry - atr * 1.4).toFixed(2);
+    const target = +(entry + (entry - stop) * 2.4).toFixed(2);
+    const confidence = 55 + (baseSeed % 20);
+
+    return `**Signal**: ${confidence >= 64 ? 'BUY' : 'HOLD'} ${confidence}% (Execution Mode)
+
+**Price Target**: ${target} in 3-8 sessions if structure confirms.
+
+**Market Context**: ${marketContextForRequestedTicker}
+
+**Reasoning**:
+• Structure: Setup quality improves on reclaim and hold above prior resistance (weight: 35%)
+• Volatility: ATR-normalized stop keeps risk stable across sessions (weight: 30%)
+• Timing: Confirmed closes outperform anticipatory entries in mixed regimes (weight: 35%)
+
+**Execution Playbook**:
+• Entry: ${entry}
+• Take-profit: ${target}
+• Invalidation: ${stop}
+
+**Risk Management**:
+• Stop-loss: ${stop}
+• Position size: ${Math.max(0.75, profileSize).toFixed(2)}% portfolio risk per trade
+• Max drawdown: Pause after two invalidations before re-entry
+
+**Confidence**: ${confidence >= 64 ? 'Moderate-high' : 'Moderate'}. Use confirmation candles for cleaner expectancy.${providerNote}`;
+  }
 
   if (subject === 'BTC') {
     return `**Signal**: HOLD 65% (Execution Mode)
@@ -792,8 +880,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // --- Extract Assets and Detect Intent ---
     const allMessages = (recentMessages || []).concat(messages);
     const flatText = allMessages.map((msg) => msg.content).join(' ');
-    const assets = detectAssets(flatText, body.context);
-    const intent = detectIntent(flatText);
+    const latestUserMsg = String(messages[messages.length - 1]?.content || '');
+    // Prioritize the newest prompt so stale history (e.g., LINK) does not pollute current analysis.
+    const assets = detectAssets(latestUserMsg, body.context);
+    const intent = detectIntent(latestUserMsg || flatText);
 
     // --- Fetch Live Market Data ---
     const marketSnapshot = await fetchMarketSnapshot(assets);

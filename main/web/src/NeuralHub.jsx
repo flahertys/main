@@ -17,6 +17,26 @@ const MODE_OPTIONS = [
 
 const HISTORY_KEY = "neuralHub.localHistory.v3";
 const CHAT_SESSIONS_KEY = "neuralHub.chatSessions.v2";
+const TOUR_SEEN_KEY = "neuralHub.tourSeen.v1";
+
+const TOUR_STEPS = [
+  {
+    title: "Welcome to Neural Hub",
+    body: "This is your trading copilot. Start in BASE mode, then move to ADVANCED or ODIN when ready.",
+  },
+  {
+    title: "Choose a Mode",
+    body: "Use the mode selector in the left panel. ODIN requires wallet unlock unless open mode is enabled.",
+  },
+  {
+    title: "Ask Better Prompts",
+    body: "Try: 'analyze $AAPL' or 'deploy parabolic on BTC risk 4' for structured outputs.",
+  },
+  {
+    title: "Read the Monitor",
+    body: "Right panel shows effective mode, provider path, latency, and gating status in real time.",
+  },
+];
 
 function makeId() {
   const c = globalThis?.crypto;
@@ -40,6 +60,8 @@ export default function NeuralHub() {
   const [walletConnected, setWalletConnected] = useState(false);
   const [lastMeta, setLastMeta] = useState(null);
   const [lastChunkCount, setLastChunkCount] = useState(0);
+  const [showTour, setShowTour] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
   const [messages, setMessages] = useState([
     {
       id: makeId(),
@@ -55,10 +77,18 @@ export default function NeuralHub() {
     try {
       const raw = localStorage.getItem(HISTORY_KEY);
       if (raw) setHistory(JSON.parse(raw));
+      const seen = localStorage.getItem(TOUR_SEEN_KEY);
+      if (!seen) setShowTour(true);
     } catch {
       setHistory([]);
     }
   }, []);
+
+  function closeTour(markSeen = true) {
+    setShowTour(false);
+    setTourStep(0);
+    if (markSeen) localStorage.setItem(TOUR_SEEN_KEY, "1");
+  }
 
   useEffect(() => {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 10)));
@@ -320,7 +350,76 @@ export default function NeuralHub() {
             </div>
           </div>
         </section>
+
+        <section style={{ borderRadius: 20, padding: 16, background: "#18181B", border: "1px solid #3F3F46" }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#A1A1AA", marginBottom: 10 }}>First-Time Guide</div>
+          <div style={{ fontSize: 13, color: "#D4D4D8", lineHeight: 1.6 }}>
+            <div>1) Start in <strong>BASE</strong> mode</div>
+            <div>2) Try <strong>analyze $AAPL</strong></div>
+            <div>3) Try <strong>deploy parabolic on BTC risk 4</strong></div>
+            <div>4) Watch Provider Path + Effective Mode</div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowTour(true);
+                setTourStep(0);
+              }}
+              style={{ marginTop: 10, borderRadius: 999, border: "1px solid #3F3F46", background: "#27272A", color: "#E4E4E7", padding: "6px 10px", fontSize: 11 }}
+            >
+              Start Guided Tour
+            </button>
+          </div>
+        </section>
       </aside>
+
+      {showTour && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "grid", placeItems: "center", zIndex: 1000 }}>
+          <div style={{ width: "min(560px, 92vw)", borderRadius: 18, background: "#111114", border: "1px solid #3F3F46", padding: 18 }}>
+            <div style={{ fontSize: 11, color: "#A1A1AA", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+              Guided Tour • Step {tourStep + 1}/{TOUR_STEPS.length}
+            </div>
+            <div style={{ marginTop: 8, fontSize: 20, fontWeight: 800 }}>{TOUR_STEPS[tourStep].title}</div>
+            <div style={{ marginTop: 10, color: "#D4D4D8", lineHeight: 1.6 }}>{TOUR_STEPS[tourStep].body}</div>
+            <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => closeTour(false)}
+                style={{ borderRadius: 10, border: "1px solid #3F3F46", background: "transparent", color: "#D4D4D8", padding: "8px 12px" }}
+              >
+                Close
+              </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                {tourStep > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setTourStep((s) => Math.max(0, s - 1))}
+                    style={{ borderRadius: 10, border: "1px solid #3F3F46", background: "#18181B", color: "#D4D4D8", padding: "8px 12px" }}
+                  >
+                    Back
+                  </button>
+                )}
+                {tourStep < TOUR_STEPS.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setTourStep((s) => Math.min(TOUR_STEPS.length - 1, s + 1))}
+                    style={{ borderRadius: 10, border: 0, background: "#10B981", color: "#052E16", fontWeight: 700, padding: "8px 14px" }}
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => closeTour(true)}
+                    style={{ borderRadius: 10, border: 0, background: "#10B981", color: "#052E16", fontWeight: 700, padding: "8px 14px" }}
+                  >
+                    Finish
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
