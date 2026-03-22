@@ -18,7 +18,7 @@ export interface ChatMessage {
 
 export interface ChatResponse {
   response: string;
-  provider: 'huggingface' | 'openai' | 'demo';
+  provider: 'huggingface' | 'openai' | 'xai' | 'demo';
   model: string;
   timestamp: number;
   cached?: boolean;

@@ -15,7 +15,7 @@ import {
 import { resolveRuntimeProviderConfig, validateProvidersAtRuntime } from './provider-runtime.js';
 
 interface ProviderStatus {
-  name: 'huggingface' | 'openai' | 'demo';
+  name: 'huggingface' | 'openai' | 'xai' | 'demo';
   reachable: boolean;
   lastCheckMs: number;
   reason?: 'ok' | 'missing_key' | 'invalid_key_format' | 'auth_failed' | 'provider_down' | 'timeout' | 'network_error' | 'unknown';
@@ -87,6 +87,16 @@ async function checkProvidersHealth(): Promise<ProviderStatus[]> {
       configured: !!runtimeConfig.openAiKey,
       keyValid: snapshot.openai.keyValid,
       statusCode: snapshot.openai.statusCode,
+    },
+    {
+      name: 'xai',
+      reachable: snapshot.xai.reachable,
+      lastCheckMs: snapshot.xai.latencyMs,
+      reason: snapshot.xai.reason,
+      validated: snapshot.xai.validated,
+      configured: !!runtimeConfig.xAiKey,
+      keyValid: snapshot.xai.keyValid,
+      statusCode: snapshot.xai.statusCode,
     },
   ];
 
@@ -226,6 +236,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       providers: [
         { name: 'huggingface', reachable: false, lastCheckMs: 0 },
         { name: 'openai', reachable: false, lastCheckMs: 0 },
+        { name: 'xai', reachable: false, lastCheckMs: 0 },
         { name: 'demo', reachable: true, lastCheckMs: 1 },
       ],
       modes: [

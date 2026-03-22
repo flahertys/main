@@ -45,13 +45,13 @@ interface ChatResponseMeta {
   requestedMode: 'base' | 'advanced' | 'odin';
   effectiveMode: 'base' | 'advanced' | 'odin';
   gated: boolean;
-  providerPath: 'huggingface' | 'openai' | 'demo';
+  providerPath: 'huggingface' | 'openai' | 'xai' | 'demo';
   latencyMs: number;
 }
 
 interface ChatResponse {
   response: string;
-  provider: 'huggingface' | 'openai' | 'demo';
+  provider: 'huggingface' | 'openai' | 'xai' | 'demo';
   model: string;
   timestamp: number;
   cached?: boolean;
@@ -227,6 +227,35 @@ async function callOpenAI(messages: ChatMessage[], temperature = 0.7, openAiKey 
 
   const data = await response.json();
   return data.choices[0]?.message?.content || '';
+}
+
+/**
+ * Call xAI API (Grok) as additional live fallback
+ */
+async function callXAI(messages: ChatMessage[], temperature = 0.7, xAiKey = resolveRuntimeProviderConfig().xAiKey): Promise<string> {
+  if (!xAiKey) throw new Error('No xAI key');
+
+  const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${xAiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: process.env.XAI_MODEL || 'grok-4',
+      messages,
+      temperature,
+      max_tokens: 1024,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`xAI error ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
 }
 
 /**
@@ -865,6 +894,7 @@ function generateDemoResponse(userMsg: string, context?: ChatContext, snapshot: 
 const PROVIDER_STATUS = {
   huggingface: false,
   openai: false,
+  xai: false,
   lastChecked: null as null | number,
   error: ''
 };
@@ -873,6 +903,7 @@ function syncProviderStatus(snapshot: Awaited<ReturnType<typeof validateProvider
   PROVIDER_STATUS.lastChecked = snapshot.checkedAt;
   PROVIDER_STATUS.huggingface = snapshot.huggingface.validated;
   PROVIDER_STATUS.openai = snapshot.openai.validated;
+  PROVIDER_STATUS.xai = snapshot.xai.validated;
 
   const errorNotes: string[] = [];
   if (!snapshot.huggingface.validated) {
@@ -880,6 +911,9 @@ function syncProviderStatus(snapshot: Awaited<ReturnType<typeof validateProvider
   }
   if (!snapshot.openai.validated) {
     errorNotes.push(`OpenAI:${snapshot.openai.reason}`);
+  }
+  if (!snapshot.xai.validated) {
+    errorNotes.push(`xAI:${snapshot.xai.reason}`);
   }
   PROVIDER_STATUS.error = errorNotes.join(' ');
 }
@@ -902,6 +936,7 @@ async function healthHandler(req: VercelRequest, res: VercelResponse) {
     env: {
       huggingface: runtimeConfig.hfTokens.length > 0,
       openai: !!runtimeConfig.openAiKey,
+      xai: !!runtimeConfig.xAiKey,
     },
   });
 }
@@ -954,7 +989,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log(`[AI_CHAT] ${new Date().toISOString()} | ${req.method} ${req.url}`);
     if (!runtimeConfig.hfTokens.length) console.warn('[WARN] HUGGINGFACE API token missing');
     if (!runtimeConfig.openAiKey) console.warn('[WARN] OPENAI_API_KEY missing');
-    if (!PROVIDER_STATUS.huggingface && !PROVIDER_STATUS.openai) {
+    if (!runtimeConfig.xAiKey) console.warn('[WARN] XAI_API_KEY missing');
+    if (!PROVIDER_STATUS.huggingface && !PROVIDER_STATUS.openai && !PROVIDER_STATUS.xai) {
       console.error('[ERROR] No AI providers available!');
     }
     // Parse body defensively because some runtimes/proxies may pass raw JSON strings.
@@ -1086,28 +1122,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ODIN prefers OpenAI but can use HF as fallback
     const hasHf = runtimeConfig.hfTokens.length > 0;
     const hasOpenAI = !!runtimeConfig.openAiKey;
+    const hasXAI = !!runtimeConfig.xAiKey;
     const forceDemo = getConsoleConfig().forceDemo === true;
-    let provider: 'huggingface' | 'openai' | 'demo' = 'demo';
+    let provider: 'huggingface' | 'openai' | 'xai' | 'demo' = 'demo';
 
     // Determine which providers are confirmed available from health check
     const hfValidated = providerSnapshot.huggingface.validated;
     const oaiValidated = providerSnapshot.openai.validated;
+    const xaiValidated = providerSnapshot.xai.validated;
 
     // For base/advanced modes: try all available providers before demo fallback
     // For odin mode: prefer OpenAI, then HF
-    const preferredOrder: Array<'huggingface' | 'openai'> =
+    const preferredOrder: Array<'huggingface' | 'openai' | 'xai'> =
       effectiveMode === 'odin'
-        ? ['openai', 'huggingface']
-        : ['huggingface', 'openai'];
+        ? ['xai', 'openai', 'huggingface']
+        : ['huggingface', 'xai', 'openai'];
 
     // First pass: use providers that passed health check
     const validatedOrder = preferredOrder.filter((candidate) =>
-      candidate === 'huggingface' ? hfValidated : oaiValidated,
+      candidate === 'huggingface'
+        ? hfValidated
+        : candidate === 'openai'
+          ? oaiValidated
+          : xaiValidated,
     );
 
     // Fallback: use providers that are configured in env (even if health check failed)
     const configuredOrder = preferredOrder.filter((candidate) =>
-      candidate === 'huggingface' ? hasHf : hasOpenAI,
+      candidate === 'huggingface'
+        ? hasHf
+        : candidate === 'openai'
+          ? hasOpenAI
+          : hasXAI,
     );
 
     // Merged order: prioritize validated, then fallback to just-configured
@@ -1120,6 +1166,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       for (const candidate of providerOrder) {
         if (candidate === 'huggingface' && !hasHf) continue;
         if (candidate === 'openai' && !hasOpenAI) continue;
+        if (candidate === 'xai' && !hasXAI) continue;
 
         try {
           if (candidate === 'huggingface') {
@@ -1128,8 +1175,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return out;
           }
 
-          const out = await callOpenAI(providerMessages, temperature, runtimeConfig.openAiKey);
-          provider = 'openai';
+          if (candidate === 'openai') {
+            const out = await callOpenAI(providerMessages, temperature, runtimeConfig.openAiKey);
+            provider = 'openai';
+            return out;
+          }
+
+          const out = await callXAI(providerMessages, temperature, runtimeConfig.xAiKey);
+          provider = 'xai';
           return out;
         } catch (err) {
           lastErr = err;
@@ -1224,15 +1277,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     // --- Cache and Respond ---
-    const activeProvider: 'huggingface' | 'openai' | 'demo' = provider;
-    const modelByProvider: Record<'huggingface' | 'openai' | 'demo', string> = {
+    const activeProvider: 'huggingface' | 'openai' | 'xai' | 'demo' = provider;
+    const modelByProvider: Record<'huggingface' | 'openai' | 'xai' | 'demo', string> = {
       huggingface: LAST_HF_MODEL_USED,
       openai: 'gpt-4-turbo-preview',
+      xai: process.env.XAI_MODEL || 'grok-4',
       demo: 'demo-response-engine',
     };
-    const isDemoProvider: Record<'huggingface' | 'openai' | 'demo', boolean> = {
+    const isDemoProvider: Record<'huggingface' | 'openai' | 'xai' | 'demo', boolean> = {
       huggingface: false,
       openai: false,
+      xai: false,
       demo: true,
     };
 

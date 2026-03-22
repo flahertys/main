@@ -15,7 +15,7 @@ export interface AIChatTelemetryEvent {
   mode?: 'base' | 'advanced' | 'odin';
   requestedMode?: string;
   effectiveMode?: string;
-  providerPath?: 'huggingface' | 'openai' | 'demo';
+  providerPath?: 'huggingface' | 'openai' | 'xai' | 'demo';
   latencyMs?: number;
   model?: string;
   cached?: boolean;

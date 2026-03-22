@@ -1,4 +1,4 @@
-type ProviderName = 'huggingface' | 'openai';
+type ProviderName = 'huggingface' | 'openai' | 'xai';
 
 type ProviderReason =
   | 'ok'
@@ -25,11 +25,13 @@ export interface RuntimeProviderSnapshot {
   checkedAt: number;
   huggingface: ProviderProbeResult;
   openai: ProviderProbeResult;
+  xai: ProviderProbeResult;
 }
 
 export interface RuntimeProviderConfig {
   hfTokens: string[];
   openAiKey: string;
+  xAiKey: string;
   hfModels: string[];
 }
 
@@ -130,6 +132,12 @@ function isInvalidKeyFormat(key: string, provider: 'huggingface' | 'openai'): bo
   return false;
 }
 
+function isInvalidXaiKeyFormat(key: string): boolean {
+  if (!key || key.length < 20) return true;
+  if (looksLikePlaceholderValue(key)) return true;
+  return false;
+}
+
 export function resolveRuntimeProviderConfig(): RuntimeProviderConfig {
   const hfTokens = Array.from(new Set(
     HF_TOKEN_KEYS
@@ -148,6 +156,7 @@ export function resolveRuntimeProviderConfig(): RuntimeProviderConfig {
   return {
     hfTokens,
     openAiKey: resolveEnv('OPENAI_API_KEY', 'web_OPENAI_API_KEY'),
+    xAiKey: resolveEnv('XAI_API_KEY', 'GROK_API_KEY', 'XAI_KEY', 'web_XAI_API_KEY'),
     hfModels,
   };
 }
@@ -350,23 +359,114 @@ async function probeOpenAI(config: RuntimeProviderConfig, timeoutMs: number): Pr
   }
 }
 
+async function probeXAI(config: RuntimeProviderConfig, timeoutMs: number): Promise<ProviderProbeResult> {
+  const start = Date.now();
+  if (!config.xAiKey) {
+    return {
+      name: 'xai',
+      reachable: false,
+      validated: false,
+      latencyMs: Date.now() - start,
+      reason: 'missing_key',
+      keyValid: false,
+    };
+  }
+
+  if (isInvalidXaiKeyFormat(config.xAiKey)) {
+    return {
+      name: 'xai',
+      reachable: false,
+      validated: false,
+      latencyMs: Date.now() - start,
+      reason: 'invalid_key_format',
+      detail: 'xAI key has invalid format',
+      keyValid: false,
+    };
+  }
+
+  const timeout = withTimeout(timeoutMs);
+  try {
+    const response = await fetch('https://api.x.ai/v1/models', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${config.xAiKey}`,
+      },
+      signal: timeout.signal,
+    });
+    timeout.clear();
+
+    if (response.ok) {
+      return {
+        name: 'xai',
+        reachable: true,
+        validated: true,
+        latencyMs: Date.now() - start,
+        reason: 'ok',
+        statusCode: response.status,
+        keyValid: true,
+      };
+    }
+
+    const detail = await response.text();
+    const reason = classifyFailure(response.status, detail);
+    return {
+      name: 'xai',
+      reachable: false,
+      validated: false,
+      latencyMs: Date.now() - start,
+      reason,
+      statusCode: response.status,
+      detail,
+      keyValid: response.status !== 401 && response.status !== 403,
+    };
+  } catch (error) {
+    timeout.clear();
+
+    if ((error as Error).name === 'AbortError') {
+      return {
+        name: 'xai',
+        reachable: false,
+        validated: false,
+        latencyMs: Date.now() - start,
+        reason: 'timeout',
+        detail: 'xAI probe timed out',
+        keyValid: true,
+      };
+    }
+
+    return {
+      name: 'xai',
+      reachable: false,
+      validated: false,
+      latencyMs: Date.now() - start,
+      reason: 'network_error',
+      detail: (error as Error).message || 'Network error',
+      keyValid: true,
+    };
+  }
+}
+
 export async function validateProvidersAtRuntime(options?: {
   hfTimeoutMs?: number;
   openaiTimeoutMs?: number;
+  xaiTimeoutMs?: number;
 }): Promise<RuntimeProviderSnapshot> {
   const config = resolveRuntimeProviderConfig();
   const hfTimeoutMs = options?.hfTimeoutMs ?? parseInt(process.env.AI_HEALTH_CHECK_HF_TIMEOUT_MS || '4500', 10);
   const openaiTimeoutMs = options?.openaiTimeoutMs ?? parseInt(process.env.AI_HEALTH_CHECK_OA_TIMEOUT_MS || '4500', 10);
+  const xaiTimeoutMs = options?.xaiTimeoutMs ?? parseInt(process.env.AI_HEALTH_CHECK_XAI_TIMEOUT_MS || '4500', 10);
 
-  const [huggingface, openai] = await Promise.all([
+  const [huggingface, openai, xai] = await Promise.all([
     probeHuggingFace(config, hfTimeoutMs),
     probeOpenAI(config, openaiTimeoutMs),
+    probeXAI(config, xaiTimeoutMs),
   ]);
 
   return {
     checkedAt: Date.now(),
     huggingface,
     openai,
+    xai,
   };
 }
 
