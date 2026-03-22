@@ -18,35 +18,12 @@ import { validateResponse, detectHallucinations, extractTradingParameters } from
 import { processConsoleCommand, recordResponseMetric, shouldAutoRejectResponse, getConsoleConfig } from './console.js';
 import { logResponseToDatabase } from '../db/metrics-service.js';
 import { recordAIChatEvent } from './telemetry-repository.js';
+import { resolveRuntimeProviderConfig, validateProvidersAtRuntime } from './provider-runtime.js';
 
-function resolveEnv(...keys: string[]): string {
-  for (const key of keys) {
-    const value = process.env[key];
-    if (typeof value === 'string' && value.trim().length > 0) return value.trim();
-  }
-  return '';
-}
-
-const HF_API_TOKENS = Array.from(new Set([
-  process.env.HUGGINGFACE_API_KEY,
-  process.env.HF_API_TOKEN,
-  process.env.HF_API_TOKEN_REICH,
-  process.env.HF_API_TOKEN_ALT1,
-  process.env.HF_API_TOKEN_ALT2,
-  process.env.HF_API_TOKEN_ALT3,
-  process.env.web_HF_API_TOKEN,
-].map((v) => (typeof v === 'string' ? v.trim() : '')).filter((v): v is string => v.length > 0)));
-const HF_API_KEY = HF_API_TOKENS[0] || '';
-const OPENAI_API_KEY = resolveEnv('OPENAI_API_KEY', 'web_OPENAI_API_KEY');
 const POLYGON_API_KEY = process.env.POLYGON_API_KEY || '';
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || '';
-const HF_MODEL = process.env.HF_MODEL_ID || 'meta-llama/Llama-3.3-70B-Instruct';
-const HF_FALLBACK_MODELS = (process.env.HF_FALLBACK_MODELS || '')
-  .split(',')
-  .map((m) => m.trim())
-  .filter(Boolean);
-const HF_MODELS = Array.from(new Set([HF_MODEL, ...HF_FALLBACK_MODELS]));
-let LAST_HF_MODEL_USED = HF_MODELS[0] || HF_MODEL;
+const DEFAULT_HF_MODEL = process.env.HF_MODEL_ID || 'meta-llama/Llama-3.3-70B-Instruct';
+let LAST_HF_MODEL_USED = DEFAULT_HF_MODEL;
 
 // In-memory cache for deduplication
 const requestCache = new Map<string, { response: any; timestamp: number }>();
@@ -170,14 +147,14 @@ async function getGuardedProviderResponse(
 /**
  * Call HuggingFace Inference API (Free Tier)
  */
-async function callHuggingFace(messages: ChatMessage[], temperature = 0.7): Promise<string> {
-  if (!HF_API_TOKENS.length) throw new Error('No HF key');
+async function callHuggingFace(messages: ChatMessage[], temperature = 0.7, runtimeConfig = resolveRuntimeProviderConfig()): Promise<string> {
+  if (!runtimeConfig.hfTokens.length) throw new Error('No HF key');
 
   const prompt = formatForLlama(messages);
   let lastErr = 'Unknown HF error';
 
-  for (const modelId of HF_MODELS) {
-    for (const token of HF_API_TOKENS) {
+  for (const modelId of runtimeConfig.hfModels) {
+    for (const token of runtimeConfig.hfTokens) {
       const response = await fetch(`https://api-inference.huggingface.co/models/${modelId}`, {
         method: 'POST',
         headers: {
@@ -226,13 +203,13 @@ async function callHuggingFace(messages: ChatMessage[], temperature = 0.7): Prom
 /**
  * Call OpenAI API (Fallback)
  */
-async function callOpenAI(messages: ChatMessage[], temperature = 0.7): Promise<string> {
-  if (!OPENAI_API_KEY) throw new Error('No OpenAI key');
+async function callOpenAI(messages: ChatMessage[], temperature = 0.7, openAiKey = resolveRuntimeProviderConfig().openAiKey): Promise<string> {
+  if (!openAiKey) throw new Error('No OpenAI key');
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Authorization': `Bearer ${openAiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -892,68 +869,39 @@ const PROVIDER_STATUS = {
   error: ''
 };
 
-async function checkProviderHealth() {
-  PROVIDER_STATUS.lastChecked = Date.now();
-  PROVIDER_STATUS.error = '';
-  // HuggingFace
-  if (HF_API_TOKENS.length) {
-    try {
-      const resp = await fetch(`https://api-inference.huggingface.co/models/${HF_MODELS[0] || HF_MODEL}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${HF_API_TOKENS[0]}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ inputs: 'health check', parameters: { max_new_tokens: 1 } }),
-      });
-      PROVIDER_STATUS.huggingface = resp.ok;
-      if (!resp.ok) PROVIDER_STATUS.error += `HF: ${resp.status} `;
-    } catch (e) {
-      PROVIDER_STATUS.huggingface = false;
-      PROVIDER_STATUS.error += 'HF: ' + (e as Error).message + ' ';
-    }
-  } else {
-    PROVIDER_STATUS.huggingface = false;
-    PROVIDER_STATUS.error += 'HF: No API key. ';
+function syncProviderStatus(snapshot: Awaited<ReturnType<typeof validateProvidersAtRuntime>>) {
+  PROVIDER_STATUS.lastChecked = snapshot.checkedAt;
+  PROVIDER_STATUS.huggingface = snapshot.huggingface.validated;
+  PROVIDER_STATUS.openai = snapshot.openai.validated;
+
+  const errorNotes: string[] = [];
+  if (!snapshot.huggingface.validated) {
+    errorNotes.push(`HF:${snapshot.huggingface.reason}`);
   }
-  // OpenAI
-  if (OPENAI_API_KEY) {
-    try {
-      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ model: 'gpt-4-turbo-preview', messages: [{ role: 'system', content: 'health check' }], max_tokens: 1 }),
-      });
-      PROVIDER_STATUS.openai = resp.ok;
-      if (!resp.ok) PROVIDER_STATUS.error += `OpenAI: ${resp.status} `;
-    } catch (e) {
-      PROVIDER_STATUS.openai = false;
-      PROVIDER_STATUS.error += 'OpenAI: ' + (e as Error).message + ' ';
-    }
-  } else {
-    PROVIDER_STATUS.openai = false;
-    PROVIDER_STATUS.error += 'OpenAI: No API key. ';
+  if (!snapshot.openai.validated) {
+    errorNotes.push(`OpenAI:${snapshot.openai.reason}`);
   }
-  console.log('[HEALTH] Provider status:', JSON.stringify(PROVIDER_STATUS));
+  PROVIDER_STATUS.error = errorNotes.join(' ');
 }
 
-// Run health check at startup
-checkProviderHealth();
+async function checkProviderHealth() {
+  const snapshot = await validateProvidersAtRuntime();
+  syncProviderStatus(snapshot);
+  console.log('[HEALTH] Provider status:', JSON.stringify(PROVIDER_STATUS));
+}
 
 // --- Health Endpoint ---
 async function healthHandler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   await checkProviderHealth();
+  const runtimeConfig = resolveRuntimeProviderConfig();
   return res.status(200).json({
     status: 'ok',
     time: new Date().toISOString(),
     provider: PROVIDER_STATUS,
     env: {
-      huggingface: !!HF_API_KEY,
-      openai: !!OPENAI_API_KEY,
+      huggingface: runtimeConfig.hfTokens.length > 0,
+      openai: !!runtimeConfig.openAiKey,
     },
   });
 }
@@ -998,10 +946,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const runtimeConfig = resolveRuntimeProviderConfig();
+    const providerSnapshot = await validateProvidersAtRuntime();
+    syncProviderStatus(providerSnapshot);
+
     // --- Runtime Logging ---
     console.log(`[AI_CHAT] ${new Date().toISOString()} | ${req.method} ${req.url}`);
-    if (!HF_API_TOKENS.length) console.warn('[WARN] HUGGINGFACE API token missing');
-    if (!OPENAI_API_KEY) console.warn('[WARN] OPENAI_API_KEY missing');
+    if (!runtimeConfig.hfTokens.length) console.warn('[WARN] HUGGINGFACE API token missing');
+    if (!runtimeConfig.openAiKey) console.warn('[WARN] OPENAI_API_KEY missing');
     if (!PROVIDER_STATUS.huggingface && !PROVIDER_STATUS.openai) {
       console.error('[ERROR] No AI providers available!');
     }
@@ -1129,38 +1081,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const providerMessages = buildProviderMessages(systemPrompt, messages as ChatMessage[]);
 
     // --- Provider Selection Logic ---
-    // Do not rely only on startup health flags; attempt providers per-request with real failover.
-    const hasHf = HF_API_TOKENS.length > 0;
-    const hasOpenAI = !!OPENAI_API_KEY;
+    // Prefer: validated providers first (by health check), then configured providers (by env keys)
+    // Base/Advanced should try all live providers before falling to demo
+    // ODIN prefers OpenAI but can use HF as fallback
+    const hasHf = runtimeConfig.hfTokens.length > 0;
+    const hasOpenAI = !!runtimeConfig.openAiKey;
+    const forceDemo = getConsoleConfig().forceDemo === true;
     let provider: 'huggingface' | 'openai' | 'demo' = 'demo';
 
+    // Determine which providers are confirmed available from health check
+    const hfValidated = providerSnapshot.huggingface.validated;
+    const oaiValidated = providerSnapshot.openai.validated;
+
+    // For base/advanced modes: try all available providers before demo fallback
+    // For odin mode: prefer OpenAI, then HF
     const preferredOrder: Array<'huggingface' | 'openai'> =
       effectiveMode === 'odin'
         ? ['openai', 'huggingface']
         : ['huggingface', 'openai'];
 
+    // First pass: use providers that passed health check
+    const validatedOrder = preferredOrder.filter((candidate) =>
+      candidate === 'huggingface' ? hfValidated : oaiValidated,
+    );
+
+    // Fallback: use providers that are configured in env (even if health check failed)
+    const configuredOrder = preferredOrder.filter((candidate) =>
+      candidate === 'huggingface' ? hasHf : hasOpenAI,
+    );
+
+    // Merged order: prioritize validated, then fallback to just-configured
+    const providerOrder = validatedOrder.length > 0 ? validatedOrder : configuredOrder;
+
     const invoke = async (): Promise<string> => {
       let lastErr: unknown = new Error('No AI providers configured');
 
-      for (const candidate of preferredOrder) {
+      // Try preferred providers in order
+      for (const candidate of providerOrder) {
         if (candidate === 'huggingface' && !hasHf) continue;
         if (candidate === 'openai' && !hasOpenAI) continue;
 
         try {
           if (candidate === 'huggingface') {
-            const out = await callHuggingFace(providerMessages, temperature);
+            const out = await callHuggingFace(providerMessages, temperature, runtimeConfig);
             provider = 'huggingface';
             return out;
           }
 
-          const out = await callOpenAI(providerMessages, temperature);
+          const out = await callOpenAI(providerMessages, temperature, runtimeConfig.openAiKey);
           provider = 'openai';
           return out;
         } catch (err) {
           lastErr = err;
+          // Log but continue trying next provider
+          console.warn(`[PROVIDER_FALLBACK] ${candidate} failed:`, err instanceof Error ? err.message : String(err));
         }
       }
 
+      // Only fall back to demo after all configured providers have been exhausted
       provider = 'demo';
       throw lastErr;
     };
@@ -1168,9 +1146,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let rawResponse;
     let responseTime = 0;
     try {
-      const startTime = Date.now();
-      rawResponse = await getGuardedProviderResponse(invoke, messages[messages.length - 1].content, context, marketSnapshot);
-      responseTime = Date.now() - startTime;
+      if (forceDemo) {
+        provider = 'demo';
+        rawResponse = {
+          response: generateDemoResponse(messages[messages.length - 1].content, context, marketSnapshot),
+          blocked: false,
+          retried: false,
+        };
+      } else {
+        const startTime = Date.now();
+        rawResponse = await getGuardedProviderResponse(invoke, messages[messages.length - 1].content, context, marketSnapshot);
+        responseTime = Date.now() - startTime;
+      }
     } catch (err) {
       const fallbackResponse = generateDemoResponse(
         messages[messages.length - 1]?.content || '',

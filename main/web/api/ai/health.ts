@@ -12,11 +12,15 @@ import {
   countEventsByType,
   isTelemetryHealthy,
 } from './telemetry-repository.js';
+import { validateProvidersAtRuntime } from './provider-runtime.js';
 
 interface ProviderStatus {
   name: 'huggingface' | 'openai' | 'demo';
   reachable: boolean;
   lastCheckMs: number;
+  reason?: 'ok' | 'missing_key' | 'invalid_key_format' | 'auth_failed' | 'provider_down' | 'timeout' | 'network_error' | 'unknown';
+  validated?: boolean;
+  statusCode?: number;
   averageLatency?: number;
   errorCount?: number;
 }
@@ -51,125 +55,36 @@ interface HealthCheckResponse {
 
 // Track health check metrics
 let startTime = Date.now();
-let providerCheckCache: Map<string, { status: ProviderStatus; timestamp: number }> = new Map();
+let providerCheckCache: { providers: ProviderStatus[]; timestamp: number } | null = null;
 const HEALTH_CHECK_CACHE_TTL = 30000; // 30 seconds
 
-const HF_TOKEN_KEYS = [
-  'HUGGINGFACE_API_KEY',
-  'HF_API_TOKEN',
-  'HF_API_TOKEN_REICH',
-  'HF_API_TOKEN_ALT1',
-  'HF_API_TOKEN_ALT2',
-  'HF_API_TOKEN_ALT3',
-] as const;
-
-/**
- * Check if HuggingFace API is reachable
- * Fail-open: always returns true if we can't verify (assume working)
- */
-async function checkHuggingFaceHealth(): Promise<ProviderStatus> {
-  const cached = providerCheckCache.get('huggingface');
-  if (cached && Date.now() - cached.timestamp < HEALTH_CHECK_CACHE_TTL) {
-    return cached.status;
+async function checkProvidersHealth(): Promise<ProviderStatus[]> {
+  if (providerCheckCache && Date.now() - providerCheckCache.timestamp < HEALTH_CHECK_CACHE_TTL) {
+    return providerCheckCache.providers;
   }
 
-  const start = Date.now();
-  try {
-    const hasHf = HF_TOKEN_KEYS.some((k) => {
-      const v = process.env[k];
-      return typeof v === 'string' && v.trim().length > 0;
-    });
-
-    if (!hasHf) {
-      // No key = not configured, assume demo mode
-      return { name: 'huggingface', reachable: false, lastCheckMs: Date.now() - start };
-    }
-
-    const timeout = parseInt(process.env.AI_HEALTH_CHECK_HF_TIMEOUT_MS || '5000', 10);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    const response = await fetch('https://api-inference.huggingface.co/status', {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}` },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-    const latency = Date.now() - start;
-
-    const status: ProviderStatus = {
+  const snapshot = await validateProvidersAtRuntime();
+  const providers: ProviderStatus[] = [
+    {
       name: 'huggingface',
-      reachable: response.ok,
-      lastCheckMs: latency,
-    };
-
-    providerCheckCache.set('huggingface', { status, timestamp: Date.now() });
-    return status;
-  } catch (err) {
-    // Fail-open: assume reachable if we can't verify
-    const latency = Date.now() - start;
-    const status: ProviderStatus = {
-      name: 'huggingface',
-      reachable: true, // Optimistic: assume working until proven otherwise
-      lastCheckMs: latency,
-    };
-
-    providerCheckCache.set('huggingface', { status, timestamp: Date.now() });
-    return status;
-  }
-}
-
-/**
- * Check if OpenAI API is reachable
- * Fail-open: always returns true if we can't verify (assume working)
- */
-async function checkOpenAIHealth(): Promise<ProviderStatus> {
-  const cached = providerCheckCache.get('openai');
-  if (cached && Date.now() - cached.timestamp < HEALTH_CHECK_CACHE_TTL) {
-    return cached.status;
-  }
-
-  const start = Date.now();
-  try {
-    const oaKey = process.env.OPENAI_API_KEY || '';
-    if (!oaKey) {
-      return { name: 'openai', reachable: false, lastCheckMs: Date.now() - start };
-    }
-
-    const timeout = parseInt(process.env.AI_HEALTH_CHECK_OA_TIMEOUT_MS || '5000', 10);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    const response = await fetch('https://api.openai.com/v1/models', {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${oaKey}` },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-    const latency = Date.now() - start;
-
-    const status: ProviderStatus = {
+      reachable: snapshot.huggingface.reachable,
+      lastCheckMs: snapshot.huggingface.latencyMs,
+      reason: snapshot.huggingface.reason,
+      validated: snapshot.huggingface.validated,
+      statusCode: snapshot.huggingface.statusCode,
+    },
+    {
       name: 'openai',
-      reachable: response.ok,
-      lastCheckMs: latency,
-    };
+      reachable: snapshot.openai.reachable,
+      lastCheckMs: snapshot.openai.latencyMs,
+      reason: snapshot.openai.reason,
+      validated: snapshot.openai.validated,
+      statusCode: snapshot.openai.statusCode,
+    },
+  ];
 
-    providerCheckCache.set('openai', { status, timestamp: Date.now() });
-    return status;
-  } catch (err) {
-    // Fail-open: assume reachable if we can't verify
-    const latency = Date.now() - start;
-    const status: ProviderStatus = {
-      name: 'openai',
-      reachable: true,
-      lastCheckMs: latency,
-    };
-
-    providerCheckCache.set('openai', { status, timestamp: Date.now() });
-    return status;
-  }
+  providerCheckCache = { providers, timestamp: Date.now() };
+  return providers;
 }
 
 /**
@@ -234,13 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Parallel health checks
-    const [hfStatus, oaStatus] = await Promise.all([
-      checkHuggingFaceHealth(),
-      checkOpenAIHealth(),
-    ]);
-
-    const providers = [hfStatus, oaStatus, { name: 'demo' as const, reachable: true, lastCheckMs: 1 }];
+    const providers = [...await checkProvidersHealth(), { name: 'demo' as const, reachable: true, lastCheckMs: 1, reason: 'ok', validated: true }];
     const modes = getModeStatus();
     const recentEvents = getRecentEventsInMemory(1000);
     const eventTypes = countEventsByType(recentEvents);
