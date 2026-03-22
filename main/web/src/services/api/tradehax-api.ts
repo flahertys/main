@@ -9,6 +9,8 @@
  * - Health check utilities
  */
 
+import { API_ENDPOINTS } from '../../lib/endpoints';
+
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -134,7 +136,7 @@ export class TradeHaxAPI {
    */
   async chat(messages: ChatMessage[], context?: ChatContext): Promise<ChatResponse> {
     return this.fetchWithRetry<ChatResponse>(
-      `${this.baseUrl}/api/ai/chat`,
+      `${this.baseUrl}${API_ENDPOINTS.AI_CHAT}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -176,7 +178,7 @@ export class TradeHaxAPI {
    */
   async healthCheck(): Promise<{ ok: boolean; timestamp: number }> {
     try {
-      const response = await fetch(`${this.baseUrl}/__health`);
+      const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.AI_HEALTH}`);
       return {
         ok: response.ok,
         timestamp: Date.now()

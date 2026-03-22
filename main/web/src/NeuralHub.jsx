@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Mic, Wallet, Zap, Brain, MessageCircle } from "lucide-react";
+import { API_ENDPOINTS } from "./lib/endpoints";
+import { resolveSiteCapabilities } from "./lib/capabilities";
 
 const STARTER_PROMPTS = [
   "Give me a beginner-safe market summary for today.",
@@ -71,7 +73,14 @@ export default function NeuralHub() {
     },
   ]);
   const [history, setHistory] = useState([]);
+  const [capabilities, setCapabilities] = useState(null);
   const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    resolveSiteCapabilities().then(setCapabilities).catch(() => {
+      // Capabilities are advisory; do not block UI if probe fails.
+    });
+  }, []);
 
   useEffect(() => {
     try {
@@ -100,7 +109,7 @@ export default function NeuralHub() {
 
   // Record mode change telemetry
   useEffect(() => {
-    fetch("/api/ai/telemetry", {
+    fetch(API_ENDPOINTS.AI_TELEMETRY, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -115,7 +124,7 @@ export default function NeuralHub() {
 
   // Record wallet state change telemetry
   useEffect(() => {
-    fetch("/api/ai/telemetry", {
+    fetch(API_ENDPOINTS.AI_TELEMETRY, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -188,7 +197,7 @@ export default function NeuralHub() {
             ? "ADVANCED HF ENSEMBLE: combine momentum, risk, and structure in beginner-friendly language."
             : "BASE MODE: explain clearly for beginners with simple risk controls.";
 
-      const res = await fetch("/api/chat", {
+      const res = await fetch(API_ENDPOINTS.AI_CHAT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -360,6 +369,7 @@ export default function NeuralHub() {
         <section style={{ borderRadius: 20, padding: 16, background: "#18181B", border: "1px solid #3F3F46" }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#A1A1AA", marginBottom: 10 }}>Smart Environment Monitor</div>
           <div style={{ fontSize: 13, color: "#D4D4D8", lineHeight: 1.6 }}>
+            <div>Live AI Available: <strong>{capabilities?.liveProviderAvailable ? "YES" : "NO"}</strong></div>
             <div>Requested Mode: <strong>{mode.toUpperCase()}</strong></div>
             <div>Effective Mode: <strong>{(lastMeta?.effectiveMode || mode).toUpperCase()}</strong></div>
             <div>Provider Path: <strong>{(lastMeta?.providerPath || "pending").toUpperCase()}</strong></div>

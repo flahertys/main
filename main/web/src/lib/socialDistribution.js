@@ -254,8 +254,8 @@ export const PAYMENT_CONFIG = {
   },
 
   WEBHOOKS: {
-    DISCORD_WEBHOOK: '/api/webhooks/stripe/discord',
-    TELEGRAM_WEBHOOK: '/api/webhooks/stripe/telegram',
+    DISCORD_WEBHOOK: '/api/webhooks/stripe?channel=discord',
+    TELEGRAM_WEBHOOK: '/api/webhooks/stripe?channel=telegram',
   },
 };
 
