@@ -96,7 +96,7 @@ async function handleGrokRequest(
       system: SYSTEM_PROMPT,
       messages: messages as any,
       temperature: 0.7,
-      maxTokens: 2048,
+      maxOutputTokens: 2048,
     });
 
     let fullResponse = "";
@@ -110,15 +110,22 @@ async function handleGrokRequest(
 
     // Get final usage stats
     const usage = await result.usage;
+    const usageSafe = usage as {
+      inputTokens?: number;
+      outputTokens?: number;
+      totalTokens?: number;
+    };
 
     // Send completion event with metadata
     res.write(
       `data: ${JSON.stringify({
         done: true,
         usage: {
-          promptTokens: usage.promptTokens,
-          completionTokens: usage.completionTokens,
-          totalTokens: usage.totalTokens,
+          promptTokens: usageSafe.inputTokens ?? 0,
+          completionTokens: usageSafe.outputTokens ?? 0,
+          totalTokens:
+            usageSafe.totalTokens ??
+            (usageSafe.inputTokens ?? 0) + (usageSafe.outputTokens ?? 0),
         },
       })}\n\n`
     );

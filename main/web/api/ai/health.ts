@@ -149,7 +149,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const providers = [...await checkProvidersHealth(), { name: 'demo' as const, reachable: true, lastCheckMs: 1, reason: 'ok', validated: true }];
+    const demoProvider: ProviderStatus = {
+      name: 'demo',
+      reachable: true,
+      lastCheckMs: 1,
+      reason: 'ok',
+      validated: true,
+    };
+    const providers: ProviderStatus[] = [...await checkProvidersHealth(), demoProvider];
     const modes = getModeStatus();
     const recentEvents = getRecentEventsInMemory(1000);
     const eventTypes = countEventsByType(recentEvents);
