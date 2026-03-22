@@ -35,7 +35,7 @@ const HF_API_TOKENS = Array.from(new Set([
   process.env.HF_API_TOKEN_ALT2,
   process.env.HF_API_TOKEN_ALT3,
   process.env.web_HF_API_TOKEN,
-].filter((v): v is string => !!v && v.trim().length > 0)));
+].map((v) => (typeof v === 'string' ? v.trim() : '')).filter((v): v is string => v.length > 0)));
 const HF_API_KEY = HF_API_TOKENS[0] || '';
 const OPENAI_API_KEY = resolveEnv('OPENAI_API_KEY', 'web_OPENAI_API_KEY');
 const POLYGON_API_KEY = process.env.POLYGON_API_KEY || '';

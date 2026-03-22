@@ -22,7 +22,7 @@ const HF_API_TOKENS = Array.from(new Set([
   process.env.HF_API_TOKEN_ALT1,
   process.env.HF_API_TOKEN_ALT2,
   process.env.HF_API_TOKEN_ALT3,
-].filter((v): v is string => !!v && v.trim().length > 0)));
+].map((v) => (typeof v === 'string' ? v.trim() : '')).filter((v): v is string => v.length > 0)));
 const HF_API_KEY = HF_API_TOKENS[0] || "";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const HF_MODEL = process.env.HF_MODEL_ID || "meta-llama/Llama-3.3-70B-Instruct";
