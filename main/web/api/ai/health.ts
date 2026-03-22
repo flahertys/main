@@ -12,7 +12,7 @@ import {
   countEventsByType,
   isTelemetryHealthy,
 } from './telemetry-repository.js';
-import { validateProvidersAtRuntime } from './provider-runtime.js';
+import { resolveRuntimeProviderConfig, validateProvidersAtRuntime } from './provider-runtime.js';
 
 interface ProviderStatus {
   name: 'huggingface' | 'openai' | 'demo';
@@ -20,6 +20,8 @@ interface ProviderStatus {
   lastCheckMs: number;
   reason?: 'ok' | 'missing_key' | 'invalid_key_format' | 'auth_failed' | 'provider_down' | 'timeout' | 'network_error' | 'unknown';
   validated?: boolean;
+  configured?: boolean;
+  keyValid?: boolean;
   statusCode?: number;
   averageLatency?: number;
   errorCount?: number;
@@ -64,6 +66,7 @@ async function checkProvidersHealth(): Promise<ProviderStatus[]> {
   }
 
   const snapshot = await validateProvidersAtRuntime();
+  const runtimeConfig = resolveRuntimeProviderConfig();
   const providers: ProviderStatus[] = [
     {
       name: 'huggingface',
@@ -71,6 +74,8 @@ async function checkProvidersHealth(): Promise<ProviderStatus[]> {
       lastCheckMs: snapshot.huggingface.latencyMs,
       reason: snapshot.huggingface.reason,
       validated: snapshot.huggingface.validated,
+      configured: runtimeConfig.hfTokens.length > 0,
+      keyValid: snapshot.huggingface.keyValid,
       statusCode: snapshot.huggingface.statusCode,
     },
     {
@@ -79,6 +84,8 @@ async function checkProvidersHealth(): Promise<ProviderStatus[]> {
       lastCheckMs: snapshot.openai.latencyMs,
       reason: snapshot.openai.reason,
       validated: snapshot.openai.validated,
+      configured: !!runtimeConfig.openAiKey,
+      keyValid: snapshot.openai.keyValid,
       statusCode: snapshot.openai.statusCode,
     },
   ];
@@ -121,18 +128,28 @@ function getModeStatus(): ModeStatus[] {
  * Calculate overall health status
  */
 function calculateOverallHealth(providers: ProviderStatus[]): 'healthy' | 'degraded' | 'unavailable' {
-  const reachableCount = providers.filter((p) => p.reachable).length;
+  // Demo is a local fallback; it should not count as a real upstream provider.
+  const upstreamProviders = providers.filter((p) => p.name !== 'demo');
+  const configuredProviders = upstreamProviders.filter((p) => p.configured);
 
-  if (reachableCount === 0) {
-    // All providers down, but we have demo mode
+  if (configuredProviders.length === 0) {
+    // APIs remain available via demo mode, but no live upstream configured.
     return 'degraded';
   }
 
-  if (reachableCount < providers.length) {
+  const hasHardConfigFailure = configuredProviders.some(
+    (p) => p.reason === 'invalid_key_format' || p.reason === 'auth_failed'
+  );
+  if (hasHardConfigFailure) {
     return 'degraded';
   }
 
-  return 'healthy';
+  const validatedCount = configuredProviders.filter((p) => p.validated).length;
+  if (validatedCount >= 1) {
+    return 'healthy';
+  }
+
+  return 'degraded';
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -155,6 +172,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       lastCheckMs: 1,
       reason: 'ok',
       validated: true,
+      configured: true,
+      keyValid: true,
     };
     const providers: ProviderStatus[] = [...await checkProvidersHealth(), demoProvider];
     const modes = getModeStatus();

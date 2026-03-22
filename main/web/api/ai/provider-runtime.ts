@@ -77,33 +77,53 @@ function classifyFailure(statusCode?: number, detail?: string): ProviderReason {
   return 'ok';
 }
 
+function looksLikePlaceholderValue(raw: string): boolean {
+  const value = raw.trim();
+  const lower = value.toLowerCase();
+
+  // Exact placeholder-like values we commonly see in env templates.
+  const exactPlaceholders = new Set([
+    '',
+    'your_key_here',
+    'your_api_key_here',
+    'replace_me',
+    'placeholder',
+    'demo',
+    'test',
+    'fake',
+    'invalid',
+    'null',
+    'undefined',
+  ]);
+  if (exactPlaceholders.has(lower)) return true;
+
+  // Template/interpolation leftovers like ${OPENAI_API_KEY} or <HF_TOKEN>.
+  if (/^\$\{.+\}$/.test(value)) return true;
+  if (/^<[^>]+>$/.test(value)) return true;
+
+  // Repeated-character stubs (e.g., xxxxx, 000000, aaaaaa).
+  if (/^(.)\1{5,}$/.test(lower)) return true;
+
+  return false;
+}
+
 /**
  * Detect placeholder, demo, or obviously invalid keys
  */
 function isInvalidKeyFormat(key: string, provider: 'huggingface' | 'openai'): boolean {
   if (!key || key.length < 10) return true;
 
-  const lower = key.toLowerCase();
-
-  // Detect common placeholder patterns
-  const placeholders = [
-    'xxx', 'demo', 'test', 'placeholder', 'invalid', 'fake',
-    'pk_test', 'sk_test', 'null', 'undefined', '0000', 'aaaa', 'bbbb'
-  ];
-
-  if (placeholders.some(p => lower.includes(p))) {
-    return true;
-  }
+  if (looksLikePlaceholderValue(key)) return true;
 
   // HuggingFace keys should start with 'hf_'
   if (provider === 'huggingface') {
     if (!key.startsWith('hf_')) return true;
-    if (key.length < 20) return true; // HF tokens are typically longer
+    if (key.length < 24) return true; // HF tokens are typically longer
   }
 
-  // OpenAI keys should start with 'sk-' or 'sk_'
+  // OpenAI keys should start with sk-* variants (sk-, sk_, sk-proj-)
   if (provider === 'openai') {
-    if (!key.match(/^sk[-_]/i)) return true;
+    if (!key.match(/^sk(?:-|_)/i)) return true;
     if (key.length < 20) return true; // OpenAI tokens are typically longer
   }
 
