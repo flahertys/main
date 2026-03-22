@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Mic, Wallet, Zap, Brain, MessageCircle, BarChart3 } from "lucide-react";
 import { API_ENDPOINTS } from "./lib/endpoints";
+import { resolveSiteCapabilities } from "./lib/capabilities";
 import PolyClawAssistant from "./features/polyclaw/PolyClawAssistant.jsx";
 
 const STARTER_PROMPTS = [
