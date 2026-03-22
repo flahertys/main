@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import NeuralHub from "../NeuralHub.jsx";
 import IntelligencePage from "../features/intelligence/IntelligencePage.jsx";
-import GuitarLessonsPage from "./music/lessons/page.tsx";
+import MusicHub from "../components/MusicHub.jsx";
 
 export default function AppShell() {
   return (
@@ -11,7 +11,7 @@ export default function AppShell() {
         <Route path="/" element={<NeuralHub />} />
         <Route path="/intelligence" element={<IntelligencePage />} />
         <Route path="/neural-hub" element={<NeuralHub />} />
-        <Route path="/music" element={<GuitarLessonsPage />} />
+        <Route path="/music" element={<MusicHub />} />
       </Routes>
     </BrowserRouter>
   );
