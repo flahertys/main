@@ -88,7 +88,7 @@ export default async function handler(
       const { text, usage } = await generateText({
         model: xai("grok-4"),
         prompt: "Respond with: OK",
-        maxTokens: 10,
+        maxOutputTokens: 10,
       });
 
       result.checks.grok.available = text.includes("OK");

@@ -30,6 +30,8 @@ interface ChallengeRecord {
   expiresAt: number;
 }
 
+type TypedDataShape = NonNullable<ChallengeRecord['typedData']>;
+
 interface ProofRecord {
   address: string;
   chainId: string;
@@ -48,6 +50,17 @@ function proofKey(address: string, chainId: string): string {
 
 function isExpired(expiresAt: number): boolean {
   return Date.now() > expiresAt;
+}
+
+function toTypedDataShape(input: unknown): TypedDataShape | undefined {
+  if (!input || typeof input !== 'object') return undefined;
+  const source = input as Record<string, any>;
+  if (!source.domain || !source.types || !source.value) return undefined;
+  return {
+    domain: source.domain as Record<string, any>,
+    types: source.types as Record<string, Array<{ name: string; type: string }>>,
+    value: source.value as Record<string, any>,
+  };
 }
 
 export async function issueChallenge(params: {
@@ -145,7 +158,7 @@ export async function getChallenge(nonce: string): Promise<ChallengeRecord | nul
       chainId: durable.chainId,
       signatureType: durable.signatureType,
       message: durable.message,
-      typedData: durable.typedData,
+      typedData: toTypedDataShape(durable.typedData),
       issuedAt: durable.issuedAt,
       expiresAt: durable.expiresAt,
     };
@@ -170,7 +183,7 @@ export async function consumeChallenge(nonce: string): Promise<ChallengeRecord |
           chainId: durable.chainId,
           signatureType: durable.signatureType,
           message: durable.message,
-          typedData: durable.typedData,
+          typedData: toTypedDataShape(durable.typedData),
           issuedAt: durable.issuedAt,
           expiresAt: durable.expiresAt,
         };

@@ -64,7 +64,7 @@ const DOMAIN_SUPABASE_CONFIG: Record<string, DomainSupabaseConfig> = {
 /**
  * Cache for Supabase admin clients by domain
  */
-const supabaseAdminClients = new Map<string, ReturnType<typeof createClient>>();
+const supabaseAdminClients = new Map<string, ReturnType<typeof createClient<any>>>();
 
 /**
  * Extract the domain from the request
@@ -112,7 +112,7 @@ export function getSupabaseAdminForDomain(domain: string) {
     );
   }
 
-  const client = createClient(config.supabaseUrl, config.supabaseServiceKey, {
+  const client = createClient<any>(config.supabaseUrl, config.supabaseServiceKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,

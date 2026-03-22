@@ -13,12 +13,38 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { xai } from "@ai-sdk/xai";
 import { streamText } from "ai";
 import { getSession, getRecentMessages } from "../sessions/store.js";
+import { recordAIChatEvent } from "./telemetry-repository.js";
 
 const XAI_API_KEY = process.env.XAI_API_KEY || "";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
+}
+
+const MAX_MESSAGE_LENGTH = 8000;
+const MAX_CONTEXT_MESSAGES = 12;
+
+function toChatMessage(value: unknown): ChatMessage | null {
+  if (!value || typeof value !== "object") return null;
+  const role = (value as { role?: unknown }).role;
+  const content = (value as { content?: unknown }).content;
+  if (role !== "system" && role !== "user" && role !== "assistant") return null;
+  if (typeof content !== "string") return null;
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+  return {
+    role,
+    content: trimmed.slice(0, MAX_MESSAGE_LENGTH),
+  };
+}
+
+function sanitizeContextMessages(input: unknown): ChatMessage[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map(toChatMessage)
+    .filter((msg): msg is ChatMessage => !!msg)
+    .slice(-MAX_CONTEXT_MESSAGES);
 }
 
 const SYSTEM_PROMPT = `You are Grok, an advanced AI assistant created by xAI specializing in cryptocurrency trading and market analysis.
@@ -57,13 +83,35 @@ async function handleGrokRequest(
   }
 
   const { message, sessionId, conversationContext } = req.body;
+  const requestId =
+    String(req.headers["x-request-id"] || "").trim() ||
+    `grok-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 
   if (!message || typeof message !== "string") {
     res.status(400).json({ error: "Missing or invalid 'message' field" });
     return;
   }
 
+  const normalizedMessage = message.trim().slice(0, MAX_MESSAGE_LENGTH);
+  if (!normalizedMessage) {
+    res.status(400).json({ error: "Message cannot be empty" });
+    return;
+  }
+
+  const requestStart = Date.now();
+
   try {
+    await recordAIChatEvent({
+      eventType: "chat_started",
+      timestamp: requestStart,
+      sessionId: typeof sessionId === "string" ? sessionId : undefined,
+      mode: "advanced",
+      requestedMode: "grok",
+      effectiveMode: "grok",
+      userMessageLength: normalizedMessage.length,
+      metadata: { requestId, provider: "xai", endpoint: "/api/ai/grok" },
+    });
+
     // Get session if provided
     let session;
     if (sessionId) {
@@ -75,15 +123,15 @@ async function handleGrokRequest(
 
     // Add conversation context if provided
     if (conversationContext && Array.isArray(conversationContext)) {
-      messages.push(...conversationContext);
+      messages.push(...sanitizeContextMessages(conversationContext));
     } else if (session) {
       // Get recent messages from session
       const recentMessages = await getRecentMessages(sessionId, 5);
-      messages.push(...recentMessages);
+      messages.push(...sanitizeContextMessages(recentMessages));
     }
 
     // Add current message
-    messages.push({ role: "user", content: message });
+    messages.push({ role: "user", content: normalizedMessage });
 
     // Set response headers for streaming
     res.setHeader("Content-Type", "text/event-stream");
@@ -100,7 +148,6 @@ async function handleGrokRequest(
     });
 
     let fullResponse = "";
-    let tokenCount = 0;
 
     // Stream chunks to client
     for await (const chunk of result.textStream) {
@@ -120,6 +167,7 @@ async function handleGrokRequest(
     res.write(
       `data: ${JSON.stringify({
         done: true,
+        requestId,
         usage: {
           promptTokens: usageSafe.inputTokens ?? 0,
           completionTokens: usageSafe.outputTokens ?? 0,
@@ -130,13 +178,40 @@ async function handleGrokRequest(
       })}\n\n`
     );
 
+    await recordAIChatEvent({
+      eventType: "chat_completed",
+      timestamp: Date.now(),
+      sessionId: typeof sessionId === "string" ? sessionId : undefined,
+      mode: "advanced",
+      requestedMode: "grok",
+      effectiveMode: "grok",
+      latencyMs: Date.now() - requestStart,
+      model: "grok-4",
+      userMessageLength: normalizedMessage.length,
+      responseLength: fullResponse.length,
+      metadata: { requestId, provider: "xai", endpoint: "/api/ai/grok" },
+    });
+
     res.end();
   } catch (error: any) {
     console.error("Grok-4 API Error:", error);
 
+    await recordAIChatEvent({
+      eventType: "api_fallback",
+      timestamp: Date.now(),
+      sessionId: typeof sessionId === "string" ? sessionId : undefined,
+      mode: "advanced",
+      requestedMode: "grok",
+      effectiveMode: "grok",
+      latencyMs: Date.now() - requestStart,
+      errorMessage: error?.message || "Failed to get response from Grok-4",
+      metadata: { requestId, provider: "xai", endpoint: "/api/ai/grok" },
+    });
+
     // Send error through stream
     res.write(
       `data: ${JSON.stringify({
+        requestId,
         error: error.message || "Failed to get response from Grok-4",
         code: error.status || 500,
       })}\n\n`
