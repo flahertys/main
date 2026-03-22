@@ -28,7 +28,7 @@ interface ProviderStatus {
 }
 
 interface ModeStatus {
-  mode: 'base' | 'advanced' | 'odin';
+  mode: 'base' | 'advanced' | 'odin' | 'polyclaw';
   available: boolean;
   gatingActive: boolean;
   unlockReason?: string;
@@ -130,6 +130,12 @@ function getModeStatus(): ModeStatus[] {
       unlockReason: odinUnlocked
         ? 'ODIN_OPEN_MODE or ODIN_KEY configured'
         : 'ODIN locked - wallet unlock required',
+    },
+    {
+      mode: 'polyclaw',
+      available: true,
+      gatingActive: false,
+      unlockReason: 'Native Polymarket Assistant mode',
     },
   ];
 }
@@ -243,6 +249,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         { mode: 'base', available: true, gatingActive: false },
         { mode: 'advanced', available: true, gatingActive: false },
         { mode: 'odin', available: false, gatingActive: true, unlockReason: 'Health check error' },
+        { mode: 'polyclaw', available: true, gatingActive: false },
       ],
       telemetry: {
         healthy: false,
@@ -262,4 +269,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json(response);
   }
 }
-
