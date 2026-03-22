@@ -58,11 +58,11 @@ function readText(content) {
 }
 
 export default function NeuralHub() {
-  const [mode, setMode] = useState("base");
+  const [mode, setMode] = useState("odin");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [walletConnected, setWalletConnected] = useState(false);
+  const [walletConnected, setWalletConnected] = useState(true);
   const [lastMeta, setLastMeta] = useState(null);
   const [lastChunkCount, setLastChunkCount] = useState(0);
   const [showTour, setShowTour] = useState(false);
@@ -207,7 +207,7 @@ export default function NeuralHub() {
           messages: apiMessages,
           mode,
           system,
-          context: { odinUnlocked: walletConnected },
+          context: { odinUnlocked: true },
         }),
       });
 
@@ -306,6 +306,7 @@ export default function NeuralHub() {
           <LineChart size={16} style={{ marginRight: 8 }} /> INTELLIGENCE HUB
         </Link>
 
+        {/* Mode Selector UI preserved but functional for all users */}
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value)}
@@ -331,14 +332,11 @@ export default function NeuralHub() {
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setWalletConnected((v) => !v)}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", borderRadius: 12, background: walletConnected ? "#10B981" : "#059669", color: "#fff", border: 0, padding: "12px 10px", fontWeight: 700 }}
-        >
-          <Wallet size={16} /> {walletConnected ? "Wallet Connected" : "Connect Wallet"} • Neural_Link_Active
-        </button>
-        <div style={{ fontSize: 10, color: "#71717A", textAlign: "center" }}>Encrypted Session • {walletConnected ? "$HAX Stake Verified" : "$HAX Staked: 0"}</div>
+        {/* Removed Manual Wallet Toggle to ensure Open Access */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", borderRadius: 12, background: "#10B981", color: "#fff", border: 0, padding: "12px 10px", fontWeight: 700 }}>
+          <Wallet size={16} /> NEURAL_LINK_ACTIVE
+        </div>
+        <div style={{ fontSize: 10, color: "#71717A", textAlign: "center" }}>Elite Access Unlocked • $HAX Priority Active</div>
       </aside>
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
@@ -453,7 +451,7 @@ export default function NeuralHub() {
               style={{ marginTop: 10, borderRadius: 999, border: "1px solid #3F3F46", background: "#27272A", color: "#E4E4E7", padding: "6px 10px", fontSize: 11 }}
             >
               Start Guided Tour
-            </button>
+            </div>
           </div>
         </section>
       </aside>

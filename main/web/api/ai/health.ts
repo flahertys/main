@@ -108,7 +108,8 @@ async function checkProvidersHealth(): Promise<ProviderStatus[]> {
  * Determine mode availability based on gating configuration
  */
 function getModeStatus(): ModeStatus[] {
-  const odinUnlocked = process.env.TRADEHAX_ODIN_OPEN_MODE === 'true' || !!process.env.TRADEHAX_ODIN_KEY;
+  // Open Access: ODIN mode is always available regardless of environment keys or wallet
+  const odinUnlocked = true;
 
   return [
     {
@@ -125,11 +126,9 @@ function getModeStatus(): ModeStatus[] {
     },
     {
       mode: 'odin',
-      available: odinUnlocked,
-      gatingActive: !odinUnlocked,
-      unlockReason: odinUnlocked
-        ? 'ODIN_OPEN_MODE or ODIN_KEY configured'
-        : 'ODIN locked - wallet unlock required',
+      available: true,
+      gatingActive: false,
+      unlockReason: 'TRADEHAX OPEN ACCESS MODE ACTIVE',
     },
     {
       mode: 'polyclaw',

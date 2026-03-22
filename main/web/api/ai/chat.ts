@@ -1078,31 +1078,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       recentMessages: (recentMessages || messages.slice(-8)) as ChatMessage[],
       marketSnapshot,
     };
-    // --- Mode governance (ODIN can be gated unless explicitly unlocked) ---
+    // --- Mode governance (ODIN stays UNGATED for Open Access) ---
     const requestedMode: 'base' | 'advanced' | 'odin' =
       body.mode === 'odin' ? 'odin' : body.mode === 'advanced' ? 'advanced' : 'base';
-    const odinOpen = (process.env.TRADEHAX_ODIN_OPEN_MODE || '').toLowerCase() === 'true';
-    const odinHeaderKey = String(req.headers['x-odin-key'] || '');
-    const odinServerKey = String(process.env.TRADEHAX_ODIN_KEY || '');
-    const hasOdinKey = !!odinHeaderKey && !!odinServerKey && odinHeaderKey === odinServerKey;
-    const odinUnlocked = odinOpen || !!(body.context as any)?.odinUnlocked || hasOdinKey;
-    const effectiveMode: 'base' | 'advanced' | 'odin' = requestedMode === 'odin' && !odinUnlocked ? 'advanced' : requestedMode;
-    const modeGated = requestedMode === 'odin' && effectiveMode !== 'odin';
 
-    // --- Record mode gating telemetry ---
-    if (modeGated) {
-      await recordAIChatEvent({
-        eventType: 'gating_applied',
-        timestamp: Date.now(),
-        sessionId,
-        userId: userProfile?.userId,
-        mode: requestedMode,
-        requestedMode,
-        effectiveMode,
-        gated: true,
-        metadata: { odinOpen, hasOdinKey, unlockAttempted: !odinUnlocked },
-      });
-    }
+    // Open Access: Always unlock ODIN regardless of keys or headers
+    const odinUnlocked = true;
+    const effectiveMode: 'base' | 'advanced' | 'odin' = requestedMode;
+    const modeGated = false;
 
     // --- Build System Prompt ---
     let systemPrompt: string;
